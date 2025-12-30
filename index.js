@@ -422,11 +422,11 @@ export class MDLDParser {
       const token = tokens[i];
 
       if (token.type === 'heading') {
-        // First h1 becomes title (but don't emit if heading has #id attribute)
+        // First h1 becomes label (but don't emit if heading has #id attribute)
         if (token.depth === 1 && !titleEmitted && !token.attrs.id) {
           this.emitQuad(
             this.rootSubject,
-            this.df.namedNode('http://purl.org/dc/terms/title'),
+            this.df.namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
             this.df.literal(token.text)
           );
           titleEmitted = true;
@@ -460,6 +460,13 @@ export class MDLDParser {
               }
             });
           }
+
+          // Heading text becomes an rdfs:label of the subject
+          this.emitQuad(
+            newSubject,
+            this.df.namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+            this.df.literal(token.text.trim())
+          );
 
           // Set as current subject
           this.currentSubject = newSubject;

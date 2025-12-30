@@ -12,7 +12,7 @@ export const testDocuments = {
 This is a simple document.`,
     expectedQuads: 2,
     checks: [
-      { subject: '', predicate: 'title', object: 'Hello World' },
+      { subject: '', predicate: 'label', object: 'Hello World' },
       { subject: '', predicate: 'description', object: 'This is a simple document.' }
     ]
   },
@@ -31,7 +31,7 @@ name: 'Test Article'
     expectedQuads: 2,
     checks: [
       { subject: '#doc', predicate: 'type', object: 'Article' },
-      { subject: '#doc', predicate: 'title', object: 'Test Article' }
+      { subject: '#doc', predicate: 'label', object: 'Test Article' }
     ]
   },
 
@@ -47,9 +47,10 @@ name: 'Test Article'
 {#alice typeof="Person"}
 
 Alice is a developer.`,
-    expectedQuads: 1,
+    expectedQuads: 3,
     checks: [
-      { subject: '#alice', predicate: 'type', object: 'Person' }
+      { subject: '#alice', predicate: 'type', object: 'Person' },
+      { subject: '#alice', predicate: 'label', literal: 'Alice Johnson' }
     ]
   },
 
@@ -224,7 +225,7 @@ This is the abstract of my article.
 More content follows.`,
     expectedQuads: 3,
     checks: [
-      { subject: '#doc', predicate: 'title', literal: 'My Article' },
+      { subject: '#doc', predicate: 'label', literal: 'My Article' },
       { subject: '#doc', predicate: 'description', literal: 'This is the abstract of my article.' }
     ]
   },

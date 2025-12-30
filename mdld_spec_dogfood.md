@@ -103,7 +103,7 @@ Maps to:
 
 ```turtle
 <#doc> a schema:NoteDigitalDocument ;
-  dct:title "My Research Notes" .
+  rdfs:label "My Research Notes" .
 ```
 
 ### First Paragraph {#first-para-rule typeof="HowToSection"}
@@ -149,8 +149,10 @@ Turtle:
 
 ```turtle
 @prefix schema: <http://schema.org/> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
 
-<http://example.org/people#alice> a schema:Person .
+<http://example.org/people#alice> a schema:Person ;
+  rdfs:label "Alice Johnson" .
 ```
 
 ### Literal Properties {#literal-props typeof="HowToSection"}
@@ -301,7 +303,7 @@ Extend tasks semantically:
 Maps to:
 
 ```turtle
-<urn:md:tasks1> <http://purl.org/dc/terms/title> "Tasks" .
+<urn:md:tasks1> <http://www.w3.org/2000/01/rdf-schema#label> "Tasks" .
 <urn:md:tasks1#review> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Event> .
 <urn:md:tasks1#review> <http://schema.org/name> "Complete review" .
 <urn:md:tasks1#review> <http://schema.org/actionStatus> <http://schema.org/CompletedActionStatus> .
