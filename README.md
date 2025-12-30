@@ -14,9 +14,7 @@ MD-LD allows you to author RDF graphs directly in Markdown using familiar syntax
 "@type": Article
 ---
 
-# My Article
-
-{#article typeof="Article"}
+# My Article {#article typeof="Article"}
 
 Written by [Alice Johnson](#alice){property="author" typeof="Person"}
 
