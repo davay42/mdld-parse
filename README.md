@@ -249,13 +249,11 @@ For RDF lists (`rdf:List`), use `@inlist` in generated HTML.
 
 Fenced code blocks are automatically mapped to `schema:SoftwareSourceCode`:
 
-````markdown
-```sparql {#query-1}
+```markdown
+\`\`\`sparql {#query-1}
 SELECT * WHERE { ?s ?p ?o }
+\`\`\`
 ```
-````
-
-````
 
 Creates:
 - A `schema:SoftwareSourceCode` resource (or custom type via `typeof`)
