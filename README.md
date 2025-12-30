@@ -2,6 +2,8 @@
 
 A standards-compliant parser for **MD-LD (Markdown-Linked Data)** — a human-friendly RDF authoring format that extends Markdown with semantic annotations.
 
+[NPM](https://www.npmjs.com/package/mdld-parse)
+
 ## What is MD-LD?
 
 MD-LD allows you to author RDF graphs directly in Markdown using familiar syntax:
@@ -251,11 +253,12 @@ Fenced code blocks are automatically mapped to `schema:SoftwareSourceCode`:
 
 ```markdown
 \`\`\`sparql {#query-1}
-SELECT * WHERE { ?s ?p ?o }
+SELECT \* WHERE { ?s ?p ?o }
 \`\`\`
 ```
 
 Creates:
+
 - A `schema:SoftwareSourceCode` resource (or custom type via `typeof`)
 - `schema:programmingLanguage` from the info string (`sparql`)
 - `schema:text` with the raw source code
@@ -275,7 +278,7 @@ Blank nodes are created for:
 
 ```bash
 npm test
-````
+```
 
 Tests cover:
 
