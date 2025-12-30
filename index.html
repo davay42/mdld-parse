@@ -13,21 +13,21 @@
     }
 
     body {
-      font: 14px/1.6 system-ui, -apple-system, sans-serif;
+      font: 13px/1.5 system-ui, -apple-system, sans-serif;
       max-width: 1600px;
       margin: 0 auto;
-      padding: 20px;
-      background: #f5f5f5;
-      color: #333;
+      padding: 16px;
+      background: #ffffff;
+      color: #1a1a1a;
     }
 
     header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #1a1a1a;
       color: white;
-      padding: 24px;
+      padding: 20px;
       border-radius: 8px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 16px;
+      border: 1px solid #333;
     }
 
     header h1 {
@@ -48,7 +48,7 @@
     }
 
     .links a {
-      background: rgba(255, 255, 255, 0.2);
+      background: #0066cc;
       color: white;
       padding: 6px 14px;
       border-radius: 6px;
@@ -59,13 +59,13 @@
     }
 
     .links a:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: #0052a3;
     }
 
     .container {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 16px;
     }
 
     @media (max-width: 1100px) {
@@ -83,8 +83,8 @@
 
     .panel-header {
       background: #f8f9fa;
-      padding: 16px 20px;
-      border-bottom: 1px solid #e9ecef;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -97,26 +97,26 @@
     }
 
     .panel-body {
-      padding: 20px;
+      padding: 16px;
     }
 
     textarea {
       width: 100%;
-      height: 500px;
-      padding: 16px;
+      height: 450px;
+      padding: 12px;
       font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      border: 1px solid #dee2e6;
+      font-size: 12px;
+      line-height: 1.5;
+      border: 1px solid #ccc;
       border-radius: 6px;
       resize: vertical;
-      background: #f8f9fa;
-      color: #212529;
+      background: #fafafa;
+      color: #1a1a1a;
     }
 
     textarea:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #0066cc;
       background: white;
     }
 
@@ -138,21 +138,22 @@
     }
 
     .example-btn:hover {
-      border-color: #667eea;
-      color: #667eea;
-      background: #f8f9ff;
+      border-color: #0066cc;
+      color: #0066cc;
+      background: #f0f7ff;
     }
 
     .output {
-      background: #1e1e1e;
-      color: #d4d4d4;
-      padding: 16px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 12px;
       border-radius: 6px;
       overflow: auto;
-      max-height: 500px;
+      max-height: 450px;
       font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-      font-size: 12px;
-      line-height: 1.7;
+      font-size: 11px;
+      line-height: 1.6;
+      border: 1px solid #333;
     }
 
     .quad {
@@ -192,8 +193,8 @@
 
     .stat strong {
       display: block;
-      font-size: 24px;
-      color: #667eea;
+      font-size: 22px;
+      color: #0066cc;
       font-weight: 700;
       line-height: 1;
       margin-bottom: 4px;
@@ -246,19 +247,19 @@
     }
 
     .parse-btn {
-      padding: 10px 20px;
-      background: #667eea;
+      padding: 8px 16px;
+      background: #0066cc;
       color: white;
       border: none;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.2s;
     }
 
     .parse-btn:hover {
-      background: #5568d3;
+      background: #0052a3;
     }
 
     .parse-btn:active {
@@ -297,33 +298,48 @@
       <div class="panel-header">
         <h2>📝 MD-LD Input</h2>
         <div class="examples">
-          <button class="example-btn" data-example="minimal">Minimal</button>
-          <button class="example-btn" data-example="basicFrontmatter">Frontmatter</button>
-          <button class="example-btn" data-example="literalProperty">Properties</button>
-          <button class="example-btn" data-example="objectProperty">Relations</button>
+          <button class="example-btn" data-example="comprehensive">All Features</button>
+          <button class="example-btn" data-example="codeBlock">Code Blocks</button>
           <button class="example-btn" data-example="taskList">Tasks</button>
+          <button class="example-btn" data-example="semanticLinkList">Lists</button>
+          <button class="example-btn" data-example="minimal">Minimal</button>
         </div>
       </div>
       <div class="panel-body">
         <textarea id="input" placeholder="Paste your MD-LD document here...">---
-'@context':
-  '@vocab': 'http://schema.org/'
-  foaf: 'http://xmlns.com/foaf/0.1/'
-'@id': '#alice'
-'@type': Person
+"@context":
+  "@vocab": "http://schema.org/"
+  dct: "http://purl.org/dc/terms/"
+"@id": "#doc"
+"@type": Article
 ---
 
-# Alice Johnson
-{#alice typeof="Person"}
+# Research Notes {#doc typeof="Article"}
 
-[Alice Johnson]{property="name"} is a [Senior Developer]{property="jobTitle"}.
+[Research Notes]{property="name"} demonstrates [all MD-LD features]{property="description"}.
 
-She works at [Tech Corp](#company){rel="worksFor" typeof="Organization"}.
+## Code Examples {#code typeof="ItemList"}
 
-## Tasks
+```sparql {#query-1 typeof="SoftwareSourceCode"}
+SELECT ?s ?p ?o WHERE { ?s ?p ?o }
+```
 
-- [x] Complete code review
-- [ ] Write documentation</textarea>
+```javascript {#example-js}
+const quads = parseMDLD(markdown);
+```
+
+## Tasks {#tasks}
+
+- [x] Parse documents {#task-1 typeof="Action"}
+- [ ] Generate RDF {#task-2}
+
+## Properties {#props}
+
+[Alice]{property="name"} is [30]{property="age" datatype="xsd:integer"} years old.
+
+## Relations {#relations}
+
+[Tech Corp](#company){rel="worksFor"} and [Open Source](#oss){rel="contributesTo"}</textarea>
       </div>
     </div>
 
@@ -490,10 +506,21 @@ She works at [Tech Corp](#company){rel="worksFor" typeof="Organization"}.
     });
 
     // Example buttons
+    const examples = {
+      comprehensive: '---\n"@context":\n  "@vocab": "http://schema.org/"\n  dct: "http://purl.org/dc/terms/"\n"@id": "#doc"\n"@type": Article\n---\n\n# Research Notes {#doc typeof="Article"}\n\n[Research Notes]{property="name"} demonstrates [all MD-LD features]{property="description"}.\n\n## Code Examples {#code typeof="ItemList"}\n\n```sparql {#query-1 typeof="SoftwareSourceCode"}\nSELECT ?s ?p ?o WHERE { ?s ?p ?o }\n```\n\n```javascript {#example-js}\nconst quads = parseMDLD(markdown);\n```\n\n## Tasks {#tasks}\n\n- [x] Parse documents {#task-1 typeof="Action"}\n- [ ] Generate RDF {#task-2}\n\n## Properties {#props}\n\n[Alice]{property="name"} is [30]{property="age" datatype="xsd:integer"} years old.\n\n## Relations {#relations}\n\n[Tech Corp](#company){rel="worksFor"} and [Open Source](#oss){rel="contributesTo"}',
+      codeBlock: '---\n"@context":\n  "@vocab": "http://schema.org/"\n"@id": "#doc"\n---\n\n# Code Examples\n\n```sparql {#query-all typeof="SoftwareSourceCode"}\nSELECT ?s ?p ?o WHERE {\n  ?s ?p ?o .\n}\nLIMIT 100\n```\n\n```python {#example-python}\ndef parse_mdld(text):\n    return parseMDLD(text)\n```',
+      taskList: '---\n"@context":\n  "@vocab": "http://schema.org/"\n"@id": "#doc"\n---\n\n# Tasks\n\n- [x] Complete review {#review typeof="Event"}\n- [ ] Submit paper {#submit}\n- [ ] Write tests',
+      semanticLinkList: '---\n"@context":\n  "@vocab": "http://schema.org/"\n"@id": "#doc"\n---\n\n# Table of Contents\n\n- [Introduction](#intro){rel="hasPart"}\n- [Features](#features){rel="hasPart"}\n- [Examples](#examples){rel="hasPart"}\n- [Reference](#reference){rel="hasPart"}',
+      minimal: testDocuments.minimal.markdown
+    };
+
     document.querySelectorAll('.example-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const example = btn.dataset.example;
-        if (testDocuments[example]) {
+        if (examples[example]) {
+          input.value = examples[example];
+          parseAndDisplay();
+        } else if (testDocuments[example]) {
           input.value = testDocuments[example].markdown;
           parseAndDisplay();
         }
@@ -507,7 +534,7 @@ She works at [Tech Corp](#company){rel="worksFor" typeof="Organization"}.
 
       testsContainer.innerHTML = '';
       testStatus.textContent = 'Running tests...';
-      testStatus.style.color = '#667eea';
+      testStatus.style.color = '#0066cc';
 
       try {
         const { results } = await runTests({
