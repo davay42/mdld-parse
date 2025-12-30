@@ -1,0 +1,39 @@
+{
+	"name": "mdld-parse",
+	"version": "0.1.0",
+	"description": "A standards-compliant parser for **MD-LD (Markdown-Linked Data)** — a human-friendly RDF authoring format that extends Markdown with semantic annotations.",
+	"type": "module",
+	"main": "index.js",
+	"exports": {
+		".": "./index.js",
+		"./tests": "./tests.js"
+	},
+	"files": [
+		"index.js",
+		"tests.js"
+	],
+	"scripts": {
+		"test": "node tests.js"
+	},
+	"keywords": [
+		"mdld",
+		"markdown",
+		"rdf",
+		"semantic-web",
+		"linked-data",
+		"n3",
+		"rdfjs",
+		"browser",
+		"web-worker",
+		"parser"
+	],
+	"author": "davay42",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/davay42/mdld-parse.git"
+	},
+	"homepage": "https://davay42.github.io/mdld-parse/",
+	"bugs": {
+		"url": "https://github.com/davay42/mdld-parse/issues"
+	}
+}
