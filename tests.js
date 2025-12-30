@@ -227,6 +227,21 @@ More content follows.`,
       { subject: '#doc', predicate: 'title', literal: 'My Article' },
       { subject: '#doc', predicate: 'description', literal: 'This is the abstract of my article.' }
     ]
+  },
+
+  semanticLinkList: {
+    name: 'Semantic Links in Bullet List',
+    markdown: `---
+'@context':
+  '@vocab': 'http://schema.org/'
+'@id': '#doc'
+---
+
+- [What it is!](#what-is){rel="hasPart"}`,
+    expectedQuads: 1,
+    checks: [
+      { subject: '#doc', predicate: 'hasPart', object: '#what-is' }
+    ]
   }
 };
 

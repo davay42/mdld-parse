@@ -176,10 +176,16 @@ function tokenizeMarkdown(text) {
     const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+?)(\s*\{[^}]+\})?$/);
     if (listMatch) {
       const [, indent, marker, text, attrs] = listMatch;
+
+      // If the list item has trailing attribute syntax (e.g. - [Link](#id){rel="hasPart"})
+      // treat those attributes as part of the inline content so that parseInline
+      // can correctly interpret them on the link/span itself.
+      const combinedText = attrs ? `${text}${attrs.trim()}` : text;
+
       tokens.push({
         type: 'listItem',
         indent: indent.length,
-        text: text.trim(),
+        text: combinedText.trim(),
         attrs: attrs ? parseAttributes(attrs) : {}
       });
       i++;
