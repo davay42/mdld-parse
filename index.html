@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MD-LD Parser — Markdown-Linked Data Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font: 14px/1.6 system-ui, -apple-system, sans-serif;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      opacity: 0.95;
+      font-size: 15px;
+    }
+
+    .links {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .links a {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .links a:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1100px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      background: #f8f9fa;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 500px;
+      padding: 16px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      resize: vertical;
+      background: #f8f9fa;
+      color: #212529;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+    }
+
+    .examples {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .example-btn {
+      padding: 6px 12px;
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #495057;
+    }
+
+    .example-btn:hover {
+      border-color: #667eea;
+      color: #667eea;
+      background: #f8f9ff;
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 16px;
+      border-radius: 6px;
+      overflow: auto;
+      max-height: 500px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .quad {
+      margin: 3px 0;
+      word-break: break-all;
+    }
+
+    .s {
+      color: #4ec9b0;
+    }
+
+    .p {
+      color: #dcdcaa;
+    }
+
+    .o {
+      color: #ce9178;
+    }
+
+    .lit {
+      color: #b5cea8;
+    }
+
+    .stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: #f8f9fa;
+      padding: 12px 16px;
+      border-radius: 6px;
+      border: 1px solid #e9ecef;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+      color: #667eea;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat span {
+      font-size: 12px;
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .error {
+      background: #fff5f5;
+      border: 1px solid #fc8181;
+      color: #c53030;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .tests {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .test-item {
+      padding: 10px 14px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 3px solid #e9ecef;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .test-item.pass {
+      border-left-color: #48bb78;
+      background: #f0fff4;
+    }
+
+    .test-item.fail {
+      border-left-color: #f56565;
+      background: #fff5f5;
+    }
+
+    .test-icon {
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    .parse-btn {
+      padding: 10px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .parse-btn:hover {
+      background: #5568d3;
+    }
+
+    .parse-btn:active {
+      transform: translateY(1px);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #6c757d;
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🔗 MD-LD Parser</h1>
+    <p>Author RDF graphs directly in Markdown — human-friendly, machine-readable</p>
+    <div class="links">
+      <a href="https://github.com/yourusername/mdld-parse" target="_blank">GitHub</a>
+      <a href="https://www.npmjs.com/package/mdld-parse" target="_blank">NPM</a>
+      <a href="#spec">Specification</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Input Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>📝 MD-LD Input</h2>
+        <div class="examples">
+          <button class="example-btn" data-example="minimal">Minimal</button>
+          <button class="example-btn" data-example="basicFrontmatter">Frontmatter</button>
+          <button class="example-btn" data-example="literalProperty">Properties</button>
+          <button class="example-btn" data-example="objectProperty">Relations</button>
+          <button class="example-btn" data-example="taskList">Tasks</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <textarea id="input" placeholder="Paste your MD-LD document here...">---
+'@context':
+  '@vocab': 'http://schema.org/'
+  foaf: 'http://xmlns.com/foaf/0.1/'
+'@id': '#alice'
+'@type': Person
+---
+
+# Alice Johnson
+{#alice typeof="Person"}
+
+[Alice Johnson]{property="name"} is a [Senior Developer]{property="jobTitle"}.
+
+She works at [Tech Corp](#company){rel="worksFor" typeof="Organization"}.
+
+## Tasks
+
+- [x] Complete code review
+- [ ] Write documentation</textarea>
+      </div>
+    </div>
+
+    <!-- Output Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>🔍 RDF Quads Output</h2>
+        <button class="parse-btn" id="parseBtn">Parse</button>
+      </div>
+      <div class="panel-body">
+        <div class="stats">
+          <div class="stat">
+            <strong id="quad-count">0</strong>
+            <span>Quads</span>
+          </div>
+          <div class="stat">
+            <strong id="subject-count">0</strong>
+            <span>Subjects</span>
+          </div>
+          <div class="stat">
+            <strong id="parse-time">0ms</strong>
+            <span>Parse Time</span>
+          </div>
+        </div>
+        <div id="error-container"></div>
+        <div id="output" class="output">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <p>Click "Parse" to generate RDF quads</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tests Panel (Full Width) -->
+    <div class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-header">
+        <h2>✅ Test Suite</h2>
+        <span id="test-status" style="font-size: 13px; color: #6c757d;">Ready</span>
+      </div>
+      <div class="panel-body">
+        <div id="tests" class="tests">
+          <div class="empty-state">
+            <p>Tests will run automatically on page load</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "mdld-parse": "./index.js",
+      "mdld-tests": "./tests.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { parseMDLD } from './index.js';
+    import { testDocuments, runTests } from './tests.js';
+
+    // Make parseMDLD available globally for tests
+    window.parseMDLD = parseMDLD;
+
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const parseBtn = document.getElementById('parseBtn');
+    const errorContainer = document.getElementById('error-container');
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatTerm(term) {
+      if (!term?.termType) return 'null';
+
+      const val = term.value || '';
+      const short = val.length > 80 ? '...' + val.slice(-77) : val;
+
+      if (term.termType === 'NamedNode') {
+        return `<span class="s">&lt;${escapeHtml(short)}&gt;</span>`;
+      }
+      if (term.termType === 'BlankNode') {
+        return `<span class="s">_:${escapeHtml(val)}</span>`;
+      }
+      if (term.termType === 'Literal') {
+        const escaped = escapeHtml(val.length > 100 ? val.slice(0, 97) + '...' : val);
+        let lit = `<span class="lit">"${escaped}"</span>`;
+        if (term.language) {
+          lit += `<span class="o">@${escapeHtml(term.language)}</span>`;
+        } else if (term.datatype?.value && term.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+          const dt = term.datatype.value;
+          const dtDisplay = dt.startsWith('http://www.w3.org/2001/XMLSchema#')
+            ? 'xsd:' + dt.substring(33)
+            : '&lt;' + escapeHtml(dt) + '&gt;';
+          lit += `<span class="o">^^${dtDisplay}</span>`;
+        }
+        return lit;
+      }
+      return `<span style="color:#888">${escapeHtml(term.termType)}</span>`;
+    }
+
+    function parseAndDisplay() {
+      errorContainer.innerHTML = '';
+      const startTime = performance.now();
+
+      try {
+        const markdown = input.value;
+        const quads = parseMDLD(markdown, {
+          baseIRI: location.origin
+        });
+
+        const parseTime = (performance.now() - startTime).toFixed(2);
+
+        if (quads.length === 0) {
+          output.innerHTML = '<div class="empty-state"><p>No quads extracted. Check your MD-LD syntax.</p></div>';
+          document.getElementById('quad-count').textContent = '0';
+          document.getElementById('subject-count').textContent = '0';
+          document.getElementById('parse-time').textContent = parseTime + 'ms';
+          return;
+        }
+
+        const subjects = new Set();
+        quads.forEach(q => {
+          if (q.subject?.value) subjects.add(q.subject.value);
+        });
+
+        document.getElementById('quad-count').textContent = quads.length;
+        document.getElementById('subject-count').textContent = subjects.size;
+        document.getElementById('parse-time').textContent = parseTime + 'ms';
+
+        const quadHtml = quads.map(q => {
+          const s = formatTerm(q.subject);
+          const p = formatTerm(q.predicate);
+          const o = formatTerm(q.object);
+          return `<div class="quad">${s} <span class="p">${p}</span> ${o} .</div>`;
+        }).join('');
+
+        output.innerHTML = quadHtml;
+
+      } catch (error) {
+        console.error('Parse error:', error);
+        errorContainer.innerHTML = `<div class="error">❌ <strong>Parse Error:</strong> ${escapeHtml(error.message)}</div>`;
+        output.innerHTML = '<div class="empty-state"><p>Parser encountered an error</p></div>';
+      }
+    }
+
+    // Parse button
+    parseBtn.addEventListener('click', parseAndDisplay);
+
+    // Auto-parse on Ctrl/Cmd+Enter
+    input.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        parseAndDisplay();
+      }
+    });
+
+    // Example buttons
+    document.querySelectorAll('.example-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const example = btn.dataset.example;
+        if (testDocuments[example]) {
+          input.value = testDocuments[example].markdown;
+          parseAndDisplay();
+        }
+      });
+    });
+
+    // Run tests
+    async function runTestSuite() {
+      const testsContainer = document.getElementById('tests');
+      const testStatus = document.getElementById('test-status');
+
+      testsContainer.innerHTML = '';
+      testStatus.textContent = 'Running tests...';
+      testStatus.style.color = '#667eea';
+
+      try {
+        const { results } = await runTests({
+          silent: true,
+          onResult: (result) => {
+            const div = document.createElement('div');
+            div.className = `test-item ${result.passed ? 'pass' : 'fail'}`;
+            const icon = result.passed ? '✓' : '✗';
+            const iconColor = result.passed ? '#48bb78' : '#f56565';
+            div.innerHTML = `
+              <span class="test-icon" style="color: ${iconColor}">${icon}</span>
+              ${escapeHtml(result.name)}
+              ${result.error ? `<div style="font-size: 11px; color: #6c757d; margin-top: 4px;">${escapeHtml(result.error)}</div>` : ''}
+            `;
+            testsContainer.appendChild(div);
+          }
+        });
+
+        const statusText = results.failed === 0
+          ? `✅ All ${results.passed} tests passed`
+          : `${results.passed}/${results.total} passed, ${results.failed} failed`;
+
+        testStatus.textContent = statusText;
+        testStatus.style.color = results.failed === 0 ? '#48bb78' : '#f56565';
+
+      } catch (error) {
+        console.error('Test runner error:', error);
+        testStatus.textContent = '❌ Error running tests';
+        testStatus.style.color = '#f56565';
+        testsContainer.innerHTML = `<div class="error">Error: ${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    // Initial parse and test run
+    setTimeout(() => {
+      parseAndDisplay();
+      runTestSuite();
+    }, 100);
+  </script>
+</body>
+
+</html>
