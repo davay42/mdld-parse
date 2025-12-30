@@ -243,6 +243,28 @@ More content follows.`,
     checks: [
       { subject: '#doc', predicate: 'hasPart', object: '#what-is' }
     ]
+  },
+
+  codeBlock: {
+    name: 'Code Block as SoftwareSourceCode',
+    markdown: `---
+'@context':
+  '@vocab': 'http://schema.org/'
+'@id': '#doc'
+---
+
+# Example
+
+\`\`\`sparql
+SELECT * WHERE { ?s ?p ?o }
+\`\`\``,
+    expectedQuads: 4,
+    checks: [
+      { predicate: 'programmingLanguage', literal: 'sparql' },
+      { predicate: 'text', literal: 'SELECT * WHERE { ?s ?p ?o }' },
+      { subject: '#doc', predicate: 'hasPart' },
+      { predicate: 'type', object: 'SoftwareSourceCode' }
+    ]
   }
 };
 

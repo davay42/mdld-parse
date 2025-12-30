@@ -129,6 +129,28 @@ Maps to:
 
 [MD-LD uses Pandoc-style attribute blocks to add semantic annotations.]{property="abstract"}
 
+### Code Blocks {#code-blocks typeof="HowToSection"}
+
+[Fenced code blocks are treated as SoftwareSourceCode resources with programming language and raw source attached.]{property="text"}
+
+MD‑LD:
+
+```sparql {#all-triples typeof="SoftwareSourceCode"}
+SELECT * WHERE { ?s ?p ?o }
+```
+
+Turtle:
+
+```turtle
+@prefix schema: <http://schema.org/> .
+
+<#all-triples> a schema:SoftwareSourceCode ;
+  schema:programmingLanguage "sparql" ;
+  schema:text "SELECT * WHERE { ?s ?p ?o }" .
+```
+
+[The surrounding section subject also hasPart this code snippet, enabling later queries such as listing all SPARQL blocks in a notebook.]{property="text"}
+
 ### Subject Declaration {#subject-decl typeof="HowToSection"}
 
 [Headings can declare new subjects using the #id and typeof attributes.]{property="text"}

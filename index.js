@@ -127,10 +127,74 @@ function tokenizeMarkdown(text) {
   const tokens = [];
   const lines = text.split('\n');
   let i = 0;
+  let inCodeBlock = false;
+  let codeFence = null;
+  let codeLang = null;
+  let codeAttrs = {};
+  let codeLines = [];
 
   while (i < lines.length) {
     const line = lines[i];
     const trimmed = line.trim();
+
+    // Fenced code block ```lang {attrs}
+    const fenceMatch = line.match(/^(```+)(.*)$/);
+    if (fenceMatch) {
+      const [, fence, rest] = fenceMatch;
+
+      if (!inCodeBlock) {
+        // Start of code block
+        inCodeBlock = true;
+        codeFence = fence;
+        codeLines = [];
+        codeLang = null;
+        codeAttrs = {};
+
+        const restTrimmed = rest.trim();
+        if (restTrimmed) {
+          // Extract language (first token that is not an attribute block)
+          const attrIndex = restTrimmed.indexOf('{');
+          const langPart = attrIndex >= 0 ? restTrimmed.substring(0, attrIndex).trim() : restTrimmed;
+          if (langPart) {
+            codeLang = langPart.split(/\s+/)[0];
+          }
+
+          // Attributes after language: ```lang {#id typeof="..."}
+          const attrMatch = restTrimmed.match(/\{[^}]+\}/);
+          if (attrMatch) {
+            codeAttrs = parseAttributes(attrMatch[0]);
+          }
+        }
+
+        i++;
+        continue;
+      }
+
+      // Closing fence (must match opening fence length)
+      if (inCodeBlock && fence === codeFence) {
+        tokens.push({
+          type: 'code',
+          lang: codeLang,
+          text: codeLines.join('\n'),
+          attrs: codeAttrs
+        });
+
+        inCodeBlock = false;
+        codeFence = null;
+        codeLang = null;
+        codeAttrs = {};
+        codeLines = [];
+
+        i++;
+        continue;
+      }
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      i++;
+      continue;
+    }
 
     // Heading with potential attributes on next line
     const headingMatch = line.match(/^(#{1,6})\s+(.+?)(\s*\{[^}]+\})?$/);
@@ -477,6 +541,83 @@ export class MDLDParser {
           if (token.depth === 1) {
             this.currentSubject = this.rootSubject;
           }
+        }
+
+        continue;
+      }
+
+      if (token.type === 'code') {
+        // Code blocks become SoftwareSourceCode-like resources
+        let snippetSubject;
+
+        if (token.attrs && token.attrs.id) {
+          const rootFragment = this.getRootFragment();
+          if (token.attrs.id === rootFragment) {
+            snippetSubject = this.rootSubject;
+          } else {
+            const baseForFragment = this.rootSubject.value.split('#')[0];
+            snippetSubject = this.df.namedNode(baseForFragment + '#' + token.attrs.id);
+          }
+        } else {
+          snippetSubject = this.df.blankNode(
+            this.hashBlankNode(`code:${token.lang || ''}:${token.text}`)
+          );
+        }
+
+        // Type assertion: typeof override or default SoftwareSourceCode
+        if (token.attrs && token.attrs.typeof) {
+          const types = token.attrs.typeof.trim().split(/\s+/).filter(Boolean);
+          types.forEach(type => {
+            const typeNode = this.resolveResource(type);
+            if (typeNode) {
+              this.emitQuad(
+                snippetSubject,
+                this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                typeNode
+              );
+            }
+          });
+        } else {
+          const defaultType = this.resolveResource('SoftwareSourceCode');
+          if (defaultType) {
+            this.emitQuad(
+              snippetSubject,
+              this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+              defaultType
+            );
+          }
+        }
+
+        // Programming language from fenced code info string
+        if (token.lang) {
+          const langPred = this.resolveResource('programmingLanguage');
+          if (langPred) {
+            this.emitQuad(
+              snippetSubject,
+              langPred,
+              this.df.literal(token.lang)
+            );
+          }
+        }
+
+        // Raw source text
+        const textPred = this.resolveResource('text');
+        if (textPred && token.text) {
+          this.emitQuad(
+            snippetSubject,
+            textPred,
+            this.df.literal(token.text)
+          );
+        }
+
+        // Link from current subject to code snippet
+        const hasPartPred = this.resolveResource('hasPart');
+        if (hasPartPred) {
+          this.emitQuad(
+            this.currentSubject,
+            hasPartPred,
+            snippetSubject
+          );
         }
 
         continue;
