@@ -478,6 +478,133 @@ export class MDLDParser {
     return hashIndex >= 0 ? rootValue.substring(hashIndex + 1) : '';
   }
 
+  /**
+   * Resolves an object IRI from a URL (used in rel attributes).
+   * Supports:
+   * - Full IRIs: http://example.org/alice
+   * - CURIEs: ex:Alice (expanded via context)
+   * - Blank nodes: _:bnode1
+   * - Fragment relative to root: #alice (becomes baseIRI#alice)
+   */
+  resolveObjectIRI(urlValue) {
+    if (!urlValue || typeof urlValue !== 'string') {
+      return null;
+    }
+
+    const trimmed = urlValue.trim();
+    if (!trimmed) return null;
+
+    // Full IRI (http:// or https://)
+    if (trimmed.match(/^https?:/)) {
+      return this.df.namedNode(trimmed);
+    }
+
+    // Blank node
+    if (trimmed.startsWith('_:')) {
+      return this.df.blankNode(trimmed.substring(2));
+    }
+
+    // Fragment relative to root (starts with #)
+    if (trimmed.startsWith('#')) {
+      const baseForFragment = this.rootSubject.value.split('#')[0];
+      return this.df.namedNode(baseForFragment + trimmed);
+    }
+
+    // CURIE (contains : but not at start)
+    if (trimmed.includes(':')) {
+      const [prefix, reference] = trimmed.split(':', 2);
+      // Check both nested @context and top-level context (YAML-LD parser may flatten)
+      const contextObj = this.context?.['@context'] || this.context || {};
+
+      if (contextObj[prefix]) {
+        return this.df.namedNode(contextObj[prefix] + reference);
+      }
+
+      // Default XSD namespace
+      if (prefix === 'xsd') {
+        return this.df.namedNode('http://www.w3.org/2001/XMLSchema#' + reference);
+      }
+
+      // If prefix not found in context, treat as full IRI
+      return this.df.namedNode(trimmed);
+    }
+
+    // Plain fragment (relative to base IRI)
+    const baseForFragment = this.rootSubject.value.split('#')[0];
+    return this.df.namedNode(baseForFragment + '#' + trimmed);
+  }
+
+  /**
+   * Resolves a subject IRI from an id attribute.
+   * Supports:
+   * - Full IRIs: http://example.org/alice
+   * - CURIEs: ex:Alice (expanded via context)
+   * - Blank nodes: _:bnode1
+   * - Fragment relative to root: #alice (becomes baseIRI#alice)
+   * - Plain fragment: alice (becomes baseIRI#alice)
+   */
+  resolveSubjectIRI(idValue) {
+    if (!idValue || typeof idValue !== 'string') {
+      return null;
+    }
+
+    const trimmed = idValue.trim();
+    if (!trimmed) return null;
+
+    // Full IRI (http:// or https://)
+    if (trimmed.match(/^https?:/)) {
+      return this.df.namedNode(trimmed);
+    }
+
+    // Blank node
+    if (trimmed.startsWith('_:')) {
+      return this.df.blankNode(trimmed.substring(2));
+    }
+
+    // Fragment relative to root (starts with #)
+    if (trimmed.startsWith('#')) {
+      const rootFragment = this.getRootFragment();
+      const fragment = trimmed.substring(1);
+
+      if (fragment === rootFragment) {
+        // Same as root document subject
+        return this.rootSubject;
+      } else {
+        // Fragment relative to root base
+        const baseForFragment = this.rootSubject.value.split('#')[0];
+        return this.df.namedNode(baseForFragment + '#' + fragment);
+      }
+    }
+
+    // CURIE (contains : but not at start)
+    if (trimmed.includes(':')) {
+      const [prefix, reference] = trimmed.split(':', 2);
+      // Check both nested @context and top-level context (YAML-LD parser may flatten)
+      const contextObj = this.context?.['@context'] || this.context || {};
+
+      if (contextObj[prefix]) {
+        return this.df.namedNode(contextObj[prefix] + reference);
+      }
+
+      // Default XSD namespace
+      if (prefix === 'xsd') {
+        return this.df.namedNode('http://www.w3.org/2001/XMLSchema#' + reference);
+      }
+
+      // If prefix not found in context, treat as full IRI
+      return this.df.namedNode(trimmed);
+    }
+
+    // Plain fragment (relative to base IRI)
+    const rootFragment = this.getRootFragment();
+    if (trimmed === rootFragment) {
+      return this.rootSubject;
+    } else {
+      const baseForFragment = this.rootSubject.value.split('#')[0];
+      return this.df.namedNode(baseForFragment + '#' + trimmed);
+    }
+  }
+
   processTokens(tokens) {
     let firstParagraph = true;
     let titleEmitted = false;
@@ -498,17 +625,8 @@ export class MDLDParser {
 
         // Heading with #id becomes new subject
         if (token.attrs.id) {
-          const rootFragment = this.getRootFragment();
-          let newSubject;
-
-          if (token.attrs.id === rootFragment) {
-            // Same as root document subject
-            newSubject = this.rootSubject;
-          } else {
-            // Fragment relative to root
-            const baseForFragment = this.rootSubject.value.split('#')[0];
-            newSubject = this.df.namedNode(baseForFragment + '#' + token.attrs.id);
-          }
+          const newSubject = this.resolveSubjectIRI(token.attrs.id);
+          if (!newSubject) continue;
 
           // Type assertion
           if (token.attrs.typeof) {
@@ -551,12 +669,11 @@ export class MDLDParser {
         let snippetSubject;
 
         if (token.attrs && token.attrs.id) {
-          const rootFragment = this.getRootFragment();
-          if (token.attrs.id === rootFragment) {
-            snippetSubject = this.rootSubject;
-          } else {
-            const baseForFragment = this.rootSubject.value.split('#')[0];
-            snippetSubject = this.df.namedNode(baseForFragment + '#' + token.attrs.id);
+          snippetSubject = this.resolveSubjectIRI(token.attrs.id);
+          if (!snippetSubject) {
+            snippetSubject = this.df.blankNode(
+              this.hashBlankNode(`code:${token.lang || ''}:${token.text}`)
+            );
           }
         } else {
           snippetSubject = this.df.blankNode(
@@ -651,12 +768,9 @@ export class MDLDParser {
         // Task items create Action instances
         let action;
         if (token.attrs.id) {
-          const rootFragment = this.getRootFragment();
-          if (token.attrs.id === rootFragment) {
-            action = this.rootSubject;
-          } else {
-            const baseForFragment = this.rootSubject.value.split('#')[0];
-            action = this.df.namedNode(baseForFragment + '#' + token.attrs.id);
+          action = this.resolveSubjectIRI(token.attrs.id);
+          if (!action) {
+            action = this.df.blankNode(this.hashBlankNode(`task:${token.text}`));
           }
         } else {
           action = this.df.blankNode(this.hashBlankNode(`task:${token.text}`));
@@ -726,15 +840,9 @@ export class MDLDParser {
         // Subject declaration
         let subject = this.currentSubject;
         if (attrs.id) {
-          const rootFragment = this.getRootFragment();
-
-          if (attrs.id === rootFragment) {
-            // Same as root document subject
-            subject = this.rootSubject;
-          } else {
-            // Fragment relative to root
-            const baseForFragment = this.rootSubject.value.split('#')[0];
-            subject = this.df.namedNode(baseForFragment + '#' + attrs.id);
+          const resolvedSubject = this.resolveSubjectIRI(attrs.id);
+          if (resolvedSubject) {
+            subject = resolvedSubject;
           }
 
           // Type assertion
@@ -779,14 +887,8 @@ export class MDLDParser {
         // Relationship (object property)
         if (attrs.rel && span.url) {
           const rels = attrs.rel.trim().split(/\s+/).filter(Boolean);
-          let objectNode;
-
-          if (span.url.startsWith('#')) {
-            const baseForFragment = this.rootSubject.value.split('#')[0];
-            objectNode = this.df.namedNode(baseForFragment + span.url);
-          } else {
-            objectNode = this.df.namedNode(span.url);
-          }
+          const objectNode = this.resolveObjectIRI(span.url);
+          if (!objectNode) continue;
 
           rels.forEach(rel => {
             const predicate = this.resolveResource(rel);
@@ -841,7 +943,8 @@ export class MDLDParser {
     // CURIE
     if (trimmed.includes(':')) {
       const [prefix, reference] = trimmed.split(':', 2);
-      const contextObj = this.context?.['@context'] || {};
+      // Check both nested @context and top-level context (YAML-LD parser may flatten)
+      const contextObj = this.context?.['@context'] || this.context || {};
 
       if (contextObj[prefix]) {
         return this.df.namedNode(contextObj[prefix] + reference);
