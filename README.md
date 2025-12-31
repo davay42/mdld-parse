@@ -9,21 +9,25 @@ A standards-compliant parser for **MD-LD (Markdown-Linked Data)** — a human-fr
 MD-LD allows you to author RDF graphs directly in Markdown using familiar syntax:
 
 ```markdown
----
-"@context":
-  "@vocab": "http://schema.org/"
-"@id": "#doc"
-"@type": Article
----
+# My Note {id="urn:mdld:my-note-20251231" typeof="NoteDigitalDocument"}
 
-# My Article {#article typeof="Article"}
+Written by [Alice Johnson](id="ex:alice"){property="author" typeof="Person"}
 
-Written by [Alice Johnson](#alice){property="author" typeof="Person"}
+## Alice's biography {id="ex:alice"}
 
-[Alice](#alice) works at [Tech Corp](#company){rel="worksFor" typeof="Organization"}
+[Alice](ex:alice){property="name"} works at [Tech Corp](id="ex:tech-corp"){property="worksFor" typeof="Organization"}
 ```
 
 This generates valid RDF triples while remaining readable as plain Markdown.
+
+```n-quads
+<urn:mdld:my-note-20251231> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/NoteDigitalDocument> .
+<urn:mdld:my-note-20251231> <http://www.w3.org/2000/01/rdf-schema#label> "My Note" .
+<urn:mdld:my-note-20251231> <http://schema.org/author> "Alice Johnson" .
+<http://example.org/alice> <http://www.w3.org/2000/01/rdf-schema#label> "Alice's biography" .
+<http://example.org/alice> <http://schema.org/name> "Alice" .
+<http://example.org/alice> <http://schema.org/worksFor> "Tech Corp" .
+```
 
 ## Architecture
 
@@ -34,6 +38,8 @@ This generates valid RDF triples while remaining readable as plain Markdown.
 3. **Standards Compliant** — Outputs RDF quads compatible with RDFa semantics
 4. **Markdown Native** — Plain Markdown yields minimal but valid RDF
 5. **Progressive Enhancement** — Add semantics incrementally via attributes
+6. **BaseIRI Inference** — Automatically infers baseIRI from document structure
+7. **Default Vocabulary** — Provides default vocabulary for common properties, extensible via options
 
 ### Stack Choices
 
@@ -81,8 +87,6 @@ Markdown Text
     ↓
 [Custom Tokenizer] — Extract headings, lists, paragraphs, code blocks
     ↓
-[YAML-LD Parser] — Extract frontmatter @context and @id
-    ↓
 [Attribute Parser] — Parse {#id property="value"} from tokens
     ↓
 [Inline Parser] — Extract [text](url){attrs} spans
@@ -103,17 +107,6 @@ The zero-dependency design provides:
 3. **Predictable performance** — Linear time complexity, bounded memory
 4. **Easy integration** — Works in Node.js, browsers, and edge runtimes
 
-### Performance Profile
-
-| Document Size | Peak Memory | Parse Time |
-| ------------- | ----------- | ---------- |
-| 10 KB         | ~100 KB     | <2ms       |
-| 100 KB        | ~500 KB     | <20ms      |
-| 1 MB          | ~2 MB       | <100ms     |
-| 10 MB         | ~10 MB      | <1s        |
-
-_Measured on modern JavaScript engines. Actual performance depends on document structure._
-
 ## Installation
 
 ### Node.js
@@ -125,7 +118,7 @@ npm install mdld-parse
 ```javascript
 import { parseMDLD } from "mdld-parse";
 
-const markdown = `# Hello\n{#doc typeof="Article"}`;
+const markdown = `# Hello {#hello typeof="Article"}`;
 const quads = parseMDLD(markdown, {
 	baseIRI: "http://example.org/doc",
 });
@@ -158,8 +151,8 @@ Parse MD-LD markdown and return RDF quads.
 
 - `markdown` (string) — MD-LD formatted text
 - `options` (object, optional):
-  - `baseIRI` (string) — Base IRI for relative references (default: `''`)
-  - `defaultVocab` (string) — Default vocabulary (default: `'http://schema.org/'`)
+  - `baseIRI` (string) — Base IRI for relative references
+  - `context` (object) — Additional context to merge with default context
   - `dataFactory` (object) — Custom RDF/JS DataFactory (default: built-in)
 
 **Returns:** Array of RDF/JS Quads
@@ -167,14 +160,13 @@ Parse MD-LD markdown and return RDF quads.
 ```javascript
 const quads = parseMDLD(
 	`
-# Article Title
-{#article typeof="Article"}
+# Article Title {#article typeof="Article"}
 
-Written by [Alice](#alice){property="author"}
+Written by [Alice](ex:alice){property="author"}
 `,
 	{
 		baseIRI: "http://example.org/doc",
-		defaultVocab: "http://schema.org/",
+		context: "http://schema.org/",
 	}
 );
 
@@ -203,21 +195,19 @@ const allQuads = documents.flatMap((md) =>
 
 MD-LD follows a clear subject inheritance model:
 
-1. **Root subject** — Declared in YAML-LD `@id` field
+1. **Root subject** — Declared in the first heading of the document or inferred it's text content
 2. **Heading subjects** — `## Title {#id typeof="Type"}`
 3. **Inline subjects** — `[text](#id){typeof="Type"}`
 4. **Blank nodes** — Generated for incomplete triples
 
 ```markdown
-# Document
+# Document {#doc typeof="Article"}
 
-{#doc typeof="Article"}
-
-## Section
-
-{#sec1 typeof="Section"}
+## Section 1 {#sec1 typeof="Section"} 
 
 [Text]{property="name"} ← property of #sec1
+
+Back to [doc](#doc){property="hasPart"}
 ```
 
 ### Property Mapping
@@ -227,8 +217,8 @@ MD-LD follows a clear subject inheritance model:
 | Top-level H1 (no `#id`) | `rdfs:label` on root subject                                                    |
 | Heading with `{#id}`    | `rdfs:label` on subject                                                         |
 | First paragraph         | `dct:description` on root                                                       |
-| `{property="name"}`     | Resolved via `@vocab` (e.g., `schema:name`)                                     |
-| `{rel="author"}`        | Resolved via `@vocab` (e.g., `schema:author`)                                   |
+| `{property="name"}`     | Resolved via context - > `schema:name`                                          |
+| `{rel="author"}`        | Resolved via context - > `schema:author`                                        |
 | Code block              | `schema:SoftwareSourceCode` with `schema:programmingLanguage` and `schema:text` |
 
 ### List Handling

@@ -1,27 +1,4 @@
----
-"@context":
-  "@vocab": "http://schema.org/"
-  dct: "http://purl.org/dc/terms/"
-  rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-  rdfs: "http://www.w3.org/2000/01/rdf-schema#"
-  xsd: "http://www.w3.org/2001/XMLSchema#"
-  foaf: "http://xmlns.com/foaf/0.1/"
-  sh: "http://www.w3.org/ns/shacl#"
-"@id": "urn:spec:md-ld:v0.1"
-"@type": TechArticle
-name: "MD-LD – Markdown-Linked Data Specification"
-version: "0.1"
-datePublished: "2025-12-30"
-inLanguage: "en"
-keywords:
-  - Markdown
-  - RDF
-  - Linked Data
-  - Semantic Web
-abstract: "A specification for authoring RDF graphs directly in Markdown without requiring RDF-specific syntaxes."
----
-
-# MD-LD – Markdown-Linked Data Specification {#spec typeof="Article"}
+# MD-LD – Markdown-Linked Data Specification {id="urn:mdld:spec" typeof="Article"}
 
 [MD-LD]{property="name"} is a [Markdown authoring format]{property="description"} that allows humans and digital agents to author RDF graphs directly in plain text, without requiring RDF-specific syntaxes like Turtle or RDF/XML.
 

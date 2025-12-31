@@ -372,8 +372,8 @@ const quads = parseMDLD(markdown);
       </div>
     </div>
 
-    <!-- Tests Panel (Full Width) -->
-    <div class="panel" style="grid-column: 1 / -1;">
+    Tests Panel (Full Width)
+    <div class="panel" style="grid-column: 1 / -1; display:none;">
       <div class="panel-header">
         <h2>✅ Test Suite</h2>
         <span id="test-status" style="font-size: 13px; color: #6c757d;">Ready</span>
@@ -451,7 +451,10 @@ const quads = parseMDLD(markdown);
       try {
         const markdown = input.value;
         const quads = parseMDLD(markdown, {
-          baseIRI: location.origin
+          // baseIRI: location.origin,
+          context: {
+            ex: 'http://example.org/'
+          }
         });
 
         const parseTime = (performance.now() - startTime).toFixed(2);
@@ -501,10 +504,10 @@ const quads = parseMDLD(markdown);
 
     // Example buttons
     const examples = {
-      comprehensive: '---\n"@context":\n  "@vocab": "http://schema.org/"\n  dct: "http://purl.org/dc/terms/"\n"@id": "#doc"\n"@type": Article\n---\n\n# Research Notes {#doc typeof="Article"}\n\n[Research Notes]{property="name"} demonstrates [all MD-LD features]{property="description"}.\n\n## Code Examples {#code typeof="ItemList"}\n\n```sparql {#query-1 typeof="SoftwareSourceCode"}\nSELECT ?s ?p ?o WHERE { ?s ?p ?o }\n```\n\n```javascript {#example-js}\nconst quads = parseMDLD(markdown);\n```\n\n## Tasks {#tasks}\n\n- [x] Parse documents {#task-1 typeof="Action"}\n- [ ] Generate RDF {#task-2}\n\n## Properties {#props}\n\n[Alice]{property="name"} is [30]{property="age" datatype="xsd:integer"} years old.\n\n## Relations {#relations}\n\n[Tech Corp](#company){rel="worksFor"} and [Open Source](#oss){rel="contributesTo"}',
-      codeBlock: '---\n"@context":\n  "@vocab": "http://schema.org/"\n"@id": "#doc"\n---\n\n# Code Examples\n\n```sparql {#query-all typeof="SoftwareSourceCode"}\nSELECT ?s ?p ?o WHERE {\n  ?s ?p ?o .\n}\nLIMIT 100\n```\n\n```python {#example-python}\ndef parse_mdld(text):\n    return parseMDLD(text)\n```',
-      taskList: '---\n"@context":\n  "@vocab": "http://schema.org/"\n"@id": "#doc"\n---\n\n# Tasks\n\n- [x] Complete review {#review typeof="Event"}\n- [ ] Submit paper {#submit}\n- [ ] Write tests',
-      semanticLinkList: '---\n"@context":\n  "@vocab": "http://schema.org/"\n"@id": "#doc"\n---\n\n# Table of Contents\n\n- [Introduction](#intro){rel="hasPart"}\n- [Features](#features){rel="hasPart"}\n- [Examples](#examples){rel="hasPart"}\n- [Reference](#reference){rel="hasPart"}',
+      comprehensive: '# Research Notes {#doc typeof="Article"}\n\n[Research Notes]{property="name"} demonstrates [all MD-LD features]{property="description"}.\n\n## Code Examples {#code typeof="ItemList"}\n\n```sparql {#query-1 typeof="SoftwareSourceCode"}\nSELECT ?s ?p ?o WHERE { ?s ?p ?o }\n```\n\n```javascript {#example-js}\nconst quads = parseMDLD(markdown);\n```\n\n## Tasks {#tasks}\n\n- [x] Parse documents {#task-1 typeof="Action"}\n- [ ] Generate RDF {#task-2}\n\n## Properties {#props}\n\n[Alice]{property="name"} is [30]{property="age" datatype="xsd:integer"} years old.\n\n## Relations {#relations}\n\n[Tech Corp](#company){rel="worksFor"} and [Open Source](#oss){rel="contributesTo"}',
+      codeBlock: '# Code Examples\n\n```sparql {#query-all typeof="SoftwareSourceCode"}\nSELECT ?s ?p ?o WHERE {\n  ?s ?p ?o .\n}\nLIMIT 100\n```\n\n```python {#example-python}\ndef parse_mdld(text):\n    return parseMDLD(text)\n```',
+      taskList: '# Tasks\n\n- [x] Complete review {#review typeof="Event"}\n- [ ] Submit paper {#submit}\n- [ ] Write tests',
+      semanticLinkList: '\n# Table of Contents\n\n- [Introduction](#intro){rel="hasPart"}\n- [Features](#features){rel="hasPart"}\n- [Examples](#examples){rel="hasPart"}\n- [Reference](#reference){rel="hasPart"}',
       minimal: testDocuments.minimal.markdown
     };
 

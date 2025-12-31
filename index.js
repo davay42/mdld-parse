@@ -1,27 +1,11 @@
-/**
- * MD-LD Parser – Markdown-Linked Data to RDF Quads
- * 
- * Zero-dependency, streaming-capable parser for MD-LD documents.
- * Frontmatter-agnostic: operates with default context + inferred baseIRI.
- */
-
-// ============================================================================
-// Default RDF Context (RDFa-aligned)
-// ============================================================================
-
 const DEFAULT_CONTEXT = {
   '@vocab': 'http://schema.org/',
   'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
   'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
   'xsd': 'http://www.w3.org/2001/XMLSchema#',
   'dct': 'http://purl.org/dc/terms/',
-  'foaf': 'http://xmlns.com/foaf/0.1/',
-  'sh': 'http://www.w3.org/ns/shacl#'
+  'foaf': 'http://xmlns.com/foaf/0.1/'
 };
-
-// ============================================================================
-// RDF/JS Data Factory (Minimal Implementation)
-// ============================================================================
 
 const DefaultDataFactory = {
   namedNode: (value) => ({ termType: 'NamedNode', value }),
@@ -54,15 +38,8 @@ const DefaultDataFactory = {
   defaultGraph: () => ({ termType: 'DefaultGraph', value: '' })
 };
 
-// ============================================================================
-// BaseIRI Inference
-// ============================================================================
-
-function inferBaseIRI(markdown, providedBase) {
-  if (providedBase) return providedBase;
-
-  // Strategy 1: Extract first heading as slug
-  const h1Match = markdown.match(/^#\s+(.+)$/m);
+function inferBaseIRI(markdown) {
+  const h1Match = markdown.match(/^#\s+(.+?)(?:\s*\{[^}]+\})?$/m);
   if (h1Match) {
     const slug = h1Match[1]
       .toLowerCase()
@@ -71,17 +48,12 @@ function inferBaseIRI(markdown, providedBase) {
     if (slug) return `urn:mdld:${slug}`;
   }
 
-  // Strategy 2: Hash content for deterministic IRI
   let hash = 5381;
   for (let i = 0; i < markdown.length; i++) {
     hash = ((hash << 5) + hash) + markdown.charCodeAt(i);
   }
   return `urn:mdld:${Math.abs(hash).toString(16)}`;
 }
-
-// ============================================================================
-// Markdown Tokenizer
-// ============================================================================
 
 function tokenizeMarkdown(text) {
   const tokens = [];
@@ -97,7 +69,6 @@ function tokenizeMarkdown(text) {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // Fenced code block
     const fenceMatch = line.match(/^(```+)(.*)$/);
     if (fenceMatch) {
       const [, fence, rest] = fenceMatch;
@@ -152,7 +123,6 @@ function tokenizeMarkdown(text) {
       continue;
     }
 
-    // Heading
     const headingMatch = line.match(/^(#{1,6})\s+(.+?)(\s*\{[^}]+\})?$/);
     if (headingMatch) {
       const [, hashes, text, attrs] = headingMatch;
@@ -176,7 +146,6 @@ function tokenizeMarkdown(text) {
       continue;
     }
 
-    // Task list item
     const taskMatch = line.match(/^(\s*)([-*+])\s+\[([ xX])\]\s+(.+?)(\s*\{[^}]+\})?$/);
     if (taskMatch) {
       const [, indent, marker, checked, text, attrs] = taskMatch;
@@ -191,7 +160,6 @@ function tokenizeMarkdown(text) {
       continue;
     }
 
-    // List item
     const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+?)(\s*\{[^}]+\})?$/);
     if (listMatch) {
       const [, indent, marker, text, attrs] = listMatch;
@@ -207,7 +175,6 @@ function tokenizeMarkdown(text) {
       continue;
     }
 
-    // Paragraph
     if (trimmed && !trimmed.match(/^(---|```)/)) {
       tokens.push({
         type: 'paragraph',
@@ -217,7 +184,6 @@ function tokenizeMarkdown(text) {
       continue;
     }
 
-    // Blank line
     if (!trimmed) {
       tokens.push({ type: 'blank' });
     }
@@ -227,10 +193,6 @@ function tokenizeMarkdown(text) {
 
   return tokens;
 }
-
-// ============================================================================
-// Attribute Parser {#id .class key="value"}
-// ============================================================================
 
 function parseAttributes(attrString) {
   const attrs = {};
@@ -252,10 +214,6 @@ function parseAttributes(attrString) {
 
   return attrs;
 }
-
-// ============================================================================
-// Inline Parser [text](url){attrs}
-// ============================================================================
 
 function parseInline(text) {
   const spans = [];
@@ -292,10 +250,6 @@ function parseInline(text) {
   return spans.length > 0 ? spans : [{ type: 'text', value: text }];
 }
 
-// ============================================================================
-// MD-LD Parser
-// ============================================================================
-
 export class MDLDParser {
   constructor(options = {}) {
     this.options = {
@@ -328,12 +282,10 @@ export class MDLDParser {
   parse(markdown) {
     this.quads = [];
 
-    // Infer baseIRI if not provided
-    const baseIRI = inferBaseIRI(markdown, this.options.baseIRI);
+    const baseIRI = this.options.baseIRI || inferBaseIRI(markdown);
     this.rootSubject = this.df.namedNode(baseIRI);
     this.currentSubject = this.rootSubject;
 
-    // Tokenize and process
     const tokens = tokenizeMarkdown(markdown);
     this.processTokens(tokens);
 
@@ -348,7 +300,6 @@ export class MDLDParser {
       const token = tokens[i];
 
       if (token.type === 'heading') {
-        // First h1 without id becomes label
         if (token.depth === 1 && !titleEmitted && !token.attrs.id) {
           this.emitQuad(
             this.rootSubject,
@@ -358,7 +309,6 @@ export class MDLDParser {
           titleEmitted = true;
         }
 
-        // Heading with id becomes new subject
         if (token.attrs.id) {
           const newSubject = this.resolveSubjectIRI(token.attrs.id);
           if (!newSubject) continue;
@@ -530,9 +480,49 @@ export class MDLDParser {
 
   processInline(text) {
     const spans = parseInline(text);
+    const urlRegex = /https?:\/\/[^\s\]\)]+/g;
 
     for (const span of spans) {
-      if (span.type === 'text') continue;
+      if (span.type === 'link') {
+        // Handle regular Markdown links [text](url)
+        const url = span.url;
+        const linkText = span.text;
+
+        // First triple: current subject references the URL
+        this.emitQuad(
+          this.currentSubject,
+          this.df.namedNode('http://purl.org/dc/terms/references'),
+          this.df.namedNode(url)
+        );
+
+        // Second triple: URL has a label (the link text)
+        if (linkText) {
+          this.emitQuad(
+            this.df.namedNode(url),
+            this.df.namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+            this.df.literal(linkText)
+          );
+        }
+        continue;
+      }
+
+      if (span.type === 'text') {
+        // Handle bare URLs in text
+        let match;
+        const processed = new Set();
+        while ((match = urlRegex.exec(span.value)) !== null) {
+          const url = match[0];
+          if (!processed.has(url)) {
+            this.emitQuad(
+              this.currentSubject,
+              this.df.namedNode('http://purl.org/dc/terms/references'),
+              this.df.namedNode(url)
+            );
+            processed.add(url);
+          }
+        }
+        continue;
+      }
 
       if (span.type === 'link' || span.type === 'span') {
         const attrs = span.attrs;
@@ -556,6 +546,14 @@ export class MDLDParser {
                 );
               }
             });
+          }
+
+          if (span.text && !attrs.property && !attrs.rel) {
+            this.emitQuad(
+              subject,
+              this.df.namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+              this.df.literal(span.text.trim())
+            );
           }
         }
 
@@ -581,42 +579,35 @@ export class MDLDParser {
           });
         }
 
-        if (attrs.rel && span.url) {
+        if (attrs.rel) {
           const rels = attrs.rel.trim().split(/\s+/).filter(Boolean);
-          const objectNode = this.resolveObjectIRI(span.url);
-          if (!objectNode) continue;
+          let objectNode;
 
-          rels.forEach(rel => {
-            const predicate = this.resolveResource(rel);
-            if (predicate) {
-              this.emitQuad(subject, predicate, objectNode);
-            }
-          });
-        }
+          if (span.url) {
+            objectNode = this.resolveObjectIRI(span.url);
+          } else if (attrs.typeof && !attrs.id) {
+            objectNode = this.df.blankNode(
+              this.hashBlankNode(`span:${span.text}:${JSON.stringify(attrs)}`)
+            );
 
-        if (attrs.typeof && !attrs.id && attrs.rel) {
-          const blankSubject = this.df.blankNode(
-            this.hashBlankNode(`span:${span.text}:${JSON.stringify(attrs)}`)
-          );
+            const types = attrs.typeof.trim().split(/\s+/).filter(Boolean);
+            types.forEach(type => {
+              const typeNode = this.resolveResource(type);
+              if (typeNode) {
+                this.emitQuad(
+                  objectNode,
+                  this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                  typeNode
+                );
+              }
+            });
+          }
 
-          const types = attrs.typeof.trim().split(/\s+/).filter(Boolean);
-          types.forEach(type => {
-            const typeNode = this.resolveResource(type);
-            if (typeNode) {
-              this.emitQuad(
-                blankSubject,
-                this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                typeNode
-              );
-            }
-          });
-
-          if (attrs.rel) {
-            const rels = attrs.rel.trim().split(/\s+/).filter(Boolean);
+          if (objectNode) {
             rels.forEach(rel => {
               const predicate = this.resolveResource(rel);
               if (predicate) {
-                this.emitQuad(subject, predicate, blankSubject);
+                this.emitQuad(subject, predicate, objectNode);
               }
             });
           }
@@ -724,10 +715,6 @@ export class MDLDParser {
     return this.quads;
   }
 }
-
-// ============================================================================
-// Convenience API
-// ============================================================================
 
 export function parseMDLD(markdown, options = {}) {
   const parser = new MDLDParser(options);
