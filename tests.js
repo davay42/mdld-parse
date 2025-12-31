@@ -18,16 +18,10 @@ This is a simple document.`,
   },
 
   basicFrontmatter: {
-    name: 'Basic YAML-LD Frontmatter',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#doc'
-'@type': Article
-name: 'Test Article'
----
+    name: 'Basic Document with Type',
+    markdown: `# Test Article {#doc typeof="Article"}
 
-# Test Article`,
+This is a test article.`,
     expectedQuads: 2,
     checks: [
       { subject: '#doc', predicate: 'type', object: 'Article' },
@@ -37,32 +31,19 @@ name: 'Test Article'
 
   subjectDeclaration: {
     name: 'Subject Declaration with typeof',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#doc'
----
-
-## Alice Johnson
-{#alice typeof="Person"}
+    markdown: `# Alice Johnson {#alice typeof="Person"}
 
 Alice is a developer.`,
     expectedQuads: 3,
     checks: [
       { subject: '#alice', predicate: 'type', object: 'Person' },
-      { subject: '#alice', predicate: 'label', literal: 'Alice Johnson' }
+      { subject: '#alice', predicate: 'name', literal: 'Alice Johnson' }
     ]
   },
 
   literalProperty: {
     name: 'Literal Property',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#alice'
----
-
-# Alice
+    markdown: `# Alice {#alice}
 
 [Alice Johnson]{property="name"}`,
     expectedQuads: 2,
@@ -73,13 +54,7 @@ Alice is a developer.`,
 
   objectProperty: {
     name: 'Object Property (rel)',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#alice'
----
-
-# Alice
+    markdown: `# Alice {#alice}
 
 Works at [Tech Corp](#company){rel="worksFor"}`,
     expectedQuads: 2,
@@ -90,14 +65,7 @@ Works at [Tech Corp](#company){rel="worksFor"}`,
 
   typedLiteral: {
     name: 'Typed Literal with datatype',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-  xsd: 'http://www.w3.org/2001/XMLSchema#'
-'@id': '#data'
----
-
-# Data
+    markdown: `# Data {#data}
 
 Age: [30]{property="age" datatype="xsd:integer"}`,
     expectedQuads: 2,
@@ -108,15 +76,8 @@ Age: [30]{property="age" datatype="xsd:integer"}`,
 
   multipleTypes: {
     name: 'Multiple Types',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#doc'
----
-
-## Resource
-{#res typeof="Person Organization"}`,
-    expectedQuads: 2,
+    markdown: `## Resource {#res typeof="Person Organization"}`,
+    expectedQuads: 3,
     checks: [
       { subject: '#res', predicate: 'type', object: 'Person' },
       { subject: '#res', predicate: 'type', object: 'Organization' }
@@ -125,13 +86,7 @@ Age: [30]{property="age" datatype="xsd:integer"}`,
 
   taskList: {
     name: 'Task List to Actions',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#doc'
----
-
-# Tasks
+    markdown: `# Tasks
 
 - [x] Complete review
 - [ ] Submit paper`,
@@ -145,22 +100,16 @@ Age: [30]{property="age" datatype="xsd:integer"}`,
 
   nestedSubjects: {
     name: 'Nested Subject Declarations',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#doc'
----
+    markdown: `# Company Directory
 
-## Company
-{#company typeof="Organization"}
+## Company {#company typeof="Organization"}
 
 [Tech Corp]{property="name"}
 
-### Employee
-{#alice typeof="Person"}
+### Employee {#alice typeof="Person"}
 
 [Alice]{property="name"}`,
-    expectedQuads: 4,
+    expectedQuads: 5,
     checks: [
       { subject: '#company', predicate: 'type', object: 'Organization' },
       { subject: '#company', predicate: 'name', literal: 'Tech Corp' },
@@ -171,16 +120,10 @@ Age: [30]{property="age" datatype="xsd:integer"}`,
 
   blankNode: {
     name: 'Blank Node Creation',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#alice'
----
-
-# Alice
+    markdown: `# Alice {#alice}
 
 Works at [Tech Corp]{rel="worksFor" typeof="Organization"}`,
-    expectedQuads: 3,
+    expectedQuads: 4,
     checks: [
       { subject: '#alice', predicate: 'worksFor' },
       { predicate: 'type', object: 'Organization' }
@@ -189,20 +132,19 @@ Works at [Tech Corp]{rel="worksFor" typeof="Organization"}`,
 
   multiplePrefixes: {
     name: 'Multiple Prefix Contexts',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-  foaf: 'http://xmlns.com/foaf/0.1/'
-  dct: 'http://purl.org/dc/terms/'
-'@id': '#alice'
----
-
-# Alice
+    markdown: `# Alice {#alice}
 
 [Alice Johnson]{property="foaf:name"}
 
+## Position {#position}
 [Developer]{property="dct:title"}`,
-    expectedQuads: 3,
+    expectedQuads: 4,
+    options: {
+      context: {
+        foaf: 'http://xmlns.com/foaf/0.1/',
+        dct: 'http://purl.org/dc/terms/'
+      }
+    },
     checks: [
       { predicate: 'foaf:name', literal: 'Alice Johnson' },
       { predicate: 'dct:title', literal: 'Developer' }
@@ -211,14 +153,7 @@ Works at [Tech Corp]{rel="worksFor" typeof="Organization"}`,
 
   descriptionFromParagraph: {
     name: 'Description from First Paragraph',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#doc'
-'@type': Article
----
-
-# My Article
+    markdown: `# My Article
 
 This is the abstract of my article.
 
@@ -232,11 +167,7 @@ More content follows.`,
 
   semanticLinkList: {
     name: 'Semantic Links in Bullet List',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#doc'
----
+    markdown: `# List
 
 - [What it is!](#what-is){rel="hasPart"}`,
     expectedQuads: 1,
@@ -247,13 +178,7 @@ More content follows.`,
 
   codeBlock: {
     name: 'Code Block as SoftwareSourceCode',
-    markdown: `---
-'@context':
-  '@vocab': 'http://schema.org/'
-'@id': '#doc'
----
-
-# Example
+    markdown: `# Example
 
 \`\`\`sparql
 SELECT * WHERE { ?s ?p ?o }
