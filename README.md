@@ -1,6 +1,6 @@
-# MD-LD Parser
+# MD-LD Parse
 
-A standards-compliant parser for **MD-LD (Markdown-Linked Data)** — a human-friendly RDF authoring format that extends Markdown with semantic annotations.
+**Markdown-Linked Data (MD-LD)** — a human-friendly RDF authoring format that extends Markdown with semantic annotations.
 
 [NPM](https://www.npmjs.com/package/mdld-parse)
 
@@ -9,13 +9,13 @@ A standards-compliant parser for **MD-LD (Markdown-Linked Data)** — a human-fr
 MD-LD allows you to author RDF graphs directly in Markdown using familiar syntax:
 
 ```markdown
-# My Note {id="urn:mdld:my-note-20251231" typeof="NoteDigitalDocument"}
+# My Note {id="urn:mdld:my-note-20251231" .NoteDigitalDocument}
 
-Written by [Alice Johnson](id="ex:alice"){property="author" typeof="Person"}
+Written by [Alice Johnson](=ex:alice){author .Person}
 
-## Alice's biography {id="ex:alice"}
+## Alice's biography {=ex:alice}
 
-[Alice](ex:alice){property="name"} works at [Tech Corp](id="ex:tech-corp"){property="worksFor" typeof="Organization"}
+[Alice](ex:alice){name} works at [Tech Corp](=ex:tech-corp){worksFor .Organization}
 ```
 
 This generates valid RDF triples while remaining readable as plain Markdown.
@@ -48,8 +48,7 @@ This generates valid RDF triples while remaining readable as plain Markdown.
 We implement a **minimal, purpose-built parser** for maximum control and zero dependencies:
 
 - **Custom Markdown tokenizer** — Line-by-line parsing of headings, lists, paragraphs, code blocks
-- **Inline attribute parser** — Pandoc-style `{#id .class key="value"}` attribute extraction
-- **YAML-LD frontmatter parser** — Minimal YAML subset for `@context` and `@id` parsing
+- **Inline attribute parser** — Pandoc-style `{=iri #id .class key="value"}` attribute extraction
 - **RDF quad generator** — Direct mapping from tokens to RDF/JS quads
 
 **Why custom?**
@@ -160,13 +159,15 @@ Parse MD-LD markdown and return RDF quads.
 ```javascript
 const quads = parseMDLD(
 	`
-# Article Title {#article typeof="Article"}
+# Article Title {=ex:article .Article}
 
-Written by [Alice](ex:alice){property="author"}
+Written by [Alice](ex:alice){ex:author}
 `,
 	{
 		baseIRI: "http://example.org/doc",
-		context: "http://schema.org/",
+		context: {
+      '@vocab': 'http://schema.org/',
+    },
 	}
 );
 
@@ -196,14 +197,14 @@ const allQuads = documents.flatMap((md) =>
 MD-LD follows a clear subject inheritance model:
 
 1. **Root subject** — Declared in the first heading of the document or inferred it's text content
-2. **Heading subjects** — `## Title {#id typeof="Type"}`
-3. **Inline subjects** — `[text](#id){typeof="Type"}`
+2. **Heading subjects** — `## Title {=ex:title .Type}`
+3. **Inline subjects** — `[text](=ex:text){.Type}`
 4. **Blank nodes** — Generated for incomplete triples
 
 ```markdown
-# Document {#doc typeof="Article"}
+# Document {#doc .Article}
 
-## Section 1 {#sec1 typeof="Section"} 
+## Section 1 {#sec1 .Section} 
 
 [Text]{property="name"} ← property of #sec1
 
@@ -223,9 +224,9 @@ Back to [doc](#doc){property="hasPart"}
 
 ### List Handling
 
-```markdown
-- [Item 1]{property="item"}
-- [Item 2]{property="item"}
+```markdown {item}
+- Item 1
+- Item 2
 ```
 
 Creates **multiple triples** with same predicate (not RDF lists):
@@ -260,9 +261,9 @@ This enables semantic queries like "find all SPARQL queries in my notes."
 
 Blank nodes are created for:
 
-1. Task list items without explicit `#id`
-2. Code blocks without explicit `#id`
-3. Inline `typeof` without `id` when used with `rel`
+1. Task list items without explicit `=id` or `#id`
+2. Code blocks without explicit `=id` or `#id`
+3. Inline `.Class` without `id` 
 
 ## Testing
 
@@ -287,16 +288,6 @@ Tests cover:
 
 ### Core Features
 
-**YAML-LD Frontmatter** — Define context and root subject:
-
-```yaml
----
-"@context":
-  "@vocab": "http://schema.org/"
-"@id": "#doc"
-"@type": Article
----
-```
 
 **Subject Declaration** — Headings create typed subjects:
 
@@ -307,38 +298,33 @@ Tests cover:
 **Literal Properties** — Inline spans create properties:
 
 ```markdown
-[Alice Johnson]{property="name"}
-[30]{property="age" datatype="xsd:integer"}
+[Alice Johnson]{name}
+[30]{age ^^xsd:integer}
 ```
 
 **Object Properties** — Links create relationships:
 
 ```markdown
-[Tech Corp](#company){rel="worksFor"}
+[Tech Corp](#company){worksFor}
 ```
 
 **Lists** — Repeated properties:
 
-```markdown
-- [Item 1]{property="tag"}
-- [Item 2]{property="tag"}
+```markdown {tag}
+- Item 1
+- Item 2
 ```
 
 **Code Blocks** — Automatic `SoftwareSourceCode` mapping:
 
-````markdown
 ```sparql
 SELECT * WHERE { ?s ?p ?o }
 ```
-````
-
-````
 
 **Tasks** — Markdown checklists become `schema:Action`:
 ```markdown
 - [x] Completed task
 - [ ] Pending task
-````
 
 ### Optimization Tips
 
@@ -350,8 +336,6 @@ SELECT * WHERE { ?s ?p ?o }
 ## Future Work
 
 - [ ] Streaming API for large documents
-- [ ] Tables → CSVW integration
-- [ ] Math blocks → MathML + RDF
 - [ ] Image syntax → `schema:ImageObject`
 - [ ] Bare URL links → `dct:references`
 - [ ] Language tags (`lang` attribute)

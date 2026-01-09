@@ -1,76 +1,68 @@
-# MD-LD – Markdown-Linked Data Specification {id="urn:mdld:spec" typeof="Article"}
+# MD-LD – Markdown-Linked Data Specification {=urn:mdld:spec .Article}
 
-[MD-LD]{property="name"} is a [Markdown authoring format]{property="description"} that allows humans and digital agents to author RDF graphs directly in plain text, without requiring RDF-specific syntaxes like Turtle or RDF/XML.
+[MD-LD]{name} is a [Markdown authoring format]{description} that allows humans and digital agents to author RDF graphs directly in plain text, without requiring RDF-specific syntaxes like Turtle or RDF/XML.
 
-- [What MD-LD Is](#what-is){rel="hasPart"}
-- [Markdown → RDF Mapping](#minimal-mapping){rel="hasPart"}
-- [RDF Markdown Attribute Syntax](#attribute-syntax){rel="hasPart"}
-- [Tasks and Actions](#tasks){rel="hasPart"}
-- [Tutorial: Recipe with Nutrition](#tutorial){rel="hasPart"}
-- [Future Extensions](#future){rel="hasPart"}
+- [What MD-LD Is](#what-is){hasPart}
+- [Markdown → RDF Mapping](#minimal-mapping){hasPart}
+- [RDF Markdown Attribute Syntax](#attribute-syntax){hasPart}
+- [Tasks and Actions](#tasks){hasPart}
+- [Tutorial: Recipe with Nutrition](#tutorial){hasPart}
+- [Future Extensions](#future){hasPart}
 
-## What MD-LD Is {#what-is typeof="Article"}
+## What MD-LD Is {#what-is .Article}
 
-MD-LD documents have the following characteristics:
+MD-LD documents have the following characteristics: {about}
 
-- [Rooted – exactly one primary subject per document]{property="about"}
-- [Self-describing – YAML-LD frontmatter defines context and global data]{property="about"}
-- [Incrementally semantic – plain Markdown yields minimal RDF; attributes add precision]{property="about"}
-- [Projection-safe – deterministically lowers to HTML + RDFa]{property="about"}
-- [Round-trippable – RDF can be extracted and re-embedded without loss]{property="about"}
+- Rooted – exactly one primary subject per document
+- Self-describing – YAML-LD frontmatter defines context and global data
+- Incrementally semantic – plain Markdown yields minimal RDF; attributes add precision
+- Projection-safe – deterministically lowers to HTML + RDFa
+- Round-trippable – RDF can be extracted and re-embedded without loss
 
-[MD-LD does not replace RDFa or JSON-LD. It is an authoring surface that projects into those standards.]{property="disambiguatingDescription"}
+MD-LD does not replace RDFa or JSON-LD. It is an authoring surface that projects into those standards. {disambiguatingDescription}
 
-## Core Principles {#principles typeof="ItemList"}
+## Core Principles {#principles .ItemList}
 
-These principles are normative and MUST be followed by conforming implementations:
+These principles are normative and MUST be followed by conforming implementations: {itemListElement}
 
-- [One document maps to one root subject]{property="itemListElement"}
-- [YAML-LD frontmatter is mandatory]{property="itemListElement"}
-- [Markdown body may introduce additional subjects]{property="itemListElement"}
-- [Visible text is authoritative]{property="itemListElement"}
-- [Semantics follow document structure]{property="itemListElement"}
-- [No implicit inference rules]{property="itemListElement"}
-- [Anything not expressible cleanly is deferred to generated HTML]{property="itemListElement"}
+- One document maps to one root subject
+- YAML-LD frontmatter is mandatory
+- Markdown body may introduce additional subjects
+- Visible text is authoritative
+- Semantics follow document structure
+- No implicit inference rules
+- Anything not expressible cleanly is deferred to generated HTML
 
-## YAML-LD Frontmatter {#frontmatter typeof="HowTo"}
+### Default Context {#default-context .HowToSection}
 
-### Required Fields {#required-fields typeof="HowToSection"}
-
-[Every MD-LD document MUST include YAML-LD frontmatter with @context and @id fields.]{property="text"}
-
-Example frontmatter:
-
-```yaml
-"@context": …
-"@id": …
-```
-
-### Default Context {#default-context typeof="HowToSection"}
-
-[Unless overridden, implementations SHOULD assume a default vocabulary of http://schema.org/.]{property="text"}
+Unless overridden, implementations SHOULD assume a default vocabulary of http://schema.org/. {text}
 
 This enables concise authoring using terms like `name`, `startDate`, `Action` without prefixes.
 
-### Root Subject Declaration {#root-subject typeof="HowToSection"}
+### Root Subject Declaration {#root-subject .HowToSection}
 
-[The root subject is declared in frontmatter using the @id field.]{property="text"}
+The root subject is declared in yje first heading of the document. {text}
 
 Example:
 
-```yaml
-"@id": urn:fs:/notes/identity.md
-"@type": NoteDigitalDocument
-name: "My Research Notes"
+```md
+# Alice James {=http://example.org/alice .Person}
 ```
 
-[This subject becomes the implicit context for the Markdown body.]{property="text"}
+Maps to:
 
-## Markdown to RDF Minimal Mapping {#minimal-mapping typeof="Article"}
+```turtle
+<http://example.org/alice> a schema:Person ;
+  rdfs:label "Alice James" .
+```
 
-[Even plain Markdown without attributes yields RDF triples.]{property="abstract"}
+This subject becomes the implicit base for the Markdown body. {text}
 
-### Headings {#headings-rule typeof="HowToSection"}
+## Markdown to RDF Minimal Mapping {#minimal-mapping .Article}
+
+Even plain Markdown without attributes yields RDF triples. {abstract}
+
+### Headings {#headings-rule .HowToSection}
 
 The document's top-level heading becomes the title of the root subject.
 
@@ -81,13 +73,13 @@ The document's top-level heading becomes the title of the root subject.
 Maps to:
 
 ```turtle
-<#doc> a schema:NoteDigitalDocument ;
+<urn:mdld:my-research-notes> a schema:NoteDigitalDocument ;
   rdfs:label "My Research Notes" .
 ```
 
-### First Paragraph {#first-para-rule typeof="HowToSection"}
+### First Paragraph {#first-para-rule .HowToSection}
 
-[The first paragraph after the title becomes the description property.]{property="text"}
+The first paragraph after the title becomes the description property. {text}
 
 ```markdown
 This is a personal note about identity systems.
@@ -96,25 +88,41 @@ This is a personal note about identity systems.
 Maps to:
 
 ```turtle
-<#doc> dct:description
+<urn:mdld:my-research-notes> dct:description
   "This is a personal note about identity systems." .
 ```
 
-### Bare Links {#bare-links-rule typeof="HowToSection"}
+### Bare Links {#bare-links-rule .HowToSection}
 
-[Support for standalone URLs creating reference relationships is a planned extension and is not implemented in the v0.1 parser.]{property="text"}
+Bare links are parsed as dc:references. {text}
 
-## RDF Markdown Attribute Syntax {#attribute-syntax typeof="Article"}
+#### Example
 
-[MD-LD uses Pandoc-style attribute blocks to add semantic annotations.]{property="abstract"}
+MD-LD:
 
-### Code Blocks {#code-blocks typeof="HowToSection"}
+```markdown
+See https://doi.org/10.1000/182 for more details.
+Read [more](https://doi.org/10.1000/183).
+```
 
-[Fenced code blocks are treated as SoftwareSourceCode resources with programming language and raw source attached.]{property="text"}
+Turtle:
+
+```turtle
+<urn:mdld:my-research-notes> dc:references <https://doi.org/10.1000/182>, <https://doi.org/10.1000/183> .
+<https://doi.org/10.1000/183> rdfs:label "more"
+```
+
+## RDF Markdown Attribute Syntax {#attribute-syntax .Article}
+
+MD-LD uses Pandoc-style attribute blocks to add semantic annotations. {abstract}
+
+### Code Blocks {#code-blocks .HowToSection}
+
+Fenced code blocks are treated as SoftwareSourceCode resources with programming language and raw source attached. {text}
 
 MD‑LD:
 
-```sparql {#all-triples typeof="SoftwareSourceCode"}
+```sparql {#all-triples}
 SELECT * WHERE { ?s ?p ?o }
 ```
 
@@ -128,50 +136,22 @@ Turtle:
   schema:text "SELECT * WHERE { ?s ?p ?o }" .
 ```
 
-[The surrounding section subject also hasPart this code snippet, enabling later queries such as listing all SPARQL blocks in a notebook.]{property="text"}
+The surrounding section subject also hasPart this code snippet, enabling later queries such as listing all SPARQL blocks in a notebook. {text}
 
-### Subject Declaration {#subject-decl typeof="HowToSection"}
+### Subject Declaration {#subject-decl .HowToSection}
 
-[Headings can declare new subjects using the #id and typeof attributes.]{property="text"}
+Headings can declare new subjects using the #id and =IRI syntax. {text}
 
-MD‑LD:
+### Literal Properties {#literal-props .HowToSection}
 
-```markdown
----
-"@context":
-  "@vocab": "http://schema.org/"
-"@id": "http://example.org/people"
----
-
-## Alice Johnson {#alice typeof="Person"}
-```
-
-Turtle:
-
-```turtle
-@prefix schema: <http://schema.org/> .
-@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
-
-<http://example.org/people#alice> a schema:Person ;
-  rdfs:label "Alice Johnson" .
-```
-
-### Literal Properties {#literal-props typeof="HowToSection"}
-
-[Inline spans with the property attribute create literal values.]{property="text"}
+Inline spans with the property attribute create literal values. {text}
 
 MD‑LD:
 
 ```markdown
----
-"@context":
-  "@vocab": "http://schema.org/"
-"@id": "http://example.org/alice"
----
+# Alice {=http://example.org/alice}
 
-# Alice
-
-[Alice Johnson]{property="name"}
+[Alice Johnson]{name}
 ```
 
 Turtle:
@@ -179,7 +159,8 @@ Turtle:
 ```turtle
 @prefix schema: <http://schema.org/> .
 
-<http://example.org/alice> schema:name "Alice Johnson" .
+
+<http://example.org/alice> rdfs:label "Alice"; schema:name "Alice Johnson" .
 ```
 
 For typed literals, use the datatype attribute:
@@ -187,7 +168,7 @@ For typed literals, use the datatype attribute:
 MD‑LD:
 
 ```markdown
-[30]{property="age" datatype="xsd:integer"}
+[30]{age ^^xsd:integer}
 ```
 
 Turtle:
@@ -199,22 +180,16 @@ Turtle:
 <http://example.org/alice> schema:age "30"^^xsd:integer .
 ```
 
-### Object Properties {#object-props typeof="HowToSection"}
+### Object Properties {#object-props .HowToSection}
 
-[Links with the rel attribute create relationships between subjects.]{property="text"}
+Links with the rel attribute create relationships between subjects. {text}
 
 MD‑LD:
 
 ```markdown
----
-"@context":
-  "@vocab": "http://schema.org/"
-"@id": "http://example.org/alice"
----
+# Alice {=ex:alice}
 
-# Alice
-
-Works at [ACME Corp](#acme){rel="worksFor"}
+Works at [ACME Corp](#acme){worksFor}
 ```
 
 Turtle:
@@ -225,23 +200,19 @@ Turtle:
 <http://example.org/alice> schema:worksFor <http://example.org/alice#acme> .
 ```
 
-### Lists as Repeated Properties {#lists-repeated typeof="HowToSection"}
+### Lists as Repeated Properties {#lists-repeated .HowToSection}
 
-[List items with the same property attribute create multiple values for that property.]{property="text"}
+List items with the same property attribute create multiple values for that property. {text}
 
 MD‑LD:
 
 ```markdown
----
-"@context":
-  "@vocab": "http://schema.org/"
-"@id": "http://example.org/event1"
----
+# Conference Dinner {=ex:event1}
 
-# Conference Dinner
+Dresscode: {dressCode}
 
-- [Blouse and Skirt]{property="dressCode"}
-- [Blazer and Tie]{property="dressCode"}
+- Blouse and Skirt
+- Blazer and Tie
 ```
 
 Turtle:
@@ -253,35 +224,25 @@ Turtle:
 <http://example.org/event1> schema:dressCode "Blazer and Tie" .
 ```
 
-### Nested Blocks as Blank Nodes {#nested-blanks typeof="HowToSection"}
+## Tasks and Actions {#tasks .Article}
 
-[Future versions of MD-LD may map nested list structures to blank nodes with multiple properties.]{property="text"}
-
-```markdown
-- Uniform:
-  - [Blazer]{property="top"}
-  - [Skirt]{property="bottom"}
-```
-
-[A conforming implementation may treat this as a blank node with both properties attached, or as repeated properties on the current subject.]{property="text"}
-
-## Tasks and Actions {#tasks typeof="Article"}
-
-[Markdown task lists are mapped to schema:Action instances.]{property="abstract"}
+Markdown task lists are mapped to schema:Action instances. If no id provided - slugify and truncate the text. {abstract}
 
 ```markdown
-- [x] Submit paper
+# My tasks
+
+- [x] Submit paper {#submit}
 - [ ] Revise abstract
 ```
 
 Maps to:
 
 ```turtle
-[] a schema:Action ;
+<urn:mdld:my-tasks#submit> a schema:Action ;
    schema:name "Submit paper" ;
    schema:actionStatus schema:CompletedActionStatus .
 
-[] a schema:Action ;
+<urn:mdld:my-tasks#revise-abstract> a schema:Action ;
    schema:name "Revise abstract" ;
    schema:actionStatus schema:PotentialActionStatus .
 ```
@@ -289,147 +250,122 @@ Maps to:
 Extend tasks semantically:
 
 ```markdown
----
-"@context":
-  "@vocab": "http://schema.org/"
-"@id": "urn:md:tasks1"
----
 
-# Tasks
+# Tasks {=urn:md:tasks .TaskList}
 
-- [x] Complete review {#review typeof="Event" }
+- [x] Complete review {#review .Event }
 - [ ] Submit paper {#submit}
 ```
 
 Maps to:
 
 ```turtle
-<urn:md:tasks1> <http://www.w3.org/2000/01/rdf-schema#label> "Tasks" .
-<urn:md:tasks1#review> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Event> .
-<urn:md:tasks1#review> <http://schema.org/name> "Complete review" .
-<urn:md:tasks1#review> <http://schema.org/actionStatus> <http://schema.org/CompletedActionStatus> .
-<urn:md:tasks1> <http://schema.org/potentialAction> <urn:md:tasks1#review> .
-<urn:md:tasks1#submit> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Action> .
-<urn:md:tasks1#submit> <http://schema.org/name> "Submit paper" .
-<urn:md:tasks1#submit> <http://schema.org/actionStatus> <http://schema.org/PotentialActionStatus> .
-<urn:md:tasks1> <http://schema.org/potentialAction> <urn:md:tasks1#submit> .
+<urn:md:tasks> <http://www.w3.org/2000/01/rdf-schema#label> "Tasks" .
+<urn:md:tasks> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/TaskList> .
+<urn:md:tasks#review> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Event> .
+<urn:md:tasks#review> <http://schema.org/name> "Complete review" .
+<urn:md:tasks#review> <http://schema.org/actionStatus> <http://schema.org/CompletedActionStatus> .
+<urn:md:tasks> <http://schema.org/potentialAction> <urn:md:tasks#review> .
+<urn:md:tasks#submit> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Action> .
+<urn:md:tasks#submit> <http://schema.org/name> "Submit paper" .
+<urn:md:tasks#submit> <http://schema.org/actionStatus> <http://schema.org/PotentialActionStatus> .
+<urn:md:tasks> <http://schema.org/potentialAction> <urn:md:tasks#submit> .
 ```
 
-[If the task appears under a subject section, it is linked via schema:potentialAction.]{property="text"}
+If the task appears under a subject section, it is linked via schema:potentialAction. {text}
 
-## Images and Media {#media typeof="HowToSection"}
+## Images and Media {#media .HowToSection}
 
-[Image syntax creating image relationships is a planned extension and is not implemented in the v0.1 parser.]{property="text"}
+Image syntax creating image relationships is a planned extension and is not implemented in the v0.1 parser. {text}
 
-## Cross-Referencing {#cross-ref typeof="Article"}
+## Attribute Reference {#attr-reference .DefinedTermSet}
 
-[Subjects may be defined in YAML-LD and referenced in Markdown, or vice versa.]{property="abstract"}
-
-Example with YAML-LD collection:
-
-```yaml
-itemListElement:
-  - "@id": "#alice"
-  - "@id": "#bob"
-```
-
-[The Markdown body then defines the #alice and #bob subjects with full details.]{property="text"}
-
-## Attribute Reference {#attr-reference typeof="DefinedTermSet"}
-
-### id attribute {#attr-id typeof="DefinedTerm"}
+### id attribute {#attr-id .DefinedTerm}
 
 - [Subject IRI fragment identifier]{property="name"}
 - [Creates or references a subject with the given fragment identifier]{property="description"}
 
-### typeof attribute {#attr-typeof typeof="DefinedTerm"}
+### typeof attribute {#attr-typeof .DefinedTerm}
 
-- [RDF type declaration]{property="name"}
-- [Specifies the rdf:type of a subject]{property="description"}
+- RDF type declaration {name}
+- Specifies the rdf:type of a subject {description}
 
-### property attribute {#attr-property typeof="DefinedTerm"}
+### property attribute {#attr-property .DefinedTerm}
 
-- [Literal predicate]{property="name"}
-- [Creates a literal-valued property on the current subject]{property="description"}
+- Literal predicate {name}
+- Creates a literal-valued property on the current subject {description}
 
-### rel attribute {#attr-rel typeof="DefinedTerm"}
+### rel attribute {#attr-rel .DefinedTerm}
 
-- [Object predicate]{property="name"}
-- [Creates a relationship to another resource]{property="description"}
+- Object predicate {name}
+- Creates a relationship to another resource {description}
 
-### resource attribute {#attr-resource typeof="DefinedTerm"}
+### resource attribute {#attr-resource .DefinedTerm}
 
-- [Object IRI (future extension)]{property="name"}
-- [Planned attribute to explicitly specify the target IRI for a relationship]{property="description"}
+- Object IRI (future extension) {name}
+- Planned attribute to explicitly specify the target IRI for a relationship {description}
 
-### datatype attribute {#attr-datatype typeof="DefinedTerm"}
+### datatype attribute {#attr-datatype .DefinedTerm}
 
-- [Literal datatype]{property="name"}
-- [Specifies the XSD datatype for a literal value]{property="description"}
+- Literal datatype {name}
+- Specifies the XSD datatype for a literal value {description}
 
-### lang attribute {#attr-lang typeof="DefinedTerm"}
+### lang attribute {#attr-lang .DefinedTerm}
 
-- [Language tag (future extension)]{property="name"}
-- [Planned attribute to specify the language of a literal value; not implemented in the v0.1 parser]{property="description"}
+- Language tag (future extension) {name}
+- Planned attribute to specify the language of a literal value {description}
 
-## Tutorial Example: Recipe with Nutrition {#tutorial typeof="Article"}
+## Tutorial Example: Recipe with Nutrition {#tutorial .Article}
 
-[Here is a complete example showing how to model a recipe with ingredients and nutritional information.]{property="abstract"}
+Here is a complete example showing how to model a recipe with ingredients and nutritional information.
 
 ```markdown
-## Pancake Recipe {#recipe typeof="Recipe"}
+## Pancake Recipe {#recipe .Recipe}
 
-- [Flour](#flour){rel="recipeIngredient"}
-- [Milk](#milk){rel="recipeIngredient"}
+- [Flour](#flour){recipeIngredient}
+- [Milk](#milk){recipeIngredient}
 
 ### Flour
 
-{#flour typeof="Food"}
+{#flour .Food}
 
-- [76]{property="carbohydrateContent" datatype="xsd:float"}
-- [10]{property="proteinContent" datatype="xsd:float"}
+- [76]{carbohydrateContent ^^xsd:float}
+- [10]{proteinContent ^^xsd:float}
 
-### Milk {#milk typeof="Food"}
+### Milk {#milk .Food}
 
-- [5]{property="carbohydrateContent" datatype="xsd:float"}
-- [3.4]{property="proteinContent" datatype="xsd:float"}
+- [5]{carbohydrateContent ^^xsd:float}
+- [3.4]{proteinContent ^^xsd:float}
 ```
 
-[This creates approximately 15 triples forming a fully navigable graph.]{property="text"}
+This creates approximately 15 triples forming a fully navigable graph.
 
-## Future Extensions {#future typeof="ItemList"}
+## Non-Goals {#non-goals .ItemList}
 
-[The following features are planned for future versions but omitted from v0.1:]{property="description"}
+MD-LD intentionally does not attempt to: {comment}
 
-- [Tables for tabular data representation]{property="itemListElement"}
-- [CSVW code blocks for CSV data integration]{property="itemListElement"}
+- Replace Turtle or other RDF serializations
+- Encode OWL axioms or ontology definitions
+- Express inference rules
+- Model named graphs inline
+- Validate constraints or perform SHACL validation
 
-## Non-Goals {#non-goals typeof="ItemList"}
+Those capabilities belong to downstream processing layers. { disambiguatingDescription}
 
-[MD-LD intentionally does not attempt to:]{property="description"}
+## Summary {#summary .Article}
 
-- [Replace Turtle or other RDF serializations]{property="itemListElement"}
-- [Encode OWL axioms or ontology definitions]{property="itemListElement"}
-- [Express inference rules]{property="itemListElement"}
-- [Model named graphs inline]{property="itemListElement"}
-- [Validate constraints or perform SHACL validation]{property="itemListElement"}
+MD-LD is: {about}
 
-[Those capabilities belong to downstream processing layers.]{property="disambiguatingDescription"}
+- Markdown first – readable as plain text 
+- RDF grounded – produces valid RDF graphs 
+- HTML/RDFa compatible – projects cleanly to web standards 
+- LLM friendly – easy for AI agents to parse and generate 
+- Deterministic – same input always produces same output
 
-## Summary {#summary typeof="Article"}
+MD-LD is not: {comment}
 
-MD-LD is:
+- A new RDF serialization format
+- A database query language
+- A reasoning or inference system
 
-- [Markdown first – readable as plain text]{property="about"}
-- [RDF grounded – produces valid RDF graphs]{property="about"}
-- [HTML/RDFa compatible – projects cleanly to web standards]{property="about"}
-- [LLM friendly – easy for AI agents to parse and generate]{property="about"}
-- [Deterministic – same input always produces same output]{property="about"}
-
-MD-LD is not:
-
-- [A new RDF serialization format]{property="mentions"}
-- [A database query language]{property="mentions"}
-- [A reasoning or inference system]{property="mentions"}
-
-[MD-LD turns Markdown into a semantic authoring medium, while keeping the Web as the universal runtime.]{property="abstract"}
+MD-LD turns Markdown into a semantic authoring medium, while keeping the Web as the universal runtime.
