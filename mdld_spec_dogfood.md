@@ -2,14 +2,14 @@
 
 [MD-LD]{name} is a [Markdown authoring format]{description} that allows humans and digital agents to author RDF graphs directly in plain text, without requiring RDF-specific syntaxes like Turtle or RDF/XML.
 
-- [What MD-LD Is](#what-is){hasPart}
+- [What MD-LD Is](=urn:mdld:what-is){hasPart}
 - [Markdown → RDF Mapping](#minimal-mapping){hasPart}
 - [RDF Markdown Attribute Syntax](#attribute-syntax){hasPart}
 - [Tasks and Actions](#tasks){hasPart}
 - [Tutorial: Recipe with Nutrition](#tutorial){hasPart}
 - [Future Extensions](#future){hasPart}
 
-## What MD-LD Is {#what-is .Article}
+## What MD-LD Is {=urn:mdld:what-is .Article}
 
 MD-LD documents have the following characteristics: {about}
 
@@ -21,7 +21,7 @@ MD-LD documents have the following characteristics: {about}
 
 MD-LD does not replace RDFa or JSON-LD. It is an authoring surface that projects into those standards. {disambiguatingDescription}
 
-## Core Principles {#principles .ItemList}
+## Core Principles {=urn:mdld:principles .ItemList}
 
 These principles are normative and MUST be followed by conforming implementations: {itemListElement}
 
@@ -58,7 +58,7 @@ Maps to:
 
 This subject becomes the implicit base for the Markdown body. {text}
 
-## Markdown to RDF Minimal Mapping {#minimal-mapping .Article}
+## Markdown to RDF Minimal Mapping {=urn:mdld:minimal-mapping .Article}
 
 Even plain Markdown without attributes yields RDF triples. {abstract}
 
@@ -112,7 +112,7 @@ Turtle:
 <https://doi.org/10.1000/183> rdfs:label "more"
 ```
 
-## RDF Markdown Attribute Syntax {#attribute-syntax .Article}
+## RDF Markdown Attribute Syntax {=urn:mdld:attribute-syntax .Article}
 
 MD-LD uses Pandoc-style attribute blocks to add semantic annotations. {abstract}
 
@@ -140,7 +140,7 @@ The surrounding section subject also hasPart this code snippet, enabling later q
 
 ### Subject Declaration {#subject-decl .HowToSection}
 
-Headings can declare new subjects using the #id and =IRI syntax. {text}
+Headings can declare new subjects using the =iri and =IRI syntax. {text}
 
 ### Literal Properties {#literal-props .HowToSection}
 
@@ -189,7 +189,7 @@ MD‑LD:
 ```markdown
 # Alice {=ex:alice}
 
-Works at [ACME Corp](#acme){worksFor}
+Works at [ACME Corp](=urn:mdld:acme){worksFor}
 ```
 
 Turtle:
@@ -224,7 +224,7 @@ Turtle:
 <http://example.org/event1> schema:dressCode "Blazer and Tie" .
 ```
 
-## Tasks and Actions {#tasks .Article}
+## Tasks and Actions {=urn:mdld:tasks .Article}
 
 Markdown task lists are mapped to schema:Action instances. If no id provided - slugify and truncate the text. {abstract}
 
@@ -282,8 +282,8 @@ Image syntax creating image relationships is a planned extension and is not impl
 
 ### id attribute {#attr-id .DefinedTerm}
 
-- [Subject IRI fragment identifier]{property="name"}
-- [Creates or references a subject with the given fragment identifier]{property="description"}
+- [Subject IRI (not supported — use explicit IRI only) identifier]{property="name"}
+- [Creates or references a subject with the given (not supported — use explicit IRI only) identifier]{property="description"}
 
 ### typeof attribute {#attr-typeof .DefinedTerm}
 

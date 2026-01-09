@@ -48,7 +48,7 @@ This generates valid RDF triples while remaining readable as plain Markdown.
 We implement a **minimal, purpose-built parser** for maximum control and zero dependencies:
 
 - **Custom Markdown tokenizer** — Line-by-line parsing of headings, lists, paragraphs, code blocks
-- **Inline attribute parser** — Pandoc-style `{=iri #id .class key="value"}` attribute extraction
+- **Inline attribute parser** — Pandoc-style `{=iri =iri .class key="value"}` attribute extraction
 - **RDF quad generator** — Direct mapping from tokens to RDF/JS quads
 
 **Why custom?**
@@ -86,7 +86,7 @@ Markdown Text
     ↓
 [Custom Tokenizer] — Extract headings, lists, paragraphs, code blocks
     ↓
-[Attribute Parser] — Parse {#id property="value"} from tokens
+[Attribute Parser] — Parse {=iri property="value"} from tokens
     ↓
 [Inline Parser] — Extract [text](url){attrs} spans
     ↓
@@ -202,21 +202,21 @@ MD-LD follows a clear subject inheritance model:
 4. **Blank nodes** — Generated for incomplete triples
 
 ```markdown
-# Document {#doc .Article}
+# Document {=urn:mdld:doc .Article}
 
-## Section 1 {#sec1 .Section} 
+## Section 1 {=urn:mdld:sec1 .Section} 
 
 [Text]{property="name"} ← property of #sec1
 
-Back to [doc](#doc){property="hasPart"}
+Back to [doc](=urn:mdld:doc){property="hasPart"}
 ```
 
 ### Property Mapping
 
 | Markdown                | RDF Predicate                                                                   |
 | ----------------------- | ------------------------------------------------------------------------------- |
-| Top-level H1 (no `#id`) | `rdfs:label` on root subject                                                    |
-| Heading with `{#id}`    | `rdfs:label` on subject                                                         |
+| Top-level H1 (no `=iri`) | `rdfs:label` on root subject                                                    |
+| Heading with `{=iri}`    | `rdfs:label` on subject                                                         |
 | First paragraph         | `dct:description` on root                                                       |
 | `{property="name"}`     | Resolved via context - > `schema:name`                                          |
 | `{rel="author"}`        | Resolved via context - > `schema:author`                                        |
@@ -261,8 +261,8 @@ This enables semantic queries like "find all SPARQL queries in my notes."
 
 Blank nodes are created for:
 
-1. Task list items without explicit `=id` or `#id`
-2. Code blocks without explicit `=id` or `#id`
+1. Task list items without explicit `=id` or `=iri`
+2. Code blocks without explicit `=id` or `=iri`
 3. Inline `.Class` without `id` 
 
 ## Testing
@@ -281,7 +281,7 @@ Tests cover:
 - ✅ List mappings (repeated properties)
 - ✅ Code block semantics (`SoftwareSourceCode`)
 - ✅ Semantic links in lists (`hasPart` TOC)
-- ✅ Cross-references via fragment IDs
+- ✅ Cross-references via (not supported — use explicit IRI only) IDs
 - ✅ Minimal Markdown → RDF (headings, paragraphs)
 
 ## Syntax Overview
@@ -292,7 +292,7 @@ Tests cover:
 **Subject Declaration** — Headings create typed subjects:
 
 ```markdown
-## Alice Johnson {#alice typeof="Person"}
+## Alice Johnson {=urn:mdld:alice typeof="Person"}
 ```
 
 **Literal Properties** — Inline spans create properties:
@@ -305,7 +305,7 @@ Tests cover:
 **Object Properties** — Links create relationships:
 
 ```markdown
-[Tech Corp](#company){worksFor}
+[Tech Corp](=urn:mdld:company){worksFor}
 ```
 
 **Lists** — Repeated properties:
@@ -331,7 +331,7 @@ SELECT * WHERE { ?s ?p ?o }
 1. **Reuse DataFactory** — Pass custom factory instance to avoid allocations
 2. **Minimize frontmatter** — Keep `@context` simple for faster parsing
 3. **Batch processing** — Process multiple documents sequentially
-4. **Fragment IDs** — Use `#id` on headings for efficient cross-references
+4. **Explicit IRI IDs** — Use `{=iri}` on headings for efficient cross-references, no special (not supported — use explicit IRI only) rule
 
 ## Future Work
 
