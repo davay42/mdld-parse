@@ -1,544 +1,422 @@
 # MD-LD v0.2 Specification
 
-**Markdown-Linked Data** — A streaming-parseable RDF authoring format that extends Markdown with semantic annotations contained in curly braces.
+**Markdown-Linked Data**
 
-## Design Principles
+> A minimal, explicit semantic annotation layer for CommonMark Markdown, using `{...}` blocks to author RDF in a streaming-friendly and unobtrusive way.
 
-1. **Streaming single-pass parsing** — Process line-by-line, emit RDF quads immediately
-2. **Curly-brace containment** — All semantics in `{...}`, trivial to strip for plain Markdown view
-3. **RDFa-aligned semantics** — Follow RDFa Core patterns for chaining, relations, and context
-4. **Automatic IRI generation** — Slugify text content when explicit IRI not provided
-5. **Subject context persistence** — Current subject continues until next subject declaration
-6. **Unambiguous syntax** — No parser guesswork, deterministic RDF output
+---
 
-## Default Context
+## 1. What is MD-LD?
 
-MD-LD assumes RDFa core prefixes and schema.org vocabulary by default:
+**MD-LD is plain CommonMark Markdown with optional semantic annotations.**
 
-```javascript
-{
-  '@vocab': 'http://schema.org/',
-  'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-  'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-  'xsd': 'http://www.w3.org/2001/XMLSchema#',
-  'dct': 'http://purl.org/dc/terms/',
-  'foaf': 'http://xmlns.com/foaf/0.1/',
-  'dc': 'http://purl.org/dc/elements/1.1/'
-}
-```
+* Markdown writes **content**
+* `{...}` blocks attach **explicit meaning**
+* Removing `{...}` yields valid, readable Markdown
+* No meaning is inferred unless you write it explicitly
 
-## Prefix & Vocabulary Declaration
+MD-LD is designed for:
 
-Use link reference definition syntax for custom prefixes:
+* Researchers
+* Technical writers
+* Knowledge engineers
+* Anyone who wants structured data **without learning RDF syntax**
 
-```markdown
-[@vocab]{: https://schema.org/}
-[ex]{: http://example.com/}
-[@base]{: http://example.com/}
-[wd]{: https://www.wikidata.org/entity/}
-```
+---
 
-This syntax is unambiguous (uses `:` after closing `}`) and applies to all following content in streaming order.
+## 2. Core design principles
 
-## Core Syntax
+1. **No implicit semantics**
 
-### Subject Declaration
+   * No auto labels
+   * No inferred actions
+   * No URL harvesting
+   * No structure-based guessing
 
-**Headings** establish subjects. Use `{=iri}` for explicit IRI or CURIE. If omitted, heading text is slugified:
+2. **Explicit intent**
 
-```markdown
-# Apollo 11 Mission {=wd:Q43653 .SpaceMission}
+   * Every RDF triple originates from `{...}`
+   * `{...}` always means “emit semantics”
 
-## Launch Vehicle
+3. **Streaming-friendly**
 
-## Crew {=urn:mdld:crew}
-```
+   * Single-pass parsing
+   * No backtracking
+   * Emit triples as `{...}` is encountered
 
-```turtle
-@prefix schema: <http://schema.org/> .
-@prefix wd: <https://www.wikidata.org/entity/> .
+4. **CommonMark compatibility**
 
-wd:Q43653 a schema:SpaceMission ;
-  rdfs:label "Apollo 11 Mission" .
+   * MD-LD does not reinterpret Markdown syntax
+   * Rendering is unchanged
 
-<urn:mdld:launch-vehicle> rdfs:label "Launch Vehicle" .
+5. **Small, closed syntax**
 
-<urn:mdld:crew> rdfs:label "Crew" .
-```
+   * Few rules
+   * One meaning per construct
 
-**Inline spans** can also declare subjects:
+---
 
-```markdown
-The [Saturn V]{=wd:Q190532 .Vehicle} rocket was powerful.
-```
+## 3. The mental model (non-specialist friendly)
 
-```turtle
-wd:Q190532 a schema:Vehicle ;
-  rdfs:label "Saturn V" .
-```
+Think of MD-LD as answering three questions:
 
-### Subject Context Persistence
+1. **What is this thing?** → subject (`{=IRI}`)
+2. **What kind of thing is it?** → type (`.Class`)
+3. **What facts relate to it?** → properties (`{property}`)
 
-Current subject persists until next subject declaration (RDFa-style chaining):
+Everything else is composition.
 
-```markdown
-# Apollo 11 {=wd:Q43653}
+---
 
-Launch date: [July 16, 1969]{startDate ^^xsd:date}
-Launch site: [Kennedy Space Center]{location}
+## 4. Semantic blocks `{...}`
 
-## Crew
+### General rules
 
-Commander: [Neil Armstrong]{name}
-```
+* `{...}` attaches to the **nearest preceding Markdown element**
+* `{...}` is processed **when encountered**
+* `{...}` may appear:
 
-```turtle
-wd:Q43653 rdfs:label "Apollo 11" ;
-  schema:startDate "July 16, 1969"^^xsd:date ;
-  schema:location "Kennedy Space Center" .
+  * after headings
+  * after inline spans or links
+  * after block elements
+  * before lists (list-scoped)
 
-<urn:mdld:crew> rdfs:label "Crew" ;
-  schema:name "Neil Armstrong" .
-```
+---
 
-### Type Declaration
+## 5. Prefixes and vocabulary
 
-Use `.ClassName` to assign RDF types. Multiple types allowed:
-
-```markdown
-# Berlin {=wd:Q64 .City .Place}
-```
-
-```turtle
-wd:Q64 a schema:City , schema:Place ;
-  rdfs:label "Berlin" .
-```
-
-### Literal Properties
-
-Inline spans with `{property}` create literal values on current subject:
-
-```markdown
-## Meeting {=ex:meeting1 .Event}
-
-Date: [2025-01-15]{startDate ^^xsd:date}
-Location: [Berlin]{location}
-Capacity: [150]{maximumAttendeeCapacity ^^xsd:integer}
-```
-
-```turtle
-<http://example.org/meeting1> a schema:Event ;
-  rdfs:label "Meeting" ;
-  schema:startDate "2025-01-15"^^xsd:date ;
-  schema:location "Berlin" ;
-  schema:maximumAttendeeCapacity "150"^^xsd:integer .
-```
-
-### Object Properties via Links
-
-Links with `{property}` create relationships. Link destination always uses an explicit IRI `=iri`:
-
-```markdown
-# Apollo 11 {=wd:Q43653}
-
-Launched from [Kennedy Space Center](=wd:Q483282){location}
-Commander [Neil Armstrong](=urn:mdld:armstrong){astronaut}
-
-## Neil Armstrong {=urn:mdld:armstrong .Person}
-```
-
-```turtle
-wd:Q43653 rdfs:label "Apollo 11" ;
-  schema:location wd:Q483282 ;
-  schema:astronaut <#armstrong> .
-
-wd:Q483282 rdfs:label "Kennedy Space Center" .
-
-<urn:mdld:armstrong> a schema:Person ;
-  rdfs:label "Neil Armstrong" .
-```
-
-### Chained Subject Declaration
-
-Combine subject declaration with property in link annotation:
-
-```markdown
-# Mission {=ex:apollo11}
-
-Commander: [Neil Armstrong](=wd:Q1615){astronaut .Person}
-```
-
-```turtle
-<http://example.org/apollo11> rdfs:label "Mission" ;
-  schema:astronaut wd:Q1615 .
-
-wd:Q1615 a schema:Person ;
-  rdfs:label "Neil Armstrong" .
-```
-
-### Backward Relations
-
-Use `{^property}` to reverse the triple direction:
-
-```markdown
-# Saturn V {=wd:Q190532}
-
-Part of [Apollo Program](=wd:Q495307){^hasPart}
-```
-
-```turtle
-wd:Q495307 schema:hasPart wd:Q190532 .
-wd:Q495307 rdfs:label "Apollo Program" .
-```
-
-### Block-level properties
-
-You can add a semantic annotation in the end of any block - the content of the block will become the value. Block = paragraph, list item, heading, code block, quote.
+### Syntax
 
 ```md
-Long text paragraph that spans multiple
-lines and end with the annotation {description}
-```
-
-```turtle
-<current-subject> schema:description "Long text paragraph that spans multiple\nlines and end with the annotation" .
-```
-
-### Lists as Repeated Properties
-
-Lists following `{property}` annotation create multiple values:
-
-```markdown
-# Conference {=ex:conf2025}
-
-Speakers: {performer .Person}
-
-- Alice Johnson {=ex:alice}
-- Bob Smith {=ex:bob}
-- Carol White {=ex:carol}
-```
-
-```turtle
-<http://example.org/conf2025> rdfs:label "Conference" ;
-  schema:performer <http://example.org/alice> ,
-                   <http://example.org/bob> ,
-                   <http://example.org/carol> .
-
-<http://example.org/alice> a schema:Person ;
-  rdfs:label "Alice Johnson" .
-
-<http://example.org/bob> a schema:Person ;
-  rdfs:label "Bob Smith" .
-
-<http://example.org/carol> a schema:Person ;
-  rdfs:label "Carol White" .
-```
-
-### Code Blocks
-
-Fenced code blocks become `SoftwareSourceCode`. Annotations in fence line:
-
-```markdown
-\`\`\`sparql {=urn:mdld:query1 .SparqlQuery}
-SELECT \* WHERE { ?s ?p ?o }
-\`\`\`
-
-\`\`\`javascript {=ex:parser-v2}
-function parse(input) { return tokens; }
-\`\`\`
-```
-
-```turtle
-<urn:mdld:query1> a schema:SparqlQuery , schema:SoftwareSourceCode ;
-  schema:programmingLanguage "sparql" ;
-  schema:text "SELECT * WHERE { ?s ?p ?o }" .
-
-<http://example.org/parser-v2> a schema:SoftwareSourceCode ;
-  schema:programmingLanguage "javascript" ;
-  schema:text "function parse(input) { return tokens; }" .
-```
-
-### Task Lists
-
-Markdown tasks map to `Action` instances. Linked to parent via `potentialAction`. Auto-slugify if no explicit IRI:
-
-```markdown
-# Project Tasks
-
-- [x] Review paper {=ex:task1}
-- [ ] Submit revision
-- [ ] Present findings
-```
-
-```turtle
-<urn:mdld:project-tasks> rdfs:label "Project Tasks" ;
-  schema:potentialAction <http://example.org/task1> ,
-                         <urn:task:submit-revision> ,
-                         <urn:task:present-findings> .
-
-<http://example.org/task1> a schema:Action ;
-  schema:name "Review paper" ;
-  schema:actionStatus schema:CompletedActionStatus .
-
-<urn:task:submit-revision> a schema:Action ;
-  schema:name "Submit revision" ;
-  schema:actionStatus schema:PotentialActionStatus .
-
-<urn:task:present-findings> a schema:Action ;
-  schema:name "Present findings" ;
-  schema:actionStatus schema:PotentialActionStatus .
-```
-
-### Language Tags
-
-Use `{@lang}` for language-tagged literals:
-
-```markdown
-# Berlin {=wd:Q64}
-
-[Berlin]{name @en}
-[Берлин]{name @ru}
-[柏林]{name @zh}
-```
-
-```turtle
-wd:Q64 rdfs:label "Berlin" ;
-  schema:name "Berlin"@en ;
-  schema:name "Берлин"@ru ;
-  schema:name "柏林"@zh .
-```
-
-### Bare URLs
-
-Bare URLs create `dc:references` from current subject:
-
-```markdown
-# Research Note {=ex:note1}
-
-See https://www.w3.org/TR/rdf11-primer/ for details.
-Also https://schema.org/docs/documents.html
-```
-
-```turtle
-<http://example.org/note1> rdfs:label "Research Note" ;
-  dc:references <https://www.w3.org/TR/rdf11-primer/> ,
-                <https://schema.org/docs/documents.html> .
-```
-
-### Inline Compact Properties
-
-Multiple properties on one subject using `key="value"` syntax:
-
-```markdown
-[Berlin](=wd:Q64){name="Berlin" population="3850809"^^xsd:integer .City}
-```
-
-```turtle
-wd:Q64 a schema:City ;
-  rdfs:label "Berlin" ;
-  schema:name "Berlin" ;
-  schema:population "3850809"^^xsd:integer .
-```
-
-### Images and media embeds
-
-```md
-Generic media embedding (default)
-![Apollo launch audio](./launch.mp3)
-```
-
-Emits:
-
-```turtle
-<current-subject> schema:associatedMedia <./launch.mp3> .
-
-<./launch.mp3> a schema:MediaObject ;
-  rdfs:label "Apollo launch audio" .
-```
-
-#### Explicit media typing
-
-```md
-![Launch audio](./launch.mp3){=ex:apollo-audio .AudioObject}
-```
-
-```turtle
-ex:apollo-audio a schema:AudioObject ;
-  rdfs:label "Launch audio" ;
-  schema:contentUrl <./launch.mp3> .
-
-<current-subject> schema:associatedMedia ex:apollo-audio .
-```
-
-#### Custom predicates
-
-```md
-![Dataset](./data.csv){distribution .Dataset}
-```
-
-```turtle
-<current-subject> schema:distribution <./data.csv> .
-<./data.csv> a schema:Dataset .
-```
-
-## Parsing Rules
-
-1. **Subject Context**: Current subject starts as document root, changes at headings/spans with `{=iri}`, persists until next declaration
-2. **Auto-slugification**: Missing IRI generates `urn:mdld:slugified-text` for headings, `urn:task:slugified-text` for tasks
-3. **Property Resolution**: Bare property names resolve via `@vocab` (default: `http://schema.org/`)
-4. **Label Extraction**: Text content automatically becomes `rdfs:label` on subjects
-5. **Streaming Processing**: Line-by-line parsing, immediate quad emission
-6. **Prefix Scope**: Declarations apply forward in document order
-
-## Complete Example
-
-```markdown
 [@vocab]{: http://schema.org/}
 [ex]{: http://example.org/}
 [wd]{: https://www.wikidata.org/entity/}
+```
 
-# Apollo 11 Mission {=wd:Q43653 .SpaceMission}
+### Rules
 
-Launch date: [July 16, 1969]{startDate ^^xsd:date}
-Launch site: [Kennedy Space Center](=wd:Q483282){location .Place}
+* Prefixes apply **forward only**
+* No implicit prefixes
+* Bare property names require `@vocab`
+* Prefix declarations emit no RDF
 
-## Crew
+---
 
-Commander: [Neil Armstrong](=wd:Q1615){astronaut .Person}
-Lunar Module Pilot: [Buzz Aldrin](=wd:Q2252){astronaut .Person}
+## 6. Subjects
 
-[Buzz Aldrin](=wd:Q2252)
+### 6.1 Declaring a subject
 
-Born: [January 20, 1930]{birthDate ^^xsd:date}
-Education: [MIT](=wd:Q49108){alumniOf .EducationalOrganization}
+**Purpose:** Assign an identity to something.
 
-## Launch Vehicle {=wd:Q190532 .Vehicle}
+#### Syntax
 
-[Saturn V]{name}
+```md
+{=IRI}
+```
 
-Height: [110.6 meters]{height}
-Mass: [2,970,000 kg]{weight}
+#### Rules
 
-Engines: {hasPart}
+* Sets the *current subject*
+* Emits no properties automatically
+* Does not create labels or types
 
-- F-1 Engine {=wd:Q936250 .Engine}
-- J-2 Engine {=wd:Q1677854 .Engine}
+#### Example
 
-Part of [Apollo Program](=wd:Q495307){^hasPart}
-
-## Mission Timeline
-
-- [x] Launch vehicle
-- [x] Lunar orbit insertion {=ex:task-orbit}
-- [x] Lunar landing
-- [x] Moonwalk
-- [x] Return to Earth
-
-## Analysis Code
-
-\`\`\`sparql {#trajectory-query}
-SELECT ?event ?time WHERE {
-?event a schema:Event ;
-schema:startDate ?time .
-}
-ORDER BY ?time
-\`\`\`
-
-References:
-https://history.nasa.gov/ap11ann/introduction.htm
+```md
+# Apollo 11 {=wd:Q43653}
 ```
 
 ```turtle
-@prefix schema: <http://schema.org/> .
-@prefix ex: <http://example.org/> .
-@prefix wd: <https://www.wikidata.org/entity/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix dc: <http://purl.org/dc/elements/1.1/> .
-
-wd:Q43653 a schema:SpaceMission ;
-  rdfs:label "Apollo 11 Mission" ;
-  schema:startDate "July 16, 1969"^^xsd:date ;
-  schema:location wd:Q483282 .
-
-wd:Q483282 a schema:Place ;
-  rdfs:label "Kennedy Space Center" .
-
-<urn:mdld:crew> rdfs:label "Crew" .
-
-wd:Q43653 schema:astronaut wd:Q1615 , wd:Q2252 .
-
-wd:Q1615 a schema:Person ;
-  rdfs:label "Neil Armstrong" .
-
-wd:Q2252 a schema:Person ;
-  rdfs:label "Buzz Aldrin" ;
-  schema:birthDate "January 20, 1930"^^xsd:date ;
-  schema:alumniOf wd:Q49108 .
-
-wd:Q49108 a schema:EducationalOrganization ;
-  rdfs:label "MIT" .
-
-wd:Q190532 a schema:Vehicle ;
-  rdfs:label "Launch Vehicle" ;
-  schema:name "Saturn V" ;
-  schema:height "110.6 meters" ;
-  schema:weight "2,970,000 kg" ;
-  schema:hasPart wd:Q936250 , wd:Q1677854 .
-
-wd:Q936250 a schema:Engine ;
-  rdfs:label "F-1 Engine" .
-
-wd:Q1677854 a schema:Engine ;
-  rdfs:label "J-2 Engine" .
-
-wd:Q495307 schema:hasPart wd:Q190532 ;
-  rdfs:label "Apollo Program" .
-
-<urn:mdld:mission-timeline> rdfs:label "Mission Timeline" ;
-  schema:potentialAction <urn:task:launch-vehicle> ,
-                         <http://example.org/task-orbit> ,
-                         <urn:task:lunar-landing> ,
-                         <urn:task:moonwalk> ,
-                         <urn:task:return-to-earth> .
-
-<urn:task:launch-vehicle> a schema:Action ;
-  schema:name "Launch vehicle" ;
-  schema:actionStatus schema:CompletedActionStatus .
-
-<http://example.org/task-orbit> a schema:Action ;
-  schema:name "Lunar orbit insertion" ;
-  schema:actionStatus schema:CompletedActionStatus .
-
-<urn:task:lunar-landing> a schema:Action ;
-  schema:name "Lunar landing" ;
-  schema:actionStatus schema:CompletedActionStatus .
-
-<urn:task:moonwalk> a schema:Action ;
-  schema:name "Moonwalk" ;
-  schema:actionStatus schema:CompletedActionStatus .
-
-<urn:task:return-to-earth> a schema:Action ;
-  schema:name "Return to Earth" ;
-  schema:actionStatus schema:CompletedActionStatus .
-
-<urn:mdld:trajectory-query> a schema:SoftwareSourceCode ;
-  schema:programmingLanguage "sparql" ;
-  schema:text "SELECT ?event ?time WHERE {\n  ?event a schema:Event ;\n         schema:startDate ?time .\n}\nORDER BY ?time" .
-
-wd:Q43653 dc:references <https://history.nasa.gov/ap11ann/introduction.htm> .
+wd:Q43653 a rdf:Resource .
 ```
 
-## Summary
+---
+
+### 6.2 Subject context
+
+* Subject context exists **only after `{=...}`**
+* Context persists forward
+* Context changes only on a new `{=...}`
+* `{property}` without a current subject is invalid
+
+---
+
+## 7. Types
+
+### Syntax
+
+```md
+{.ClassName}
+```
+
+### Rules
+
+* Assigns `rdf:type`
+* May be combined with subject or property
+* Resolves via `@vocab` or prefix
+
+### Example
+
+```md
+# Apollo 11 {=wd:Q43653 .SpaceMission}
+```
+
+```turtle
+wd:Q43653 a schema:SpaceMission .
+```
+
+---
+
+## 8. Properties
+
+### 8.1 Literal properties
+
+#### Syntax
+
+```md
+{property}
+```
+
+#### Rule
+
+* Value = visible text of annotated element
+
+#### Example
+
+```md
+Launch year: 1969 {startDate}
+```
+
+```turtle
+<current-subject> schema:startDate "1969" .
+```
+
+---
+
+### 8.2 Object properties
+
+#### Rule
+
+An object relationship **requires an explicit subject reference**.
+
+#### Example
+
+```md
+[Neil Armstrong](=wd:Q1615) {astronaut}
+```
+
+```turtle
+<current-subject> schema:astronaut wd:Q1615 .
+```
+
+---
+
+### 8.3 Reverse properties
+
+#### Syntax
+
+```md
+{^property}
+```
+
+#### Example
+
+```md
+[Apollo Program](=wd:Q495307) {^hasPart}
+```
+
+```turtle
+wd:Q495307 schema:hasPart <current-subject> .
+```
+
+---
+
+## 9. Lists with list-level semantics (kept)
+
+### Purpose
+
+Apply the **same relationship and type** to all list items cleanly.
+
+### Syntax
+
+```md
+Property label: {property .Class}
+- Item A {=IRI}
+- Item B {=IRI}
+```
+
+### Rules
+
+* `{...}` before the list defines:
+
+  * predicate
+  * optional type
+* Each list item:
+
+  * must declare its own subject
+  * is processed independently
+* Streaming-safe (property known before items)
+
+---
+
+### Example: Recipe ingredients
+
+```md
+## Recipe 1 {=ex:recipe1}
+
+Ingredients: {hasPart .Ingredient}
+- Flour {=ex:flour}
+- Water {=ex:water}
+```
+
+```turtle
+ex:recipe1 schema:hasPart ex:flour , ex:water .
+
+ex:flour a schema:Ingredient .
+ex:water a schema:Ingredient .
+```
+
+---
+
+## 10. Block-level properties
+
+### Rule
+
+A `{property}` at the end of a block assigns the **entire block text** as the value.
+
+### Example
+
+```md
+Apollo 11 was the first crewed lunar landing mission. {description}
+```
+
+```turtle
+<current-subject> schema:description "Apollo 11 was the first crewed lunar landing mission." .
+```
+
+---
+
+## 11. Datatypes
+
+MD-LD supports explicit RDF datatypes and language tags.
+Datatypes and language tags are never inferred.
+If not explicitly provided, literals are plain strings.
+
+`{property ^^datatype}`
+
+## 12. Language 
+
+`{property @lang}`
+
+```md
+Berlin {name @en}
+Берлин {name @ru}
+```
+
+```turtle
+<current-subject> schema:name "Berlin"@en , "Берлин"@ru .
+```
+
+
+
+## 13. Code blocks
+
+### Rule
+
+* Code blocks may declare a subject
+* Code content is not interpreted
+* Semantics apply only via `{...}`
+
+### Example
+
+````md
+```sparql {=ex:query1 .SoftwareSourceCode}
+SELECT * WHERE { ?s ?p ?o }
+````
+
+````
+
+```turtle
+ex:query1 a schema:SoftwareSourceCode ;
+  schema:text "SELECT * WHERE { ?s ?p ?o }" .
+````
+
+---
+
+## 14. Composing complex graphs (by combination)
+
+### Example: Research project
+
+```md
+# Project Alpha {=ex:project-alpha .ResearchProject}
+
+Lead: [Dr. Smith](=ex:smith) {principalInvestigator .Person}
+
+Publications: {hasPart .ScholarlyArticle}
+- Paper A {=ex:paper-a}
+- Paper B {=ex:paper-b}
+
+## Paper A {=ex:paper-a}
+Title: Quantum Effects {name}
+
+## Paper B {=ex:paper-b}
+Title: Relativity Review {name}
+```
+
+```turtle
+ex:project-alpha a schema:ResearchProject ;
+  schema:principalInvestigator ex:smith ;
+  schema:hasPart ex:paper-a , ex:paper-b .
+
+ex:smith a schema:Person .
+
+ex:paper-a a schema:ScholarlyArticle ;
+  schema:name "Quantum Effects" .
+
+ex:paper-b a schema:ScholarlyArticle ;
+  schema:name "Relativity Review" .
+```
+
+No new rules were introduced—only composition.
+
+---
+
+## 15. Explicit exclusions (v0.2)
+
+The following are **intentionally not part of MD-LD v0.2**:
+
+* ❌ Automatic `rdfs:label`
+* ❌ Task list semantics
+* ❌ Bare URL extraction
+* ❌ `key=value` attributes
+
+* ❌ Structural inference
+
+These may appear in **future profiles**, not core.
+
+---
+
+## 16. Streaming and implementation guarantees
+
+An MD-LD processor:
+
+* Must operate line-by-line
+* Must emit RDF when `{...}` is encountered
+* Must not inspect future content
+* Must not infer missing semantics
+
+---
+
+## 17. Summary
 
 MD-LD v0.2 provides:
 
-- **Full RDF expressivity** — Forward/backward relations, chaining, datatypes, languages
-- **Streaming-friendly** — Single-pass line-by-line parsing with persistent subject context
-- **Readable Markdown** — Semantics contained in `{...}`, easily stripped
-- **Auto-IRI generation** — Slugified text when explicit IRI not provided
-- **RDFa-aligned** — Familiar patterns from RDFa Core 1.1
-- **Default context** — RDFa core prefixes + schema.org vocabulary built-in
-- **Unambiguous syntax** — Deterministic parsing, predictable RDF output
+* A **clean semantic layer** over Markdown
+* **Explicit intent only**
+* **No heuristics**
+* **No surprises**
+* **Composable knowledge graphs**
+* **Production-grade streaming behavior**
 
-This specification enables rich semantic authoring while maintaining the simplicity and readability of Markdown.
+> If you can read Markdown, you can author linked data.
+
