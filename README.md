@@ -9,7 +9,9 @@
 MD-LD allows you to author RDF graphs directly in Markdown using familiar syntax:
 
 ```markdown
-# My Note {id="urn:mdld:my-note-20251231" .NoteDigitalDocument}
+# My Note {=urn:mdld:my-note-20251231 .NoteDigitalDocument}
+
+[ex]{: http://example.org/}
 
 Written by [Alice Johnson](=ex:alice){author .Person}
 
@@ -22,11 +24,9 @@ This generates valid RDF triples while remaining readable as plain Markdown.
 
 ```n-quads
 <urn:mdld:my-note-20251231> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/NoteDigitalDocument> .
-<urn:mdld:my-note-20251231> <http://www.w3.org/2000/01/rdf-schema#label> "My Note" .
-<urn:mdld:my-note-20251231> <http://schema.org/author> "Alice Johnson" .
-<http://example.org/alice> <http://www.w3.org/2000/01/rdf-schema#label> "Alice's biography" .
+<urn:mdld:my-note-20251231> <http://schema.org/author> <http://example.org/alice> .
 <http://example.org/alice> <http://schema.org/name> "Alice" .
-<http://example.org/alice> <http://schema.org/worksFor> "Tech Corp" .
+<http://example.org/alice> <http://schema.org/worksFor> <http://example.org/tech-corp> .
 ```
 
 ## Architecture
@@ -48,7 +48,7 @@ This generates valid RDF triples while remaining readable as plain Markdown.
 We implement a **minimal, purpose-built parser** for maximum control and zero dependencies:
 
 - **Custom Markdown tokenizer** — Line-by-line parsing of headings, lists, paragraphs, code blocks
-- **Inline attribute parser** — Pandoc-style `{=iri =iri .class key="value"}` attribute extraction
+- **Inline attribute parser** — Pandoc-style `{=iri .class key="value"}` attribute extraction
 - **RDF quad generator** — Direct mapping from tokens to RDF/JS quads
 
 **Why custom?**
@@ -86,7 +86,7 @@ Markdown Text
     ↓
 [Custom Tokenizer] — Extract headings, lists, paragraphs, code blocks
     ↓
-[Attribute Parser] — Parse {=iri property="value"} from tokens
+[Attribute Parser] — Parse {=iri .class key="value"} from tokens
     ↓
 [Inline Parser] — Extract [text](url){attrs} spans
     ↓
@@ -117,10 +117,8 @@ npm install mdld-parse
 ```javascript
 import { parseMDLD } from "mdld-parse";
 
-const markdown = `# Hello {#hello typeof="Article"}`;
-const quads = parseMDLD(markdown, {
-	baseIRI: "http://example.org/doc",
-});
+const markdown = `# Hello {=urn:mdld:hello .Article}`;
+const quads = parseMDLD(markdown);
 ```
 
 ### Browser (via CDN)
@@ -161,7 +159,7 @@ const quads = parseMDLD(
 	`
 # Article Title {=ex:article .Article}
 
-Written by [Alice](ex:alice){ex:author}
+Written by [Alice](ex:alice) {ex:author}
 `,
 	{
 		baseIRI: "http://example.org/doc",
@@ -179,17 +177,6 @@ Written by [Alice](ex:alice){ex:author}
 // }
 ```
 
-### Batch Processing
-
-For multiple documents, process them sequentially:
-
-```javascript
-const documents = [markdown1, markdown2, markdown3];
-const allQuads = documents.flatMap((md) =>
-	parseMDLD(md, { baseIRI: "http://example.org/" })
-);
-```
-
 ## Implementation Details
 
 ### Subject Resolution
@@ -198,7 +185,7 @@ MD-LD follows a clear subject inheritance model:
 
 1. **Root subject** — Declared in the first heading of the document or inferred it's text content
 2. **Heading subjects** — `## Title {=ex:title .Type}`
-3. **Inline subjects** — `[text](=ex:text){.Type}`
+3. **Inline subjects** — `[text](=ex:text) {.Type}`
 4. **Blank nodes** — Generated for incomplete triples
 
 ```markdown
@@ -206,21 +193,10 @@ MD-LD follows a clear subject inheritance model:
 
 ## Section 1 {=urn:mdld:sec1 .Section} 
 
-[Text]{property="name"} ← property of #sec1
+[Text] {name} ← property of sec1
 
-Back to [doc](=urn:mdld:doc){property="hasPart"}
+Back to [doc](=urn:mdld:doc) {hasPart}
 ```
-
-### Property Mapping
-
-| Markdown                | RDF Predicate                                                                   |
-| ----------------------- | ------------------------------------------------------------------------------- |
-| Top-level H1 (no `=iri`) | `rdfs:label` on root subject                                                    |
-| Heading with `{=iri}`    | `rdfs:label` on subject                                                         |
-| First paragraph         | `dct:description` on root                                                       |
-| `{property="name"}`     | Resolved via context - > `schema:name`                                          |
-| `{rel="author"}`        | Resolved via context - > `schema:author`                                        |
-| Code block              | `schema:SoftwareSourceCode` with `schema:programmingLanguage` and `schema:text` |
 
 ### List Handling
 
@@ -232,18 +208,14 @@ Back to [doc](=urn:mdld:doc){property="hasPart"}
 Creates **multiple triples** with same predicate (not RDF lists):
 
 ```turtle
-<#doc> schema:item "Item 1" .
-<#doc> schema:item "Item 2" .
+<subject> schema:item "Item 1" .
+<subject> schema:item "Item 2" .
 ```
-
-For RDF lists (`rdf:List`), use `@inlist` in generated HTML.
 
 ### Code Block Semantics
 
-Fenced code blocks are automatically mapped to `schema:SoftwareSourceCode`:
-
 ```markdown
-\`\`\`sparql {#query-1}
+\`\`\`sparql {=ex:query-1 .SoftwareSourceCode}
 SELECT \* WHERE { ?s ?p ?o }
 \`\`\`
 ```
@@ -257,55 +229,27 @@ Creates:
 
 This enables semantic queries like "find all SPARQL queries in my notes."
 
-### Blank Node Strategy
-
-Blank nodes are created for:
-
-1. Task list items without explicit `=id` or `=iri`
-2. Code blocks without explicit `=id` or `=iri`
-3. Inline `.Class` without `id` 
-
-## Testing
-
-```bash
-npm test
-```
-
-Tests cover:
-
-- ✅ YAML-LD frontmatter parsing
-- ✅ Subject inheritance via headings
-- ✅ Property literals and datatypes (`property`, `datatype`)
-- ✅ Object relationships (`rel` on links)
-- ✅ Blank node generation (tasks, code blocks)
-- ✅ List mappings (repeated properties)
-- ✅ Code block semantics (`SoftwareSourceCode`)
-- ✅ Semantic links in lists (`hasPart` TOC)
-- ✅ Cross-references via (not supported — use explicit IRI only) IDs
-- ✅ Minimal Markdown → RDF (headings, paragraphs)
-
 ## Syntax Overview
 
 ### Core Features
 
-
 **Subject Declaration** — Headings create typed subjects:
 
 ```markdown
-## Alice Johnson {=urn:mdld:alice typeof="Person"}
+## Alice Johnson {=ex:alice .Person}
 ```
 
 **Literal Properties** — Inline spans create properties:
 
 ```markdown
-[Alice Johnson]{name}
-[30]{age ^^xsd:integer}
+[Alice Johnson] {name}
+[30] {age ^^xsd:integer}
 ```
 
 **Object Properties** — Links create relationships:
 
 ```markdown
-[Tech Corp](=urn:mdld:company){worksFor}
+[Tech Corp](=ex:company) {worksFor}
 ```
 
 **Lists** — Repeated properties:
@@ -314,38 +258,3 @@ Tests cover:
 - Item 1
 - Item 2
 ```
-
-**Code Blocks** — Automatic `SoftwareSourceCode` mapping:
-
-```sparql
-SELECT * WHERE { ?s ?p ?o }
-```
-
-**Tasks** — Markdown checklists become `schema:Action`:
-```markdown
-- [x] Completed task
-- [ ] Pending task
-
-### Optimization Tips
-
-1. **Reuse DataFactory** — Pass custom factory instance to avoid allocations
-2. **Minimize frontmatter** — Keep `@context` simple for faster parsing
-3. **Batch processing** — Process multiple documents sequentially
-4. **Explicit IRI IDs** — Use `{=iri}` on headings for efficient cross-references, no special (not supported — use explicit IRI only) rule
-
-## Future Work
-
-- [ ] Streaming API for large documents
-- [ ] Image syntax → `schema:ImageObject`
-- [ ] Bare URL links → `dct:references`
-- [ ] Language tags (`lang` attribute)
-- [ ] Source maps for debugging
-
-## Standards Compliance
-
-This parser implements:
-
-- [MD-LD v0.1 Specification](./mdld_spec_dogfood.md)
-- [RDF/JS Data Model](https://rdf.js.org/data-model-spec/)
-- [RDFa Core 1.1](https://www.w3.org/TR/rdfa-core/) (subset)
-- [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/) (frontmatter)

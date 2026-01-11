@@ -25,21 +25,19 @@ MD-LD does not replace RDFa or JSON-LD. It is an authoring surface that projects
 
 These principles are normative and MUST be followed by conforming implementations: {itemListElement}
 
-- One document maps to one root subject
-- YAML-LD frontmatter is mandatory
-- Markdown body may introduce additional subjects
 - Visible text is authoritative
 - Semantics follow document structure
 - No implicit inference rules
-- Anything not expressible cleanly is deferred to generated HTML
 
-### Default Context {#default-context .HowToSection}
+MD-LD annotations {...} MUST appear as a standalone token, separated from preceding Markdown syntax by whitespace. Annotations MUST NOT be embedded inside Markdown link destinations or other Markdown constructs.
+
+### Default Context {=urn:mdld:default-context .HowToSection}
 
 Unless overridden, implementations SHOULD assume a default vocabulary of http://schema.org/. {text}
 
 This enables concise authoring using terms like `name`, `startDate`, `Action` without prefixes.
 
-### Root Subject Declaration {#root-subject .HowToSection}
+### Root Subject Declaration {=urn:mdld:root-subject .HowToSection}
 
 The root subject is declared in yje first heading of the document. {text}
 
@@ -62,7 +60,7 @@ This subject becomes the implicit base for the Markdown body. {text}
 
 Even plain Markdown without attributes yields RDF triples. {abstract}
 
-### Headings {#headings-rule .HowToSection}
+### Headings {=urn:mdld:headings-rule .HowToSection}
 
 The document's top-level heading becomes the title of the root subject.
 
@@ -77,52 +75,17 @@ Maps to:
   rdfs:label "My Research Notes" .
 ```
 
-### First Paragraph {#first-para-rule .HowToSection}
-
-The first paragraph after the title becomes the description property. {text}
-
-```markdown
-This is a personal note about identity systems.
-```
-
-Maps to:
-
-```turtle
-<urn:mdld:my-research-notes> dct:description
-  "This is a personal note about identity systems." .
-```
-
-### Bare Links {#bare-links-rule .HowToSection}
-
-Bare links are parsed as dc:references. {text}
-
-#### Example
-
-MD-LD:
-
-```markdown
-See https://doi.org/10.1000/182 for more details.
-Read [more](https://doi.org/10.1000/183).
-```
-
-Turtle:
-
-```turtle
-<urn:mdld:my-research-notes> dc:references <https://doi.org/10.1000/182>, <https://doi.org/10.1000/183> .
-<https://doi.org/10.1000/183> rdfs:label "more"
-```
-
 ## RDF Markdown Attribute Syntax {=urn:mdld:attribute-syntax .Article}
 
 MD-LD uses Pandoc-style attribute blocks to add semantic annotations. {abstract}
 
-### Code Blocks {#code-blocks .HowToSection}
+### Code Blocks {=urn:mdld:code-blocks .HowToSection}
 
 Fenced code blocks are treated as SoftwareSourceCode resources with programming language and raw source attached. {text}
 
 MD‑LD:
 
-```sparql {#all-triples}
+```sparql {=#all-triples}
 SELECT * WHERE { ?s ?p ?o }
 ```
 
@@ -138,11 +101,11 @@ Turtle:
 
 The surrounding section subject also hasPart this code snippet, enabling later queries such as listing all SPARQL blocks in a notebook. {text}
 
-### Subject Declaration {#subject-decl .HowToSection}
+### Subject Declaration {=urn:mdld:subject-decl .HowToSection}
 
 Headings can declare new subjects using the =iri and =IRI syntax. {text}
 
-### Literal Properties {#literal-props .HowToSection}
+### Literal Properties {=urn:mdld:literal-props .HowToSection}
 
 Inline spans with the property attribute create literal values. {text}
 
@@ -151,7 +114,7 @@ MD‑LD:
 ```markdown
 # Alice {=http://example.org/alice}
 
-[Alice Johnson]{name}
+[Alice Johnson] {name}
 ```
 
 Turtle:
@@ -168,7 +131,7 @@ For typed literals, use the datatype attribute:
 MD‑LD:
 
 ```markdown
-[30]{age ^^xsd:integer}
+[30] {age ^^xsd:integer}
 ```
 
 Turtle:
@@ -180,7 +143,7 @@ Turtle:
 <http://example.org/alice> schema:age "30"^^xsd:integer .
 ```
 
-### Object Properties {#object-props .HowToSection}
+### Object Properties {=urn:mdld:object-props .HowToSection}
 
 Links with the rel attribute create relationships between subjects. {text}
 
@@ -189,7 +152,7 @@ MD‑LD:
 ```markdown
 # Alice {=ex:alice}
 
-Works at [ACME Corp](=urn:mdld:acme){worksFor}
+Works at [ACME Corp](=urn:mdld:acme) {worksFor}
 ```
 
 Turtle:
@@ -200,7 +163,7 @@ Turtle:
 <http://example.org/alice> schema:worksFor <http://example.org/alice#acme> .
 ```
 
-### Lists as Repeated Properties {#lists-repeated .HowToSection}
+### Lists as Repeated Properties {=urn:mdld:lists-repeated .HowToSection}
 
 List items with the same property attribute create multiple values for that property. {text}
 
@@ -226,13 +189,11 @@ Turtle:
 
 ## Tasks and Actions {=urn:mdld:tasks .Article}
 
-Markdown task lists are mapped to schema:Action instances. If no id provided - slugify and truncate the text. {abstract}
-
 ```markdown
 # My tasks
 
-- [x] Submit paper {#submit}
-- [ ] Revise abstract
+- [x] Submit paper {=urn:mdld:submit .Action}
+- [ ] Revise abstract {=urn:mdld:revise .Action}
 ```
 
 Maps to:
