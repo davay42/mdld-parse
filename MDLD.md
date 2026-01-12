@@ -90,13 +90,13 @@ A `{}` block MAY extract a literal value from exactly one of:
    * blockquote
    * fenced code block
 
-3. Links and embeds (URL is treated as object IRI, link text and image alt can be catched by `property` predicate):
+3. Links and embeds (URL is treated as object IRI, link text and image alt can be catched by `{property}` predicate):
 
    * Bare URL link `https://example.com`
    * Link `[Example](https://example.com)`
    * Image `![alt text](https://example.com/image.jpg)`
 
-3. Explicit quoted literals inside `{}`
+3. Explicit quoted literals inside the annotation `{property "Literal value"}` (applied to the preceding property and can override the carrier value if only one predicate present is followed by a literal value).
 
 Everything else is **not a value carrier**.
 

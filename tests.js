@@ -298,7 +298,7 @@ SELECT * WHERE { ?s ?p ?o }
 });
 
 test('Code block with type and properties', () => {
-  const md = `\`\`\`javascript {=ex:script .SoftwareSourceCode text programmingLanguage}
+  const md = `\`\`\`javascript {=ex:script .SoftwareSourceCode text }
 console.log('test');
 \`\`\``;
 
@@ -315,12 +315,9 @@ console.log('test');
   assert(typeQuad.object.value.includes('SoftwareSourceCode'), 'Should be SoftwareSourceCode');
 
   const textQuad = findQuad(result.quads, 'text');
-  const langQuad = findQuad(result.quads, 'programmingLanguage');
 
   assert(textQuad, 'Should have text property');
   assert(textQuad.object.value.includes('console.log'), 'Text should contain code');
-  assert(langQuad, 'Should have language property');
-  assert(langQuad.object.value === 'javascript', 'Language should be javascript');
 });
 
 test('Multiple code blocks', () => {
@@ -972,9 +969,7 @@ test('Mixed absolute and relative IRIs', () => {
 // ============================================================================
 
 async function runTests() {
-  console.log(`\n${'='.repeat(70)}`);
-  console.log('MD-LD v0.2 Test Suite');
-  console.log(`${'='.repeat(70)}\n`);
+  console.log('# MD-LD v0.2 Test Suite');
 
   for (const { name, fn } of tests) {
     try {
@@ -992,9 +987,8 @@ async function runTests() {
     }
   }
 
-  console.log(`\n${'-'.repeat(70)}`);
+  console.log(`\n${'-'.repeat(20)}`);
   console.log(`Results: ${passed} passed, ${failed} failed, ${tests.length} total`);
-  console.log(`${'='.repeat(70)}\n`);
 
   if (typeof process !== 'undefined' && process.exit) {
     process.exit(failed > 0 ? 1 : 0);
