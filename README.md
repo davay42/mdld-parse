@@ -115,10 +115,11 @@ npm install mdld-parse
 ```
 
 ```javascript
-import { parseMDLD } from "mdld-parse";
+import { parse } from "mdld-parse";
 
 const markdown = `# Hello {=urn:mdld:hello .Article}`;
-const quads = parseMDLD(markdown);
+const result = parse(markdown);
+const quads = result.quads;
 ```
 
 ### Browser (via CDN)
@@ -133,16 +134,16 @@ const quads = parseMDLD(markdown);
 </script>
 
 <script type="module">
-	import { parseMDLD } from "mdld-parse";
-	// use parseMDLD...
+	import { parse } from "mdld-parse";
+	// use parse...
 </script>
 ```
 
 ## API
 
-### `parseMDLD(markdown, options)`
+### `parse(markdown, options)`
 
-Parse MD-LD markdown and return RDF quads.
+Parse MD-LD markdown and return parsing result.
 
 **Parameters:**
 
@@ -152,10 +153,30 @@ Parse MD-LD markdown and return RDF quads.
   - `context` (object) — Additional context to merge with default context
   - `dataFactory` (object) — Custom RDF/JS DataFactory (default: built-in)
 
-**Returns:** Array of RDF/JS Quads
+**Returns:** Object containing:
+- `quads` — Array of RDF/JS Quads
+- `origin` — Object with `blocks` and `quadIndex` for serialization
+- `context` — Final context used for parsing
+
+### `serialize({ text, diff, origin, options })`
+
+Serialize RDF changes back to markdown with proper positioning.
+
+**Parameters:**
+
+- `text` (string) — Original markdown text
+- `diff` (object) — Changes to apply:
+  - `add` — Array of quads to add
+  - `delete` — Array of quads to remove
+- `origin` (object) — Origin object from parse result
+- `options` (object, optional) — Additional options
+
+**Returns:** Object containing:
+- `text` — Updated markdown text
+- `origin` — Updated origin object
 
 ```javascript
-const quads = parseMDLD(
+const result = parse(
 	`
 # Article Title {=ex:article .Article}
 
@@ -169,7 +190,7 @@ Written by [Alice](ex:alice) {ex:author}
 	}
 );
 
-// quads[0] = {
+// result.quads[0] = {
 //   subject: { termType: 'NamedNode', value: 'http://example.org/doc#article' },
 //   predicate: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
 //   object: { termType: 'NamedNode', value: 'http://schema.org/Article' },

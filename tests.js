@@ -80,8 +80,218 @@ I walked for hours and felt calm.`;
     };
 });
 
-test('Literal Value Extraction with Datatypes', () => {
+test('Blockquote Value Carriers', () => {
     const md = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## Document {=ex:doc .Article}
+
+> Simple quote: [Important point] {important}
+> [Nested quote] {nested}
+
+> Multi-line quote
+> spanning multiple lines {multiline}
+
+> Quote with [link](https://example.com) {reference}`;
+
+    const result = parse(md);
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: result.text
+        },
+        description: 'Blockquote value carriers with various annotation patterns',
+        expectedTriples: [
+            'ex:doc a schema:Article',
+            'ex:doc schema:important "Important point"',
+            'ex:doc ex:nested "Nested quote"',
+            'ex:doc schema:multiline "Multi-line quote spanning multiple lines"',
+            'ex:doc ex:reference <https://example.com>'
+        ]
+    };
+});
+
+test('Blockquote Edge Cases', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## Test {=ex:test .Document}
+
+> Empty quote {} {empty}
+> [Text only] {noAttrs}
+> [With multiple] {prop1 prop2}
+> [Mixed content] {prop ^^xsd:string}
+> [Link](https://example.com) {ref} and text`;
+
+    const result = parse(md);
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: result.text
+        },
+        description: 'Blockquote edge cases - empty, multiple annotations, datatypes',
+        expectedTriples: [
+            'ex:test a schema:Document',
+            'ex:test ex:empty ""',
+            'ex:test ex:noAttrs "Text only"',
+            'ex:test ex:prop1 "With multiple"',
+            'ex:test ex:prop2 "With multiple"',
+            'ex:test ex:prop "Mixed content"^^xsd:string',
+            'ex:test ex:ref <https://example.com>',
+            'ex:test schema:reference "Link and text"'
+        ]
+    };
+});
+
+test('Nested Blockquote Structures', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## Complex {=ex:complex .Document}
+
+> Level 1 quote: [Content] {level1}
+>> Level 2 quote: [Nested] {level2}
+>>> Level 3 quote: [Deep nested] {level3}
+
+> Mixed content with [emphasis] {emphasis} and **strong** {strong}`;
+
+    const result = parse(md);
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: result.text
+        },
+        description: 'Nested blockquotes with multiple levels and inline formatting',
+        expectedTriples: [
+            'ex:complex a schema:Document',
+            'ex:complex ex:level1 "Content"',
+            'ex:complex ex:level2 "Nested"',
+            'ex:complex ex:level3 "Deep nested"',
+            'ex:complex ex:emphasis "emphasis"',
+            'ex:complex ex:strong "strong"'
+        ]
+    };
+});
+
+test('Complex Nested Annotations', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+[xsd] {: http://www.w3.org/2001/XMLSchema#}
+
+## Edge Cases {=ex:edge .Document}
+
+> [Value 1] {prop1 ^^xsd:integer} [Value 2] {prop2 ^^xsd:string}
+> [Single span] {multiple .Type propA propB}
+> [Empty] {} {invalid}
+> [Valid] {correct .Type} [Invalid] {invalid .Type}`;
+
+    const result = parse(md);
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: result.text
+        },
+        description: 'Complex nested annotations and edge cases',
+        expectedTriples: [
+            'ex:edge a schema:Document',
+            'ex:edge ex:prop1 "Value 1"^^xsd:integer',
+            'ex:edge ex:prop2 "Value 2"^^xsd:string',
+            'ex:edge ex:multiple a ex:Type',
+            'ex:edge ex:propA "Single span"',
+            'ex:edge ex:propB "Single span"',
+            'ex:edge ex:invalid ""',
+            'ex:edge ex:correct a ex:Type',
+            'ex:edge ex:invalid a ex:Type'
+        ]
+    };
+});
+
+test('Performance and Error Recovery', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## Stress Test {=ex:stress .Document}
+
+${Array(100).fill(0).map((_, i) => `> Large blockquote [${i}] {content ${i}}`).join('\n')}
+
+> [Valid content] {valid}
+> [Malformed content] {invalid .Type}
+> [Unclosed quote [missing end] {broken}`;
+
+    const result = parse(md);
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: result.text
+        },
+        description: 'Performance stress test and error recovery scenarios',
+        expectedTriples: [
+            'Should parse 100 blockquotes without errors',
+            'ex:stress ex:valid "Valid content"',
+            'Should handle malformed annotations gracefully',
+            'Should recover from unclosed quotes'
+        ]
+    };
+});
+
+test('Nested Blockquote Structures', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## Complex {=ex:complex .Document}
+
+> Level 1 quote: [Content] {level1}
+>> Level 2 quote: [Nested] {level2}
+>>> Level 3 quote: [Deep nested] {level3}
+
+> Mixed content with [emphasis] {emphasis} and **strong** {strong}`;
+
+    const result = parse(md);
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: result.text
+        },
+        description: 'Nested blockquotes with multiple levels and inline formatting',
+        expectedTriples: [
+            'ex:complex a schema:Document',
+            'ex:complex ex:level1 "Content"',
+            'ex:complex ex:level2 "Nested"',
+            'ex:complex ex:level3 "Deep nested"',
+            'ex:complex ex:emphasis "emphasis"',
+            'ex:complex ex:strong "strong"'
+        ]
+    };
+});
+
+test('Apollo 11 Mission', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[wd] {: https://www.wikidata.org/entity/}
+[ex] {: http://example.org/}
 [xsd] {: http://www.w3.org/2001/XMLSchema#}
 
 ## Apollo 11 {=wd:Q43653 .SpaceMission}
@@ -132,17 +342,17 @@ Description: [First moon landing] {description}`;
 
 test('Family Recipe - Ingredients with Types', () => {
     const md = `[@vocab] {: http://schema.org/}
-[ex] {: http://example.org/}
-[xsd] {: http://www.w3.org/2001/XMLSchema#}
+        [ex] {: http://example.org/}
+            [xsd] {: http://www.w3.org/2001/XMLSchema#}
 
-## Apple Pie {=ex:apple-pie .Recipe}
+## Apple Pie {=ex: apple - pie.Recipe }
 
-Ingredients: {recipeIngredient .Food}
-- Apples {=ex:apples name}
-- Sugar {=ex:sugar name}
-- Butter {=ex:butter name}
+                Ingredients: { recipeIngredient.Food }
+                - Apples {=ex:apples name }
+                - Sugar {=ex:sugar name }
+                - Butter {=ex:butter name }
 
-Baking time: [45] {cookTime ^^xsd:integer}`;
+Baking time: [45] { cookTime ^^ xsd: integer } `;
 
     const result = parse(md);
 
@@ -168,13 +378,13 @@ Baking time: [45] {cookTime ^^xsd:integer}`;
 
 test('Book Club Notes - Ratings and Reviews', () => {
     const md = `[@vocab] {: http://schema.org/}
-[ex] {: http://example.org/}
+                    [ex] {: http://example.org/}
 
-## Book Club — June {=ex:bookclub-june .Event}
+## Book Club — June {=ex: bookclub - june.Event }
 
-Book: [Dune] {=ex:dune .Book name}
-Rating: [5] {ex:rating}
-Comment: **Mind-blowing world building** {reviewBody}`;
+                        Book: [Dune] {=ex: dune.Book name }
+                        Rating: [5] { ex: rating }
+                        Comment: ** Mind - blowing world building ** { reviewBody }`;
 
     const result = parse(md);
 
@@ -199,14 +409,14 @@ Comment: **Mind-blowing world building** {reviewBody}`;
 
 test('Household Expenses - Financial Tracking', () => {
     const md = `[@vocab] {: http://schema.org/}
-[ex] {: http://example.org/}
-[xsd] {: http://www.w3.org/2001/XMLSchema#}
+                            [ex] {: http://example.org/}
+                                [xsd] {: http://www.w3.org/2001/XMLSchema#}
 
-## Saturday errands {=ex:errands-1 .Event}
+## Saturday errands {=ex: errands - 1 .Event }
 
-Bought [Groceries] {=ex:groceries .Product}
-Cost: [42.30] {price ^^xsd:decimal}
-Store: [Local Market] {seller}`;
+                                    Bought[Groceries] {=ex: groceries.Product }
+                                    Cost: [42.30] { price ^^ xsd: decimal }
+                                    Store: [Local Market] { seller } `;
 
     const result = parse(md);
 
@@ -232,10 +442,10 @@ Store: [Local Market] {seller}`;
 test('Travel Notes - External Links with Labels', () => {
     const md = `[@vocab] {: http://schema.org/}
 
-## Berlin trip {=ex:berlin-trip .Trip}
+## Berlin trip {=ex: berlin - trip.Trip }
 
-Visited [Berlin](https://en.wikipedia.org/wiki/Berlin)
-{location rdfs:label "Berlin"@en}`;
+                                        Visited[Berlin](https://en.wikipedia.org/wiki/Berlin)
+                                            { location rdfs: label "Berlin"@en }`;
 
     const result = parse(md);
 
@@ -258,11 +468,11 @@ Visited [Berlin](https://en.wikipedia.org/wiki/Berlin)
 
 test('Developer Documentation - Code as Knowledge', () => {
     const md = `[@vocab] {: http://schema.org/}
-[ex] {: http://example.org/}
+                                            [ex] {: http://example.org/}
 
-## Parsing idea {=ex:idea-1 .CreativeWork}
+## Parsing idea {=ex: idea - 1 .CreativeWork }
 
-\`\`\`js {=ex:code-snippet-1 schema:text schema:programmingLanguage "JavaScript"}
+                                            \`\`\`js {=ex:code-snippet-1 schema:text schema:programmingLanguage "JavaScript"}
 function slugify(text) {
   return text.toLowerCase().replace(/\s+/g, '-')
 }
