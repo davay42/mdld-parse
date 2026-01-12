@@ -171,7 +171,8 @@ Serialize RDF changes back to markdown with proper positioning.
   - `add` — Array of quads to add
   - `delete` — Array of quads to remove
 - `origin` (object) — Origin object from parse result
-- `options` (object, optional) — Additional options
+- `options` (object, optional) — Additional options:
+  - `context` (object) — Context for IRI shortening (default: empty object)
 
 **Returns:** Object containing:
 - `text` — Updated markdown text
@@ -198,6 +199,22 @@ Written by [Alice](ex:alice) {ex:author}
 //   object: { termType: 'NamedNode', value: 'http://schema.org/Article' },
 //   graph: { termType: 'DefaultGraph' }
 // }
+
+// Add a new quad with proper IRI shortening
+const newQuad = {
+    subject: { termType: 'NamedNode', value: 'http://example.org/doc#article' },
+    predicate: { termType: 'NamedNode', value: 'http://schema.org/dateCreated' },
+    object: { termType: 'Literal', value: '2024-01-01' }
+};
+
+const serialized = serialize({ 
+    text: originalText, 
+    diff: { add: [newQuad] }, 
+    origin: result.origin,
+    options: { context: result.context }  // Important: pass context for IRI shortening
+});
+
+// Result: [2024-01-01] {dateCreated}  // Properly shortened!
 ```
 
 ## Implementation Details

@@ -1085,7 +1085,7 @@ Content: [Some content] {text}`;
 });
 
 test('Serialize Round-trip - No Changes', () => {
-    const md = `## Test {=ex:test}
+    const md = `## Test {=ex:test .Document}
 [Value] {property}`;
 
     const result = parse(md, { context: { ex: 'http://example.org/' } });
@@ -1104,7 +1104,77 @@ test('Serialize Round-trip - No Changes', () => {
         },
         description: 'Serialization with no changes returns original text',
         expectedTriples: [
-            'ex:test schema:property "Value"'
+            {
+                subject: 'http://example.org/test',
+                predicate: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+                object: 'http://schema.org/Document'
+            },
+            {
+                subject: 'http://example.org/test',
+                predicate: 'http://example.org/property',
+                object: 'Value'
+            }
+        ]
+    };
+});
+
+test('Serialize Round-trip - IRI Shortening with Context', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+# Document {=ex:doc .CreativeWork}
+[Original Title] {ex:title}`;
+
+    const result = parse(md);
+
+    // Add quads that should be shortened with context
+    const newQuads = [
+        {
+            subject: { termType: 'NamedNode', value: 'http://example.org/doc' },
+            predicate: { termType: 'NamedNode', value: 'http://schema.org/dateCreated' },
+            object: { termType: 'Literal', value: '2024-01-01' }
+        },
+        {
+            subject: { termType: 'NamedNode', value: 'http://example.org/doc' },
+            predicate: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+            object: { termType: 'NamedNode', value: 'http://schema.org/Article' }
+        },
+        {
+            subject: { termType: 'NamedNode', value: 'http://example.org/doc' },
+            predicate: { termType: 'NamedNode', value: 'http://example.org/relatedTo' },
+            object: { termType: 'NamedNode', value: 'http://example.org/other' }
+        }
+    ];
+
+    const serialized = serialize({
+        text: md,
+        diff: { add: newQuads },
+        origin: result.origin,
+        options: { context: result.context }  // Pass context for proper IRI shortening
+    });
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: md,
+            serialized: serialized.text,
+            addedQuads: newQuads
+        },
+        description: 'Serialization with context properly shortens IRIs using @vocab and prefixes',
+        expectedTriples: [
+            {
+                subject: 'http://example.org/doc',
+                predicate: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+                object: 'http://schema.org/CreativeWork'
+            },
+            {
+                subject: 'http://example.org/doc',
+                predicate: 'http://example.org/title',
+                object: 'Original Title'
+            }
         ]
     };
 });

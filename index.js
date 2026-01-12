@@ -313,7 +313,7 @@ function processAnnotation(token, state, textContent = null) {
                 state.df.namedNode(expandIRI(token.url, state.ctx)) : targetSubject;
             emitQuad(state.quads, state.origin.quadIndex, block.id,
                 typeSubject, state.df.namedNode(expandIRI('rdf:type', state.ctx)),
-                state.df.namedNode(e.classIRI), state.df);
+                state.df.namedNode(expandIRI(e.classIRI, state.ctx)), state.df);
         } else if (e.kind === 'property' && e.predicate) {
             const predicate = state.df.namedNode(expandIRI(e.predicate, state.ctx));
             let object;
@@ -384,7 +384,7 @@ function processListItem(token, state) {
 
     // Process list context relationship
     if (state.listContext?.predicate && originalSubject) {
-        const predicate = state.df.namedNode(state.listContext.predicate);
+        const predicate = state.df.namedNode(expandIRI(state.listContext.predicate, state.ctx));
         if (state.listContext.reverse) {
             emitQuad(state.quads, state.origin.quadIndex, 'list-context',
                 state.currentSubject, predicate, originalSubject, state.df);
@@ -469,11 +469,31 @@ export function parse(text, options = {}) {
     return { quads: state.quads, origin: state.origin, context: state.ctx };
 }
 
+function shortenIRI(iri, ctx) {
+    if (!iri || !iri.startsWith('http')) return iri;
+
+    // Check @vocab first
+    if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) {
+        return iri.substring(ctx['@vocab'].length);
+    }
+
+    // Check prefixes
+    for (const [prefix, namespace] of Object.entries(ctx)) {
+        if (prefix !== '@vocab' && iri.startsWith(namespace)) {
+            return prefix + ':' + iri.substring(namespace.length);
+        }
+    }
+
+    // No prefix found, return full IRI
+    return iri;
+}
+
 export function serialize({ text, diff, origin, options = {} }) {
     if (!diff || (!diff.add?.length && !diff.delete?.length)) return { text, origin };
 
     let result = text;
     const edits = [];
+    const ctx = options.context || {};
 
     if (diff.delete) {
         diff.delete.forEach(quad => {
@@ -506,8 +526,15 @@ export function serialize({ text, diff, origin, options = {} }) {
                 }
             }
 
-            const pred = quad.predicate.value.split(/[/#]/).pop();
-            const objText = quad.object.termType === 'Literal' ? quad.object.value : quad.object.value;
+            const pred = shortenIRI(quad.predicate.value, ctx);
+            let objText;
+
+            if (quad.object.termType === 'Literal') {
+                objText = quad.object.value;
+            } else {
+                objText = shortenIRI(quad.object.value, ctx);
+            }
+
             const newLine = `\n[${objText}] {${pred}}`;
 
             edits.push({ start: insertPos, end: insertPos, text: newLine });
