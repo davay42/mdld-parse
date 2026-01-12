@@ -1,724 +1,362 @@
 const DEFAULT_CONTEXT = {
-  '@vocab': 'http://schema.org/',
-  'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-  'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-  'xsd': 'http://www.w3.org/2001/XMLSchema#',
-  'dct': 'http://purl.org/dc/terms/',
-  'foaf': 'http://xmlns.com/foaf/0.1/'
+    '@vocab': 'http://schema.org/',
+    rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+    xsd: 'http://www.w3.org/2001/XMLSchema#',
+    schema: 'http://schema.org/'
 };
 
-const DefaultDataFactory = {
-  namedNode: (value) => ({ termType: 'NamedNode', value }),
-  blankNode: (value = `b${Math.random().toString(36).slice(2, 11)}`) => ({
-    termType: 'BlankNode',
-    value
-  }),
-  literal: (value, languageOrDatatype) => {
-    if (typeof languageOrDatatype === 'string') {
-      return {
-        termType: 'Literal',
-        value,
-        language: languageOrDatatype,
-        datatype: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString' }
-      };
-    }
-    return {
-      termType: 'Literal',
-      value,
-      language: '',
-      datatype: languageOrDatatype || { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' }
-    };
-  },
-  quad: (subject, predicate, object, graph) => ({
-    subject,
-    predicate,
-    object,
-    graph: graph || DefaultDataFactory.defaultGraph()
-  }),
-  defaultGraph: () => ({ termType: 'DefaultGraph', value: '' })
+const DataFactory = {
+    namedNode: (v) => ({ termType: 'NamedNode', value: v }),
+    blankNode: (v = `b${Math.random().toString(36).slice(2, 11)}`) => ({ termType: 'BlankNode', value: v }),
+    literal: (v, lang) => {
+        if (typeof lang === 'string') {
+            return { termType: 'Literal', value: v, language: lang, datatype: DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#langString') };
+        }
+        return { termType: 'Literal', value: v, language: '', datatype: lang || DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#string') };
+    },
+    quad: (s, p, o, g) => ({ subject: s, predicate: p, object: o, graph: g || DataFactory.namedNode('') })
 };
 
-function inferBaseIRI(markdown) {
-  const h1Match = markdown.match(/^#\s+(.+?)(?:\s*\{[^}]+\})?$/m);
-  if (h1Match) {
-    const slug = h1Match[1]
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-    if (slug) return `urn:mdld:${slug}`;
-  }
-
-  let hash = 5381;
-  for (let i = 0; i < markdown.length; i++) {
-    hash = ((hash << 5) + hash) + markdown.charCodeAt(i);
-  }
-  return `urn:mdld:${Math.abs(hash).toString(16)}`;
+function hash(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) + h) + str.charCodeAt(i);
+    return Math.abs(h).toString(16).slice(0, 12);
 }
 
-function tokenizeMarkdown(text) {
-  const tokens = [];
-  const lines = text.split('\n');
-  let i = 0;
-  let inCodeBlock = false;
-  let codeFence = null;
-  let codeLang = null;
-  let codeAttrs = {};
-  let codeLines = [];
+function canonicalizeBlock(subject, entries) {
+    const parts = [`subject=${subject || ''}`];
+    entries.sort((a, b) => {
+        const aKey = `${a.kind}:${a.predicate || ''}:${JSON.stringify(a.value || '')}`;
+        const bKey = `${b.kind}:${b.predicate || ''}:${JSON.stringify(b.value || '')}`;
+        return aKey.localeCompare(bKey);
+    }).forEach(e => {
+        if (e.kind === 'type') parts.push(`type=${e.classIRI}`);
+        if (e.kind === 'property') parts.push(`prop=${e.predicate}|${JSON.stringify(e.value)}|${e.direction}`);
+    });
+    return hash(parts.join('\n'));
+}
 
-  while (i < lines.length) {
-    const line = lines[i];
-    const trimmed = line.trim();
+function expandIRI(term, context) {
+    if (!term) return null;
+    const t = term.trim();
+    if (t.match(/^https?:/)) return t;
+    if (t.includes(':')) {
+        const [prefix, ref] = t.split(':', 2);
+        return context[prefix] ? context[prefix] + ref : t;
+    }
+    return (context['@vocab'] || '') + t;
+}
 
-    const fenceMatch = line.match(/^(```+)(.*)$/);
-    if (fenceMatch) {
-      const [, fence, rest] = fenceMatch;
+function parseAnnotation(raw) {
+    const entries = [];
+    const cleaned = raw.replace(/^\{|\}$/g, '').trim();
 
-      if (!inCodeBlock) {
-        inCodeBlock = true;
-        codeFence = fence;
-        codeLines = [];
-        codeLang = null;
-        codeAttrs = {};
+    let subject = null;
+    const subjectMatch = cleaned.match(/=([^\s.^@]+)/);
+    if (subjectMatch) subject = subjectMatch[1];
 
-        const restTrimmed = rest.trim();
-        if (restTrimmed) {
-          const attrIndex = restTrimmed.indexOf('{');
-          const langPart = attrIndex >= 0 ? restTrimmed.substring(0, attrIndex).trim() : restTrimmed;
-          if (langPart) {
-            codeLang = langPart.split(/\s+/)[0];
-          }
+    const types = cleaned.match(/\.([^\s.=^@]+)/g);
+    if (types) types.forEach(t => entries.push({ kind: 'type', classIRI: t.substring(1) }));
 
-          const attrMatch = restTrimmed.match(/\{[^}]+\}/);
-          if (attrMatch) {
-            codeAttrs = parseAttributes(attrMatch[0]);
-          }
-        }
-
-        i++;
-        continue;
-      }
-
-      if (inCodeBlock && fence === codeFence) {
-        tokens.push({
-          type: 'code',
-          lang: codeLang,
-          text: codeLines.join('\n'),
-          attrs: codeAttrs
+    const props = cleaned.match(/(?:^|\s)([^\s.=^@]+)(?=\s|$)/g);
+    if (props) {
+        props.forEach(p => {
+            const trimmed = p.trim();
+            if (trimmed && !trimmed.startsWith('.') && !trimmed.startsWith('=')) {
+                entries.push({ kind: 'property', predicate: trimmed, direction: 'forward', value: null });
+            }
         });
-
-        inCodeBlock = false;
-        codeFence = null;
-        codeLang = null;
-        codeAttrs = {};
-        codeLines = [];
-
-        i++;
-        continue;
-      }
     }
 
-    if (inCodeBlock) {
-      codeLines.push(line);
-      i++;
-      continue;
-    }
+    const reverse = cleaned.match(/\^([^\s.=^@]+)/g);
+    if (reverse) reverse.forEach(r => entries.push({ kind: 'property', predicate: r.substring(1), direction: 'reverse', value: null }));
 
-    const headingMatch = line.match(/^(#{1,6})\s+(.+?)(\s*\{[^}]+\})?$/);
-    if (headingMatch) {
-      const [, hashes, text, attrs] = headingMatch;
-      let attributes = attrs ? parseAttributes(attrs) : {};
+    const datatype = cleaned.match(/\^\^([^\s]+)/);
+    const lang = cleaned.match(/@([a-z]{2}(?:-[A-Z]{2})?)/);
 
-      if (!attrs && i + 1 < lines.length) {
-        const nextLine = lines[i + 1].trim();
-        if (nextLine.match(/^\{[^}]+\}$/)) {
-          attributes = parseAttributes(nextLine);
-          i++;
-        }
-      }
-
-      tokens.push({
-        type: 'heading',
-        depth: hashes.length,
-        text: text.trim(),
-        attrs: attributes
-      });
-      i++;
-      continue;
-    }
-
-    const taskMatch = line.match(/^(\s*)([-*+])\s+\[([ xX])\]\s+(.+?)(\s*\{[^}]+\})?$/);
-    if (taskMatch) {
-      const [, indent, marker, checked, text, attrs] = taskMatch;
-      tokens.push({
-        type: 'taskItem',
-        indent: indent.length,
-        checked: checked.toLowerCase() === 'x',
-        text: text.trim(),
-        attrs: attrs ? parseAttributes(attrs) : {}
-      });
-      i++;
-      continue;
-    }
-
-    const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+?)(\s*\{[^}]+\})?$/);
-    if (listMatch) {
-      const [, indent, marker, text, attrs] = listMatch;
-      const combinedText = attrs ? `${text}${attrs.trim()}` : text;
-
-      tokens.push({
-        type: 'listItem',
-        indent: indent.length,
-        text: combinedText.trim(),
-        attrs: attrs ? parseAttributes(attrs) : {}
-      });
-      i++;
-      continue;
-    }
-
-    if (trimmed && !trimmed.match(/^(---|```)/)) {
-      tokens.push({
-        type: 'paragraph',
-        text: line
-      });
-      i++;
-      continue;
-    }
-
-    if (!trimmed) {
-      tokens.push({ type: 'blank' });
-    }
-
-    i++;
-  }
-
-  return tokens;
+    return { subject, entries, datatype: datatype?.[1], language: lang?.[1] };
 }
 
-function parseAttributes(attrString) {
-  const attrs = {};
-  const cleaned = attrString.replace(/^\{|\}$/g, '').trim();
+function scanTokens(text) {
+    const tokens = [];
+    const lines = text.split('\n');
+    let pos = 0;
+    let inCode = false;
+    let codeFence = null;
+    let codeStart = 0;
+    let codeLines = [];
+    let codeLang = null;
+    let codeAttrs = null;
 
-  const idMatch = cleaned.match(/#([^\s.]+)/);
-  if (idMatch) attrs.id = idMatch[1];
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lineStart = pos;
+        pos += line.length + 1;
 
-  const classMatches = cleaned.match(/\.([^\s.#]+)/g);
-  if (classMatches) {
-    attrs.class = classMatches.map(c => c.substring(1)).join(' ');
-  }
-
-  const kvRegex = /(\w+)=["']([^"']*)["']/g;
-  let match;
-  while ((match = kvRegex.exec(cleaned)) !== null) {
-    attrs[match[1]] = match[2];
-  }
-
-  return attrs;
-}
-
-function parseInline(text) {
-  const spans = [];
-  const inlineRegex = /\[([^\]]+)\](?:\(([^)]+)\))?(?:\{([^}]+)\})?/g;
-  let match;
-  let lastIndex = 0;
-
-  while ((match = inlineRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      spans.push({
-        type: 'text',
-        value: text.substring(lastIndex, match.index)
-      });
-    }
-
-    const [fullMatch, linkText, url, attrs] = match;
-    spans.push({
-      type: url ? 'link' : 'span',
-      text: linkText,
-      url: url || null,
-      attrs: attrs ? parseAttributes(`{${attrs}}`) : {}
-    });
-
-    lastIndex = match.index + fullMatch.length;
-  }
-
-  if (lastIndex < text.length) {
-    spans.push({
-      type: 'text',
-      value: text.substring(lastIndex)
-    });
-  }
-
-  return spans.length > 0 ? spans : [{ type: 'text', value: text }];
-}
-
-export class MDLDParser {
-  constructor(options = {}) {
-    this.options = {
-      baseIRI: options.baseIRI || null,
-      context: { ...DEFAULT_CONTEXT, ...(options.context || {}) },
-      dataFactory: options.dataFactory || DefaultDataFactory,
-      ...options
-    };
-
-    this.df = this.options.dataFactory;
-    this.quads = [];
-    this.rootSubject = null;
-    this.currentSubject = null;
-    this.blankNodeMap = new Map();
-  }
-
-  hashBlankNode(input) {
-    if (this.blankNodeMap.has(input)) {
-      return this.blankNodeMap.get(input);
-    }
-    let hash = 5381;
-    for (let i = 0; i < input.length; i++) {
-      hash = ((hash << 5) + hash) + input.charCodeAt(i);
-    }
-    const bnId = `b${Math.abs(hash).toString(16).slice(0, 12)}`;
-    this.blankNodeMap.set(input, bnId);
-    return bnId;
-  }
-
-  parse(markdown) {
-    this.quads = [];
-
-    const baseIRI = this.options.baseIRI || inferBaseIRI(markdown);
-    this.rootSubject = this.df.namedNode(baseIRI);
-    this.currentSubject = this.rootSubject;
-
-    const tokens = tokenizeMarkdown(markdown);
-    this.processTokens(tokens);
-
-    return this.quads;
-  }
-
-  processTokens(tokens) {
-    let firstParagraph = true;
-    let titleEmitted = false;
-
-    for (let i = 0; i < tokens.length; i++) {
-      const token = tokens[i];
-
-      if (token.type === 'heading') {
-        if (token.depth === 1 && !titleEmitted && !token.attrs.id) {
-          this.emitQuad(
-            this.rootSubject,
-            this.df.namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
-            this.df.literal(token.text)
-          );
-          titleEmitted = true;
-        }
-
-        if (token.attrs.id) {
-          const newSubject = this.resolveSubjectIRI(token.attrs.id);
-          if (!newSubject) continue;
-
-          if (token.attrs.typeof) {
-            const types = token.attrs.typeof.trim().split(/\s+/).filter(Boolean);
-            types.forEach(type => {
-              const typeNode = this.resolveResource(type);
-              if (typeNode) {
-                this.emitQuad(
-                  newSubject,
-                  this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                  typeNode
-                );
-              }
-            });
-          }
-
-          this.emitQuad(
-            newSubject,
-            this.df.namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
-            this.df.literal(token.text.trim())
-          );
-
-          this.currentSubject = newSubject;
-        }
-
-        continue;
-      }
-
-      if (token.type === 'code') {
-        let snippetSubject;
-
-        if (token.attrs && token.attrs.id) {
-          snippetSubject = this.resolveSubjectIRI(token.attrs.id);
-          if (!snippetSubject) {
-            snippetSubject = this.df.blankNode(
-              this.hashBlankNode(`code:${token.lang || ''}:${token.text}`)
-            );
-          }
-        } else {
-          snippetSubject = this.df.blankNode(
-            this.hashBlankNode(`code:${token.lang || ''}:${token.text}`)
-          );
-        }
-
-        if (token.attrs && token.attrs.typeof) {
-          const types = token.attrs.typeof.trim().split(/\s+/).filter(Boolean);
-          types.forEach(type => {
-            const typeNode = this.resolveResource(type);
-            if (typeNode) {
-              this.emitQuad(
-                snippetSubject,
-                this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                typeNode
-              );
+        const fenceMatch = line.match(/^(`{3,})(.*)/);
+        if (fenceMatch) {
+            if (!inCode) {
+                inCode = true;
+                codeFence = fenceMatch[1];
+                codeStart = lineStart;
+                codeLines = [];
+                const rest = fenceMatch[2].trim();
+                const attrIdx = rest.indexOf('{');
+                codeLang = attrIdx >= 0 ? rest.substring(0, attrIdx).trim() : rest;
+                codeAttrs = rest.match(/\{[^}]+\}/)?.[0];
+                continue;
+            } else if (fenceMatch[1] === codeFence) {
+                const codeEnd = lineStart;
+                tokens.push({ type: 'code', range: [codeStart, codeEnd], text: codeLines.join('\n'), lang: codeLang, attrs: codeAttrs });
+                inCode = false;
+                continue;
             }
-          });
-        } else {
-          const defaultType = this.resolveResource('SoftwareSourceCode');
-          if (defaultType) {
-            this.emitQuad(
-              snippetSubject,
-              this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-              defaultType
-            );
-          }
         }
 
-        if (token.lang) {
-          const langPred = this.resolveResource('programmingLanguage');
-          if (langPred) {
-            this.emitQuad(snippetSubject, langPred, this.df.literal(token.lang));
-          }
+        if (inCode) {
+            codeLines.push(line);
+            continue;
         }
 
-        const textPred = this.resolveResource('text');
-        if (textPred && token.text) {
-          this.emitQuad(snippetSubject, textPred, this.df.literal(token.text));
+        const headingMatch = line.match(/^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/);
+        if (headingMatch) {
+            const text = headingMatch[2].trim();
+            const attrs = headingMatch[3];
+            tokens.push({ type: 'heading', depth: headingMatch[1].length, range: [lineStart, pos], text, attrs });
+            continue;
         }
 
-        const hasPartPred = this.resolveResource('hasPart');
-        if (hasPartPred) {
-          this.emitQuad(this.currentSubject, hasPartPred, snippetSubject);
+        const prefixMatch = line.match(/^\[([^\]]+)\]\s*\{:\s*([^}]+)\}/);
+        if (prefixMatch) {
+            tokens.push({ type: 'prefix', prefix: prefixMatch[1], iri: prefixMatch[2].trim(), range: [lineStart, pos] });
+            continue;
         }
 
-        continue;
-      }
-
-      if (token.type === 'paragraph') {
-        if (firstParagraph && titleEmitted) {
-          const text = token.text.trim();
-          if (text && !text.match(/\[.*\]/)) {
-            this.emitQuad(
-              this.rootSubject,
-              this.df.namedNode('http://purl.org/dc/terms/description'),
-              this.df.literal(text)
-            );
-          }
-          firstParagraph = false;
+        const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?$/);
+        if (listMatch) {
+            const text = listMatch[3].trim();
+            const attrs = listMatch[4];
+            tokens.push({ type: 'list', indent: listMatch[1].length, range: [lineStart, pos], text, attrs });
+            continue;
         }
 
-        this.processInline(token.text);
-        continue;
-      }
-
-      if (token.type === 'listItem') {
-        this.processInline(token.text);
-        continue;
-      }
-
-      if (token.type === 'taskItem') {
-        let action;
-        if (token.attrs.id) {
-          action = this.resolveSubjectIRI(token.attrs.id);
-          if (!action) {
-            action = this.df.blankNode(this.hashBlankNode(`task:${token.text}`));
-          }
-        } else {
-          action = this.df.blankNode(this.hashBlankNode(`task:${token.text}`));
+        if (line.trim()) {
+            tokens.push({ type: 'para', range: [lineStart, pos], text: line });
         }
-
-        if (token.attrs.typeof) {
-          const types = token.attrs.typeof.trim().split(/\s+/).filter(Boolean);
-          types.forEach(type => {
-            const typeNode = this.resolveResource(type);
-            if (typeNode) {
-              this.emitQuad(
-                action,
-                this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                typeNode
-              );
-            }
-          });
-        } else {
-          this.emitQuad(
-            action,
-            this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-            this.df.namedNode('http://schema.org/Action')
-          );
-        }
-
-        this.emitQuad(
-          action,
-          this.df.namedNode('http://schema.org/name'),
-          this.df.literal(token.text)
-        );
-
-        const status = token.checked
-          ? 'http://schema.org/CompletedActionStatus'
-          : 'http://schema.org/PotentialActionStatus';
-
-        this.emitQuad(
-          action,
-          this.df.namedNode('http://schema.org/actionStatus'),
-          this.df.namedNode(status)
-        );
-
-        this.emitQuad(
-          this.currentSubject,
-          this.df.namedNode('http://schema.org/potentialAction'),
-          action
-        );
-
-        continue;
-      }
     }
-  }
 
-  processInline(text) {
-    const spans = parseInline(text);
-    const urlRegex = /https?:\/\/[^\s\]\)]+/g;
+    return tokens;
+}
 
-    for (const span of spans) {
-      if (span.type === 'link') {
-        // Handle regular Markdown links [text](url)
-        const url = span.url;
-        const linkText = span.text;
+function parseInlineSpans(text) {
+    const spans = [];
+    const regex = /\[([^\]]+)\](?:\(([^)]+)\))?(?:\s*\{([^}]+)\})?/g;
+    let last = 0;
+    let m;
 
-        // First triple: current subject references the URL
-        this.emitQuad(
-          this.currentSubject,
-          this.df.namedNode('http://purl.org/dc/terms/references'),
-          this.df.namedNode(url)
-        );
+    while ((m = regex.exec(text)) !== null) {
+        if (m.index > last) spans.push({ type: 'text', value: text.substring(last, m.index) });
+        spans.push({ type: 'span', text: m[1], url: m[2] || null, attrs: m[3] ? `{${m[3]}}` : null, range: [m.index, m.index + m[0].length] });
+        last = m.index + m[0].length;
+    }
 
-        // Second triple: URL has a label (the link text)
-        if (linkText) {
-          this.emitQuad(
-            this.df.namedNode(url),
-            this.df.namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
-            this.df.literal(linkText)
-          );
+    if (last < text.length) spans.push({ type: 'text', value: text.substring(last) });
+    return spans.length ? spans : [{ type: 'text', value: text }];
+}
+
+export function parse(text, options = {}) {
+    const ctx = { ...DEFAULT_CONTEXT, ...(options.context || {}) };
+    const df = options.dataFactory || DataFactory;
+    const quads = [];
+    const origin = { blocks: new Map(), quadIndex: new Map() };
+
+    const tokens = scanTokens(text);
+
+    for (const token of tokens) {
+        if (token.type === 'prefix') {
+            ctx[token.prefix] = token.iri;
+            continue;
         }
-        continue;
-      }
+    }
 
-      if (span.type === 'text') {
-        // Handle bare URLs in text
-        let match;
-        const processed = new Set();
-        while ((match = urlRegex.exec(span.value)) !== null) {
-          const url = match[0];
-          if (!processed.has(url)) {
-            this.emitQuad(
-              this.currentSubject,
-              this.df.namedNode('http://purl.org/dc/terms/references'),
-              this.df.namedNode(url)
-            );
-            processed.add(url);
-          }
+    let currentSubject = null;
+    let rootSubject = null;
+
+    for (const token of tokens) {
+        if (token.type === 'heading' && token.attrs) {
+            const ann = parseAnnotation(token.attrs);
+            if (ann.subject) {
+                const subjIRI = expandIRI(ann.subject, ctx);
+                currentSubject = df.namedNode(subjIRI);
+                if (!rootSubject) rootSubject = currentSubject;
+
+                const entries = ann.entries.map(e => ({
+                    ...e,
+                    predicate: e.predicate ? expandIRI(e.predicate, ctx) : null,
+                    classIRI: e.classIRI ? expandIRI(e.classIRI, ctx) : null
+                }));
+
+                const blockId = canonicalizeBlock(subjIRI, entries);
+                origin.blocks.set(blockId, {
+                    id: blockId,
+                    range: { start: token.range[0], end: token.range[1] },
+                    subject: subjIRI,
+                    entries,
+                    context: { ...ctx }
+                });
+
+                entries.forEach(e => {
+                    if (e.kind === 'type') {
+                        const q = df.quad(currentSubject, df.namedNode(expandIRI('rdf:type', ctx)), df.namedNode(e.classIRI));
+                        quads.push(q);
+                        origin.quadIndex.set(JSON.stringify([q.subject.value, q.predicate.value, q.object.value]), blockId);
+                    }
+                });
+
+                const labelQ = df.quad(currentSubject, df.namedNode(expandIRI('rdfs:label', ctx)), df.literal(token.text));
+                quads.push(labelQ);
+                origin.quadIndex.set(JSON.stringify([labelQ.subject.value, labelQ.predicate.value, labelQ.object.value]), blockId);
+            }
+            continue;
         }
-        continue;
-      }
 
-      if (span.type === 'link' || span.type === 'span') {
-        const attrs = span.attrs;
-        let subject = this.currentSubject;
+        if (token.type === 'code' && token.attrs) {
+            const ann = parseAnnotation(token.attrs);
+            const codeSubj = ann.subject ? df.namedNode(expandIRI(ann.subject, ctx)) : df.blankNode(hash(`code:${token.text}`));
 
-        if (attrs.id) {
-          const resolvedSubject = this.resolveSubjectIRI(attrs.id);
-          if (resolvedSubject) {
-            subject = resolvedSubject;
-          }
+            const entries = ann.entries.map(e => ({
+                ...e,
+                predicate: e.predicate ? expandIRI(e.predicate, ctx) : null,
+                classIRI: e.classIRI ? expandIRI(e.classIRI, ctx) : null
+            }));
 
-          if (attrs.typeof) {
-            const types = attrs.typeof.trim().split(/\s+/).filter(Boolean);
-            types.forEach(type => {
-              const typeNode = this.resolveResource(type);
-              if (typeNode) {
-                this.emitQuad(
-                  subject,
-                  this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                  typeNode
-                );
-              }
+            const blockId = canonicalizeBlock(codeSubj.value, entries);
+            origin.blocks.set(blockId, {
+                id: blockId,
+                range: { start: token.range[0], end: token.range[1] },
+                subject: codeSubj.value,
+                entries,
+                context: { ...ctx }
             });
-          }
 
-          if (span.text && !attrs.property && !attrs.rel) {
-            this.emitQuad(
-              subject,
-              this.df.namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
-              this.df.literal(span.text.trim())
-            );
-          }
+            entries.forEach(e => {
+                if (e.kind === 'type') {
+                    const q = df.quad(codeSubj, df.namedNode(expandIRI('rdf:type', ctx)), df.namedNode(e.classIRI));
+                    quads.push(q);
+                    origin.quadIndex.set(JSON.stringify([q.subject.value, q.predicate.value, q.object.value]), blockId);
+                }
+                if (e.kind === 'property' && e.predicate) {
+                    const pred = df.namedNode(e.predicate);
+                    let obj = df.literal(token.lang || token.text);
+                    if (e.predicate.includes('programmingLanguage')) obj = df.literal(token.lang);
+                    if (e.predicate.includes('text')) obj = df.literal(token.text);
+                    const q = df.quad(codeSubj, pred, obj);
+                    quads.push(q);
+                    origin.quadIndex.set(JSON.stringify([q.subject.value, q.predicate.value, q.object.value]), blockId);
+                }
+            });
+
+            if (currentSubject) {
+                const q = df.quad(currentSubject, df.namedNode(expandIRI('hasPart', ctx)), codeSubj);
+                quads.push(q);
+            }
+            continue;
         }
 
-        if (attrs.property) {
-          const properties = attrs.property.trim().split(/\s+/).filter(Boolean);
-          properties.forEach(prop => {
-            const predicate = this.resolveResource(prop);
-            if (!predicate) return;
+        if ((token.type === 'para' || token.type === 'list') && currentSubject) {
+            const spans = parseInlineSpans(token.text);
 
-            let object;
-            if (attrs.datatype) {
-              const datatypeIRI = this.resolveResource(attrs.datatype);
-              if (datatypeIRI && datatypeIRI.value) {
-                object = this.df.literal(span.text, datatypeIRI);
-              } else {
-                object = this.df.literal(span.text);
-              }
-            } else {
-              object = this.df.literal(span.text);
+            for (const span of spans) {
+                if (span.type === 'span' && span.attrs) {
+                    const ann = parseAnnotation(span.attrs);
+                    let spanSubj = currentSubject;
+
+                    if (ann.subject) {
+                        spanSubj = df.namedNode(expandIRI(ann.subject, ctx));
+                    }
+
+                    ann.entries.forEach(e => {
+                        if (e.kind === 'property' && e.predicate) {
+                            const pred = df.namedNode(expandIRI(e.predicate, ctx));
+                            let obj;
+
+                            if (span.url) {
+                                obj = df.namedNode(expandIRI(span.url, ctx));
+                            } else {
+                                obj = ann.datatype
+                                    ? df.literal(span.text, df.namedNode(expandIRI(ann.datatype, ctx)))
+                                    : ann.language
+                                        ? df.literal(span.text, ann.language)
+                                        : df.literal(span.text);
+                            }
+
+                            const q = e.direction === 'reverse'
+                                ? df.quad(obj.termType === 'NamedNode' ? obj : df.blankNode(), pred, spanSubj)
+                                : df.quad(spanSubj, pred, obj);
+
+                            quads.push(q);
+                        }
+
+                        if (e.kind === 'type') {
+                            const q = df.quad(spanSubj, df.namedNode(expandIRI('rdf:type', ctx)), df.namedNode(expandIRI(e.classIRI, ctx)));
+                            quads.push(q);
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    return { quads, origin, context: ctx };
+}
+
+export function serialize({ text, diff, origin, options = {} }) {
+    if (!diff || (!diff.add?.length && !diff.delete?.length)) return { text, origin };
+
+    const ctx = origin?.context || { ...DEFAULT_CONTEXT };
+    let result = text;
+    const edits = [];
+
+    if (diff.delete) {
+        for (const quad of diff.delete) {
+            const key = JSON.stringify([quad.subject.value, quad.predicate.value, quad.object.value]);
+            const blockId = origin?.quadIndex.get(key);
+            if (blockId) {
+                const block = origin.blocks.get(blockId);
+                if (block) {
+                    edits.push({ start: block.range.start, end: block.range.end, text: '' });
+                }
+            }
+        }
+    }
+
+    if (diff.add) {
+        for (const quad of diff.add) {
+            const subjVal = quad.subject.value;
+            let insertPos = result.length;
+
+            for (const [, block] of origin?.blocks || []) {
+                if (block.subject === subjVal) {
+                    insertPos = block.range.end;
+                    break;
+                }
             }
 
-            this.emitQuad(subject, predicate, object);
-          });
+            const pred = quad.predicate.value.split(/[/#]/).pop();
+            const objText = quad.object.termType === 'Literal' ? quad.object.value : quad.object.value;
+            const newLine = `\n[${objText}] {${pred}}`;
+
+            edits.push({ start: insertPos, end: insertPos, text: newLine });
         }
-
-        if (attrs.rel) {
-          const rels = attrs.rel.trim().split(/\s+/).filter(Boolean);
-          let objectNode;
-
-          if (span.url) {
-            objectNode = this.resolveObjectIRI(span.url);
-          } else if (attrs.typeof && !attrs.id) {
-            objectNode = this.df.blankNode(
-              this.hashBlankNode(`span:${span.text}:${JSON.stringify(attrs)}`)
-            );
-
-            const types = attrs.typeof.trim().split(/\s+/).filter(Boolean);
-            types.forEach(type => {
-              const typeNode = this.resolveResource(type);
-              if (typeNode) {
-                this.emitQuad(
-                  objectNode,
-                  this.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                  typeNode
-                );
-              }
-            });
-          }
-
-          if (objectNode) {
-            rels.forEach(rel => {
-              const predicate = this.resolveResource(rel);
-              if (predicate) {
-                this.emitQuad(subject, predicate, objectNode);
-              }
-            });
-          }
-        }
-      }
-    }
-  }
-
-  resolveSubjectIRI(idValue) {
-    if (!idValue || typeof idValue !== 'string') return null;
-
-    const trimmed = idValue.trim();
-    if (!trimmed) return null;
-
-    if (trimmed.match(/^https?:/)) {
-      return this.df.namedNode(trimmed);
     }
 
-    if (trimmed.startsWith('_:')) {
-      return this.df.blankNode(trimmed.substring(2));
+    edits.sort((a, b) => b.start - a.start);
+    for (const edit of edits) {
+        result = result.substring(0, edit.start) + edit.text + result.substring(edit.end);
     }
 
-    if (trimmed.startsWith('#')) {
-      const baseForFragment = this.rootSubject.value.split('#')[0];
-      return this.df.namedNode(baseForFragment + trimmed);
-    }
-
-    if (trimmed.includes(':')) {
-      const [prefix, reference] = trimmed.split(':', 2);
-      if (this.options.context[prefix]) {
-        return this.df.namedNode(this.options.context[prefix] + reference);
-      }
-      return this.df.namedNode(trimmed);
-    }
-
-    const baseForFragment = this.rootSubject.value.split('#')[0];
-    return this.df.namedNode(baseForFragment + '#' + trimmed);
-  }
-
-  resolveObjectIRI(urlValue) {
-    if (!urlValue || typeof urlValue !== 'string') return null;
-
-    const trimmed = urlValue.trim();
-    if (!trimmed) return null;
-
-    if (trimmed.match(/^https?:/)) {
-      return this.df.namedNode(trimmed);
-    }
-
-    if (trimmed.startsWith('_:')) {
-      return this.df.blankNode(trimmed.substring(2));
-    }
-
-    if (trimmed.startsWith('#')) {
-      const baseForFragment = this.rootSubject.value.split('#')[0];
-      return this.df.namedNode(baseForFragment + trimmed);
-    }
-
-    if (trimmed.includes(':')) {
-      const [prefix, reference] = trimmed.split(':', 2);
-      if (this.options.context[prefix]) {
-        return this.df.namedNode(this.options.context[prefix] + reference);
-      }
-      if (prefix === 'xsd') {
-        return this.df.namedNode('http://www.w3.org/2001/XMLSchema#' + reference);
-      }
-      return this.df.namedNode(trimmed);
-    }
-
-    const baseForFragment = this.rootSubject.value.split('#')[0];
-    return this.df.namedNode(baseForFragment + '#' + trimmed);
-  }
-
-  resolveResource(term) {
-    if (!term || typeof term !== 'string') return null;
-
-    const trimmed = term.trim();
-    if (!trimmed) return null;
-
-    if (trimmed.match(/^https?:/)) {
-      return this.df.namedNode(trimmed);
-    }
-
-    if (trimmed.includes(':')) {
-      const [prefix, reference] = trimmed.split(':', 2);
-      if (this.options.context[prefix]) {
-        return this.df.namedNode(this.options.context[prefix] + reference);
-      }
-      if (prefix === 'xsd') {
-        return this.df.namedNode('http://www.w3.org/2001/XMLSchema#' + reference);
-      }
-    }
-
-    const vocab = this.options.context['@vocab'] || 'http://schema.org/';
-    return this.df.namedNode(vocab + trimmed);
-  }
-
-  emitQuad(subject, predicate, object) {
-    if (!subject || !predicate || !object) return;
-    const quad = this.df.quad(subject, predicate, object);
-    this.quads.push(quad);
-  }
-
-  getQuads() {
-    return this.quads;
-  }
+    return { text: result, origin };
 }
 
-export function parseMDLD(markdown, options = {}) {
-  const parser = new MDLDParser(options);
-  return parser.parse(markdown);
-}
-
-export default { MDLDParser, parseMDLD, DefaultDataFactory, DEFAULT_CONTEXT };
+export default { parse, serialize };
