@@ -659,12 +659,12 @@ test('Empty and Malformed Annotations', () => {
 // SERIALIZATION AND ROUND-TRIP
 // ============================================================================
 
-test('Serialize Round-trip', () => {
+test('Serialize Round-trip - Basic', () => {
     const md = `## Test {=ex:test}
 [Value] {property}`;
 
     const result = parse(md, { context: { ex: 'http://example.org/' } });
-    const serialized = serialize(result);
+    const serialized = serialize({ ...result, text: md });
 
     return {
         input: md,
@@ -672,10 +672,191 @@ test('Serialize Round-trip', () => {
             quads: result.quads,
             origin: result.origin,
             context: result.context,
-            text: result.text,
+            text: md,
             serialized: serialized
         },
-        description: 'Serialization preserves structure and can round-trip',
+        description: 'Basic serialization preserves structure and can round-trip',
+        expectedTriples: [
+            'ex:test schema:property "Value"'
+        ]
+    };
+});
+
+test('Serialize Round-trip - Delete Quad', () => {
+    const md = `## Test {=ex:test}
+[Value1] {property1}
+[Value2] {property2}`;
+
+    const result = parse(md, { context: { ex: 'http://example.org/' } });
+
+    // Delete one quad
+    const diff = { delete: [result.quads[0]] };
+    const serialized = serialize({ ...result, text: md, diff });
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: md,
+            serialized: serialized,
+            diff: diff
+        },
+        description: 'Serialization can delete specific quads',
+        expectedTriples: [
+            'ex:test schema:property1 "Value1"',
+            'ex:test schema:property2 "Value2"'
+        ]
+    };
+});
+
+test('Serialize Round-trip - Add Quad', () => {
+    const md = `## Test {=ex:test}
+[Value1] {property1}`;
+
+    const result = parse(md, { context: { ex: 'http://example.org/' } });
+
+    // Add a new quad
+    const newQuad = {
+        subject: { termType: 'NamedNode', value: 'http://example.org/test' },
+        predicate: { termType: 'NamedNode', value: 'http://schema.org/property2' },
+        object: { termType: 'Literal', value: 'Value2', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } }
+    };
+
+    const diff = { add: [newQuad] };
+    const serialized = serialize({ ...result, text: md, diff });
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: md,
+            serialized: serialized,
+            diff: diff
+        },
+        description: 'Serialization can add new quads',
+        expectedTriples: [
+            'ex:test schema:property1 "Value1"'
+        ]
+    };
+});
+
+test('Serialize Round-trip - Add and Delete Multiple', () => {
+    const md = `## Test {=ex:test}
+[Value1] {property1}
+[Value2] {property2}
+[Value3] {property3}`;
+
+    const result = parse(md, { context: { ex: 'http://example.org/' } });
+
+    // Delete one quad, add two new ones
+    const diff = {
+        delete: [result.quads[1]], // Delete property2
+        add: [
+            {
+                subject: { termType: 'NamedNode', value: 'http://example.org/test' },
+                predicate: { termType: 'NamedNode', value: 'http://schema.org/property4' },
+                object: { termType: 'Literal', value: 'Value4', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } }
+            },
+            {
+                subject: { termType: 'NamedNode', value: 'http://example.org/test' },
+                predicate: { termType: 'NamedNode', value: 'http://schema.org/property5' },
+                object: { termType: 'Literal', value: 'Value5', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } }
+            }
+        ]
+    };
+
+    const serialized = serialize({ ...result, text: md, diff });
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: md,
+            serialized: serialized,
+            diff: diff
+        },
+        description: 'Serialization can handle multiple add and delete operations',
+        expectedTriples: [
+            'ex:test schema:property1 "Value1"',
+            'ex:test schema:property2 "Value2"',
+            'ex:test schema:property3 "Value3"'
+        ]
+    };
+});
+
+test('Serialize Round-trip - Complex Document', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## Document {=ex:doc .CreativeWork}
+Title: [My Document] {name}
+Author: [Alice] {=ex:alice .Person author}
+
+## Section {=ex:section}
+Content: [Some content] {text}`;
+
+    const result = parse(md);
+
+    // Add a new property and delete one
+    const diff = {
+        delete: result.quads.filter(q => q.predicate.value.includes('text')),
+        add: [
+            {
+                subject: { termType: 'NamedNode', value: 'http://example.org/doc' },
+                predicate: { termType: 'NamedNode', value: 'http://schema.org/dateCreated' },
+                object: { termType: 'Literal', value: '2024-01-15', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#date' } }
+            }
+        ]
+    };
+
+    const serialized = serialize({ ...result, text: md, diff });
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: md,
+            serialized: serialized,
+            diff: diff
+        },
+        description: 'Complex document round-trip with multiple subjects and types',
+        expectedTriples: [
+            'ex:doc a schema:CreativeWork',
+            'ex:doc schema:name "My Document"',
+            'ex:doc schema:author ex:alice',
+            'ex:alice a schema:Person',
+            'ex:section schema:text "Some content"'
+        ]
+    };
+});
+
+test('Serialize Round-trip - No Changes', () => {
+    const md = `## Test {=ex:test}
+[Value] {property}`;
+
+    const result = parse(md, { context: { ex: 'http://example.org/' } });
+
+    // No diff - should return original
+    const serialized = serialize({ ...result, text: md });
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: md,
+            serialized: serialized
+        },
+        description: 'Serialization with no changes returns original text',
         expectedTriples: [
             'ex:test schema:property "Value"'
         ]
@@ -715,7 +896,7 @@ async function runTests() {
 // Export for use in HTML playground
 export { runTests, tests };
 
-// Auto-run if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Auto-run if executed directly in Node.js
+if (typeof process !== 'undefined' && import.meta.url === `file://${process.argv[1]}`) {
     runTests();
 }
