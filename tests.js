@@ -52,6 +52,15 @@ I walked for hours and felt calm.`;
 
     const result = parse(md);
 
+    // Validate actual quad objects, not just expected strings
+    const moodQuad = findQuad(result.quads, 'mood');
+    const locationQuad = findQuad(result.quads, 'location');
+    const attendeeQuad = findQuad(result.quads, 'attendee');
+
+    assertEqual(moodQuad?.object.value, 'Happy', 'Mood literal should be "Happy", not full text');
+    assertEqual(locationQuad?.object.termType, 'NamedNode', 'Location should be a NamedNode');
+    assertEqual(attendeeQuad?.object.termType, 'NamedNode', 'Attendee should be a NamedNode');
+
     return {
         input: md,
         output: {
@@ -67,6 +76,56 @@ I walked for hours and felt calm.`;
             'ex:day-2024-07-18 schema:location ex:central-park',
             'ex:day-2024-07-18 schema:attendee ex:sam',
             'ex:sam a schema:Person'
+        ]
+    };
+});
+
+test('Literal Value Extraction with Datatypes', () => {
+    const md = `[@vocab] {: http://schema.org/}
+[xsd] {: http://www.w3.org/2001/XMLSchema#}
+
+## Apollo 11 {=wd:Q43653 .SpaceMission}
+
+Launch year: [1969] {startDate ^^xsd:gYear}
+Landing date: [1969-07-20] {endDate ^^xsd:date}
+Mission name: [Apollo 11] {name}
+Description: [First moon landing] {description}`;
+
+    const result = parse(md, { context: { wd: 'https://www.wikidata.org/entity/' } });
+
+    // Test literal value extraction from spans
+    const startYearQuad = findQuad(result.quads, 'startDate');
+    const endDateQuad = findQuad(result.quads, 'endDate');
+    const nameQuad = findQuad(result.quads, 'name');
+    const descriptionQuad = findQuad(result.quads, 'description');
+
+    // Critical: Should extract span text, not full markdown
+    assertEqual(startYearQuad?.object.value, '1969', 'Should extract "1969" from [1969], not full text');
+    assertEqual(endDateQuad?.object.value, '1969-07-20', 'Should extract "1969-07-20" from [1969-07-20], not full text');
+    assertEqual(nameQuad?.object.value, 'Apollo 11', 'Should extract "Apollo 11" from span');
+    assertEqual(descriptionQuad?.object.value, 'First moon landing', 'Should extract description from span');
+
+    // Test datatypes are properly applied
+    assertEqual(startYearQuad?.object.datatype?.value, 'http://www.w3.org/2001/XMLSchema#gYear', 'Should apply gYear datatype');
+    assertEqual(endDateQuad?.object.datatype?.value, 'http://www.w3.org/2001/XMLSchema#date', 'Should apply date datatype');
+    assertEqual(nameQuad?.object.datatype?.value, 'http://www.w3.org/2001/XMLSchema#string', 'Should default to string datatype');
+    assertEqual(descriptionQuad?.object.datatype?.value, 'http://www.w3.org/2001/XMLSchema#string', 'Should default to string datatype');
+
+    return {
+        input: md,
+        output: {
+            quads: result.quads,
+            origin: result.origin,
+            context: result.context,
+            text: result.text
+        },
+        description: 'Critical test for literal value extraction and datatype application',
+        expectedTriples: [
+            'wd:Q43653 a schema:SpaceMission',
+            'wd:Q43653 schema:startDate "1969"^^xsd:gYear',
+            'wd:Q43653 schema:endDate "1969-07-20"^^xsd:date',
+            'wd:Q43653 schema:name "Apollo 11"',
+            'wd:Q43653 schema:description "First moon landing"'
         ]
     };
 });

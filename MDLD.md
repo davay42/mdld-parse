@@ -114,7 +114,7 @@ A {...} block MUST appear immediately after:
 
 {...} MUST NOT appear inside Markdown syntax constructs (such as link destinations, emphasis markers, or code fences).
 
-If a {...} block cannot be deterministically attached using these rules, it is still may yeild RDF triples if containing enough semantic data - subject, predicates and objects - explicit semantic-only blocks.
+If a {...} block cannot be deterministically attached using these rules it doesn't produce RDF.
 
 ---
 
