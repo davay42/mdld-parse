@@ -31,7 +31,7 @@
 		"type": "git",
 		"url": "git+https://github.com/davay42/mdld-parse.git"
 	},
-	"homepage": "https://davay42.github.io/mdld-parse/",
+	"homepage": "https://mdld.js.org",
 	"bugs": {
 		"url": "https://github.com/davay42/mdld-parse/issues"
 	}
