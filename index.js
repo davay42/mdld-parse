@@ -52,10 +52,18 @@ export function parseAnnotation(raw) {
             return { subject: null, entries: [], datatype: null, language: null };
         }
 
-        // Extract subject declaration
-        const subjectMatch = cleaned.match(/^=(.+)$/);
+        // Extract subject declaration - more precise pattern
+        const subjectMatch = cleaned.match(/^=([^\s]+)(?:\s+.*)?$/);
         if (subjectMatch) {
             subject = subjectMatch[1].trim();
+            // If there's additional content after subject, treat it as separate annotation
+            if (subjectMatch[2]) {
+                const remainingAnnotation = subjectMatch[2].trim();
+                const remainingParsed = parseAnnotation(remainingAnnotation);
+                if (remainingParsed.entries.length > 0) {
+                    entries.push(...remainingParsed.entries);
+                }
+            }
         }
 
         // Extract reset marker

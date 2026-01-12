@@ -637,7 +637,7 @@ Crew: {hasPart .Person}
 
             if (literal.language) {
                 result += `@${literal.language}`;
-            } else if (literal.datatype && literal.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+            } else if (literal.datatype && literal.datatype.value && literal.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
                 result += `^^<${literal.datatype.value}>`;
             }
 
