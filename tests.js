@@ -519,29 +519,6 @@ console.log('test');
     };
 });
 
-test('Explicit Quoted Literals', () => {
-    const md = `## Task {=ex:task}
-Description: {title "Complete the report"}
-Status: {status "In Progress"}`;
-
-    const result = parse(md, { context: { ex: 'http://example.org/' } });
-
-    return {
-        input: md,
-        output: {
-            quads: result.quads,
-            origin: result.origin,
-            context: result.context,
-            text: result.text
-        },
-        description: 'Explicit quoted literals overriding carrier text',
-        expectedTriples: [
-            'ex:task schema:title "Complete the report"',
-            'ex:task schema:status "In Progress"'
-        ]
-    };
-});
-
 test('Fragment Identifiers and URLs', () => {
     const md = `## Section1 {=#section1}
 ## External {=https://example.org/external}

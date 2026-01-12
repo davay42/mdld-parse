@@ -38,48 +38,51 @@ function expandIRI(term, ctx) {
 export function parseAnnotation(raw) {
     try {
         const cleaned = raw.replace(/^\{|\}$/g, '').trim();
-        if (!cleaned) return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
+        if (!cleaned) return { subject: null, entries: [], datatype: null, language: null };
 
         const entries = [];
         let subject = null;
-        let literalValue = null;
+        let datatype = null;
+        let lang = null;
 
         // Validate basic structure - no unbalanced quotes
         const openQuotes = (cleaned.match(/"/g) || []).length;
         if (openQuotes % 2 !== 0) {
             console.warn(`Unbalanced quotes in annotation: ${raw}`);
-            return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
+            return { subject: null, entries: [], datatype: null, language: null };
         }
 
-        // Extract quoted literal values first - more robust pattern
-        const quotedLiteralMatch = cleaned.match(/^([^\s.=^@]+)\s+"([^"]*)"(?:\s+@[a-z]{2}(?:-[A-Z]{2})?)?(?:\s+\^\^[^\s]+)?/);
-        if (quotedLiteralMatch) {
-            const predicate = quotedLiteralMatch[1];
-            literalValue = quotedLiteralMatch[2];
-            entries.push({ kind: 'property', predicate: predicate, direction: 'forward' });
+        // Extract subject declaration
+        const subjectMatch = cleaned.match(/^=(.+)$/);
+        if (subjectMatch) {
+            subject = subjectMatch[1].trim();
         }
 
-        // Extract subject IRI - improved patterns
-        const urlMatch = cleaned.match(/=(https?:\/\/[^\s}]+)/);
-        const curieMatch = cleaned.match(/=([a-zA-Z_][a-zA-Z0-9_-]*:[^\s^@}]+)/);
-        const fragmentMatch = cleaned.match(/=#([^\s^@}]+)/);
-        const simpleMatch = cleaned.match(/=([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s^@}]+)?)/);
-
-        if (urlMatch) subject = urlMatch[1];
-        else if (curieMatch) subject = curieMatch[1];
-        else if (fragmentMatch) subject = '#' + fragmentMatch[1];
-        else if (simpleMatch) subject = simpleMatch[1];
-
-        if (subject === '') subject = 'RESET';
-
-        // Extract types - improved pattern (don't match within URLs)
-        if (!urlMatch) {
-            const types = cleaned.match(/\.([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s.=^@]+)?)/g);
-            if (types) types.forEach(t => entries.push({ kind: 'type', classIRI: t.substring(1) }));
+        // Extract reset marker
+        if (cleaned === '=') {
+            return { subject: 'RESET', entries: [], datatype: null, language: null };
         }
 
-        // Extract properties - improved pattern excluding already processed quoted literals
-        if (!quotedLiteralMatch) {
+        // Extract language - improved pattern
+        lang = cleaned.match(/@([a-z]{2}(?:-[A-Z]{2})?)/);
+
+        // Extract datatype - improved pattern (must come before reverse properties)
+        datatype = cleaned.match(/\^\^([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s]+)?|[a-zA-Z0-9._-]+:[^\s]+)/);
+
+        // Extract reverse properties - improved pattern (after datatype extraction)
+        let cleanedForReverse = cleaned;
+        if (datatype) {
+            cleanedForReverse = cleaned.replace(datatype[0], '');
+        }
+        const reverse = cleanedForReverse.match(/\^([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s.=^@]+)?)/g);
+        if (reverse) reverse.forEach(r => entries.push({ kind: 'property', predicate: r.substring(1), direction: 'reverse' }));
+
+        // Extract types
+        const types = cleaned.match(/\.([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s.=^@]+)?)/g);
+        if (types) types.forEach(t => entries.push({ kind: 'type', classIRI: t.substring(1) }));
+
+        // Extract properties - improved pattern excluding already processed reverse properties
+        if (!datatype) {
             const props = cleaned.match(/(?:^|\s)([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s.=^@]+)?)(?=\s|$|@|\^\^)/g);
             if (props) {
                 props.forEach(p => {
@@ -91,31 +94,21 @@ export function parseAnnotation(raw) {
             }
         }
 
-        // Extract reverse properties - improved pattern
-        const reverse = cleaned.match(/\^([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s.=^@]+)?)/g);
-        if (reverse) reverse.forEach(r => entries.push({ kind: 'property', predicate: r.substring(1), direction: 'reverse' }));
-
-        // Extract datatype - improved pattern
-        const datatype = cleaned.match(/\^\^([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s]+)?|[a-zA-Z0-9._-]+:[^\s]+)/);
-
-        // Extract language - improved pattern
-        const lang = cleaned.match(/@([a-z]{2}(?:-[A-Z]{2})?)/);
-
         // Validate that we have valid entries
         if (entries.length === 0 && !subject) {
             console.warn(`No valid entries found in annotation: ${raw}`);
-            return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
+            return { subject: null, entries: [], datatype: null, language: null };
         }
 
         // Allow empty subject if it's just a reset or if we have valid entries
         if (subject === null && entries.length === 0) {
-            return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
+            return { subject: null, entries: [], datatype: null, language: null };
         }
 
-        return { subject, entries, datatype: datatype?.[1], language: lang?.[1], literalValue };
+        return { subject, entries, datatype: datatype?.[1], language: lang?.[1] };
     } catch (error) {
         console.error(`Error parsing annotation ${raw}:`, error);
-        return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
+        return { subject: null, entries: [], datatype: null, language: null };
     }
 }
 
@@ -206,8 +199,14 @@ function scanTokens(text) {
             continue;
         }
 
-        if (line.trim()) {
-            tokens.push({ type: 'para', range: [lineStart, pos], text: line });
+        const paraMatch = line.match(/^(.+?)(?:\s*(\{[^}]+\}))?$/);
+        if (line.trim() && paraMatch) {
+            tokens.push({
+                type: 'para',
+                range: [lineStart, pos],
+                text: paraMatch[1].trim(),
+                attrs: paraMatch[2] || null
+            });
         }
     }
 
@@ -303,11 +302,7 @@ function emit(quads, quadIndex, blockId, s, p, o, df) {
     quadIndex.set(key, blockId);
 }
 
-function makeObject(value, datatype, language, ctx, df, literalValue = null) {
-    // Use explicit quoted literal value if provided
-    if (literalValue !== null) {
-        value = literalValue;
-    }
+function makeObject(value, datatype, language, ctx, df) {
     if (datatype) return df.literal(value, df.namedNode(expandIRI(datatype, ctx)));
     if (language) return df.literal(value, language);
     return df.literal(value);
@@ -382,15 +377,15 @@ function processAnnotation(token, state, textContent = null) {
                     // - For code blocks: literal properties on declared subject
                     // - For inline spans: object properties from current to declared subject
                     if (token.type === 'code') {
-                        const obj = makeObject(textContent || token.text || '', ann.datatype, ann.language, state.ctx, state.df, ann.literalValue);
+                        const obj = makeObject(textContent || token.text || '', ann.datatype, ann.language, state.ctx, state.df);
                         emit(state.quads, state.origin.quadIndex, block.id, targetSubject, pred, obj, state.df);
                     } else {
                         emit(state.quads, state.origin.quadIndex, block.id, originalCurrentSubject, pred, targetSubject, state.df);
                     }
                 }
             } else {
-                // For literal properties, use text content or quoted literal
-                const obj = makeObject(textContent || token.text || '', ann.datatype, ann.language, state.ctx, state.df, ann.literalValue);
+                // For literal properties, use text content
+                const obj = makeObject(textContent || token.text || '', ann.datatype, ann.language, state.ctx, state.df);
                 if (e.direction === 'reverse') {
                     emit(state.quads, state.origin.quadIndex, block.id, obj, pred, originalCurrentSubject, state.df);
                 } else {
@@ -430,21 +425,47 @@ function processList(token, state, nextToken) {
 }
 
 function processListItem(token, state) {
-    processAnnotation(token, state, token.text);
+    const ann = parseAnnotation(token.attrs);
+    const originalCurrentSubject = state.currentSubject;
 
-    // Handle list context relationships
-    if (state.listContext && state.listContext.predicate && state.currentSubject) {
-        const ann = parseAnnotation(token.attrs);
-        if (ann.subject) {
-            const itemSubj = state.df.namedNode(expandIRI(ann.subject, state.ctx));
-            const pred = state.df.namedNode(state.listContext.predicate);
-            if (state.listContext.reverse) {
-                emit(state.quads, state.origin.quadIndex, 'list-context', itemSubj, pred, state.currentSubject, state.df);
-            } else {
-                emit(state.quads, state.origin.quadIndex, 'list-context', state.currentSubject, pred, itemSubj, state.df);
-            }
+    // Handle subject declaration in list item
+    if (ann.subject) {
+        state.currentSubject = state.df.namedNode(expandIRI(ann.subject, state.ctx));
+    }
+
+    // Process properties on the list item itself (like name)
+    ann.entries.forEach(e => {
+        if (e.kind === 'type') {
+            emit(state.quads, state.origin.quadIndex, 'list-item', state.currentSubject,
+                state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(expandIRI(e.classIRI, state.ctx)), state.df);
+        }
+        if (e.kind === 'property' && e.predicate) {
+            const pred = state.df.namedNode(expandIRI(e.predicate, state.ctx));
+            const obj = makeObject(token.text, ann.datatype, ann.language, state.ctx, state.df);
+            emit(state.quads, state.origin.quadIndex, 'list-item', state.currentSubject, pred, obj, state.df);
+        }
+    });
+
+    // Handle list context relationships (recipeIngredient)
+    if (state.listContext && state.listContext.predicate && originalCurrentSubject) {
+        const pred = state.df.namedNode(state.listContext.predicate);
+        if (state.listContext.reverse) {
+            emit(state.quads, state.origin.quadIndex, 'list-context', state.currentSubject, pred, originalCurrentSubject, state.df);
+        } else {
+            emit(state.quads, state.origin.quadIndex, 'list-context', originalCurrentSubject, pred, state.currentSubject, state.df);
         }
     }
+
+    // Apply list context types to declared subjects
+    if (state.listContext && state.listContext.types.length > 0 && ann.subject) {
+        state.listContext.types.forEach(type => {
+            emit(state.quads, state.origin.quadIndex, 'list-item', state.currentSubject,
+                state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(expandIRI(type, state.ctx)), state.df);
+        });
+    }
+
+    // Restore original current subject
+    state.currentSubject = originalCurrentSubject;
 }
 
 export function parse(text, options = {}) {
@@ -486,6 +507,11 @@ export function parse(text, options = {}) {
         if ((token.type === 'para' || token.type === 'blockquote') && state.currentSubject) {
             if (token.type === 'blockquote') {
                 processAnnotation(token, state, token.text);
+            } else if (token.type === 'para') {
+                // Extract inline spans to get the actual text content
+                const spans = extractInlineValue(token.text, token.range[0]);
+                const spanText = spans.find(s => s.type === 'span')?.text || token.text;
+                processAnnotation(token, state, spanText);
             }
             const spans = extractInlineValue(token.text, token.range[0]);
             spans.filter(s => s.type === 'span' || s.type === 'link').forEach(span => {

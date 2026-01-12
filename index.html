@@ -1,292 +1,513 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MD-LD v0.2 Test Suite</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d1117;
-      color: #c9d1d9;
-      padding: 2rem;
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    header {
-      border-bottom: 2px solid #21262d;
-      padding-bottom: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    
-    h1 {
-      font-size: 2rem;
-      font-weight: 600;
-      color: #58a6ff;
-      margin-bottom: 0.5rem;
-    }
-    
-    .subtitle {
-      color: #8b949e;
-      font-size: 0.95rem;
-    }
-    
-    .controls {
-      margin-bottom: 2rem;
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-    
-    button {
-      background: #21262d;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-    }
-    
-    button:hover {
-      background: #30363d;
-      border-color: #484f58;
-    }
-    
-    button:active {
-      transform: scale(0.98);
-    }
-    
-    button.primary {
-      background: #238636;
-      border-color: #2ea043;
-    }
-    
-    button.primary:hover {
-      background: #2ea043;
-    }
-    
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-    
-    .stat {
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 6px;
-      padding: 1rem;
-    }
-    
-    .stat-label {
-      font-size: 0.85rem;
-      color: #8b949e;
-      margin-bottom: 0.25rem;
-    }
-    
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 600;
-    }
-    
-    .stat-value.passed { color: #3fb950; }
-    .stat-value.failed { color: #f85149; }
-    .stat-value.total { color: #58a6ff; }
-    
-    .filter {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-    
-    .filter button {
-      padding: 0.4rem 0.8rem;
-      font-size: 0.85rem;
-    }
-    
-    .filter button.active {
-      background: #1f6feb;
-      border-color: #1f6feb;
-    }
-    
-    .test-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    
-    .test-item {
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 6px;
-      padding: 1rem;
-      transition: all 0.2s;
-    }
-    
-    .test-item:hover {
-      border-color: #30363d;
-    }
-    
-    .test-item.passed {
-      border-left: 3px solid #3fb950;
-    }
-    
-    .test-item.failed {
-      border-left: 3px solid #f85149;
-    }
-    
-    .test-item.running {
-      border-left: 3px solid #58a6ff;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    
-    .test-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 0.5rem;
-    }
-    
-    .test-icon {
-      font-size: 1.25rem;
-      line-height: 1;
-    }
-    
-    .test-name {
-      flex: 1;
-      font-weight: 500;
-      color: #c9d1d9;
-    }
-    
-    .test-duration {
-      font-size: 0.85rem;
-      color: #8b949e;
-    }
-    
-    .test-error {
-      margin-top: 0.75rem;
-      padding: 0.75rem;
-      background: #1c1e24;
-      border-radius: 4px;
-      font-family: 'Monaco', 'Courier New', monospace;
-      font-size: 0.85rem;
-      color: #f85149;
-      border-left: 2px solid #f85149;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    
-    .progress {
-      height: 4px;
-      background: #21262d;
-      border-radius: 2px;
-      margin-bottom: 2rem;
-      overflow: hidden;
-    }
-    
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #1f6feb, #58a6ff);
-      transition: width 0.3s ease;
-      border-radius: 2px;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
-      color: #8b949e;
-    }
-    
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem;
-      gap: 1rem;
-    }
-    
-    .spinner {
-      width: 24px;
-      height: 24px;
-      border: 3px solid #21262d;
-      border-top-color: #58a6ff;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>MD-LD v0.2 Test Suite</h1>
-      <div class="subtitle">Comprehensive parser & serializer testing</div>
-    </header>
-    
-    <div class="controls">
-      <button class="primary" id="runBtn">▶ Run All Tests</button>
-      <button id="clearBtn">Clear Results</button>
-    </div>
-    
-    <div class="progress" style="display: none;" id="progress">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
-    
-    <div class="stats" id="stats" style="display: none;">
-      <div class="stat">
-        <div class="stat-label">Passed</div>
-        <div class="stat-value passed" id="passedCount">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Failed</div>
-        <div class="stat-value failed" id="failedCount">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Total</div>
-        <div class="stat-value total" id="totalCount">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Duration</div>
-        <div class="stat-value" id="duration">0ms</div>
-      </div>
-    </div>
-    
-    <div class="filter" id="filter" style="display: none;">
-      <button class="active" data-filter="all">All</button>
-      <button data-filter="passed">Passed</button>
-      <button data-filter="failed">Failed</button>
-    </div>
-    
-    <div class="test-list" id="testList">
-      <div class="empty-state">
-        Click "Run All Tests" to begin
-      </div>
-    </div>
-  </div>
 
-  <script type="importmap">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MD-LD - Markdown Linked Data Parser</title>
+    <meta name="description"
+        content="MD-LD v0.2: Human-friendly RDF authoring format. Write semantic data in natural Markdown. Parse to RDF triples. Zero dependencies.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+            line-height: 1.5;
+            color: #e5e7eb;
+            background: #111827;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #374151;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tagline {
+            font-size: 1rem;
+            color: #9ca3af;
+            margin-bottom: 1rem;
+        }
+
+        .links {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .links a {
+            color: #60a5fa;
+            text-decoration: none;
+            padding: 0.25rem 0.75rem;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .links a:hover {
+            background: #374151;
+            border-color: #60a5fa;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .playground {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .textarea {
+            width: 100%;
+            height: 250px;
+            padding: 0.75rem;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            background: #1f2937;
+            color: #e5e7eb;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        .output {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            padding: 0.75rem;
+            height: 250px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            overflow: auto;
+            color: #e5e7eb;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: #4b5563;
+        }
+
+        button.secondary:hover {
+            background: #6b7280;
+        }
+
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .example {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example:hover {
+            border-color: #60a5fa;
+        }
+
+        .example h4 {
+            margin-bottom: 0.25rem;
+            color: #f3f4f6;
+            font-size: 0.875rem;
+        }
+
+        .example p {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .test-section {
+            background: #1f2937;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat {
+            background: #111827;
+            padding: 0.5rem;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid #374151;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .passed {
+            color: #10b981;
+        }
+
+        .failed {
+            color: #ef4444;
+        }
+
+        .total {
+            color: #60a5fa;
+        }
+
+        .test-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .test-item {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .test-item:hover {
+            border-color: #60a5fa;
+        }
+
+        .test-item.passed {
+            border-left: 3px solid #10b981;
+        }
+
+        .test-item.failed {
+            border-left: 3px solid #ef4444;
+        }
+
+        .test-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .test-icon {
+            font-size: 1rem;
+        }
+
+        .test-name {
+            flex: 1;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .test-duration {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .test-details {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #374151;
+            display: none;
+        }
+
+        .test-details.open {
+            display: block;
+        }
+
+        .test-input,
+        .test-output {
+            background: #0f172a;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 0.5rem;
+            color: #e5e7eb;
+            user-select: text;
+        }
+
+        .progress {
+            height: 3px;
+            background: #374151;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.3s ease;
+        }
+
+        .format-section {
+            background: #1f2937;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .format-section h3 {
+            margin-bottom: 0.5rem;
+            color: #f3f4f6;
+            font-size: 1rem;
+        }
+
+        .format-section p {
+            color: #9ca3af;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .feature {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+
+        .feature h4 {
+            margin-bottom: 0.25rem;
+            color: #f3f4f6;
+            font-size: 0.875rem;
+        }
+
+        .feature p {
+            color: #9ca3af;
+            font-size: 0.75rem;
+        }
+
+        .compact-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: #9ca3af;
+        }
+
+        @media (max-width: 768px) {
+
+            .grid,
+            .playground {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>MD-LD</h1>
+            <p class="tagline">Markdown Linked Data - Human-friendly RDF authoring</p>
+            <div class="links">
+                <a href="https://github.com/davay42/mdld-parse" target="_blank">📦 GitHub</a>
+                <a href="https://www.npmjs.com/package/mdld-parse" target="_blank">📦 npm</a>
+                <a href="#format">📖 Format</a>
+                <a href="#tests">🧪 Tests</a>
+            </div>
+        </header>
+
+        <section id="format" class="format-section">
+            <h3>📖 What is MD-LD?</h3>
+            <p>MD-LD extends Markdown with semantic annotations using <code>{...}</code> blocks. Write natural language
+                documents while embedding structured RDF data.</p>
+
+            <div class="feature-grid">
+                <div class="feature">
+                    <h4>📝 Natural Syntax</h4>
+                    <p>Write semantic data in familiar Markdown</p>
+                </div>
+                <div class="feature">
+                    <h4>🔗 RDF Output</h4>
+                    <p>Parse to standard RDF triples</p>
+                </div>
+                <div class="feature">
+                    <h4>⚡ Zero Dependencies</h4>
+                    <p>Lightweight parser</p>
+                </div>
+                <div class="feature">
+                    <h4>🔄 Bidirectional</h4>
+                    <p>Parse & serialize round-trip</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="playground" class="format-section">
+            <h3>🎮 Interactive Playground</h3>
+            <div class="examples">
+                <div class="example" onclick="loadExample('journal')">
+                    <h4>📔 Personal Journal</h4>
+                    <p>Mood, location, people</p>
+                </div>
+                <div class="example" onclick="loadExample('recipe')">
+                    <h4>🍳 Recipe</h4>
+                    <p>Ingredients & instructions</p>
+                </div>
+                <div class="example" onclick="loadExample('project')">
+                    <h4>📋 Project</h4>
+                    <p>Tasks & relationships</p>
+                </div>
+                <div class="example" onclick="loadExample('apollo')">
+                    <h4>🚀 Apollo Mission</h4>
+                    <p>Complex structure</p>
+                </div>
+            </div>
+            <div class="playground">
+                <div>
+                    <h3>MD-LD Input</h3>
+                    <textarea id="input" class="textarea" placeholder="Write your MD-LD here...
+
+Example:
+## Document {=ex:doc}
+Title: [My Document] {name}
+Author: [Alice] {=ex:alice .Person author}"></textarea>
+                </div>
+                <div>
+                    <h3>RDF Triples Output</h3>
+                    <div id="output" class="output">RDF triples will appear here...</div>
+                </div>
+            </div>
+            <div class="controls">
+                <button onclick="parseMDLD()">🔄 Parse MD-LD</button>
+                <button class="secondary" onclick="clearPlayground()">🗑️ Clear</button>
+                <span id="parse-stats" class="compact-stats" style="margin-left: auto;"></span>
+            </div>
+        </section>
+
+        <section id="tests" class="test-section">
+            <h3>🧪 Test Suite</h3>
+            <div class="test-controls">
+                <button onclick="runAllTests()">▶ Run Tests</button>
+                <button class="secondary" onclick="clearTests()">🗑️ Clear</button>
+                <span id="test-status" class="compact-stats" style="margin-left: auto;"></span>
+            </div>
+            <div class="progress" id="test-progress" style="display: none;">
+                <div class="progress-bar" id="test-progress-bar"></div>
+            </div>
+            <div class="stats" id="test-stats" style="display: none;">
+                <div class="stat">
+                    <div class="stat-value passed" id="passed-count">0</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value failed" id="failed-count">0</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value total" id="total-count">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="duration">0ms</div>
+                    <div class="stat-label">Duration</div>
+                </div>
+            </div>
+            <div class="test-list" id="test-list">
+                <p style="text-align: center; color: #9ca3af; padding: 1rem;">Tests will run automatically on page
+                    load...</p>
+            </div>
+        </section>
+    </div>
+
+    <script type="importmap">
   {
     "imports": {
       "./index.js": "./index.js",
@@ -295,169 +516,266 @@
   }
   </script>
 
-  <script type="module">
-    import { runTests, tests } from './tests.js';
-    
-    const elements = {
-      runBtn: document.getElementById('runBtn'),
-      clearBtn: document.getElementById('clearBtn'),
-      testList: document.getElementById('testList'),
-      stats: document.getElementById('stats'),
-      filter: document.getElementById('filter'),
-      progress: document.getElementById('progress'),
-      progressBar: document.getElementById('progressBar'),
-      passedCount: document.getElementById('passedCount'),
-      failedCount: document.getElementById('failedCount'),
-      totalCount: document.getElementById('totalCount'),
-      duration: document.getElementById('duration')
-    };
-    
-    let currentFilter = 'all';
-    let testResults = [];
-    
-    elements.runBtn.addEventListener('click', async () => {
-      elements.runBtn.disabled = true;
-      elements.runBtn.textContent = '⏳ Running...';
-      
-      await runTestsWithUI();
-      
-      elements.runBtn.disabled = false;
-      elements.runBtn.textContent = '▶ Run All Tests';
-    });
-    
-    elements.clearBtn.addEventListener('click', () => {
-      testResults = [];
-      elements.testList.innerHTML = '<div class="empty-state">Click "Run All Tests" to begin</div>';
-      elements.stats.style.display = 'none';
-      elements.filter.style.display = 'none';
-      elements.progress.style.display = 'none';
-    });
-    
-    elements.filter.addEventListener('click', (e) => {
-      if (e.target.tagName === 'BUTTON') {
-        currentFilter = e.target.dataset.filter;
-        elements.filter.querySelectorAll('button').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.filter === currentFilter);
-        });
-        renderResults();
-      }
-    });
-    
-    async function runTestsWithUI() {
-      const startTime = performance.now();
-      testResults = [];
-      
-      elements.progress.style.display = 'block';
-      elements.stats.style.display = 'grid';
-      elements.filter.style.display = 'flex';
-      elements.testList.innerHTML = '';
-      
-      let passed = 0;
-      let failed = 0;
-      
-      for (let i = 0; i < tests.length; i++) {
-        const test = tests[i];
-        const testStart = performance.now();
-        
-        const testElement = createTestElement(test.name, 'running');
-        elements.testList.appendChild(testElement);
-        
-        try {
-          await test.fn();
-          const duration = Math.round(performance.now() - testStart);
-          
-          testResults.push({
-            name: test.name,
-            status: 'passed',
-            duration,
-            error: null
-          });
-          
-          passed++;
-          updateTestElement(testElement, 'passed', duration);
-        } catch (error) {
-          const duration = Math.round(performance.now() - testStart);
-          
-          testResults.push({
-            name: test.name,
-            status: 'failed',
-            duration,
-            error: error.message
-          });
-          
-          failed++;
-          updateTestElement(testElement, 'failed', duration, error.message);
+    <script type="module">
+        import { parse } from './index.js';
+        import { runTests, tests } from './tests.js';
+
+        let currentTestResults = [];
+
+        // Example templates
+        const examples = {
+            journal: `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## 2024-07-18 — A good day {=ex:day-2024-07-18 .Event}
+
+Mood: [Happy] {ex:mood}
+Place: [Central Park] {=ex:central-park location}
+With: [Sam] {=ex:sam .Person attendee}
+
+Notes:
+I walked for hours and felt calm.`,
+
+            recipe: `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+[xsd] {: http://www.w3.org/2001/XMLSchema#}
+
+## Apple Pie {=ex:apple-pie .Recipe}
+
+Ingredients: {recipeIngredient .Food}
+- Apples {=ex:apples name}
+- Sugar {=ex:sugar name}
+- Butter {=ex:butter name}
+
+Baking time: [45] {cookTime ^^xsd:integer}`,
+
+            project: `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## Weekend goals {=ex:weekend-goals .Project}
+
+Tasks: {hasPart .Action}
+- Clean kitchen {=ex:task-clean}
+- Fix bike {=ex:task-bike}`,
+
+            apollo: `[@vocab] {: http://schema.org/}
+[wd] {: https://www.wikidata.org/entity/}
+[ex] {: http://example.org/}
+
+# Apollo 11 {=wd:Q43653 .SpaceMission}
+
+Launch year: [1969] {startDate ^^xsd:gYear}
+Landing date: [1969-07-20] {endDate ^^xsd:date}
+
+Crew: {hasPart .Person}
+- Neil Armstrong {=wd:Q1615}
+- Buzz Aldrin {=wd:Q2252}
+- Michael Collins {=wd:Q298}`
+        };
+
+        // Load example
+        window.loadExample = function (name) {
+            document.getElementById('input').value = examples[name];
+            parseMDLD();
+        };
+
+        // Parse MD-LD
+        window.parseMDLD = function () {
+            const input = document.getElementById('input').value;
+            const output = document.getElementById('output');
+            const stats = document.getElementById('parse-stats');
+
+            if (!input.trim()) {
+                output.textContent = 'Enter MD-LD content to parse...';
+                stats.textContent = '';
+                return;
+            }
+
+            try {
+                const startTime = performance.now();
+                const result = parse(input);
+                const duration = Math.round(performance.now() - startTime);
+
+                // Convert quads to readable format
+                const quadText = quadsToText(result.quads);
+
+                output.textContent = quadText;
+                stats.textContent = `${result.quads.length} triples • ${duration}ms`;
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+                stats.textContent = '';
+            }
+        };
+
+        // Convert quads to readable text format
+        function quadsToText(quads) {
+            if (quads.length === 0) return '# No triples generated';
+
+            let text = '';
+            quads.forEach((quad, i) => {
+                const subject = quad.subject.value;
+                const predicate = quad.predicate.value;
+                let object;
+
+                if (quad.object.termType === 'NamedNode') {
+                    object = `<${quad.object.value}>`;
+                } else {
+                    object = formatLiteral(quad.object);
+                }
+
+                text += `${subject} -> ${predicate} -> ${object}`;
+                if (i < quads.length - 1) text += '\n';
+            });
+
+            return text;
         }
-        
-        const progress = ((i + 1) / tests.length) * 100;
-        elements.progressBar.style.width = `${progress}%`;
-        
-        elements.passedCount.textContent = passed;
-        elements.failedCount.textContent = failed;
-        elements.totalCount.textContent = tests.length;
-        
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-      
-      const totalDuration = Math.round(performance.now() - startTime);
-      elements.duration.textContent = `${totalDuration}ms`;
-      
-      setTimeout(() => {
-        elements.progress.style.display = 'none';
-      }, 500);
-    }
-    
-    function createTestElement(name, status) {
-      const div = document.createElement('div');
-      div.className = `test-item ${status}`;
-      
-      const icon = status === 'running' ? '⏳' : status === 'passed' ? '✓' : '✗';
-      
-      div.innerHTML = `
+
+        // Format literal with datatype/language
+        function formatLiteral(literal) {
+            let value = literal.value.replace(/"/g, '\\"');
+            let result = `"${value}"`;
+
+            if (literal.language) {
+                result += `@${literal.language}`;
+            } else if (literal.datatype && literal.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+                result += `^^<${literal.datatype.value}>`;
+            }
+
+            return result;
+        }
+
+        // Clear playground
+        window.clearPlayground = function () {
+            document.getElementById('input').value = '';
+            document.getElementById('output').textContent = 'RDF triples will appear here...';
+            document.getElementById('parse-stats').textContent = '';
+        };
+
+        // Run all tests
+        window.runAllTests = async function () {
+            const startTime = performance.now();
+            currentTestResults = [];
+
+            const progress = document.getElementById('test-progress');
+            const progressBar = document.getElementById('test-progress-bar');
+            const stats = document.getElementById('test-stats');
+            const testList = document.getElementById('test-list');
+            const status = document.getElementById('test-status');
+
+            progress.style.display = 'block';
+            stats.style.display = 'grid';
+            testList.innerHTML = '';
+            status.textContent = 'Running tests...';
+
+            let passed = 0;
+            let failed = 0;
+
+            for (let i = 0; i < tests.length; i++) {
+                const test = tests[i];
+                const testStart = performance.now();
+
+                try {
+                    const result = test.fn();
+                    const duration = Math.round(performance.now() - testStart);
+
+                    currentTestResults.push({
+                        name: test.name,
+                        status: 'passed',
+                        duration,
+                        result
+                    });
+
+                    passed++;
+                    addTestItem(test.name, 'passed', duration, result);
+                } catch (error) {
+                    const duration = Math.round(performance.now() - testStart);
+
+                    currentTestResults.push({
+                        name: test.name,
+                        status: 'failed',
+                        duration,
+                        error: error.message
+                    });
+
+                    failed++;
+                    addTestItem(test.name, 'failed', duration, null, error.message);
+                }
+
+                const progressPercent = ((i + 1) / tests.length) * 100;
+                progressBar.style.width = `${progressPercent}%`;
+
+                document.getElementById('passed-count').textContent = passed;
+                document.getElementById('failed-count').textContent = failed;
+                document.getElementById('total-count').textContent = tests.length;
+
+                await new Promise(resolve => setTimeout(resolve, 5));
+            }
+
+            const totalDuration = Math.round(performance.now() - startTime);
+            document.getElementById('duration').textContent = `${totalDuration}ms`;
+
+            setTimeout(() => {
+                progress.style.display = 'none';
+                status.textContent = `Completed: ${passed} passed, ${failed} failed`;
+            }, 500);
+        };
+
+        // Add test item to UI
+        function addTestItem(name, status, duration, result, error = null) {
+            const testList = document.getElementById('test-list');
+            const item = document.createElement('div');
+            item.className = `test-item ${status}`;
+
+            const icon = status === 'passed' ? '✅' : '❌';
+
+            item.innerHTML = `
         <div class="test-header">
           <span class="test-icon">${icon}</span>
           <span class="test-name">${name}</span>
-          <span class="test-duration"></span>
+          <span class="test-duration">${duration}ms</span>
+        </div>
+        <div class="test-details" id="details-${name.replace(/\s+/g, '-')}">
+          ${result ? `
+            <div class="test-input">${result.input}</div>
+            <div class="test-output">${quadsToText(result.output.quads)}</div>
+          ` : ''}
+          ${error ? `<div style="color: #ef4444; font-family: monospace; font-size: 11px;">${error}</div>` : ''}
         </div>
       `;
-      
-      return div;
-    }
-    
-    function updateTestElement(element, status, duration, error = null) {
-      element.className = `test-item ${status}`;
-      
-      const icon = status === 'passed' ? '✓' : '✗';
-      element.querySelector('.test-icon').textContent = icon;
-      element.querySelector('.test-duration').textContent = `${duration}ms`;
-      
-      if (error) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'test-error';
-        errorDiv.textContent = error;
-        element.appendChild(errorDiv);
-      }
-    }
-    
-    function renderResults() {
-      elements.testList.innerHTML = '';
-      
-      const filtered = testResults.filter(result => {
-        if (currentFilter === 'all') return true;
-        return result.status === currentFilter;
-      });
-      
-      if (filtered.length === 0) {
-        elements.testList.innerHTML = '<div class="empty-state">No tests match the current filter</div>';
-        return;
-      }
-      
-      filtered.forEach(result => {
-        const element = createTestElement(result.name, result.status);
-        updateTestElement(element, result.status, result.duration, result.error);
-        elements.testList.appendChild(element);
-      });
-    }
-  </script>
+
+            item.addEventListener('click', () => {
+                const details = item.querySelector('.test-details');
+                details.classList.toggle('open');
+            });
+
+            testList.appendChild(item);
+        }
+
+        // Clear tests
+        window.clearTests = function () {
+            currentTestResults = [];
+            document.getElementById('test-list').innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 1rem;">Click "Run Tests" to see results</p>';
+            document.getElementById('test-stats').style.display = 'none';
+            document.getElementById('test-progress').style.display = 'none';
+            document.getElementById('test-status').textContent = '';
+        };
+
+        // Auto-parse on input change
+        document.getElementById('input').addEventListener('input', () => {
+            clearTimeout(window.parseTimeout);
+            window.parseTimeout = setTimeout(parseMDLD, 300);
+        });
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                runAllTests();
+            }, 500);
+        });
+
+        // Load initial example
+        loadExample('journal');
+    </script>
 </body>
+
 </html>

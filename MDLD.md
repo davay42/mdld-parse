@@ -96,8 +96,6 @@ A `{}` block MAY extract a literal value from exactly one of:
    * Link `[Example](https://example.com)`
    * Image `![alt text](https://example.com/image.jpg)`
 
-3. Explicit quoted literals inside the annotation `{property "Literal value"}` (applied to the preceding property and can override the carrier value if only one predicate present is followed by a literal value).
-
 Everything else is **not a value carrier**.
 
 ## 5. Semantic blocks `{...}`
@@ -201,7 +199,7 @@ wd:Q43653 a schema:SpaceMission .
 
 #### Rule
 
-A literal value MUST be provided by an explicit Markdown inline span ([...], emphasis, bold, or inline code) immediately preceding the {...} block, OR explicitly inside the {...} block as a quoted literal. If both are present, the quoted literal MUST be used and the span ignored. When multiple predicates appear in a {...} block and a single value carrier exists, the same literal value is applied to all predicates.
+A literal value MUST be provided by an explicit Markdown inline span ([...], emphasis, bold, or inline code) immediately preceding the {...} block. When multiple predicates appear in a {...} block and a single value carrier exists, the same literal value is applied to all predicates.
 
 Plain text outside a span MUST NOT be used as a literal value source. Property without a value carrier is invalid and doesn't emit any RDF.
 
