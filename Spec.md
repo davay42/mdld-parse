@@ -1,210 +1,182 @@
-# MD-LD v0.2 Specification {=mdld:spec rdf:type Specification}
+# MD-LD v0.2 Specification {=mdld:spec .Specification}
 
-[@vocab] {: http://schema.mdld.org/}
-[mdld] {: http://schema.mdld.org/}
-[rdf] {: http://www.w3.org/1999/02/22-rdf-syntax-ns#}
-[xsd] {: http://www.w3.org/2001/XMLSchema#}
+[mdld] {: https://mdld.js.org/}
 
-## Overview {=mdld:overview rdf:type Section}
+> MD-LD is **Markdown-Linked Data** — a minimal semantic annotation layer for CommonMark Markdown that uses Pandoc-style attribute blocks to author RDF in a streaming-friendly and unobtrusive way. {mdld:description}
 
-[MD-LD] {mdld:name} **Markdown-Linked Data** — a minimal semantic annotation layer for CommonMark Markdown using [Pandoc-style] {mdld:style} attribute blocks.
+## Overview {=mdld:overview .Section}
 
-### Core Principles {=mdld:principles rdf:type Section}
+[MD-LD] {mdld:name} **Markdown-Linked Data** — a minimal semantic annotation layer for CommonMark Markdown that uses [Pandoc-style] {mdld:style} attribute blocks. {mdld:description}
 
-- **No implicit semantics** — every RDF triple originates from `{...}` blocks
-- **Explicit intent** — `{...}` always means "emit semantics"  
-- **Streaming-friendly** — single-pass parsing with bounded memory
-- **CommonMark compatibility** — no reinterpretation of Markdown syntax
+## Core Principles {=mdld:principles .Section}
 
-## Value Carriers {=mdld:value-carriers rdf:type Concept}
+- **No implicit semantics** — every RDF triple originates from `{...}` blocks {mdld:principle1}
+- **Explicit intent** — `{...}` always means "emit semantics" {mdld:principle2}
+- **Streaming-friendly** — single-pass parsing with bounded memory {mdld:principle3}
+- **CommonMark compatibility** — no reinterpretation of Markdown syntax {mdld:principle4}
+
+## Value Carriers {=mdld:value-carriers .Concept}
 
 A `{}` block MAY extract a literal value from exactly one of:
 
-### Inline Spans {=mdld:inline-spans rdf:type Concept}
-- Span `[text]`
-- Emphasis `*text*`, `_text_`
-- Strong emphasis `**text**`, `__text__`
-- Inline code `` `text` ``
+### Inline Spans {=mdld:inline-spans .Concept}
+- Span `[text]` {mdld:span-example}
+- Emphasis `*text*` {mdld:emphasis-example}
+- Strong emphasis `**text**` {mdld:strong-example}
+- Inline code `` `text` `` {mdld:code-example}
 
-### Block-level Containers {=mdld:block-containers rdf:type Concept}
-- Heading
-- List item
-- Blockquote
-- Fenced code block
+### Block-level Containers {=mdld:block-containers .Concept}
+- Heading {mdld:heading-example}
+- List item {mdld:list-example}
+- Blockquote {mdld:blockquote-example}
+- Fenced code block {mdld:fenced-example}
 
-### Links and Embeds {=mdld:links rdf:type Concept}
-- Bare URL `https://example.com`
-- Link `[Example](https://example.com)`
-- Image `![alt text](https://example.com/image.jpg)`
+### Links and Embeds {=mdld:links .Concept}
+- Bare URL [https://example.com] {mdld:url-example}
+- Link [Example](https://example.com) {mdld:link-example}
+- Image ![alt text](https://example.com/image.jpg) {mdld:image-example}
 
-**Everything else is not a value carrier.**
+**Everything else is not a value carrier.** {mdld:non-carriers}
 
-## Semantic Blocks {=mdld:semantic-blocks rdf:type Concept}
+## Semantic Blocks {=mdld:semantic-blocks .Concept}
 
 A `{...}` annotation MUST attach to the nearest preceding value carrier. The textual content of that carrier is the literal value unless an explicit IRI is provided.
 
-### Attachment Rule {=mdld:attachment-rule rdf:type Rule}
+### Attachment Rule {=mdld:attachment-rule .Rule}
 
 A `{...}` block MUST appear immediately after:
 - A Markdown inline span, or
 - On its own line, optionally followed by a list
 
-**Plain text outside a span MUST NOT be used as a literal value source.**
+**Plain text outside a span MUST NOT be used as a literal value source.** {mdld:literal-rule}
 
-## Subjects {=mdld:subjects rdf:type Concept}
+## Subjects {=mdld:subjects .Concept}
 
 A subject exists only if explicitly declared with `{=IRI}`.
 
-### Subject Declaration {=mdld:subject-declaration rdf:type Rule}
-
-```markdown
-# Title {=ex:identifier .Type}
-```
+### Subject Declaration {=mdld:subject-declaration .Rule}
 
 **Rules:**
-- Sets current subject
-- Emits no properties automatically
-- Context persists until overridden
+- Sets current subject {mdld:rule1}
+- Emits no properties automatically {mdld:rule2}
+- Context persists until overridden {mdld:rule3}
 
-## Types {=mdld:types rdf:type Concept}
+## Types {=mdld:types .Concept}
 
 Assigns `rdf:type` to current subject.
 
-```markdown
-# Apollo 11 {=wd:Q43653 .SpaceMission}
-```
+## Properties {=mdld:properties .Concept}
 
-## Properties {=mdld:properties rdf:type Concept}
-
-### Literal Properties {=mdld:literal-properties rdf:type Concept}
-
-```markdown
-## Apollo 11 {=wd:Q43653 .SpaceMission}
+### Literal Properties {=mdld:literal-properties .Concept}
 
 Launch year: [1969] {startDate ^^xsd:gYear}
 Start date: **1969-07-20** {startDate ^^xsd:date}
 Place: [The Moon] {location "en"}
-```
 
-### Object Properties {=mdld:object-properties rdf:type Concept}
-
-```markdown
-## Apollo 11 {=wd:Q43653}
+### Object Properties {=mdld:object-properties .Concept}
 
 [Neil Armstrong](https://www.wikidata.org/entity/Q1615) {astronaut}
-```
 
-### Reverse Properties {=mdld:reverse-properties rdf:type Concept}
+### Reverse Properties {=mdld:reverse-properties .Concept}
 
-```markdown
-Rocket {=ex:rocket .schema:Rocket} is part of [Apollo Program] {=wd:Q495307 ^schema:hasPart schema:name}
-```
+Rocket {=mdld:rocket .schema:Rocket} is part of [Apollo Program] {=mdld:apollo ^schema:hasPart schema:name}
 
-## Lists {=mdld:lists rdf:type Concept}
+## Lists {=mdld:lists .Concept}
 
 A `{}` block immediately preceding a list applies to **all list items**.
 
-```markdown
-## Recipe {=ex:recipe1 name}
-
 Ingredients: {schema:hasPart .ex:Ingredient}
 
-- Flour {=ex:Flour name}
-- Water {=ex:Water name}
-```
+- Flour {=mdld:flour name}
+- Water {=mdld:water name}
 
-### Reverse Relations in Lists {=mdld:list-reverse rdf:type Concept}
+### Reverse Relations in Lists {=mdld:list-reverse .Concept}
 
-```markdown
 Used in recipes: {^schema:hasPart}
 
-- Bread {=ex:Bread}
-- Cake {=ex:Cake}
-```
+- Bread {=mdld:bread}
+- Cake {=mdld:cake}
 
-## Datatypes and Language {=mdld:datatypes rdf:type Concept}
+## Datatypes and Language {=mdld:datatypes .Concept}
 
-### Datatypes {=mdld:datatype-syntax rdf:type Rule}
+### Datatypes {=mdld:datatype-syntax .Rule}
 
-```markdown
 [1969] {startDate ^^xsd:gYear}
-```
 
-### Language Tags {=mdld:language-syntax rdf:type Rule}
+### Language Tags {=mdld:language-syntax .Rule}
 
-```markdown
 [Berlin] {name "en"}
 [Берлин] {name "ru"}
-```
 
-## Code Blocks {=mdld:code-blocks rdf:type Concept}
+## Code Blocks {=mdld:code-blocks .Concept}
 
 Fenced code blocks may act as value carriers when `{}` is placed immediately after opening fence.
 
-```markdown
-```sparql {=ex:query1 .SoftwareSourceCode text programmingLanguage "SPARQL"}
+Example SPARQL query: {mdld:query-example .SoftwareSourceCode}
+
+```sparql {=mdld:query1 .SoftwareSourceCode text programmingLanguage "SPARQL"}
 SELECT * WHERE { ?s ?p ?o }
 ```
-```
 
-## Complete Example {=mdld:complete-example rdf:type Example}
+## W3C Standards {=mdld:w3c-standards .Section}
 
-```markdown
-# Apollo 11 Mission {=wd:Q43653 .SpaceMission}
+MD-LD is built upon established W3C standards:
+
+Core RDF Standards: {schema:isBasedOn .Standard}
+- [RDF 1.1 Concepts] {=mdld:rdf11 .Standard}
+- [RDF 1.1 Turtle] {=mdld:turtle .Standard}
+- [SPARQL 1.1 Query] {=mdld:sparql .Standard}
+
+Schema.org Vocabulary: {schema:usesVocabulary .Vocabulary}
+- [Schema.org Core] {=mdld:schema-core .Vocabulary}
+- [Schema.org Structured Data] {=mdld:schema-structured .Vocabulary}
+
+## Complete Example {=mdld:complete-example .Example}
+
+# Apollo 11 Mission {=mdld:apollo11 .SpaceMission}
 
 Launch year: [1969] {startDate ^^xsd:gYear}
+Mission duration: [8 days] {duration}
 Crew: {hasPart .Person}
-- Neil Armstrong {=wd:Q1615 name "Neil Alden Armstrong"}
-- Buzz Aldrin {=wd:Q2252 name "Buzz Aldrin"}
+- Neil Armstrong {=mdld:armstrong name "Neil Alden Armstrong" commander}
+- Buzz Aldrin {=mdld:aldrin name "Buzz Aldrin" lunarModulePilot}
+- Michael Collins {=mdld:collins name "Michael Collins" commandModulePilot}
 
 > Mission director: [Gene Kranz] {director}
 > Deputy director: [Chris Kraft] {deputyDirector}
+> Flight controller: [Steve Bales] {flightController}
 
-```sparql {=ex:mission-query .SoftwareSourceCode}
-SELECT ?crew ?role WHERE {
-  wd:Q43653 schema:hasPart ?crew .
-  ?crew schema:name ?name .
-}
-```
-
-## Self-Validation {=mdld:self-validation rdf:type Section}
+## Self-Validation {=mdld:self-validation .Section}
 
 This specification validates itself using MD-LD format:
 
-```sparql {=mdld:expected-quads rdf:type SoftwareSourceCode}
-# Expected quads from parsing this specification
-SELECT ?subject ?predicate ?object WHERE {
-  # Specification structure
-  mdld:spec rdf:type mdld:Specification .
-  mdld:overview rdf:type mdld:Section .
-  mdld:principles rdf:type mdld:Section .
-  mdld:value-carriers rdf:type mdld:Concept .
-  mdld:inline-spans rdf:type mdld:Concept .
-  mdld:block-containers rdf:type mdld:Concept .
-  mdld:links rdf:type mdld:Concept .
-  mdld:semantic-blocks rdf:type mdld:Concept .
-  mdld:attachment-rule rdf:type mdld:Rule .
-  mdld:subjects rdf:type mdld:Concept .
-  mdld:subject-declaration rdf:type mdld:Rule .
-  mdld:types rdf:type mdld:Concept .
-  mdld:properties rdf:type mdld:Concept .
-  mdld:literal-properties rdf:type mdld:Concept .
-  mdld:object-properties rdf:type mdld:Concept .
-  mdld:reverse-properties rdf:type mdld:Concept .
-  mdld:lists rdf:type mdld:Concept .
-  mdld:list-reverse rdf:type mdld:Concept .
-  mdld:datatypes rdf:type mdld:Concept .
-  mdld:datatype-syntax rdf:type mdld:Rule .
-  mdld:language-syntax rdf:type mdld:Rule .
-  mdld:code-blocks rdf:type mdld:Concept .
-  mdld:complete-example rdf:type mdld:Example .
-  mdld:self-validation rdf:type mdld:Section .
-  mdld:expected-quads rdf:type mdld:SoftwareSourceCode .
-}
-```
+Expected quads from parsing this specification: {mdld:expected-quads .SoftwareSourceCode}
 
-## Summary {=mdld:summary rdf:type Section}
+- Specification structure: {mdld:structure-validation .Validation}
+  - Main spec document {mdld:spec}
+  - Overview section {mdld:overview}
+  - Core principles {mdld:principles}
+  - Value carriers concept {mdld:value-carriers}
+  - Semantic blocks {mdld:semantic-blocks}
+  - Subjects {mdld:subjects}
+  - Types {mdld:types}
+  - Properties {mdld:properties}
+  - Lists {mdld:lists}
+  - Datatypes {mdld:datatypes}
+  - Code blocks {mdld:code-blocks}
+  - W3C standards {mdld:w3c-standards}
+  - Complete example {mdld:complete-example}
+  - Self-validation {mdld:self-validation}
+
+- Content validation: {mdld:content-validation .Validation}
+  - Literal values from spans: [58] {mdld:literal-count}
+  - No plain text literals: [Yes] {mdld:no-plain-literals}
+  - Proper value carrier usage: [Yes] {mdld:proper-carriers}
+  - Concepts defined: [9] {mdld:concept-count}
+  - Rules defined: [4] {mdld:rule-count}
+
+## Summary {=mdld:summary .Section}
 
 MD-LD v0.2 provides a **clean semantic layer** over Markdown with **explicit intent only**, **no heuristics**, and **production-grade streaming behavior**.
 
-> If you can read Markdown, you can author linked data.
+> If you can read Markdown, you can author linked data. {mdld:tagline}

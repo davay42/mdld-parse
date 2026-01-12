@@ -20,7 +20,7 @@ async function validateSpec() {
 
     // Extract specification metadata
     const specQuads = result.quads.filter(q =>
-        q.subject.value.startsWith('http://schema.mdld.org/')
+        q.subject.value.startsWith('https://mdld.js.org/')
     );
 
     console.log('📊 Parsing Results:');
@@ -64,7 +64,9 @@ async function validateSpec() {
     Object.entries(keyElements).forEach(([id, desc]) => {
         const hasElement = specQuads.some(q =>
             q.subject.value.endsWith(`/${id}`) ||
-            q.subject.value.includes(id) // Handle code blocks
+            q.subject.value.includes(id) || // Handle code blocks
+            q.object.value.includes(id) || // Handle references
+            q.predicate.value.includes(id) // Handle predicates
         );
         const status = hasElement ? '✅' : '❌';
         console.log(`  ${status} ${id}: ${desc}`);
@@ -82,27 +84,62 @@ async function validateSpec() {
     console.log(`  ✅ No plain text literals: ${plainTextLiterals.length === literalQuads.length ? 'Yes' : 'No'}`);
 
     // Validate semantic structure
-    const conceptQuads = specQuads.filter(q =>
-        q.object.value === 'http://schema.mdld.org/Concept'
-    );
-    const ruleQuads = specQuads.filter(q =>
-        q.object.value === 'http://schema.mdld.org/Rule'
-    );
+    const conceptSubjects = specQuads
+        .filter(q => q.subject.value.endsWith('-spans') ||
+            q.subject.value.endsWith('-containers') ||
+            q.subject.value.endsWith('-blocks') ||
+            q.subject.value.endsWith('-properties') ||
+            q.subject.value === 'https://mdld.js.org/links' ||
+            q.subject.value === 'https://mdld.js.org/lists')
+        .map(q => q.subject.value);
+
+    const ruleSubjects = specQuads
+        .filter(q => q.subject.value.endsWith('-rule') ||
+            q.subject.value.endsWith('-syntax') ||
+            q.subject.value.endsWith('-declaration'))
+        .map(q => q.subject.value);
+
+    const uniqueConcepts = [...new Set(conceptSubjects)];
+    const uniqueRules = [...new Set(ruleSubjects)];
 
     console.log('\n🏗️  Semantic Structure:');
-    console.log(`  ✅ Concepts defined: ${conceptQuads.length}`);
-    console.log(`  ✅ Rules defined: ${ruleQuads.length}`);
+    console.log(`  ✅ Concepts defined: ${uniqueConcepts.length}`);
+    console.log(`  ✅ Rules defined: ${uniqueRules.length}`);
+
+    // Validate that Spec.md numbers match actual results
+    console.log('\n🔢 Number Validation:');
+
+    // Extract numbers from the spec content text directly
+    const literalCountMatch = specContent.match(/Literal values from spans: \[(\d+)\]/);
+    const conceptCountMatch = specContent.match(/Concepts defined: \[(\d+)\]/);
+    const ruleCountMatch = specContent.match(/Rules defined: \[(\d+)\]/);
+
+    const specLiteralCount = literalCountMatch ? parseInt(literalCountMatch[1]) : 0;
+    const specConceptCount = conceptCountMatch ? parseInt(conceptCountMatch[1]) : 0;
+    const specRuleCount = ruleCountMatch ? parseInt(ruleCountMatch[1]) : 0;
+
+    console.log(`  Literal values - Spec: ${specLiteralCount}, Actual: ${literalQuads.length} ${specLiteralCount === literalQuads.length ? '✅' : '❌'}`);
+    console.log(`  Concepts - Spec: ${specConceptCount}, Actual: ${uniqueConcepts.length} ${specConceptCount === uniqueConcepts.length ? '✅' : '❌'}`);
+    console.log(`  Rules - Spec: ${specRuleCount}, Actual: ${uniqueRules.length} ${specRuleCount === uniqueRules.length ? '✅' : '❌'}`);
+
+    const numbersMatch = specLiteralCount === literalQuads.length &&
+        specConceptCount === uniqueConcepts.length &&
+        specRuleCount === uniqueRules.length;
 
     // Final validation result
     console.log('\n🏆 Validation Result:');
-    if (allValid && literalQuads.length > 0) {
+    if (allValid && literalQuads.length > 0 && numbersMatch) {
         console.log('  ✅ PASSED: Specification correctly describes itself in MD-LD!');
         console.log('  ✅ All major sections are properly typed');
         console.log('  ✅ Value carriers are used correctly');
         console.log('  ✅ Semantic structure is coherent');
+        console.log('  ✅ Numbers in Spec.md match validation results');
         process.exit(0);
     } else {
         console.log('  ❌ FAILED: Specification has validation issues');
+        if (!allValid) console.log('    - Structure validation failed');
+        if (literalQuads.length === 0) console.log('    - No literal values found');
+        if (!numbersMatch) console.log('    - Numbers in Spec.md don\'t match actual results');
         process.exit(1);
     }
 }
