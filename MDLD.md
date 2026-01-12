@@ -42,6 +42,8 @@ MD-LD is designed for:
 
 3. **Streaming-friendly**
 
+  A conforming MD-LD parser MUST be implementable as a single-pass streaming parser with bounded memory, proportional only to the current subject context and open blocks.    
+
    * Single-pass parsing
    * No backtracking
    * Emit triples as `{...}` is encountered
@@ -58,7 +60,7 @@ MD-LD is designed for:
 
 ---
 
-## 3. The mental model (non-specialist friendly)
+## 3. The mental model
 
 Think of MD-LD as answering three questions:
 
@@ -70,13 +72,41 @@ Everything else is composition.
 
 ---
 
-## 4. Semantic blocks `{...}`
+## 4. Value carriers
+
+A `{}` block MAY extract a literal value from exactly one of:
+
+1. Markdown inline spans (text content can be catched by `property` predicate):
+
+   * span `[text]`
+   * emphasis `*text*`, '_text_'
+   * strong `**text**`, '__text__'
+   * inline code `` `text` ``
+
+2. Block-level containers:
+   
+   * heading
+   * list item
+   * blockquote
+   * fenced code block
+
+3. Links and embeds (URL is treated as object IRI, link text and image alt can be catched by `property` predicate):
+
+   * Bare URL link `https://example.com`
+   * Link `[Example](https://example.com)`
+   * Image `![alt text](https://example.com/image.jpg)`
+
+3. Explicit quoted literals inside `{}`
+
+Everything else is **not a value carrier**.
+
+## 5. Semantic blocks `{...}`
 
 ### General rules
 
 #### Attachment rule
 
-A {...} annotation MUST attach to the nearest preceding content carrier.
+A {...} annotation MUST attach to the nearest preceding value carrier.
 The textual content of that carrier is the literal value unless an explicit IRI is provided. Emphasis (*text*), strong emphasis (**text**), and inline code (`text`) MAY serve as content carriers for {...}.
 
 A {...} block MUST appear immediately after:
@@ -86,46 +116,13 @@ A {...} block MUST appear immediately after:
 
 {...} MUST NOT appear inside Markdown syntax constructs (such as link destinations, emphasis markers, or code fences).
 
-If a {...} block cannot be deterministically attached using these rules, it is invalid.
-
----
-
-## 5. Prefixes and vocabulary
-
-MDLD assumes initial context similar to RDFa. We use Schema.org as default vocabulary.
-
-```js
-{
-  '@vocab': 'http://schema.org/'
-  'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-  'rdfs': 'http://www.w3.org/2000/01/rdf-schema#'
-  'xsd': 'http://www.w3.org/2001/XMLSchema#'
-  'dct': 'http://purl.org/dc/terms/'
-  'foaf': 'http://xmlns.com/foaf/0.1/'
-}
-```
-
-It is extensible via prefix declarations. Such declarations are not emitted as RDF. They are parsed and applied only forward to following statements.
-
-### Syntax
-
-```md
-[@vocab] {: http://schema.org/}
-[ex] {: http://example.org/}
-[wd] {: https://www.wikidata.org/entity/}
-```
-
-### Rules
-
-* Prefixes apply **forward only**
-* Prefix declarations emit no RDF
-* Prefix blocks do not create subjects or types
+If a {...} block cannot be deterministically attached using these rules, it is still may yeild RDF triples if containing enough semantic data - subject, predicates and objects - explicit semantic-only blocks.
 
 ---
 
 ## 6. Subjects
 
-A subject exists only if explicitly declared with {=IRI}.
+A subject exists only if explicitly declared with {=IRI}. Subject declaration sets *current subject* and is used to construct triples based on further annotations until explicit change to another subject or reset with special `{=}` marker. It clears current subject and no quads are emitted until another subject declaration.
 
 ### 6.1 Declaring a subject
 
@@ -259,7 +256,7 @@ wd:Q43653 schema:astronaut wd:Q1615 .
 `{^property}` emits a triple where:
 
 - the current subject becomes the object
-- the nearest previously established subject in scope becomes the subject
+- it always targets the nearest previous subject that is still in scope, not the nearest syntactic block.
 
 No predicate rewriting occurs.
 
@@ -284,83 +281,109 @@ wd:Q495307 schema:hasPart ex:rocket ;
 
 ---
 
-## 9. Lists with list-level semantics
+## 9. Lists and Repeated Properties (Normative)
 
-### Purpose
+A `{}` block immediately preceding a list applies to **all list items** until the list ends. Ordered and unordered lists are semantically equivalent in MD-LD.
 
-Apply the **same relationship and type** to all list items cleanly, supporting both literal values and object references.
+The block MAY contain:
+
+* one predicate (used for all items)
+* optional rdf:type declarations
 
 ### Syntax
 
-#### Literal List (default)
-
 ```md
-Property label: {property}
-- Literal value 1
-- Literal value 2
-```
+<text> {<predicate> [.Class]*}
 
-#### Object List
-
-```md
-Property label: {property .Class}
-- Label 1 {=iri1}
-- Label 2 {=iri2}
-```
-
-### Rules
-
-* The `{...}` block before the list defines:
-  * Required: The predicate (property IRI)
-  * Optional: A class (prefixed with `.`) that will be applied to each list item
-
-* For literal lists:
-  * Each list item is treated as a literal value
-  * No explicit subject declaration is needed for list items
-  * Literal values are trimmed of whitespace
-
-* If a class is defined, we parse an object list:
-  * Each list item must declare a subject using `{=iri}`
-  * The optional class from the list header is applied to each item
-  * The list item text before `{=iri}` is ignored for RDF generation
-
-* Both list types are streaming-safe (property is known before processing items)
-
----
-
-### Example 1: Literal list
-
-```md
-## Recipe 1 {=ex:recipe1}
-
-Ingredients: {hasPart}
-- Flour 
-- Water 
-- Salt (to taste)
-```
-
-```turtle
-ex:recipe1 schema:hasPart "Flour" , "Water" , "Salt (to taste)" .
+- <item text> {=IRI [predicate]*}
+- <item text> {=IRI [predicate]*}
 ```
 
 ---
 
-### Example 2: Object list with types
+### Semantics
+
+For each list item:
+
+1. The list-scope predicate is applied to the **current subject**
+2. The item’s `{=IRI}` defines the **object**
+3. Any `.Class` applies to the item subject
+4. Item-level predicates apply only to the item
+
+---
+
+### Example 1 — Simple parts list
 
 ```md
-## Recipe 1 {=ex:recipe1}
+## Recipe {=ex:recipe1 name}
 
-Ingredients: {hasPart .Ingredient}
-- Organic flour {=ex:flour}
-- Spring water {=ex:water}
+Ingredients: {schema:hasPart .ex:Ingredient}
+
+- Flour {=ex:Flour name}
+- Water {=ex:Water name}
 ```
 
 ```turtle
-ex:recipe1 schema:hasPart ex:flour , ex:water .
+ex:recipe1 schema:name "Recipe" ;
+           schema:hasPart ex:Flour, ex:Water .
 
-ex:flour a schema:Ingredient .
-ex:water a schema:Ingredient .
+ex:Flour a ex:Ingredient ;
+         schema:name "Flour" .
+
+ex:Water a ex:Ingredient ;
+         schema:name "Water" .
 ```
+
+---
+
+### Example 2 — List with additional item facts
+
+```md
+Ingredients: {schema:hasPart .ex:Ingredient}
+
+- Flour {=ex:Flour schema:name schema:calories "364"^^xsd:integer}
+- Water {=ex:Water schema:name}
+```
+
+```turtle
+<current-subject> schema:hasPart ex:Flour, ex:Water .
+
+ex:Flour a ex:Ingredient ;
+         schema:name "Flour" ;
+         schema:calories "364"^^xsd:integer .
+
+ex:Water a ex:Ingredient ;
+         schema:name "Water" .
+```
+
+---
+
+### Example 3 — Reverse relations in lists
+
+```md
+Used in recipes: {^schema:hasPart}
+
+- Bread {=ex:Bread}
+- Cake {=ex:Cake}
+```
+
+```turtle
+ex:Bread schema:hasPart <current-subject> .
+ex:Cake  schema:hasPart <current-subject> .
+```
+
+---
+
+## 6.2 Safety and Round-Trip Guarantees (Normative)
+
+* Each list item MUST contain its own `{}` if it produces triples
+* Each item subject MUST be an explicit IRI
+* No blank nodes are generated
+* Each triple maps to:
+
+  * list-scope `{}` block
+  * item `{}` block
+* Editing one item does not affect others
 
 ---
 
@@ -394,20 +417,21 @@ You can't use `@lang` with `^^datatype` on the same statement.
 
 ### Rule
 
-Fenced code blocks may act as value carriers when `{}` is placed immediately after the opening fence.
+Fenced code blocks may act as value carriers when `{}` is placed immediately after the opening fence. It's content can be catched by property predicate as a literal value.
 
 ### Example
 
 ````md
-```sparql {=ex:query1 .SoftwareSourceCode text}
+```sparql {=ex:query1 .SoftwareSourceCode text programmingLanguage "SPARQL"}
 SELECT * WHERE { ?s ?p ?o }
 ````
 
 ````
 
 ```turtle
-ex:query1 a schema:SoftwareSourceCode ; 
-            schema:text "SELECT * WHERE { ?s ?p ?o }" .
+ex:query1 a schema:SoftwareSourceCode ;
+            schema:text "SELECT * WHERE { ?s ?p ?o }" ;
+            schema:programmingLanguage "SPARQL" .
 ````
 
 ---
