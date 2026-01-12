@@ -35,40 +35,88 @@ function expandIRI(term, ctx) {
     return (ctx['@vocab'] || '') + t;
 }
 
-function parseAnnotation(raw) {
-    const cleaned = raw.replace(/^\{|\}$/g, '').trim();
-    if (!cleaned) return { subject: null, entries: [], datatype: null, language: null };
+export function parseAnnotation(raw) {
+    try {
+        const cleaned = raw.replace(/^\{|\}$/g, '').trim();
+        if (!cleaned) return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
 
-    const entries = [];
-    let subject = null;
+        const entries = [];
+        let subject = null;
+        let literalValue = null;
 
-    const urlMatch = cleaned.match(/=(https?:\/\/[^\s}]+)/);
-    const simpleMatch = cleaned.match(/=([^\s.^@]+)/);
-    if (urlMatch) subject = urlMatch[1];
-    else if (simpleMatch) subject = simpleMatch[1];
+        // Validate basic structure - no unbalanced quotes
+        const openQuotes = (cleaned.match(/"/g) || []).length;
+        if (openQuotes % 2 !== 0) {
+            console.warn(`Unbalanced quotes in annotation: ${raw}`);
+            return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
+        }
 
-    if (subject === '') subject = 'RESET';
+        // Extract quoted literal values first - more robust pattern
+        const quotedLiteralMatch = cleaned.match(/^([^\s.=^@]+)\s+"([^"]*)"(?:\s+@[a-z]{2}(?:-[A-Z]{2})?)?(?:\s+\^\^[^\s]+)?/);
+        if (quotedLiteralMatch) {
+            const predicate = quotedLiteralMatch[1];
+            literalValue = quotedLiteralMatch[2];
+            entries.push({ kind: 'property', predicate: predicate, direction: 'forward' });
+        }
 
-    const types = cleaned.match(/\.([^\s.=^@]+)/g);
-    if (types) types.forEach(t => entries.push({ kind: 'type', classIRI: t.substring(1) }));
+        // Extract subject IRI - improved patterns
+        const urlMatch = cleaned.match(/=(https?:\/\/[^\s}]+)/);
+        const curieMatch = cleaned.match(/=([a-zA-Z_][a-zA-Z0-9_-]*:[^\s^@}]+)/);
+        const fragmentMatch = cleaned.match(/=#([^\s^@}]+)/);
+        const simpleMatch = cleaned.match(/=([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s^@}]+)?)/);
 
-    const props = cleaned.match(/(?:^|\s)([^\s.=^@\{]+)(?=\s|$|@|\^\^)/g);
-    if (props) {
-        props.forEach(p => {
-            const t = p.trim();
-            if (t && !t.startsWith('.') && !t.startsWith('=') && !t.startsWith('^')) {
-                entries.push({ kind: 'property', predicate: t, direction: 'forward' });
+        if (urlMatch) subject = urlMatch[1];
+        else if (curieMatch) subject = curieMatch[1];
+        else if (fragmentMatch) subject = '#' + fragmentMatch[1];
+        else if (simpleMatch) subject = simpleMatch[1];
+
+        if (subject === '') subject = 'RESET';
+
+        // Extract types - improved pattern (don't match within URLs)
+        if (!urlMatch) {
+            const types = cleaned.match(/\.([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s.=^@]+)?)/g);
+            if (types) types.forEach(t => entries.push({ kind: 'type', classIRI: t.substring(1) }));
+        }
+
+        // Extract properties - improved pattern excluding already processed quoted literals
+        if (!quotedLiteralMatch) {
+            const props = cleaned.match(/(?:^|\s)([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s.=^@]+)?)(?=\s|$|@|\^\^)/g);
+            if (props) {
+                props.forEach(p => {
+                    const t = p.trim();
+                    if (t && !t.startsWith('.') && !t.startsWith('=') && !t.startsWith('^')) {
+                        entries.push({ kind: 'property', predicate: t, direction: 'forward' });
+                    }
+                });
             }
-        });
+        }
+
+        // Extract reverse properties - improved pattern
+        const reverse = cleaned.match(/\^([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s.=^@]+)?)/g);
+        if (reverse) reverse.forEach(r => entries.push({ kind: 'property', predicate: r.substring(1), direction: 'reverse' }));
+
+        // Extract datatype - improved pattern
+        const datatype = cleaned.match(/\^\^([a-zA-Z_][a-zA-Z0-9_-]*(?::[^\s]+)?|[a-zA-Z0-9._-]+:[^\s]+)/);
+
+        // Extract language - improved pattern
+        const lang = cleaned.match(/@([a-z]{2}(?:-[A-Z]{2})?)/);
+
+        // Validate that we have valid entries
+        if (entries.length === 0 && !subject) {
+            console.warn(`No valid entries found in annotation: ${raw}`);
+            return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
+        }
+
+        // Allow empty subject if it's just a reset or if we have valid entries
+        if (subject === null && entries.length === 0) {
+            return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
+        }
+
+        return { subject, entries, datatype: datatype?.[1], language: lang?.[1], literalValue };
+    } catch (error) {
+        console.error(`Error parsing annotation ${raw}:`, error);
+        return { subject: null, entries: [], datatype: null, language: null, literalValue: null };
     }
-
-    const reverse = cleaned.match(/\^([^\s.=^@]+)/g);
-    if (reverse) reverse.forEach(r => entries.push({ kind: 'property', predicate: r.substring(1), direction: 'reverse' }));
-
-    const datatype = cleaned.match(/\^\^([^\s]+)/);
-    const lang = cleaned.match(/@([a-z]{2}(?:-[A-Z]{2})?)/);
-
-    return { subject, entries, datatype: datatype?.[1], language: lang?.[1] };
 }
 
 function scanTokens(text) {
@@ -255,109 +303,110 @@ function emit(quads, quadIndex, blockId, s, p, o, df) {
     quadIndex.set(key, blockId);
 }
 
-function makeObject(value, datatype, language, ctx, df) {
+function makeObject(value, datatype, language, ctx, df, literalValue = null) {
+    // Use explicit quoted literal value if provided
+    if (literalValue !== null) {
+        value = literalValue;
+    }
     if (datatype) return df.literal(value, df.namedNode(expandIRI(datatype, ctx)));
     if (language) return df.literal(value, language);
     return df.literal(value);
 }
 
-function processHeading(token, state) {
-    if (!token.attrs) {
-        state.currentSubject = null;
-        return;
-    }
+function processAnnotation(token, state, textContent = null) {
+    if (!token.attrs) return;
 
     const ann = parseAnnotation(token.attrs);
+    const originalCurrentSubject = state.currentSubject;
+
+    // Handle subject declaration
     if (ann.subject === 'RESET') {
         state.currentSubject = null;
         return;
     }
-    if (!ann.subject) {
-        state.currentSubject = null;
+
+    if (ann.subject) {
+        const subjIRI = expandIRI(ann.subject, state.ctx);
+        state.currentSubject = state.df.namedNode(subjIRI);
+    }
+
+    // If no subject and no current subject, this annotation can't produce triples
+    if (!originalCurrentSubject && !ann.subject) {
         return;
     }
 
-    const subjIRI = expandIRI(ann.subject, state.ctx);
-    state.currentSubject = state.df.namedNode(subjIRI);
+    const targetSubject = ann.subject ?
+        state.df.namedNode(expandIRI(ann.subject, state.ctx)) :
+        originalCurrentSubject;
 
-    const block = createBlock(subjIRI, ann.entries, token.range, state.ctx);
+    const block = createBlock(targetSubject.value, ann.entries, token.range, state.ctx);
     state.origin.blocks.set(block.id, block);
 
-    block.entries.forEach(e => {
-        if (e.kind === 'type') {
-            emit(state.quads, state.origin.quadIndex, block.id, state.currentSubject,
-                state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(e.classIRI), state.df);
-        }
-    });
-
-    emit(state.quads, state.origin.quadIndex, block.id, state.currentSubject,
-        state.df.namedNode(expandIRI('rdfs:label', state.ctx)), state.df.literal(token.text), state.df);
-}
-
-function processCode(token, state) {
-    if (!token.attrs) return;
-
-    const ann = parseAnnotation(token.attrs);
-    const codeSubj = ann.subject ? state.df.namedNode(expandIRI(ann.subject, state.ctx)) : state.df.blankNode(hash(`code:${token.text}`));
-
-    const block = createBlock(codeSubj.value, ann.entries, token.range, state.ctx);
-    state.origin.blocks.set(block.id, block);
-
-    block.entries.forEach(e => {
-        if (e.kind === 'type') {
-            emit(state.quads, state.origin.quadIndex, block.id, codeSubj,
-                state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(e.classIRI), state.df);
-        }
-        if (e.kind === 'property' && e.predicate) {
-            const pred = state.df.namedNode(e.predicate);
-            const obj = makeObject(token.text, ann.datatype, ann.language, state.ctx, state.df);
-            emit(state.quads, state.origin.quadIndex, block.id, codeSubj, pred, obj, state.df);
-        }
-    });
-
-    if (state.currentSubject) {
-        emit(state.quads, state.origin.quadIndex, block.id, state.currentSubject,
-            state.df.namedNode(expandIRI('hasPart', state.ctx)), codeSubj, state.df);
+    // Handle list context types for list items
+    if (token.type === 'list' && state.listContext && state.listContext.types.length > 0) {
+        state.listContext.types.forEach(typeIRI => {
+            emit(state.quads, state.origin.quadIndex, block.id, targetSubject,
+                state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(typeIRI), state.df);
+        });
     }
-}
 
-function processInline(span, state) {
-    if (!span.attrs || !state.currentSubject) return;
-
-    const ann = parseAnnotation(span.attrs);
-    let targetSubj = null;
-
-    if (span.url) targetSubj = state.df.namedNode(expandIRI(span.url, state.ctx));
-    else if (ann.subject) targetSubj = state.df.namedNode(expandIRI(ann.subject, state.ctx));
-
-    const block = createBlock(targetSubj?.value || state.currentSubject.value, ann.entries, span.range, state.ctx);
-    state.origin.blocks.set(block.id, block);
-
-    ann.entries.forEach(e => {
-        if (e.kind === 'type' && targetSubj) {
-            emit(state.quads, state.origin.quadIndex, block.id, targetSubj,
-                state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(expandIRI(e.classIRI, state.ctx)), state.df);
+    block.entries.forEach(e => {
+        if (e.kind === 'type') {
+            // Types apply to the target subject (link target or declared subject)
+            // For links with types, the types should apply to the link target
+            const typeSubject = token.url ?
+                state.df.namedNode(expandIRI(token.url, state.ctx)) :
+                targetSubject;
+            emit(state.quads, state.origin.quadIndex, block.id, typeSubject,
+                state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(e.classIRI), state.df);
         }
-
         if (e.kind === 'property' && e.predicate) {
             const pred = state.df.namedNode(expandIRI(e.predicate, state.ctx));
 
-            if (targetSubj) {
+            // For object properties (links), use the URL as object
+            if (token.url) {
+                const obj = state.df.namedNode(expandIRI(token.url, state.ctx));
                 if (e.direction === 'reverse') {
-                    emit(state.quads, state.origin.quadIndex, block.id, targetSubj, pred, state.currentSubject, state.df);
+                    emit(state.quads, state.origin.quadIndex, block.id, obj, pred, originalCurrentSubject, state.df);
                 } else {
-                    emit(state.quads, state.origin.quadIndex, block.id, state.currentSubject, pred, targetSubj, state.df);
+                    emit(state.quads, state.origin.quadIndex, block.id, originalCurrentSubject, pred, obj, state.df);
+                }
+            } else if (ann.subject && !token.url) {
+                // When annotation declares a subject (but not a link):
+                // - Reverse properties: declared_subject -> predicate -> current_subject
+                // - Forward properties: depends on token type
+                if (e.direction === 'reverse') {
+                    emit(state.quads, state.origin.quadIndex, block.id, originalCurrentSubject, pred, targetSubject, state.df);
+                } else {
+                    // Forward properties:
+                    // - For code blocks: literal properties on declared subject
+                    // - For inline spans: object properties from current to declared subject
+                    if (token.type === 'code') {
+                        const obj = makeObject(textContent || token.text || '', ann.datatype, ann.language, state.ctx, state.df, ann.literalValue);
+                        emit(state.quads, state.origin.quadIndex, block.id, targetSubject, pred, obj, state.df);
+                    } else {
+                        emit(state.quads, state.origin.quadIndex, block.id, originalCurrentSubject, pred, targetSubject, state.df);
+                    }
                 }
             } else {
-                const obj = makeObject(span.text, ann.datatype, ann.language, state.ctx, state.df);
+                // For literal properties, use text content or quoted literal
+                const obj = makeObject(textContent || token.text || '', ann.datatype, ann.language, state.ctx, state.df, ann.literalValue);
                 if (e.direction === 'reverse') {
-                    emit(state.quads, state.origin.quadIndex, block.id, obj.termType === 'NamedNode' ? obj : state.df.blankNode(), pred, state.currentSubject, state.df);
+                    emit(state.quads, state.origin.quadIndex, block.id, obj, pred, originalCurrentSubject, state.df);
                 } else {
-                    emit(state.quads, state.origin.quadIndex, block.id, state.currentSubject, pred, obj, state.df);
+                    emit(state.quads, state.origin.quadIndex, block.id, targetSubject, pred, obj, state.df);
                 }
             }
         }
     });
+}
+
+function processCode(token, state) {
+    processAnnotation(token, state, token.text);
+}
+
+function processInline(span, state) {
+    processAnnotation(span, state, span.text);
 }
 
 function processList(token, state, nextToken) {
@@ -381,35 +430,19 @@ function processList(token, state, nextToken) {
 }
 
 function processListItem(token, state) {
-    if (!state.listContext || !token.attrs) return;
+    processAnnotation(token, state, token.text);
 
-    const ann = parseAnnotation(token.attrs);
-    if (!ann.subject) return;
-
-    const itemSubj = state.df.namedNode(expandIRI(ann.subject, state.ctx));
-
-    const block = createBlock(itemSubj.value, ann.entries, token.range, state.ctx);
-    state.origin.blocks.set(block.id, block);
-
-    state.listContext.types.forEach(typeIRI => {
-        emit(state.quads, state.origin.quadIndex, block.id, itemSubj,
-            state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(typeIRI), state.df);
-    });
-
-    ann.entries.forEach(e => {
-        if (e.kind === 'property' && e.predicate) {
-            const pred = state.df.namedNode(expandIRI(e.predicate, state.ctx));
-            const obj = makeObject(token.text, ann.datatype, ann.language, state.ctx, state.df);
-            emit(state.quads, state.origin.quadIndex, block.id, itemSubj, pred, obj, state.df);
-        }
-    });
-
-    if (state.listContext.predicate && state.currentSubject) {
-        const pred = state.df.namedNode(state.listContext.predicate);
-        if (state.listContext.reverse) {
-            emit(state.quads, state.origin.quadIndex, block.id, itemSubj, pred, state.currentSubject, state.df);
-        } else {
-            emit(state.quads, state.origin.quadIndex, block.id, state.currentSubject, pred, itemSubj, state.df);
+    // Handle list context relationships
+    if (state.listContext && state.listContext.predicate && state.currentSubject) {
+        const ann = parseAnnotation(token.attrs);
+        if (ann.subject) {
+            const itemSubj = state.df.namedNode(expandIRI(ann.subject, state.ctx));
+            const pred = state.df.namedNode(state.listContext.predicate);
+            if (state.listContext.reverse) {
+                emit(state.quads, state.origin.quadIndex, 'list-context', itemSubj, pred, state.currentSubject, state.df);
+            } else {
+                emit(state.quads, state.origin.quadIndex, 'list-context', state.currentSubject, pred, itemSubj, state.df);
+            }
         }
     }
 }
@@ -432,7 +465,7 @@ export function parse(text, options = {}) {
         const nextToken = tokens[i + 1];
 
         if (token.type === 'heading') {
-            processHeading(token, state);
+            processAnnotation(token, state, token.text);
             continue;
         }
 
@@ -451,6 +484,9 @@ export function parse(text, options = {}) {
         }
 
         if ((token.type === 'para' || token.type === 'blockquote') && state.currentSubject) {
+            if (token.type === 'blockquote') {
+                processAnnotation(token, state, token.text);
+            }
             const spans = extractInlineValue(token.text, token.range[0]);
             spans.filter(s => s.type === 'span' || s.type === 'link').forEach(span => {
                 processInline(span, state);
@@ -514,4 +550,4 @@ export function serialize({ text, diff, origin, options = {} }) {
     return { text: result, origin };
 }
 
-export default { parse, serialize };
+export default { parse, serialize, parseAnnotation };

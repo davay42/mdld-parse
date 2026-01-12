@@ -257,6 +257,7 @@ wd:Q43653 schema:astronaut wd:Q1615 .
 
 - the current subject becomes the object
 - it always targets the nearest previous subject that is still in scope, not the nearest syntactic block.
+- If no current subject is present no quads are emitted
 
 No predicate rewriting occurs.
 
