@@ -158,24 +158,72 @@ function scanTokens(text) {
 
 function parseInlineSpans(text, baseOffset = 0) {
     const spans = [];
-    const regex = /\[([^\]]+)\](?:\(([^)]+)\))?(?:\s*\{([^}]+)\})?/g;
-    let last = 0;
-    let m;
+    let pos = 0;
 
-    while ((m = regex.exec(text)) !== null) {
-        if (m.index > last) spans.push({ type: 'text', value: text.substring(last, m.index) });
+    while (pos < text.length) {
+        const openBracket = text.indexOf('[', pos);
+        if (openBracket === -1) {
+            if (pos < text.length) {
+                spans.push({ type: 'text', value: text.substring(pos) });
+            }
+            break;
+        }
+
+        if (openBracket > pos) {
+            spans.push({ type: 'text', value: text.substring(pos, openBracket) });
+        }
+
+        const closeBracket = findMatchingBracket(text, openBracket, '[', ']');
+        if (closeBracket === -1) {
+            spans.push({ type: 'text', value: text.substring(openBracket) });
+            break;
+        }
+
+        const spanText = text.substring(openBracket + 1, closeBracket);
+        let spanEnd = closeBracket + 1;
+        let url = null;
+        let attrs = null;
+
+        if (text[spanEnd] === '(') {
+            const closeParen = findMatchingBracket(text, spanEnd, '(', ')');
+            if (closeParen !== -1) {
+                url = text.substring(spanEnd + 1, closeParen);
+                spanEnd = closeParen + 1;
+            }
+        }
+
+        const attrsMatch = text.substring(spanEnd).match(/^\s*\{([^}]+)\}/);
+        if (attrsMatch) {
+            attrs = `{${attrsMatch[1]}}`;
+            spanEnd += attrsMatch[0].length;
+        }
+
         spans.push({
             type: 'span',
-            text: m[1],
-            url: m[2] || null,
-            attrs: m[3] ? `{${m[3]}}` : null,
-            range: [baseOffset + m.index, baseOffset + m.index + m[0].length]
+            text: spanText,
+            url: url,
+            attrs: attrs,
+            range: [baseOffset + openBracket, baseOffset + spanEnd]
         });
-        last = m.index + m[0].length;
+
+        pos = spanEnd;
     }
 
-    if (last < text.length) spans.push({ type: 'text', value: text.substring(last) });
     return spans.length ? spans : [{ type: 'text', value: text }];
+}
+
+function findMatchingBracket(text, startPos, openChar, closeChar) {
+    let depth = 1;
+    let pos = startPos + 1;
+
+    while (pos < text.length && depth > 0) {
+        if (text[pos] === openChar) depth++;
+        if (text[pos] === closeChar) depth--;
+        if (depth === 0) return pos;
+        pos++;
+    }
+
+    return -1;
 }
 
 function emitQuad(quads, quadIndex, blockId, subject, predicate, object, df) {

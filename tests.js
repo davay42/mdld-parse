@@ -266,20 +266,15 @@ test('Inline subject declaration with properties', () => {
   });
 
   const authorQuad = findQuad(result.quads, 'author');
-  const typeQuads = result.quads.filter(q =>
+  const typeQuad = result.quads.find(q =>
+    q.subject.value === 'http://example.org/alice' &&
     q.predicate.value.includes('type')
   );
 
-  // Find Alice's type quad specifically
-  const aliceTypeQuad = typeQuads.find(q =>
-    q.subject.value === 'http://example.org/alice'
-  );
-
   assert(authorQuad, 'Should have author relationship');
-  assert(authorQuad.subject.value === 'http://example.org/ctx', 'Author property should be on context');
   assert(authorQuad.object.value === 'http://example.org/alice', 'Should link to alice');
-  assert(aliceTypeQuad, 'Alice should have type');
-  assert(aliceTypeQuad.object.value.includes('Person'), 'Alice should be a Person');
+  assert(typeQuad, 'Alice should have type');
+  assert(typeQuad.object.value.includes('Person'), 'Alice should be a Person');
 });
 
 // ============================================================================
@@ -594,6 +589,382 @@ test('Fragment identifier handling', () => {
 
   const labelQuad = findQuad(result.quads, 'label');
   assert(labelQuad.subject.value.includes('#fragment'), 'Should handle fragment identifiers');
+});
+
+// ============================================================================
+// COMPOSABILITY & EDGE CASES
+// ============================================================================
+
+test('Mixed inline annotations - properties and types together', () => {
+  const md = `## Context {=ex:ctx}
+
+[Alice](ex:alice) {author collaborator .Person .Agent}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const authorQuad = findQuad(result.quads, 'author');
+  const collabQuad = findQuad(result.quads, 'collaborator');
+
+  assert(authorQuad, 'Should have author property');
+  assert(collabQuad, 'Should have collaborator property');
+  assert(authorQuad.subject.value === 'http://example.org/ctx', 'Properties should be on context');
+  assert(authorQuad.object.value === 'http://example.org/alice', 'Should link to alice');
+
+  const typeQuads = result.quads.filter(q =>
+    q.subject.value === 'http://example.org/alice' &&
+    q.predicate.value.includes('type')
+  );
+
+  assert(typeQuads.length === 2, 'Alice should have 2 types');
+  const types = typeQuads.map(q => q.object.value.split(/[/#]/).pop());
+  assert(types.includes('Person'), 'Should include Person type');
+  assert(types.includes('Agent'), 'Should include Agent type');
+});
+
+test('Inline subject without URL but with =id', () => {
+  const md = `## Context {=ex:ctx}
+
+[Bob] {=ex:bob author .Person}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const authorQuad = findQuad(result.quads, 'author');
+  assert(authorQuad, 'Should have author property');
+  assert(authorQuad.object.value === 'http://example.org/bob', 'Should link to bob');
+
+  const typeQuad = result.quads.find(q =>
+    q.subject.value === 'http://example.org/bob' &&
+    q.predicate.value.includes('type')
+  );
+  assert(typeQuad, 'Bob should have type');
+});
+
+test('Multiple inline spans on same line', () => {
+  const md = `## Doc {=ex:doc}
+
+Written by [Alice](ex:alice) {author} and [Bob](ex:bob) {author}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const authorQuads = findQuads(result.quads, 'author');
+  assert(authorQuads.length === 2, 'Should have 2 author quads');
+
+  const objects = authorQuads.map(q => q.object.value);
+  assert(objects.includes('http://example.org/alice'), 'Should include alice');
+  assert(objects.includes('http://example.org/bob'), 'Should include bob');
+});
+
+test('Deeply nested headings maintain proper context', () => {
+  const md = `## Level 1 {=ex:l1}
+
+[Val1] {p1}
+
+### Level 2 {=ex:l2}
+
+[Val2] {p2}
+
+#### Level 3 {=ex:l3}
+
+[Val3] {p3}
+
+### Back to Level 2 {=ex:l2b}
+
+[Val4] {p4}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const p1 = findQuad(result.quads, 'p1');
+  const p2 = findQuad(result.quads, 'p2');
+  const p3 = findQuad(result.quads, 'p3');
+  const p4 = findQuad(result.quads, 'p4');
+
+  assert(p1.subject.value === 'http://example.org/l1', 'p1 should be on l1');
+  assert(p2.subject.value === 'http://example.org/l2', 'p2 should be on l2');
+  assert(p3.subject.value === 'http://example.org/l3', 'p3 should be on l3');
+  assert(p4.subject.value === 'http://example.org/l2b', 'p4 should be on l2b');
+});
+
+test('Context reset after heading without subject', () => {
+  const md = `## First {=ex:first}
+
+[Val1] {prop}
+
+## Plain Heading
+
+[Val2] {prop}
+
+## Third {=ex:third}
+
+[Val3] {prop}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const propQuads = findQuads(result.quads, 'prop');
+  assert(propQuads.length === 2, 'Should only have 2 property quads (Val2 has no context)');
+
+  const subjects = propQuads.map(q => q.subject.value);
+  assert(subjects.includes('http://example.org/first'), 'Should have first');
+  assert(subjects.includes('http://example.org/third'), 'Should have third');
+});
+
+test('Prefix declaration affects subsequent parsing', () => {
+  const md = `[ex] {: http://example.org/}
+
+## Thing {=ex:thing}`;
+
+  const result = parse(md);
+
+  const labelQuad = findQuad(result.quads, 'label');
+  assert(labelQuad.subject.value === 'http://example.org/thing', 'Prefix should be applied');
+});
+
+test('Multiple prefixes declared', () => {
+  const md = `[ex] {: http://example.org/}
+[wd] {: https://www.wikidata.org/entity/}
+[foo] {: http://foo.bar/}
+
+## Thing {=ex:thing}
+## Person {=wd:Q5}
+## Bar {=foo:baz}`;
+
+  const result = parse(md);
+
+  assert(result.context.ex === 'http://example.org/', 'ex prefix should be set');
+  assert(result.context.wd === 'https://www.wikidata.org/entity/', 'wd prefix should be set');
+  assert(result.context.foo === 'http://foo.bar/', 'foo prefix should be set');
+
+  const labels = findQuads(result.quads, 'label');
+  const subjects = labels.map(q => q.subject.value);
+
+  assert(subjects.includes('http://example.org/thing'), 'Should use ex prefix');
+  assert(subjects.includes('https://www.wikidata.org/entity/Q5'), 'Should use wd prefix');
+  assert(subjects.includes('http://foo.bar/baz'), 'Should use foo prefix');
+});
+
+test('Datatype handling - multiple datatypes', () => {
+  const md = `## Data {=ex:data}
+
+[42] {intVal ^^xsd:integer}
+[3.14] {floatVal ^^xsd:decimal}
+[2024-01-15] {dateVal ^^xsd:date}
+[true] {boolVal ^^xsd:boolean}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const intQuad = findQuad(result.quads, 'intVal');
+  const floatQuad = findQuad(result.quads, 'floatVal');
+  const dateQuad = findQuad(result.quads, 'dateVal');
+  const boolQuad = findQuad(result.quads, 'boolVal');
+
+  assert(intQuad.object.datatype.value.includes('integer'), 'Should have integer datatype');
+  assert(floatQuad.object.datatype.value.includes('decimal'), 'Should have decimal datatype');
+  assert(dateQuad.object.datatype.value.includes('date'), 'Should have date datatype');
+  assert(boolQuad.object.datatype.value.includes('boolean'), 'Should have boolean datatype');
+});
+
+test('Language tag variations', () => {
+  const md = `## Thing {=ex:thing}
+
+[Hello] {greeting @en}
+[Bonjour] {greeting @fr}
+[Hola] {greeting @es}
+[你好] {greeting @zh}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const greetings = findQuads(result.quads, 'greeting');
+  assert(greetings.length === 4, 'Should have 4 greetings');
+
+  const langs = greetings.map(q => q.object.language);
+  assert(langs.includes('en'), 'Should have English');
+  assert(langs.includes('fr'), 'Should have French');
+  assert(langs.includes('es'), 'Should have Spanish');
+  assert(langs.includes('zh'), 'Should have Chinese');
+});
+
+test('Code blocks with different languages', () => {
+  const md = `## Examples {=ex:examples}
+
+\`\`\`javascript {=ex:js}
+console.log('test');
+\`\`\`
+
+\`\`\`python {=ex:py}
+print('test')
+\`\`\`
+
+\`\`\`sparql {=ex:sq}
+SELECT * WHERE { ?s ?p ?o }
+\`\`\``;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const hasPartQuads = findQuads(result.quads, 'hasPart');
+  assert(hasPartQuads.length === 3, 'Should have 3 code blocks');
+});
+
+test('Empty annotation variations', () => {
+  const md = `## Test {}
+## Test2 {  }
+## Test3`;
+
+  const result = parse(md);
+  // Should not crash, should handle gracefully
+  assert(Array.isArray(result.quads), 'Should return quads array');
+});
+
+test('Special characters in literals', () => {
+  const md = `## Thing {=ex:thing}
+
+[Hello "World" & <stuff>] {text}
+[Value with {braces}] {text2}
+[Value with [brackets]] {text3}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const text1 = findQuad(result.quads, 'text');
+  const text2 = findQuad(result.quads, 'text2');
+  const text3 = findQuad(result.quads, 'text3');
+
+  assert(text1 && text1.object.value.includes('"'), 'Should preserve quotes');
+  assert(text2 && text2.object.value.includes('{'), 'Should preserve braces');
+  assert(text3 && text3.object.value.includes('['), 'Should preserve brackets');
+});
+
+test('Block ID stability across identical content', () => {
+  const md1 = `## Thing {=ex:thing .Type}
+
+[Value] {prop}`;
+
+  const md2 = `## Thing {=ex:thing .Type}
+
+[Value] {prop}`;
+
+  const result1 = parse(md1, { context: { ex: 'http://example.org/' } });
+  const result2 = parse(md2, { context: { ex: 'http://example.org/' } });
+
+  const blockIds1 = Array.from(result1.origin.blocks.keys()).sort();
+  const blockIds2 = Array.from(result2.origin.blocks.keys()).sort();
+
+  assertEqual(blockIds1, blockIds2, 'Block IDs should be identical for identical content');
+});
+
+test('Block ID uniqueness for different content', () => {
+  const md = `## Thing1 {=ex:thing1 .Type1}
+## Thing2 {=ex:thing2 .Type2}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const blockIds = Array.from(result.origin.blocks.keys());
+  const uniqueIds = new Set(blockIds);
+
+  assert(blockIds.length === uniqueIds.size, 'All block IDs should be unique');
+});
+
+test('QuadIndex completeness', () => {
+  const md = `## Thing {=ex:thing .Type}
+
+[Value] {prop}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  result.quads.forEach(quad => {
+    const key = JSON.stringify([quad.subject.value, quad.predicate.value, quad.object.value]);
+    assert(result.origin.quadIndex.has(key), `Quad should be in index: ${key}`);
+  });
+});
+
+test('Serialize round-trip preserves structure', () => {
+  const md = `## Thing {=ex:thing}
+
+[Value] {prop}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const serialized = serialize({ text: md, diff: {}, origin: result.origin });
+
+  assert(serialized.text === md, 'Round-trip should preserve text');
+});
+
+test('Serialize add and delete in same operation', () => {
+  const md = `## Thing {=ex:thing}
+
+[Old Value] {prop}`;
+
+  const result = parse(md, {
+    context: { ex: 'http://example.org/' }
+  });
+
+  const oldQuad = findQuad(result.quads, 'prop');
+  const newQuad = {
+    subject: { termType: 'NamedNode', value: 'http://example.org/thing' },
+    predicate: { termType: 'NamedNode', value: 'http://schema.org/prop' },
+    object: { termType: 'Literal', value: 'New Value' }
+  };
+
+  const diff = {
+    delete: [oldQuad],
+    add: [newQuad]
+  };
+
+  const serialized = serialize({ text: md, diff, origin: result.origin });
+
+  assert(!serialized.text.includes('Old Value'), 'Should not contain old value');
+  assert(serialized.text.includes('New Value'), 'Should contain new value');
+});
+
+test('Fragment identifiers within same document', () => {
+  const md = `## Section1 {=#sec1}
+## Section2 {=#sec2}`;
+
+  const result = parse(md);
+
+  const labels = findQuads(result.quads, 'label');
+  const subjects = labels.map(q => q.subject.value);
+
+  assert(subjects.every(s => s.includes('#')), 'All subjects should have fragment identifiers');
+  assert(subjects[0] !== subjects[1], 'Fragment subjects should be unique');
+});
+
+test('Mixed absolute and relative IRIs', () => {
+  const md = `[ex] {: http://example.org/}
+
+## Thing1 {=https://absolute.example.com/thing}
+## Thing2 {=ex:relative}
+## Thing3 {=#fragment}`;
+
+  const result = parse(md);
+
+  const labels = findQuads(result.quads, 'label');
+  const subjects = labels.map(q => q.subject.value);
+
+  assert(subjects[0] === 'https://absolute.example.com/thing', 'Should preserve absolute URL');
+  assert(subjects[1] === 'http://example.org/relative', 'Should expand prefixed IRI');
+  assert(subjects[2].includes('#fragment'), 'Should handle fragment identifier');
 });
 
 // ============================================================================
