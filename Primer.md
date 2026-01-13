@@ -15,28 +15,40 @@ Created: [2024-01-01] {dateCreated ^^xsd:date}
 
 ### Links as Objects
 
-Reference: [W3C RDF](https://www.w3.org/RDF/) {?citation ?name}
+Reference: [W3C RDF](https://www.w3.org/RDF/) {?citation}
 
 Same as: https://mdld.js.org/spec {?sameAs}
 
-### Images
+### Inline Carriers
 
-Logo: ![MD-LD](https://mdld.js.org/logo.png)
-{?logo ?name}
+Multiple properties: [Value] {name identifier description}
 
 ## Data Modeling {=mlp:modeling .Concept headline}
 
 ### Lists with Context
 
-Technologies: {?about}
+Technologies: {?about .Technology}
 
-- [Markdown] {=mlp:md .Technology rdfs:label}
-- [RDF] {=mlp:rdf .Technology rdfs:label}
-- [Linked Data] {=mlp:ld .Technology rdfs:label}
+- Markdown {=mlp:md name}
+- RDF {=mlp:rdf name}
+- Linked Data {=mlp:ld name}
+
+### Nested Lists
+
+Project: [My Project] {=mlp:project .Project}
+
+Tasks: {hasTask .Task}
+
+- Design Phase {=mlp:task1 name}
+  Subtasks: {hasSubtask}
+  - UI Mockups {=mlp:subtask1 name}
+  - User Research {=mlp:subtask2 name}
+- Implementation {=mlp:task2 name}
+- Testing {=mlp:task3 name}
 
 ### Reverse Properties
 
-> This document is part of the MD-LD ecosystem. {^?mdld:partOfSystem}
+> This document is part of the MD-LD ecosystem. {^?partOfSystem}
 
 ### Blockquotes as Content
 
@@ -44,23 +56,17 @@ Technologies: {?about}
 
 ## Advanced Features {=mlp:advanced .Concept headline}
 
-### Code as Literals
+### Code Blocks as Literals
 
 ```javascript {=mlp:example .SoftwareSourceCode text}
 function createQuad(subject, predicate, object) {
   return { subject, predicate, object };
 }
 ```
-[JS] {programmingLanguage}
 
-{=} - reset subject marker
+### Multiple Types
 
-
-### Multiple Properties from One Value
-
-**New subject** {=mlp:complex}
-
-[Complex Value] {name identifier description}
+Article: [Semantic Article] {=mlp:article .Article .CreativeWork .TechDocument title}
 
 ### Datatypes & Languages
 
@@ -69,9 +75,13 @@ Measurements:
 * Count: [42] {count ^^xsd:integer}
 * Price: [19.99] {price ^^xsd:decimal}
 * Flag: [true] {published ^^xsd:boolean}
+* Date: [2024-01-15T10:30:00Z] {modified ^^xsd:dateTime}
 
-> MD-LD supports internationalization.
-> {description @fr}
+> MD-LD supports internationalization. {description @fr}
+
+### Resource Declarations
+
+Author: [Alice Smith] {=mlp:alice .Person name email}
 
 ## Real-World Use Case {=mlp:usecase .CreativeWork headline}
 
@@ -79,15 +89,33 @@ Measurements:
 > technical documentation that is both human-readable and machine-processable.
 > {description}
 
-Code example:
+### Project Documentation
 
-# MD-LD enables semantic documentation
+API Endpoint: [User API] {=mlp:user-api .APIEndpoint name}
 
-def parse_mdld(content):
-return "RDF triples"
+Method: [GET] {method}
+Path: [/users/:id] {path}
+
+Example:
+
+```bash {=mlp:example-usage .CodeExample text}
+curl https://api.example.com/users/123
+```
+
+### Academic Paper
+
+Paper: [Semantic Web Research] {=mlp:paper .ScholarlyArticle title}
+
+Authors: {author .Person}
+
+- [Alice Johnson] {=mlp:alice name}
+- [Bob Smith] {=mlp:bob name}
+
+Published: [2024-01] {datePublished ^^xsd:gYear}
+
+> This paper explores semantic markup in Markdown. {abstract @en}
 
 Resources:
 
 * [Specification](https://mdld.js.org/spec) {?isBasedOn}
 * [GitHub](https://github.com/mdld-js/mdld-parse) {?codeRepository}
-

@@ -458,7 +458,7 @@
 Example:
 ## Document {=ex:doc}
 Title: [My Document] {name}
-Author: [Alice] {=ex:alice .Person author}"></textarea>
+Author: [Alice] {=ex:alice .Person ?author}"></textarea>
                 </div>
                 <div>
                     <h3>RDF Triples Output</h3>
@@ -524,35 +524,32 @@ Author: [Alice] {=ex:alice .Person author}"></textarea>
 
         // Example templates
         const examples = {
-            journal: `[@vocab] {: http://schema.org/}
+            journal: `
 [ex] {: http://example.org/}
-[rdfs] {: http://www.w3.org/2000/01/rdf-schema#}
-
+            
 ## 2024-07-18 — A good day {=ex:day-2024-07-18 .Event}
 
 Mood: [Happy] {mood}
 Energy level: [8] {ex:energyLevel ^^xsd:integer}
-Place: [Central Park](=ex:central-park) {?location}
+Place: [Central Park] {=ex:central-park ?location}
 Park label: [Central Park] {rdfs:label @en}
-With: [Sam](=ex:sam) {.Person attendee}
+With: [Sam] {=ex:sam .Person ?attendee}
 Weather: [Sunny] {ex:weather}
 
 Activities: {ex:hasActivity .Action}
-- [Walking](=ex:walking-1) {name}
-- [2 hours] {ex:duration}
-- [Reading](=ex:reading-1) {name}
+
+- Walking {=ex:walking-1 name}
+- Reading {=ex:reading-1 name}
 
 Reflections:
 I felt [peaceful] {ex:emotionalState} and the park was [beautiful] {description}.
 
 Related events: {^?ex:relatedEvent}
-- [Morning coffee](=ex:coffee-2024-07-18) {.Event}
-- [Evening dinner](=ex:dinner-2024-07-18) {.Event}`,
+- Morning coffee {=ex:coffee-2024-07-18 .Event}
+- Evening dinner {=ex:dinner-2024-07-18 .Event}`,
 
-            recipe: `[@vocab] {: http://schema.org/}
+            recipe: `
 [ex] {: http://example.org/}
-[xsd] {: http://www.w3.org/2001/XMLSchema#}
-[rdfs] {: http://www.w3.org/2000/01/rdf-schema#}
 
 ## Apple Pie {=ex:apple-pie .Recipe}
 
@@ -563,68 +560,51 @@ Difficulty: [Medium] {ex:difficulty}
 
 Ingredients: {recipeIngredient .Food}
 
-- [Apples](=ex:apples) {name}
-Label: [Apples] {rdfs:label @en}
-- [Sugar](=ex:sugar) {name}
-Origin: [Local] {ex:origin}
-- [Butter](=ex:butter) {name}
-Type: [Unsalted] {ex:type}
-- [Flour](=ex:flour) {name}
-Brand: [King Arthur] {ex:brand}
-- [Cinnamon](=ex:cinnamon) {name}
-Organic: [true] {ex:organic ^^xsd:boolean}
+- Apples {=ex:apples .Food name}
+- Sugar {=ex:sugar .Food name}
+- Butter {=ex:butter .Food name}
+- Flour {=ex:flour .Food name}
+- Cinnamon {=ex:cinnamon .Food name}
 
 Equipment: {ex:requiresEquipment}
-- [Oven](=ex:oven-1) {name}
-- [Mixing bowl](=ex:bowl-1) {name}
-- [Rolling pin](=ex:pin-1) {name}
+- Oven {=ex:oven-1 name}
+- Mixing bowl {=ex:bowl-1 name}
+- Rolling pin {=ex:pin-1 name}
 
 Nutrition per serving: {ex:nutritionPerServing}
-- [Calories] {ex:calories ^^xsd:integer}
-- [Sugar content] {ex:sugarGrams ^^xsd:decimal}
+- Calories {=ex:calories ^^xsd:integer}
+- Sugar content {=ex:sugarGrams ^^xsd:decimal}
 
 Related recipes: {^?ex:variationOf .Recipe}
-- [Apple Crumble](=ex:apple-crumble) {name}
-- [Peach Pie](=ex:peach-pie) {name}`,
+- Apple Crumble {=ex:apple-crumble .Recipe name}
+- Peach Pie {=ex:peach-pie .Recipe name}`,
 
-            project: `[@vocab] {: http://schema.org/}
+            project: `
 [ex] {: http://example.org/}
-[rdfs] {: http://www.w3.org/2000/01/rdf-schema#}
 
 ## Weekend goals {=ex:weekend-goals .Project}
 
-Priority: [High] {ex:priority}
-Deadline: [2024-07-21] {ex:deadline ^^xsd:date}
-Estimated hours: [6] {ex:estimatedHours ^^xsd:integer}
-
 Tasks: {hasPart .Action}
+- Clean kitchen {=ex:task-clean name} [2 hours] {ex:estimatedTime}
+- Fix bike {=ex:task-bike name} [1 hour] {ex:estimatedTime}
+- Read book {=ex:task-read name} [3 hours] {ex:estimatedTime}
 
-- [Clean kitchen](=ex:task-clean) {name}
-Estimated time: [2 hours] {ex:estimatedTime}
-- [Fix bike](=ex:task-bike) {name}
-Estimated time: [1 hour] {ex:estimatedTime}
-- [Read book](=ex:task-read) {name}
-Estimated time: [3 hours] {ex:estimatedTime}
+Dependencies: {dependsOn .Store}
+- Hardware store {=ex:hardware-store name}
 
-Dependencies: {ex:dependsOn .Store}
-- [Hardware store](=ex:hardware-store) {name}
+People involved: {assignedTo .Person}
+- Myself {=ex:myself name}
 
-People involved: {ex:assignedTo .Person}
-- [Myself](=ex:myself) {name}
+Blocked by: {^?blocks}
+- Rain forecast {=ex:weather-forecast name}
 
-Blocked by: {^?ex:blocks}
-- [Rain forecast](=ex:weather-forecast) {name}
+Progress tracking: {hasMilestone .Achievement}
+- Kitchen cleaned {=ex:milestone-kitchen name}
+- Bike fixed {=ex:milestone-bike name}`,
 
-Progress tracking: {ex:hasMilestone .Achievement}
-- [Kitchen cleaned](=ex:milestone-kitchen) {name}
-- [Bike fixed](=ex:milestone-bike) {name}`,
+            apollo: `# Apollo 11 {=wd:Q43653 .SpaceMission}
 
-            apollo: `[@vocab] {: http://schema.org/}
-[wd] {: https://www.wikidata.org/entity/}
 [ex] {: http://example.org/}
-[rdfs] {: http://www.w3.org/2000/01/rdf-schema#}
-
-# Apollo 11 {=wd:Q43653 .SpaceMission}
 
 Mission name: [Apollo 11] {name}
 Label: [Apollo 11] {rdfs:label @en}
@@ -635,39 +615,27 @@ Budget: [2.5] {ex:billionUSD ^^xsd:decimal}
 
 Crew: {hasPart .Person}
 
-- [Neil Armstrong](=wd:Q1615) {name}
-Label: [Neil Armstrong] {rdfs:label @en}
-Role: [Commander] {ex:role}
-- [Buzz Aldrin](=wd:Q2252) {name}
-Label: [Buzz Aldrin] {rdfs:label @en}
-Role: [Lunar Module Pilot] {ex:role}
-- [Michael Collins](=wd:Q298) {name}
-Label: [Michael Collins] {rdfs:label @en}
-Role: [Command Module Pilot] {ex:role}
+- Neil Armstrong {=wd:Q1615 name} [Commander] {ex:role}
+- Buzz Aldrin {=wd:Q2252 name} [Lunar Module Pilot] {ex:role}
+- Michael Collins {=wd:Q298 name} [Command Module Pilot] {ex:role}
 
 Equipment: {ex:hasEquipment}
 
-- [Saturn V](=ex:saturn-v) {name}
-Thrust: [7.6 million lbs] {ex:thrust}
-- [Lunar Module](=ex:lm-eagle) {name}
-Callsign: [Eagle] {ex:callsign}
-- [Command Module](=ex:cm-columbia) {name}
-Callsign: [Columbia] {ex:callsign}
+- Saturn V {=ex:saturn-v name} [7.6 million lbs] {ex:thrust}
+- Lunar Module {=ex:lm-eagle name} [Eagle] {ex:callsign}
+- Command Module {=ex:cm-columbia name} [Columbia] {ex:callsign}
 
 Mission objectives: {ex:objective .Goal}
 
-- [Land on Moon] {name}
-Status: [Achieved] {ex:status}
-- [Return safely] {name}
-Status: [Achieved] {ex:status}
-- [Collect samples] {name}
-Status: [Achieved] {ex:status}
+- Land on Moon {name} [Achieved] {ex:status}
+- Return safely {name} [Achieved] {ex:status}
+- Collect samples {name} [Achieved] {ex:status}
 
 Related missions: {^?ex:precededBy .SpaceMission}
-- [Apollo 10](=wd:Q2705) {name}
+- Apollo 10 {=wd:Q2705 name}
 
 Followed by: {^?ex:followedBy .SpaceMission}
-- [Apollo 12](=wd:Q2707) {name}`
+- Apollo 12 {=wd:Q2707 name}`
         };
 
         // Load example
@@ -690,7 +658,8 @@ Followed by: {^?ex:followedBy .SpaceMission}
 
             try {
                 const startTime = performance.now();
-                const result = parse(input);
+                // Only provide context for ex prefix, rely on default context for schema.org
+                const result = parse(input, { context: { ex: 'http://example.org/' } });
                 const duration = Math.round(performance.now() - startTime);
 
                 // Convert quads to readable format

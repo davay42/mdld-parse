@@ -149,12 +149,12 @@ ex:apollo11 schema:organizer ex:nasa .
 
 ### Resource Declaration
 
-Declare resources inline with `(=iri)`:
+Declare resources inline with `{=iri}`:
 
 ```markdown
 # Mission {=ex:apollo11}
 
-[Neil Armstrong](=ex:armstrong) {?commander .Person}
+[Neil Armstrong] {=ex:armstrong ?commander .Person}
 ```
 
 ```turtle
@@ -171,8 +171,8 @@ Lists require explicit subjects per item:
 
 Ingredients: {?ingredient .Ingredient}
 
-- [Flour](=ex:flour) {name}
-- [Water](=ex:water) {name}
+- Flour {=ex:flour name}
+- Water {=ex:water name}
 ```
 
 ```turtle
@@ -219,7 +219,7 @@ Reverse the relationship direction:
 
 Part of: {^?hasPart}
 
-- [Book](=ex:book) {}
+- Book {=ex:book}
 ```
 
 ```turtle
@@ -331,20 +331,16 @@ console.log(updated.text);
 Only specific markdown elements can carry semantic values:
 
 **Inline:**
-- `[text]` — span with annotation
-- `[text](url)` — link to external resource
-- `[text](=iri)` — inline resource declaration
+- `[text] {...}` — span with annotation
+- `[text](url) {...}` — link to external resource
+- `[text] {...}` — inline resource declaration
+- `![alt text](image.png) {...}` — embedding with annotation
 
 **Block:**
 - Headings (`# Title`)
-- List items (`- item`)
+- List items (`- item`, `1. item`) (single-level)
 - Blockquotes (`> quote`)
 - Code blocks (` ```lang `)
-
-**Non-carriers:**
-- Plain paragraphs without `[...]`
-- Images (future)
-- Tables (future)
 
 ## Architecture
 
@@ -383,12 +379,12 @@ MD-LD explicitly forbids to ensure deterministic parsing:
 
 Attendees: {?attendee}
 
-- [Alice](=urn:person:alice) {name}
-- [Bob](=urn:person:bob) {name}
+- Alice {=urn:person:alice name}
+- Bob {=urn:person:bob name}
 
 Action items: {?actionItem}
 
-- [Review proposal](=urn:task:1) {name}
+- Review proposal {=urn:task:1 name}
 ```
 
 ### Developer Documentation
@@ -401,7 +397,7 @@ Action items: {?actionItem}
 
 Example:
 
-```bash {=api:/users/:id/example .CodeExample programmingLanguage}
+```bash {=api:/users/:id#example .CodeExample text}
 curl https://api.example.com/users/123
 ```
 ````
@@ -412,7 +408,7 @@ curl https://api.example.com/users/123
 # Paper {=doi:10.1234/example .ScholarlyArticle}
 
 [Semantic Web] {about}
-[Alice Johnson](=orcid:0000-0001-2345-6789) {?author .Person}
+[Alice Johnson] {=orcid:0000-0001-2345-6789 author}
 [2024-01] {datePublished ^^xsd:gYearMonth}
 
 > This paper explores semantic markup in Markdown. {abstract @en}

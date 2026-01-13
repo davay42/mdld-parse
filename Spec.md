@@ -2,15 +2,15 @@
 
 **Markdown-Linked Data**
 
-A deterministic, streaming-friendly semantic annotation layer for CommonMark Markdown that emits RDF quads **only** from explicit `{}` annotations.
+A deterministic, streaming-friendly semantic annotation layer for CommonMark Markdown that emits RDF quads **only** from explicit `{...}` annotations.
 
 ---
 
 ## 1. Scope and guarantees
 
-1. MD-LD is **CommonMark-preserving**. Removing `{}` yields valid Markdown.
+1. MD-LD is **CommonMark-preserving**. Removing `{...}` yields valid Markdown.
 2. **No implicit semantics** exist.
-3. **Every emitted quad originates from `{}`**.
+3. **Every emitted quad originates from `{...}`**.
 4. Parsing MUST be implementable as a **single-pass streaming algorithm**.
 5. **No blank nodes** are generated.
 6. **No guessing, inference, or structural heuristics** are permitted.
@@ -37,7 +37,7 @@ Where:
 
 ## 3. In-scope nodes at parse time
 
-At any `{}` annotation, the parser may have:
+At any `{...}` annotation, the parser may have:
 
 * **S** — current subject (IRI, optional)
 * **O** — object resource (IRI, optional, from link/image or `{=IRI}`)
@@ -47,29 +47,29 @@ At any `{}` annotation, the parser may have:
 
 ## 4. Value carriers (normative)
 
-A `{}` block MAY attach to exactly one **value carrier**.
+A `{...}` block MAY attach to exactly one **value carrier**.
 
 Valid value carriers:
 
 ### Inline
 
-* `[text]`
-* `*text*`, `_text_`
-* `**text**`, `__text__`
-* `` `text` ``
+* `[text] {...}` - inline spans
+* `*text* {...}`, `_text_ {...}` - emphasis
+* `**text** {...}`, `__text__ {...}` - strong
+* `` `text` {...}`` - code
 
 ### Block-level
 
-* heading
-* list item
-* blockquote
-* fenced code block
+* `# Heading {...}` - headings
+* `- item {...}` - list items
+* `> quote {...}` - blockquotes
+* ````lang {...}\n...\n```` - code blocks
 
 ### Links / embeds
 
-* bare URL
-* `[label](URL)`
-* `![alt](URL)`
+* `http://example.com {...}` - bare links
+* `[label](URL) {...}` - links
+* `![alt](URL) {...}` - images
 
 Everything else is **not** a value carrier.
 
@@ -79,7 +79,7 @@ Everything else is **not** a value carrier.
 
 ### 5.1 Attachment rule
 
-A `{}` block MUST attach to the **nearest preceding value carrier**
+A `{...}` block MUST attach to the **nearest preceding value carrier**
 OR appear on its own line to apply to the **current subject** and/or the immediately following list.
 
 If attachment is ambiguous → **no quads emitted**.
@@ -120,7 +120,7 @@ Example:
 Emits:
 
 ```
-S rdf:type Class
+S rdf:type schema:Class
 ```
 
 Example:
@@ -209,11 +209,13 @@ S schema:startDate "1969"^^xsd:gYear .
 Example:
 
 ```md
-[W3C RDF](https://www.w3.org/RDF) {?citation name}
+## References {=ex:references}
+
+[W3C RDF](https://www.w3.org/RDF) {?dct:references name}
 ```
 
 ```turtle
-S schema:citation <https://www.w3.org/RDF> .
+ex:references dct:references <https://www.w3.org/RDF> .
 <https://www.w3.org/RDF> schema:name "W3C RDF" .
 ```
 
@@ -223,7 +225,7 @@ S schema:citation <https://www.w3.org/RDF> .
 
 ### 11.1 Scope rule
 
-A `{}` block immediately preceding a list applies to **all list items** until list end.
+A `{...}` block immediately preceding a list applies to **all list items** until list end.
 
 Ordered and unordered lists are semantically identical.
 
@@ -273,22 +275,18 @@ ex:bread schema:hasPart S .
 
 ## 13. Code blocks
 
-If `{}` appears on the opening fence, the code block is a value carrier.
+If `{...}` appears on the opening fence, the code block is a value carrier.
 
 Example:
 
-````md
-```js {=ex:code .SoftwareSourceCode text programmingLanguage}
+```js {=ex:code .SoftwareSourceCode text}
 console.log("hi")
-````
-
-````
+```
 
 ```turtle
 ex:code a schema:SoftwareSourceCode ;
-  schema:text "console.log(\"hi\")" ;
-  schema:programmingLanguage "js" .
-````
+  schema:text "console.log(\"hi\")" .
+```
 
 ---
 
@@ -298,6 +296,7 @@ ex:code a schema:SoftwareSourceCode ;
 * Structural inference
 * Auto-subjects
 * Blank nodes
+* key=value syntax
 * Predicate guessing
 * Backtracking parses
 
@@ -308,7 +307,7 @@ ex:code a schema:SoftwareSourceCode ;
 An MD-LD processor is conformant if:
 
 1. All emitted quads follow §8 routing rules
-2. All quads originate from `{}` blocks
+2. All quads originate from `{...}` blocks
 3. Parsing is single-pass and deterministic
 4. Round-trip MD → RDF → MD preserves quads and origins
 
