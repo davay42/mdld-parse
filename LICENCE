@@ -1,0 +1,167 @@
+# MDLD / MD-LD Community License
+
+Version 0.2 — 2025
+
+Copyright © 2025–present  
+**Denis Starov**  
+All rights reserved.
+
+---
+
+## 0. Definitions
+
+For the purposes of this license:
+
+**“MDLD” or “MD-LD”** refers to the Markdown-Linked Data specification, including all versions, drafts, documentation, reference implementations, tests, examples, and associated materials published by the author.
+
+**“Commercial Use”** means any use of MDLD that is part of, or directly supports, a for-profit activity, including but not limited to the offering of products or services for sale, subscription, advertising, data monetization, or other commercial advantage.
+
+**“Server-side use”** means processing, storing, transforming, or serving MDLD documents on infrastructure operated by a third party for multiple users, including hosted platforms and network-accessible services.
+
+**“For-profit entity”** means any organization or legal entity operating with profit intent, including corporations, subsidiaries, startups, and entities backed by private equity or venture capital, regardless of current revenue.
+
+**“Proprietary AI system”** means any artificial intelligence or machine learning system whose model weights, training data, or full source code are not publicly available under an OSI-approved open-source license.
+
+---
+
+## 1. Scope
+
+This license applies to:
+
+- The MDLD / MD-LD specification
+- All reference implementations
+- Documentation, examples, test suites, and published materials
+- Associated repositories and official distributions
+
+This license does not grant rights to independently created works that merely interoperate with MDLD, provided they do not copy or derive from the licensed materials.
+
+---
+
+## 2. Guiding intent (non-normative)
+
+MDLD is designed to support individuals, educators, researchers, and communities in creating, exchanging, and working with structured knowledge in an open and durable way.
+
+This license seeks to encourage broad personal and community use while preventing unacknowledged commercial appropriation, standard capture, and extraction of value into proprietary platforms, particularly in the context of hosted services and large-scale AI systems.
+
+---
+
+## 3. Permitted use (no permission required)
+
+The following uses are permitted worldwide and royalty-free:
+
+### 3.1 Individual and community use
+
+- Authoring, reading, and sharing MDLD documents
+- Personal, local, or offline tools and workflows
+- Open-source software released under OSI-approved licenses
+- Non-commercial websites, static content, and community projects
+- Internal use by individuals for personal productivity
+
+### 3.2 Research and education
+
+- Academic research conducted by non-profit institutions
+- Teaching, learning, and scholarly experimentation
+- Non-commercial prototypes, demonstrations, and publications
+
+### 3.3 Personal AI and local automation
+
+- Use of MDLD with local or third-party AI tools for personal, educational, or research purposes
+- Interactive or single-user analysis of MDLD documents
+- Automation workflows that do not provide MDLD processing as a hosted service to others
+
+---
+
+## 4. Restricted use (explicit permission required)
+
+The following uses are not permitted without explicit written permission from the author:
+
+### 4.1 Commercial server-side services
+
+- Offering MDLD processing, storage, or transformation as part of a hosted, multi-user, or server-side service
+- Software-as-a-Service (SaaS), cloud platforms, or subscription products where MDLD is a core or marketed feature
+- Paid APIs or hosted tools that accept or emit MDLD documents
+
+### 4.2 Artificial intelligence and machine learning systems
+
+- Training, fine-tuning, or evaluating proprietary or closed-source AI or ML models using:
+  - the MDLD specification
+  - reference implementations
+  - example corpora, tests, or documentation
+- Including MDLD materials in commercial datasets, benchmarks, or evaluation suites
+- Providing paid AI features or services that rely on MDLD as an input or output format
+
+### 4.3 For-profit product and platform use
+
+- Use of MDLD by for-profit entities as part of any product, platform, or service offering made available to customers, users, or clients
+- Use that contributes to the development, protection, or monetization of proprietary technology, products, or services
+- Use that is reasonably expected to support commercial differentiation, intellectual property claims, or capital formation
+
+### 4.4 Standard capture and misrepresentation
+
+- Representing MDLD as an independently governed or competing standard without permission
+- Claiming authorship, stewardship, or official status with respect to MDLD
+- Publishing incompatible extensions, variants, or forks under the MDLD or MD-LD name
+
+### 4.5 Internal corporate use
+
+Internal use of MDLD by for-profit entities is permitted solely for temporary evaluation or experimentation.
+
+Continued internal use that supports, informs, or precedes a commercial product or service requires explicit permission.
+
+---
+
+## 5. Attribution and naming
+
+Any permitted use must include clear attribution:
+
+> “MDLD / MD-LD — Markdown-Linked Data, by Denis Starov”
+
+The names “MDLD” and “MD-LD” may not be used to identify derivative formats, forks, or extensions without explicit permission.
+
+---
+
+## 6. No trademark grant
+
+This license does not grant any trademark rights.
+
+All trademarks, service marks, and names associated with MDLD remain the property of the author.
+
+---
+
+## 7. Commercial licensing
+
+Commercial use is possible under a separate written agreement.
+
+Commercial licenses may include rights for:
+
+- SaaS and hosted services
+- AI and machine learning systems
+- Enterprise redistribution
+- Long-term support or collaboration
+
+Contact details for commercial licensing are provided in the official repository.
+
+---
+
+## 8. Termination
+
+Any use in violation of this license automatically terminates all rights granted herein.
+
+Upon termination, the violating party must immediately cease all use, distribution, and promotion of the MDLD materials.
+
+Termination does not require notice and does not limit the author’s right to pursue other remedies.
+
+---
+
+## 9. No warranty
+
+MDLD and all associated materials are provided “as is”, without warranty of any kind, express or implied.
+
+---
+
+## 10. License versions
+
+This license applies on a per-version basis.
+
+Future versions of this license do not retroactively alter rights granted under this version.  
+Users may elect to adopt newer versions at their discretion.
