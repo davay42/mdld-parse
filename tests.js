@@ -847,6 +847,140 @@ Summary: [Hello world summary] {summary @en }`;
             assert(!text.includes('^^xsd:string'), 'Should remove conflicting datatype');
         }
     },
+
+    // Subject Chaining Tests
+    {
+        name: 'Subject chaining with standalone declarations',
+        fn: () => {
+            const md = `[ex] {: http://example.org/}
+
+## Main Event {=ex:main-event .Event}
+Title: [Main Title] {title}
+Description: [Main description] {description}
+
+{=ex:sub-event-1 .Event}
+Sub title: [Sub Title 1] {title}
+Sub description: [Sub description 1] {description}
+
+{=ex:sub-event-2 .Event}
+Sub title: [Sub Title 2] {title}
+Sub description: [Sub description 2] {description}
+
+Back to main: [Back to main] {description}`;
+
+            const { quads } = parse(md);
+
+            // Main event quads
+            assert(hasQuad(quads, 'http://example.org/main-event', 'http://schema.org/title', 'Main Title'),
+                'Main event title should use ex:main-event as subject');
+            assert(hasQuad(quads, 'http://example.org/main-event', 'http://schema.org/description', 'Main description'),
+                'Main event description should use ex:main-event as subject');
+
+            // Sub event 1 quads
+            assert(hasQuad(quads, 'http://example.org/sub-event-1', 'http://schema.org/title', 'Sub Title 1'),
+                'Sub event 1 title should use ex:sub-event-1 as subject');
+            assert(hasQuad(quads, 'http://example.org/sub-event-1', 'http://schema.org/description', 'Sub description 1'),
+                'Sub event 1 description should use ex:sub-event-1 as subject');
+
+            // Sub event 2 quads
+            assert(hasQuad(quads, 'http://example.org/sub-event-2', 'http://schema.org/title', 'Sub Title 2'),
+                'Sub event 2 title should use ex:sub-event-2 as subject');
+            assert(hasQuad(quads, 'http://example.org/sub-event-2', 'http://schema.org/description', 'Sub description 2'),
+                'Sub event 2 description should use ex:sub-event-2 as subject');
+
+            // Back to main (should use previous subject ex:sub-event-2)
+            assert(hasQuad(quads, 'http://example.org/sub-event-2', 'http://schema.org/description', 'Back to main'),
+                'Back to main should use ex:sub-event-2 as subject');
+
+            // Type declarations
+            assert(hasQuad(quads, 'http://example.org/main-event', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Event'),
+                'Main event should have Event type');
+            assert(hasQuad(quads, 'http://example.org/sub-event-1', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Event'),
+                'Sub event 1 should have Event type');
+            assert(hasQuad(quads, 'http://example.org/sub-event-2', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Event'),
+                'Sub event 2 should have Event type');
+        }
+    },
+
+    {
+        name: 'Subject reset with standalone {=}',
+        fn: () => {
+            const md = `[ex] {: http://example.org/}
+
+## First {=ex:first}
+Title: [First Title] {title}
+Description: [First description] {description}
+
+{=}
+Title: [No subject title] {title}
+Description: [No subject description] {description}`;
+
+            const { quads } = parse(md);
+
+            // Should only have quads for the first subject
+            assert(hasQuad(quads, 'http://example.org/first', 'http://schema.org/title', 'First Title'),
+                'First title should use ex:first as subject');
+            assert(hasQuad(quads, 'http://example.org/first', 'http://schema.org/description', 'First description'),
+                'First description should use ex:first as subject');
+
+            // Should not have quads after reset (no subject)
+            assert(!hasQuad(quads, 'http://example.org/first', 'http://schema.org/title', 'No subject title'),
+                'Should not emit title after subject reset');
+            assert(!hasQuad(quads, 'http://example.org/first', 'http://schema.org/description', 'No subject description'),
+                'Should not emit description after subject reset');
+
+            assert(quads.length === 2, `Should have exactly 2 quads (title, description), got ${quads.length}`);
+        }
+    },
+
+    {
+        name: 'Mixed subject declarations with carriers and standalone',
+        fn: () => {
+            const md = `[ex] {: http://example.org/}
+
+## Document {=ex:doc .Document}
+Title: [Document Title] {title}
+
+{=ex:section1 .Section}
+Section title: [Section 1] {title}
+Content: [Section 1 content] {content}
+
+## Section 2 {=ex:section2 .Section}
+Section title: [Section 2] {title}
+Content: [Section 2 content] {content}
+
+{=ex:doc}
+Summary: [Document summary] {summary}`;
+
+            const { quads } = parse(md);
+
+            // Document quads
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/title', 'Document Title'),
+                'Document title should use ex:doc as subject');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/summary', 'Document summary'),
+                'Document summary should use ex:doc as subject');
+
+            // Section 1 quads (from standalone declaration)
+            assert(hasQuad(quads, 'http://example.org/section1', 'http://schema.org/title', 'Section 1'),
+                'Section 1 title should use ex:section1 as subject');
+            assert(hasQuad(quads, 'http://example.org/section1', 'http://schema.org/content', 'Section 1 content'),
+                'Section 1 content should use ex:section1 as subject');
+
+            // Section 2 quads (from heading carrier)
+            assert(hasQuad(quads, 'http://example.org/section2', 'http://schema.org/title', 'Section 2'),
+                'Section 2 title should use ex:section2 as subject');
+            assert(hasQuad(quads, 'http://example.org/section2', 'http://schema.org/content', 'Section 2 content'),
+                'Section 2 content should use ex:section2 as subject');
+
+            // Type declarations
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Document'),
+                'Document should have Document type');
+            assert(hasQuad(quads, 'http://example.org/section1', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Section'),
+                'Section 1 should have Section type');
+            assert(hasQuad(quads, 'http://example.org/section2', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Section'),
+                'Section 2 should have Section type');
+        }
+    },
 ];
 
 // Run tests

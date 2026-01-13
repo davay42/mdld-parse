@@ -501,6 +501,15 @@ export function parse(text, options = {}) {
             const carrier = { type: 'blockquote', text: token.text, range: token.range, attrsRange: token.attrsRange || null, valueRange: token.valueRange || null };
             processAnnotation(carrier, sem, state);
         } else if (token.type === 'para') {
+            // Check for standalone subject declarations: {=iri} on its own line
+            const standaloneSubjectMatch = token.text.match(/^\s*\{=(.*?)\}\s*$/);
+            if (standaloneSubjectMatch) {
+                const sem = parseSemanticBlock(`{=${standaloneSubjectMatch[1]}}`);
+                const attrsStart = token.range[0] + token.text.indexOf('{=');
+                const attrsEnd = attrsStart + (standaloneSubjectMatch[1] ? standaloneSubjectMatch[1].length : 0);
+                processAnnotation({ type: 'standalone', text: '', range: token.range, attrsRange: [attrsStart, attrsEnd], valueRange: null }, sem, state);
+            }
+
             const followingLists = [];
             let j = i + 1;
             while (j < tokens.length && tokens[j].type === 'list') {
@@ -513,15 +522,14 @@ export function parse(text, options = {}) {
                 const contextSem = parseSemanticBlock(`{${contextMatch[2]}}`);
                 let contextSubject = state.currentSubject;
 
-                if (!contextSubject) {
-                    for (let k = i - 1; k >= 0; k--) {
-                        const prevToken = tokens[k];
-                        if (prevToken.type === 'heading' && prevToken.attrs) {
-                            const headingSem = parseSemanticBlock(prevToken.attrs);
-                            if (headingSem.subject) {
-                                contextSubject = state.df.namedNode(expandIRI(headingSem.subject, state.ctx));
-                                break;
-                            }
+                // Always look for the most recent heading subject for context
+                for (let k = i - 1; k >= 0; k--) {
+                    const prevToken = tokens[k];
+                    if (prevToken.type === 'heading' && prevToken.attrs) {
+                        const headingSem = parseSemanticBlock(prevToken.attrs);
+                        if (headingSem.subject) {
+                            contextSubject = state.df.namedNode(expandIRI(headingSem.subject, state.ctx));
+                            break;
                         }
                     }
                 }
