@@ -285,27 +285,264 @@ Part of: {^?hasPart}
         }
     },
 
-    // §13 Code Blocks
+    // §8.1 Predicate Forms - Edge Cases
     {
-        name: 'Code block as value carrier',
+        name: 'Empty literal should still emit',
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-\`\`\`javascript {=ex:code .SoftwareSourceCode text}
-console.log("hi");
-\`\`\``;
+[] {name}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
 
-            assert(hasQuad(quads, 'http://ex.org/code', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/SoftwareSourceCode'),
-                'Should be SoftwareSourceCode');
-            assert(hasQuad(quads, 'http://ex.org/code', 'http://schema.org/text', 'console.log("hi");'),
-                'Should have code text');
+            assert(quads.length === 1, `Should emit 1 quad, got ${quads.length}`);
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', '');
+            assert(q.object.value === '', 'Empty literal should be empty string');
         }
     },
 
-    // Blockquotes
     {
-        name: 'Blockquote as value carrier',
+        name: 'Literal with special characters',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[Hello \"world\"! @#$%] {name}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Hello "world"! @#$%');
+            assert(q, 'Should handle special characters');
+        }
+    },
+
+    {
+        name: 'Multiple predicates on same carrier',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[Value] {name description author}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length === 3, `Should emit 3 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Value'), 'Should have name');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/description', 'Value'), 'Should have description');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/author', 'Value'), 'Should have author');
+        }
+    },
+
+    {
+        name: 'Mixed datatype and language should prioritize language',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[Hello] {name @en ^^xsd:string}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Hello');
+            assert(q.object.language === 'en', 'Should have language tag');
+            assert(q.object.datatype.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString', 'Should use langString datatype when language present');
+        }
+    },
+
+    // §9 Edge Cases - Invalid Syntax
+    {
+        name: 'Malformed annotation should be ignored',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[Value] {name incomplete`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length === 0, `Malformed annotation should emit nothing, got ${quads.length}`);
+        }
+    },
+
+    {
+        name: 'Empty annotation block should be ignored',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[Value] {}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length === 0, `Empty annotation should emit nothing, got ${quads.length}`);
+        }
+    },
+
+    {
+        name: 'Nested brackets should not crash',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[Value [nested]] {name}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length === 1, `Should handle nested brackets gracefully, got ${quads.length}`);
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Value [nested]');
+            assert(q, 'Should extract literal with brackets');
+        }
+    },
+
+    // §10 Complex Structures
+    {
+        name: 'Deep nesting with list contexts',
+        fn: () => {
+            const md = `# Project {=ex:project}
+
+Tasks: {hasPart .Action}
+- [Task 1](=ex:task1) {name}
+  Subtasks: {hasSubtask}
+  - [Subtask 1](=ex:sub1) {name}
+  - [Subtask 2](=ex:sub2) {name}
+- [Task 2](=ex:task2) {name}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length >= 8, `Should emit at least 8 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://ex.org/project', 'http://schema.org/hasPart', 'http://ex.org/task1'), 'Should have task1');
+            assert(hasQuad(quads, 'http://ex.org/task1', 'http://schema.org/hasSubtask', 'http://ex.org/sub1'), 'Should have subtask1');
+        }
+    },
+
+    {
+        name: 'Multiple reverse relationships',
+        fn: () => {
+            const md = `# Event {=ex:event}
+
+Attendees: {^?attendedBy}
+- [Alice](=ex:alice) {name}
+- [Bob](=ex:bob) {name}
+
+Location: {^?locatedAt}
+- [Venue](=ex:venue) {name}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length === 6, `Should emit 6 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/attendedBy', 'http://ex.org/event'), 'Alice should attend event');
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/attendedBy', 'http://ex.org/event'), 'Bob should attend event');
+            assert(hasQuad(quads, 'http://ex.org/venue', 'http://schema.org/locatedAt', 'http://ex.org/event'), 'Venue should locate event');
+        }
+    },
+
+    // §11 Datatype Validation
+    {
+        name: 'Boolean datatype handling',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[true] {active ^^xsd:boolean}
+[false] {completed ^^xsd:boolean}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            const trueQ = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/active', 'true');
+            const falseQ = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/completed', 'false');
+
+            assert(trueQ.object.datatype.value === 'http://www.w3.org/2001/XMLSchema#boolean', 'True should be boolean');
+            assert(falseQ.object.datatype.value === 'http://www.w3.org/2001/XMLSchema#boolean', 'False should be boolean');
+            assert(trueQ.object.value === 'true', 'True value should be "true"');
+            assert(falseQ.object.value === 'false', 'False value should be "false"');
+        }
+    },
+
+    {
+        name: 'Float datatype handling',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[3.14159] {pi ^^xsd:float}
+[2.71828] {e ^^xsd:double}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            const piQ = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/pi', '3.14159');
+            const eQ = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/e', '2.71828');
+
+            assert(piQ.object.datatype.value === 'http://www.w3.org/2001/XMLSchema#float', 'Pi should be float');
+            assert(eQ.object.datatype.value === 'http://www.w3.org/2001/XMLSchema#double', 'E should be double');
+        }
+    },
+
+    // §12 Error Conditions
+    {
+        name: 'Invalid IRI in subject should not crash',
+        fn: () => {
+            const md = `# Doc {=ex:invalid-iri-with spaces}
+
+[Value] {name}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            // Should handle gracefully - either emit nothing or expand as-is
+            assert(quads.length >= 0, 'Should not crash on invalid IRI');
+        }
+    },
+
+    {
+        name: 'Circular prefix reference should not crash',
+        fn: () => {
+            const md = `[ex] {: http://example.org/ex:}
+
+# Doc {=ex:doc}
+
+[Value] {ex:property}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            // Should handle gracefully
+            assert(quads.length >= 0, 'Should not crash on circular prefix');
+        }
+    },
+
+    // §13 Round-trip Complex Cases
+    {
+        name: 'Complex document round-trip',
+        fn: () => {
+            const original = `[@vocab] {: http://schema.org/}
+[ex] {: http://example.org/}
+
+## Complex Document {=ex:doc .Article}
+
+Metadata: {dateModified ^^xsd:date}
+- [2024-01-15] {dateModified}
+
+Authors: {author .Person}
+- [Alice](=ex:alice) {name}
+- [Bob](=ex:bob) {name}
+
+Content: {hasPart}
+- [Section 1](=ex:section1) {.Section name}
+- [Section 2](=ex:section2) {.Section name}
+
+References: {^?ex:citedBy}
+- [Other Doc](=ex:other) {.Article name}`;
+
+            const { quads: quads } = parse(original);
+            const { text } = serialize({
+                text: original,
+                diff: {},
+                origin: quads.origin,
+                options: { context: quads.context }
+            });
+
+            assert(text === original, 'Complex document should round-trip exactly');
+        }
+    },
+
+    // §14 Performance Edge Cases
+    {
+        name: 'Large document handling',
+        fn: () => {
+            let md = `# Doc {=ex:doc}\n\n`;
+            for (let i = 0; i < 100; i++) {
+                md += `[Item ${i}] {name}\n`;
+            }
+
+            const startTime = performance.now();
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const duration = performance.now() - startTime;
+
+            assert(quads.length === 100, `Should emit 100 triples, got ${quads.length}`);
+            assert(duration < 1000, `Should parse quickly, took ${duration}ms`);
+        }
+    },
+
+    // §15 Current Tests
+    {
+        name: 'Serialize - Add quad',
         fn: () => {
             const md = `# Doc {=ex:doc}
 

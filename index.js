@@ -49,9 +49,14 @@ function parseSemanticBlock(raw) {
             } else if (token.startsWith('=')) {
                 result.subject = token.substring(1);
             } else if (token.startsWith('^^')) {
-                result.datatype = token.substring(2);
+                // Only set datatype if no language is set
+                if (!result.language) {
+                    result.datatype = token.substring(2);
+                }
             } else if (token.startsWith('@')) {
                 result.language = token.substring(1);
+                // Clear datatype when language is set (language takes priority)
+                result.datatype = null;
             } else if (token.startsWith('.')) {
                 result.types.push(token.substring(1));
             } else if (token.startsWith('^?')) {
@@ -174,11 +179,23 @@ function extractInlineCarriers(text, baseOffset = 0) {
         const bracketStart = text.indexOf('[', pos);
         if (bracketStart === -1) break;
 
-        const bracketEnd = text.indexOf(']', bracketStart);
-        if (bracketEnd === -1) break;
+        // Find the matching closing bracket, handling nested brackets
+        let bracketDepth = 1;
+        let bracketEnd = bracketStart + 1;
 
-        const carrierText = text.substring(bracketStart + 1, bracketEnd);
-        let spanEnd = bracketEnd + 1;
+        while (bracketEnd < text.length && bracketDepth > 0) {
+            if (text[bracketEnd] === '[') {
+                bracketDepth++;
+            } else if (text[bracketEnd] === ']') {
+                bracketDepth--;
+            }
+            bracketEnd++;
+        }
+
+        if (bracketDepth > 0) break; // Unmatched brackets
+
+        const carrierText = text.substring(bracketStart + 1, bracketEnd - 1);
+        let spanEnd = bracketEnd;
         let url = null;
 
         // Check for (url) or (=iri)
@@ -338,9 +355,8 @@ function processAnnotation(carrier, sem, state) {
 }
 
 // Process list with context annotation
-function processListContext(contextSem, listTokens, state) {
-    const contextSubject = state.currentSubject;
-    if (!contextSubject) return;
+function processListContext(contextSem, listTokens, state, contextSubject = null) {
+    if (!contextSubject) contextSubject = state.currentSubject;
 
     listTokens.forEach(listToken => {
         // Extract carriers from list item text
@@ -465,7 +481,76 @@ export function parse(text, options = {}) {
             if (contextMatch && followingLists.length > 0) {
                 // This is a list context annotation
                 const contextSem = parseSemanticBlock(`{${contextMatch[2]}}`);
-                processListContext(contextSem, followingLists, state);
+
+                // For nested lists, determine the context subject
+                // It should be the most recent subject from the previous list level
+                let contextSubject = state.currentSubject;
+
+                // Look backwards to find the most recent heading or subject declaration
+                // that's not part of the current list context
+                let foundContext = false;
+                let stopIndex = -1;
+
+                // First, find where to stop searching (previous list context)
+                for (let k = i - 1; k >= 0; k--) {
+                    const prevToken = tokens[k];
+                    if (prevToken.type === 'para' && prevToken.text.match(/\{[^}]+\}$/)) {
+                        stopIndex = k;
+                        break;
+                    }
+                }
+
+                // Check if this is truly nested by comparing indentation levels
+                const isNestedList = i > 0 && tokens[i - 1].type === 'list' &&
+                    followingLists.length > 0 &&
+                    followingLists[0].indent > tokens[i - 1].indent;
+
+                if (!isNestedList) {
+                    // Not nested - look for headings first
+                    for (let k = i - 1; k >= 0; k--) {
+                        const prevToken = tokens[k];
+
+                        // Found a heading - use its subject (highest priority)
+                        if (prevToken.type === 'heading' && prevToken.attrs) {
+                            const headingSem = parseSemanticBlock(prevToken.attrs);
+                            if (headingSem.subject) {
+                                contextSubject = state.df.namedNode(expandIRI(headingSem.subject, state.ctx));
+                                foundContext = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Only look for list items if we didn't find a heading
+                if (!foundContext) {
+                    for (let k = i - 1; k >= 0 && k > stopIndex; k--) {
+                        const prevToken = tokens[k];
+
+                        // Found a list item with a subject declaration
+                        if (prevToken.type === 'list') {
+                            const prevCarriers = extractInlineCarriers(prevToken.text, prevToken.range[0]);
+                            for (const carrier of prevCarriers) {
+                                if (carrier.url && carrier.type === 'resource') {
+                                    contextSubject = state.df.namedNode(expandIRI(carrier.url, state.ctx));
+                                    foundContext = true;
+                                    break;
+                                }
+                                if (carrier.attrs) {
+                                    const prevSem = parseSemanticBlock(carrier.attrs);
+                                    if (prevSem.subject && prevSem.subject !== 'RESET') {
+                                        contextSubject = state.df.namedNode(expandIRI(prevSem.subject, state.ctx));
+                                        foundContext = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (foundContext) break;
+                        }
+                    }
+                }
+
+                processListContext(contextSem, followingLists, state, contextSubject);
                 i = j - 1;
                 continue;
             }
