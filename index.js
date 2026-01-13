@@ -26,11 +26,7 @@ function hash(str) {
 
 function expandIRI(term, ctx) {
     if (term == null) return null;
-    const raw = typeof term === 'string'
-        ? term
-        : (typeof term === 'object' && typeof term.value === 'string')
-            ? term.value
-            : String(term);
+    const raw = typeof term === 'string' ? term : (typeof term === 'object' && typeof term.value === 'string') ? term.value : String(term);
     const t = raw.trim();
     if (t.match(/^https?:/)) return t;
     if (t.includes(':')) {
@@ -47,9 +43,6 @@ function parseSemanticBlock(raw) {
         if (!cleaned) return { subject: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
 
         const result = { subject: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
-
-        // Tokenize while keeping relative ranges inside the {...}.
-        // relRange is relative to the '{' character (so first char inside is offset 1).
         const re = /\S+/g;
         let m;
         while ((m = re.exec(cleaned)) !== null) {
@@ -73,7 +66,6 @@ function parseSemanticBlock(raw) {
 
             if (token.startsWith('^^')) {
                 const datatype = token.substring(2);
-                // Only set datatype if no language is set
                 if (!result.language) result.datatype = datatype;
                 result.entries.push({ kind: 'datatype', datatype, relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
@@ -82,7 +74,6 @@ function parseSemanticBlock(raw) {
             if (token.startsWith('@')) {
                 const language = token.substring(1);
                 result.language = language;
-                // Clear datatype when language is set (language takes priority)
                 result.datatype = null;
                 result.entries.push({ kind: 'language', language, relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
@@ -252,7 +243,6 @@ function scanTokens(text) {
     return tokens;
 }
 
-// Extract inline carriers: [text] {...}, [text](url) {...}, [text](URL) {...}
 function extractInlineCarriers(text, baseOffset = 0) {
     const carriers = [];
     let pos = 0;
@@ -304,7 +294,6 @@ function extractInlineCarriers(text, baseOffset = 0) {
 
         if (url) {
             if (url.startsWith('=')) {
-                // Invalid syntax - [=iri] in links is forbidden, skip this carrier
                 pos = spanEnd;
                 continue;
             } else {
@@ -331,14 +320,10 @@ function extractInlineCarriers(text, baseOffset = 0) {
 
 function createBlock(subject, types, predicates, entries, range, attrsRange, valueRange, carrierType, ctx) {
     const expanded = {
-        subject: subject,
+        subject,
         types: types.map(t => expandIRI(typeof t === 'string' ? t : t.iri, ctx)),
-        predicates: predicates.map(p => ({
-            iri: expandIRI(p.iri, ctx),
-            form: p.form
-        }))
+        predicates: predicates.map(p => ({ iri: expandIRI(p.iri, ctx), form: p.form }))
     };
-
     const blockId = hash([subject, JSON.stringify(expanded)].join('|'));
     return {
         id: blockId,
@@ -365,131 +350,80 @@ function emitQuad(quads, quadIndex, blockId, subject, predicate, object, dataFac
     if (!subject || !predicate || !object) return;
     const quad = dataFactory.quad(subject, predicate, object);
     quads.push(quad);
-    const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
-    quadIndex.set(key, meta ? { blockId, ...meta } : { blockId });
+    quadIndex.set(quadIndexKey(quad.subject, quad.predicate, quad.object), meta ? { blockId, ...meta } : { blockId });
 }
 
 function createLiteral(value, datatype, language, context, dataFactory) {
-    if (datatype) {
-        return dataFactory.literal(value, dataFactory.namedNode(expandIRI(datatype, context)));
-    }
-    if (language) {
-        return dataFactory.literal(value, language);
-    }
+    if (datatype) return dataFactory.literal(value, dataFactory.namedNode(expandIRI(datatype, context)));
+    if (language) return dataFactory.literal(value, language);
     return dataFactory.literal(value);
 }
 
-// Core processing: handle subject/type declarations and property emissions
 function processAnnotation(carrier, sem, state) {
-    // §6.1 Subject declaration
     if (sem.subject === 'RESET') {
         state.currentSubject = null;
         return;
     }
 
-    // Store previous subject and set new subject if declared
     const previousSubject = state.currentSubject;
-    let newSubject = null;
+    let newSubject = sem.subject ? state.df.namedNode(expandIRI(sem.subject, state.ctx)) : null;
+    if (newSubject) state.currentSubject = newSubject;
 
-    if (sem.subject) {
-        newSubject = state.df.namedNode(expandIRI(sem.subject, state.ctx));
-        state.currentSubject = newSubject;
-    }
-
-    // Determine the subject for emissions
     const S = state.currentSubject;
-    if (!S) return; // Need a subject to emit anything
+    if (!S) return;
 
-    // Create origin block
-    const block = createBlock(
-        S.value,
-        sem.types,
-        sem.predicates,
-        sem.entries,
-        carrier.range,
-        carrier.attrsRange || null,
-        carrier.valueRange || null,
-        carrier.type || null,
-        state.ctx
-    );
+    const block = createBlock(S.value, sem.types, sem.predicates, sem.entries, carrier.range, carrier.attrsRange || null, carrier.valueRange || null, carrier.type || null, state.ctx);
     state.origin.blocks.set(block.id, block);
 
-    // Extract L (literal) and O (object IRI)
     const L = createLiteral(carrier.text, sem.datatype, sem.language, state.ctx, state.df);
     const O = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
 
-    // §7 Emit type triples - types apply to the new subject (O or S)
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
         const entryIndex = typeof t === 'string' ? null : t.entryIndex;
         const typeSubject = O || S;
         const expandedType = expandIRI(typeIRI, state.ctx);
-        emitQuad(
-            state.quads,
-            state.origin.quadIndex,
-            block.id,
-            typeSubject,
-            state.df.namedNode(expandIRI('rdf:type', state.ctx)),
-            state.df.namedNode(expandedType),
-            state.df,
-            { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex }
-        );
+        emitQuad(state.quads, state.origin.quadIndex, block.id, typeSubject, state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(expandedType), state.df, { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex });
     });
 
-    // §8 Emit predicate triples (routing table)
-    // Predicates use the previous subject as S, new subject as O when applicable
     sem.predicates.forEach(pred => {
         const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
         const token = `${pred.form}${pred.iri}`;
 
         if (pred.form === '') {
-            // p: S → L (use current subject)
             emitQuad(state.quads, state.origin.quadIndex, block.id, S, P, L, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
         } else if (pred.form === '?') {
-            // ?p: previousSubject → newSubject (if new subject declared)
             if (newSubject) {
                 emitQuad(state.quads, state.origin.quadIndex, block.id, previousSubject, P, newSubject, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
             } else if (O) {
-                // Fallback: S → O (regular link)
                 emitQuad(state.quads, state.origin.quadIndex, block.id, S, P, O, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
             }
-        } else if (pred.form === '^') {
-            // ^p: reverse literal (L → S impossible, emit nothing per spec)
         } else if (pred.form === '^?') {
-            // ^?p: newSubject → previousSubject (if new subject declared)
             if (newSubject) {
                 emitQuad(state.quads, state.origin.quadIndex, block.id, newSubject, P, previousSubject, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
             } else if (O) {
-                // Fallback: O → S (regular reverse link)
                 emitQuad(state.quads, state.origin.quadIndex, block.id, O, P, S, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
             }
         }
     });
 }
 
-// Process list with context annotation (single-level only)
 function processListContext(contextSem, listTokens, state, contextSubject = null) {
     if (!contextSubject) contextSubject = state.currentSubject;
 
     listTokens.forEach(listToken => {
-        // Extract carriers from list item text
         const carriers = extractInlineCarriers(listToken.text, listToken.range[0]);
-
-        // Find subject from list item attrs first, then inline carriers
         let itemSubject = null;
         let itemSubjectCarrier = null;
 
-        // First check list item's own attrs for subject declaration
         if (listToken.attrs) {
             const itemSem = parseSemanticBlock(listToken.attrs);
             if (itemSem.subject && itemSem.subject !== 'RESET') {
                 itemSubject = state.df.namedNode(expandIRI(itemSem.subject, state.ctx));
-                // List items are plain text value carriers, no brackets to remove
                 itemSubjectCarrier = { type: 'list', text: listToken.text, attrs: listToken.attrs, range: listToken.range };
             }
         }
 
-        // If no subject in list item attrs, check inline carriers
         if (!itemSubject) {
             for (const carrier of carriers) {
                 if (carrier.attrs) {
@@ -503,50 +437,31 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
             }
         }
 
-        if (!itemSubject) return; // List items must declare subjects
+        if (!itemSubject) return;
 
-        // Apply context types to item
         contextSem.types.forEach(t => {
             const typeIRI = typeof t === 'string' ? t : t.iri;
-            emitQuad(
-                state.quads,
-                state.origin.quadIndex,
-                'list-context',
-                itemSubject,
-                state.df.namedNode(expandIRI('rdf:type', state.ctx)),
-                state.df.namedNode(expandIRI(typeIRI, state.ctx)),
-                state.df
-            );
+            emitQuad(state.quads, state.origin.quadIndex, 'list-context', itemSubject, state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(expandIRI(typeIRI, state.ctx)), state.df);
         });
 
-        // Emit context relationships
         contextSem.predicates.forEach(pred => {
             const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-
             if (pred.form === '^' || pred.form === '^?') {
-                // Reverse: item → context
-                emitQuad(state.quads, state.origin.quadIndex, 'list-context',
-                    itemSubject, P, contextSubject, state.df);
+                emitQuad(state.quads, state.origin.quadIndex, 'list-context', itemSubject, P, contextSubject, state.df);
             } else {
-                // Forward: context → item
-                emitQuad(state.quads, state.origin.quadIndex, 'list-context',
-                    contextSubject, P, itemSubject, state.df);
+                emitQuad(state.quads, state.origin.quadIndex, 'list-context', contextSubject, P, itemSubject, state.df);
             }
         });
 
-        // Process item's own annotations
         const prevSubject = state.currentSubject;
         state.currentSubject = itemSubject;
 
-        // Process the list token's own attributes
         if (listToken.attrs) {
             const itemSem = parseSemanticBlock(listToken.attrs);
-            // For list item attributes, the literal is the plain text content
             const carrier = { type: 'list', text: listToken.text, range: listToken.range, attrsRange: listToken.attrsRange || null, valueRange: listToken.valueRange || null };
             processAnnotation(carrier, itemSem, state);
         }
 
-        // Process inline carriers' attributes
         carriers.forEach(carrier => {
             if (carrier.attrs) {
                 const itemSem = parseSemanticBlock(carrier.attrs);
@@ -568,8 +483,6 @@ export function parse(text, options = {}) {
     };
 
     const tokens = scanTokens(text);
-
-    // Apply prefix declarations
     tokens.filter(t => t.type === 'prefix').forEach(t => state.ctx[t.prefix] = t.iri);
 
     for (let i = 0; i < tokens.length; i++) {
@@ -588,7 +501,6 @@ export function parse(text, options = {}) {
             const carrier = { type: 'blockquote', text: token.text, range: token.range, attrsRange: token.attrsRange || null, valueRange: token.valueRange || null };
             processAnnotation(carrier, sem, state);
         } else if (token.type === 'para') {
-            // Check for list context (simple single-level only)
             const followingLists = [];
             let j = i + 1;
             while (j < tokens.length && tokens[j].type === 'list') {
@@ -596,16 +508,11 @@ export function parse(text, options = {}) {
                 j++;
             }
 
-            // Check if this paragraph ends with {attrs} and is followed by lists
             const contextMatch = token.text.match(/^(.+?)\s*\{([^}]+)\}$/);
             if (contextMatch && followingLists.length > 0) {
-                // This is a list context annotation
                 const contextSem = parseSemanticBlock(`{${contextMatch[2]}}`);
-
-                // Simple context subject resolution: use current subject or find heading
                 let contextSubject = state.currentSubject;
 
-                // Look backwards for heading subject if no current subject
                 if (!contextSubject) {
                     for (let k = i - 1; k >= 0; k--) {
                         const prevToken = tokens[k];
@@ -624,7 +531,6 @@ export function parse(text, options = {}) {
                 continue;
             }
 
-            // Process inline carriers
             const carriers = extractInlineCarriers(token.text, token.range[0]);
             carriers.forEach(carrier => {
                 if (carrier.attrs) {
@@ -640,19 +546,96 @@ export function parse(text, options = {}) {
 
 export function shortenIRI(iri, ctx) {
     if (!iri || !iri.startsWith('http')) return iri;
-
-    if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) {
-        return iri.substring(ctx['@vocab'].length);
-    }
-
+    if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) return iri.substring(ctx['@vocab'].length);
     for (const [prefix, namespace] of Object.entries(ctx)) {
         if (prefix !== '@vocab' && iri.startsWith(namespace)) {
             return prefix + ':' + iri.substring(namespace.length);
         }
     }
-
     return iri;
 }
+
+const serializeHelpers = {
+    readAttrsSpan: (block, text) => {
+        if (!block?.attrsRange) return null;
+        const { start, end } = block.attrsRange;
+        return (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start)
+            ? { start, end, text: text.substring(start, end) }
+            : null;
+    },
+
+    readValueSpan: (block, text) => {
+        if (!block?.valueRange) return null;
+        const { start, end } = block.valueRange;
+        return (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end >= start)
+            ? { start, end, text: text.substring(start, end) }
+            : null;
+    },
+
+    normalizeAttrsTokens: (attrsText) => {
+        const cleaned = String(attrsText || '').replace(/^\s*\{|\}\s*$/g, '').trim();
+        return cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
+    },
+
+    blockTokensFromEntries: (block) => block?.entries?.length ? block.entries.map(e => e.raw).filter(Boolean) : null,
+
+    removeEntryAt: (block, entryIndex) => {
+        if (!block?.entries || entryIndex == null || entryIndex < 0 || entryIndex >= block.entries.length) return null;
+        return [...block.entries.slice(0, entryIndex), ...block.entries.slice(entryIndex + 1)];
+    },
+
+    replaceLangDatatypeEntries: (block, lit, ctx) => {
+        if (!block?.entries) return null;
+        const filtered = block.entries.filter(e => e.kind !== 'language' && e.kind !== 'datatype');
+        const extras = [];
+        if (lit?.language) extras.push({ kind: 'language', language: lit.language, raw: `@${lit.language}`, relRange: { start: 0, end: 0 } });
+        const dt = lit?.datatype?.value;
+        if (!lit?.language && dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
+            extras.push({ kind: 'datatype', datatype: shortenIRI(dt, ctx), raw: `^^${shortenIRI(dt, ctx)}`, relRange: { start: 0, end: 0 } });
+        }
+        return [...filtered, ...extras];
+    },
+
+    writeAttrsTokens: (tokens) => `{${tokens.join(' ').trim()}}`,
+
+    removeOneToken: (tokens, matchFn) => {
+        const i = tokens.findIndex(matchFn);
+        return i === -1 ? { tokens, removed: false } : { tokens: [...tokens.slice(0, i), ...tokens.slice(i + 1)], removed: true };
+    },
+
+    normalizeQuad: (q) => {
+        if (!q) return null;
+        const { subject, predicate, object } = q;
+        if (object?.termType === 'Literal') {
+            const language = typeof object.language === 'string' ? object.language : '';
+            const datatype = object.datatype?.value || { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' };
+            return { ...q, subject, predicate, object: { ...object, language, datatype } };
+        }
+        return { ...q, subject, predicate, object };
+    },
+
+    quadToKeyForOrigin: (q) => {
+        const nq = serializeHelpers.normalizeQuad(q);
+        return nq ? quadIndexKey(nq.subject, nq.predicate, nq.object) : null;
+    },
+
+    parseQuadIndexKey: (key) => {
+        try {
+            const [s, p, objKey] = JSON.parse(key);
+            return { s, p, o: JSON.parse(objKey) };
+        } catch {
+            return null;
+        }
+    },
+
+    sanitizeCarrierValueForBlock: (block, raw) => {
+        const s = String(raw ?? '');
+        const t = block?.carrierType;
+        if (t === 'code') return s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const oneLine = s.replace(/[\n\r]+/g, ' ').trim();
+        return (t === 'span' || t === 'link') ? oneLine.replace(/[\[\]]/g, ' ') : oneLine;
+    }
+};
 
 export function serialize({ text, diff, origin, options = {} }) {
     if (!diff || (!diff.add?.length && !diff.delete?.length)) {
@@ -661,103 +644,13 @@ export function serialize({ text, diff, origin, options = {} }) {
     }
 
     const base = origin || parse(text, { context: options.context || {} }).origin;
-
     let result = text;
     const edits = [];
     const ctx = options.context || {};
 
-    function readAttrsSpan(block) {
-        if (!block?.attrsRange) return null;
-        const start = block.attrsRange.start;
-        const end = block.attrsRange.end;
-        if (!(Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start)) return null;
-        return { start, end, text: text.substring(start, end) };
-    }
-
-    function readValueSpan(block) {
-        if (!block?.valueRange) return null;
-        const start = block.valueRange.start;
-        const end = block.valueRange.end;
-        if (!(Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end >= start)) return null;
-        return { start, end, text: text.substring(start, end) };
-    }
-
-    function normalizeAttrsTokens(attrsText) {
-        const cleaned = String(attrsText || '').replace(/^\s*\{|\}\s*$/g, '').trim();
-        if (!cleaned) return [];
-        return cleaned.split(/\s+/).filter(Boolean);
-    }
-
-    function blockTokensFromEntries(block) {
-        if (!block?.entries?.length) return null;
-        return block.entries.map(e => e.raw).filter(Boolean);
-    }
-
-    function removeEntryAt(block, entryIndex) {
-        if (!block?.entries || entryIndex == null) return null;
-        if (entryIndex < 0 || entryIndex >= block.entries.length) return null;
-        const next = [...block.entries.slice(0, entryIndex), ...block.entries.slice(entryIndex + 1)];
-        return next;
-    }
-
-    function replaceLangDatatypeEntries(block, lit) {
-        if (!block?.entries) return null;
-        const filtered = block.entries.filter(e => e.kind !== 'language' && e.kind !== 'datatype');
-        const extras = [];
-        if (lit?.language) extras.push({ kind: 'language', language: lit.language, raw: `@${lit.language}`, relRange: { start: 0, end: 0 } });
-        const dt = lit?.datatype?.value;
-        if (!lit?.language && dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
-            const short = shortenIRI(dt, ctx);
-            extras.push({ kind: 'datatype', datatype: short, raw: `^^${short}`, relRange: { start: 0, end: 0 } });
-        }
-        return [...filtered, ...extras];
-    }
-
-    function writeAttrsTokens(tokens) {
-        const inside = tokens.join(' ').trim();
-        return `{${inside}}`;
-    }
-
-    function removeOneToken(tokens, matchFn) {
-        const i = tokens.findIndex(matchFn);
-        if (i === -1) return { tokens, removed: false };
-        return { tokens: [...tokens.slice(0, i), ...tokens.slice(i + 1)], removed: true };
-    }
-
-    function normalizeQuad(q) {
-        if (!q) return null;
-        const subject = q.subject;
-        const predicate = q.predicate;
-        let object = q.object;
-        if (object?.termType === 'Literal') {
-            const language = typeof object.language === 'string' ? object.language : '';
-            const datatype = object.datatype?.value
-                ? object.datatype
-                : { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' };
-            object = { ...object, language, datatype };
-        }
-        return { ...q, subject, predicate, object };
-    }
-
-    function quadToKeyForOrigin(q) {
-        const nq = normalizeQuad(q);
-        if (!nq) return null;
-        return quadIndexKey(nq.subject, nq.predicate, nq.object);
-    }
-
-    function parseQuadIndexKey(key) {
-        try {
-            const [s, p, objKey] = JSON.parse(key);
-            const o = JSON.parse(objKey);
-            return { s, p, o };
-        } catch {
-            return null;
-        }
-    }
-
-    function findOriginEntryForLiteralByValue(subjectIri, predicateIri, literalValue) {
+    const findOriginEntryForLiteralByValue = (subjectIri, predicateIri, literalValue) => {
         for (const [k, entry] of base?.quadIndex || []) {
-            const parsed = parseQuadIndexKey(k);
+            const parsed = serializeHelpers.parseQuadIndexKey(k);
             if (!parsed) continue;
             if (parsed.s !== subjectIri || parsed.p !== predicateIri) continue;
             if (parsed.o?.t !== 'Literal') continue;
@@ -765,12 +658,12 @@ export function serialize({ text, diff, origin, options = {} }) {
             return entry;
         }
         return null;
-    }
+    };
 
-    function findLiteralCarrierBlocksBySP(subjectIri, predicateIri) {
+    const findLiteralCarrierBlocksBySP = (subjectIri, predicateIri) => {
         const out = [];
         for (const [k, entry] of base?.quadIndex || []) {
-            const parsed = parseQuadIndexKey(k);
+            const parsed = serializeHelpers.parseQuadIndexKey(k);
             if (!parsed) continue;
             if (parsed.s !== subjectIri || parsed.p !== predicateIri) continue;
             if (parsed.o?.t !== 'Literal') continue;
@@ -779,25 +672,23 @@ export function serialize({ text, diff, origin, options = {} }) {
             if (block) out.push({ block, entry, obj: parsed.o });
         }
         return out;
-    }
+    };
 
-    function objectSignature(o) {
+    const objectSignature = (o) => {
         if (!o) return '';
         if (o.termType === 'Literal') {
             return JSON.stringify({ t: 'Literal', v: o.value, lang: o.language || '', dt: o.datatype?.value || '' });
         }
         return JSON.stringify({ t: o.termType, v: o.value });
-    }
+    };
 
-    // Build anchors from deletes so adds can be applied back into the exact same annotation span.
-    // Keyed by subject + object identity (carrier value/resource) since predicates may change in updates.
     const anchors = new Map();
     for (const q0 of diff.delete || []) {
-        const q = normalizeQuad(q0);
+        const q = serializeHelpers.normalizeQuad(q0);
         if (!q) continue;
         if (!q?.subject || !q?.object || !q?.predicate) continue;
         const key = JSON.stringify([q.subject.value, objectSignature(q.object)]);
-        const qk = quadToKeyForOrigin(q);
+        const qk = serializeHelpers.quadToKeyForOrigin(q);
         const entry = qk ? base?.quadIndex?.get(qk) : null;
         const blockId = entry?.blockId || entry;
         const block = blockId ? base?.blocks?.get(blockId) : null;
@@ -805,11 +696,9 @@ export function serialize({ text, diff, origin, options = {} }) {
         anchors.set(key, { block, entry });
     }
 
-    // Pair DELETE/ADD literal quads with the same S and P and update carrier value in-place.
-    // This is the primary SPARQL-update workflow: change only the value text, keep structure intact.
     const addBySP = new Map();
     for (const q0 of diff.add || []) {
-        const q = normalizeQuad(q0);
+        const q = serializeHelpers.normalizeQuad(q0);
         if (!q) continue;
         if (!q?.subject || !q?.predicate || !q?.object) continue;
         const k = JSON.stringify([q.subject.value, q.predicate.value]);
@@ -821,16 +710,16 @@ export function serialize({ text, diff, origin, options = {} }) {
     const consumedAdds = new Set();
     const literalUpdates = [];
     for (const dq0 of diff.delete || []) {
-        const dq = normalizeQuad(dq0);
+        const dq = serializeHelpers.normalizeQuad(dq0);
         if (!dq) continue;
         if (!dq?.subject || !dq?.predicate || !dq?.object) continue;
         if (dq.object.termType !== 'Literal') continue;
         const k = JSON.stringify([dq.subject.value, dq.predicate.value]);
         const candidates = addBySP.get(k) || [];
-        const aq = candidates.find(x => x?.object?.termType === 'Literal' && !consumedAdds.has(x));
+        const aq = candidates.find(x => x?.object?.termType === 'Literal' && !consumedAdds.has(serializeHelpers.quadToKeyForOrigin(x)));
         if (!aq) continue;
 
-        const dqk = quadToKeyForOrigin(dq);
+        const dqk = serializeHelpers.quadToKeyForOrigin(dq);
         let entry = dqk ? base?.quadIndex?.get(dqk) : null;
         if (!entry && dq.object?.termType === 'Literal') {
             entry = findOriginEntryForLiteralByValue(dq.subject.value, dq.predicate.value, dq.object.value);
@@ -840,15 +729,13 @@ export function serialize({ text, diff, origin, options = {} }) {
         if (!block) continue;
 
         literalUpdates.push({ deleteQuad: dq, addQuad: aq, entry, block });
-        consumedAdds.add(aq);
+        consumedAdds.add(serializeHelpers.quadToKeyForOrigin(aq));
     }
 
-    // Upsert path: literal adds without a matching delete update an existing carrier when unambiguous.
-    // This makes SPARQL INSERT-only updates work (e.g. set a counter/price).
     for (const q0 of diff.add || []) {
-        const quad = normalizeQuad(q0);
+        const quad = serializeHelpers.normalizeQuad(q0);
         if (!quad || quad.object?.termType !== 'Literal') continue;
-        if (consumedAdds.has(quad)) continue;
+        if (consumedAdds.has(serializeHelpers.quadToKeyForOrigin(quad))) continue;
 
         const matches = findLiteralCarrierBlocksBySP(quad.subject.value, quad.predicate.value);
         if (matches.length === 0) continue;
@@ -863,109 +750,83 @@ export function serialize({ text, diff, origin, options = {} }) {
 
         if (sameLang.length !== 1) continue;
         const target = sameLang[0].block;
-        const vSpan = readValueSpan(target);
+        const vSpan = serializeHelpers.readValueSpan(target, text);
         if (!vSpan) continue;
 
-        const newValue = sanitizeCarrierValueForBlock(target, quad.object.value);
+        const newValue = serializeHelpers.sanitizeCarrierValueForBlock(target, quad.object.value);
         edits.push({ start: vSpan.start, end: vSpan.end, text: newValue });
 
-        const aSpan = readAttrsSpan(target);
+        const aSpan = serializeHelpers.readAttrsSpan(target, text);
         if (aSpan && target?.entries?.length) {
-            const nextEntries = replaceLangDatatypeEntries(target, quad.object);
+            const nextEntries = serializeHelpers.replaceLangDatatypeEntries(target, quad.object, ctx);
             if (nextEntries) {
                 const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
-                edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(nextTokens) });
+                edits.push({ start: aSpan.start, end: aSpan.end, text: serializeHelpers.writeAttrsTokens(nextTokens) });
             }
         }
 
         consumedAdds.add(quad);
     }
 
-    function sanitizeCarrierValueForBlock(block, raw) {
-        const s = String(raw ?? '');
-        const t = block?.carrierType;
-
-        // Code blocks are the only carrier where newlines are first-class.
-        if (t === 'code') {
-            return s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-        }
-
-        // For line-based carriers, keep them single-line.
-        const oneLine = s.replace(/[\n\r]+/g, ' ').trim();
-
-        // Inline bracket carriers cannot contain raw brackets without breaking syntax.
-        if (t === 'span' || t === 'link') {
-            return oneLine.replace(/[\[\]]/g, ' ');
-        }
-
-        // Heading, list, blockquote: allow normal text, single line.
-        return oneLine;
-    }
-
-    function updateAttrsDatatypeLang(tokens, newLit) {
-        // Keep subject/predicate/type tokens intact; only normalize @lang / ^^datatype for literal binding.
-        const without = tokens.filter(t => !t.startsWith('@') && !t.startsWith('^^'));
-        if (newLit?.language) return [...without, `@${newLit.language}`];
-        const dt = newLit?.datatype?.value;
-        if (dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
-            return [...without, `^^${shortenIRI(dt, ctx)}`];
-        }
-        return without;
-    }
-
-    // Apply literal updates first (so subsequent token edits use original coordinates).
     for (const u of literalUpdates) {
-        const span = readValueSpan(u.block);
+        const span = serializeHelpers.readValueSpan(u.block, text);
         if (span) {
-            const newValue = sanitizeCarrierValueForBlock(u.block, u.addQuad.object.value);
+            const newValue = serializeHelpers.sanitizeCarrierValueForBlock(u.block, u.addQuad.object.value);
             edits.push({ start: span.start, end: span.end, text: newValue });
         }
 
-        // Also adjust @lang/^^datatype tokens in the same annotation span when present.
-        const aSpan = readAttrsSpan(u.block);
+        const aSpan = serializeHelpers.readAttrsSpan(u.block, text);
         if (aSpan) {
             if (u.block?.entries?.length) {
-                const nextEntries = replaceLangDatatypeEntries(u.block, u.addQuad.object);
+                const nextEntries = serializeHelpers.replaceLangDatatypeEntries(u.block, u.addQuad.object, ctx);
                 if (nextEntries) {
                     const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
                     if (nextTokens.length === 0) {
-                        const before = text.substring(Math.max(0, aSpan.start - 1), aSpan.start);
-                        const deleteStart = before === ' ' ? aSpan.start - 1 : aSpan.start;
-                        edits.push({ start: deleteStart, end: aSpan.end, text: '' });
+                        edits.push({ start: aSpan.start, end: aSpan.end, text: '{}' });
                     } else {
-                        edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(nextTokens) });
+                        edits.push({ start: aSpan.start, end: aSpan.end, text: serializeHelpers.writeAttrsTokens(nextTokens) });
                     }
                 }
             } else {
-                const tokens = normalizeAttrsTokens(aSpan.text);
+                const tokens = serializeHelpers.normalizeAttrsTokens(aSpan.text);
                 const updated = updateAttrsDatatypeLang(tokens, u.addQuad.object);
                 if (updated.join(' ') !== tokens.join(' ')) {
                     if (updated.length === 0) {
-                        const before = text.substring(Math.max(0, aSpan.start - 1), aSpan.start);
-                        const deleteStart = before === ' ' ? aSpan.start - 1 : aSpan.start;
-                        edits.push({ start: deleteStart, end: aSpan.end, text: '' });
+                        edits.push({ start: aSpan.start, end: aSpan.end, text: '{}' });
                     } else {
-                        edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(updated) });
+                        edits.push({ start: aSpan.start, end: aSpan.end, text: serializeHelpers.writeAttrsTokens(updated) });
                     }
                 }
             }
         }
     }
 
+    const updateAttrsDatatypeLang = (tokens, newLit) => {
+        const predicatesAndTypes = tokens.filter(t => !t.startsWith('@') && !t.startsWith('^^'));
+        if (newLit?.language) return [...predicatesAndTypes, `@${newLit.language}`];
+        const dt = newLit?.datatype?.value;
+        if (dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
+            return [...predicatesAndTypes, `^^${shortenIRI(dt, ctx)}`];
+        }
+        return predicatesAndTypes;
+    };
+
     if (diff.delete) {
         diff.delete.forEach(q0 => {
-            const quad = normalizeQuad(q0);
+            const quad = serializeHelpers.normalizeQuad(q0);
             if (!quad) return;
             if (!quad?.subject || !quad?.predicate || !quad?.object) return;
 
-            // If this delete is part of a literal update pair, skip token deletion.
-            // Updating the carrier value keeps the predicate token in-place.
             if (quad.object.termType === 'Literal') {
-                const isUpdated = literalUpdates.some(u => u.deleteQuad === quad);
+                const isUpdated = literalUpdates.some(u =>
+                    u.deleteQuad.subject.value === quad.subject.value &&
+                    u.deleteQuad.predicate.value === quad.predicate.value &&
+                    u.deleteQuad.object.value === quad.object.value
+                );
                 if (isUpdated) return;
             }
 
-            const key = quadToKeyForOrigin(quad);
+            const key = serializeHelpers.quadToKeyForOrigin(quad);
             let entry = key ? base?.quadIndex?.get(key) : null;
             if (!entry && quad.object?.termType === 'Literal') {
                 entry = findOriginEntryForLiteralByValue(quad.subject.value, quad.predicate.value, quad.object.value);
@@ -973,31 +834,28 @@ export function serialize({ text, diff, origin, options = {} }) {
             const blockId = entry?.blockId || entry;
             if (!blockId) return;
             const block = base?.blocks?.get(blockId);
-            const span = readAttrsSpan(block);
-            if (!span) return; // lossless: never touch carrier text, only edit when attrs span exists
+            const span = serializeHelpers.readAttrsSpan(block, text);
+            if (!span) return;
 
-            // Preferred: deterministic removal by entryIndex
             if (entry?.entryIndex != null && block?.entries?.length) {
-                const nextEntries = removeEntryAt(block, entry.entryIndex);
+                const nextEntries = serializeHelpers.removeEntryAt(block, entry.entryIndex);
                 if (!nextEntries) return;
                 const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
                 if (nextTokens.length === 0) {
-                    const before = text.substring(Math.max(0, span.start - 1), span.start);
-                    const deleteStart = before === ' ' ? span.start - 1 : span.start;
-                    edits.push({ start: deleteStart, end: span.end, text: '' });
+                    edits.push({ start: span.start, end: span.end, text: '{}' });
                 } else {
-                    edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(nextTokens) });
+                    edits.push({ start: span.start, end: span.end, text: serializeHelpers.writeAttrsTokens(nextTokens) });
                 }
                 return;
             }
 
-            const tokens = normalizeAttrsTokens(span.text);
+            const tokens = serializeHelpers.normalizeAttrsTokens(span.text);
             let updated = tokens;
             let removed = false;
 
             if (entry?.kind === 'type' && quad.predicate.value.endsWith('rdf-syntax-ns#type')) {
                 const expectedType = entry.expandedType || quad.object.value;
-                ({ tokens: updated, removed } = removeOneToken(tokens, t => {
+                ({ tokens: updated, removed } = serializeHelpers.removeOneToken(tokens, t => {
                     if (!t.startsWith('.')) return false;
                     const raw = t.slice(1);
                     return expandIRI(raw, ctx) === expectedType;
@@ -1005,8 +863,7 @@ export function serialize({ text, diff, origin, options = {} }) {
             } else {
                 const expectedPred = entry?.expandedPredicate || quad.predicate.value;
                 const expectedForm = entry?.form;
-                ({ tokens: updated, removed } = removeOneToken(tokens, t => {
-                    // Match by expanded predicate + form
+                ({ tokens: updated, removed } = serializeHelpers.removeOneToken(tokens, t => {
                     const m = String(t).match(/^(\^\?|\^|\?|)(.+)$/);
                     if (!m) return false;
                     const form = m[1] || '';
@@ -1018,35 +875,28 @@ export function serialize({ text, diff, origin, options = {} }) {
 
             if (!removed) return;
 
-            // If the block becomes empty, remove just the annotation (optionally eat one leading space)
             if (updated.length === 0) {
-                const before = text.substring(Math.max(0, span.start - 1), span.start);
-                const deleteStart = before === ' ' ? span.start - 1 : span.start;
-                edits.push({ start: deleteStart, end: span.end, text: '' });
+                edits.push({ start: span.start, end: span.end, text: '{}' });
                 return;
             }
 
-            const newAttrs = writeAttrsTokens(updated);
+            const newAttrs = serializeHelpers.writeAttrsTokens(updated);
             edits.push({ start: span.start, end: span.end, text: newAttrs });
         });
     }
 
     if (diff.add) {
         diff.add.forEach(q0 => {
-            const quad = normalizeQuad(q0);
+            const quad = serializeHelpers.normalizeQuad(q0);
             if (!quad) return;
             if (!quad?.subject || !quad?.predicate || !quad?.object) return;
 
-            // If this add was consumed as a literal update, skip token insertion.
-            if (consumedAdds.has(quad)) return;
+            if (consumedAdds.has(serializeHelpers.quadToKeyForOrigin(quad))) return;
 
-            // If we didn't update an existing carrier (upsert), and we can't anchor, append a new carrier line.
-            // Prefer the exact annotation span where a related quad used to live (replacement update).
             const anchorKey = JSON.stringify([quad.subject.value, objectSignature(quad.object)]);
             const anchored = anchors.get(anchorKey) || null;
             let targetBlock = anchored?.block || null;
 
-            // Fallback: pick the first block for this subject that has attrsRange.
             if (!targetBlock) {
                 for (const [, block] of base?.blocks || []) {
                     if (block.subject === quad.subject.value && block.attrsRange) {
@@ -1056,8 +906,6 @@ export function serialize({ text, diff, origin, options = {} }) {
                 }
             }
 
-            // If we're adding a literal or IRI fact without a known carrier to attach to, prefer appending a new carrier line.
-            // This avoids producing "dangling" predicates in an unrelated annotation.
             if (quad.object.termType === 'Literal' || quad.object.termType === 'NamedNode') {
                 if (!targetBlock) {
                     const predShort = shortenIRI(quad.predicate.value, ctx);
@@ -1077,8 +925,6 @@ export function serialize({ text, diff, origin, options = {} }) {
                     return;
                 }
 
-                // If we found a block but it doesn't already carry this predicate/value, append instead.
-                // (We only patch in-place for literal updates; new facts become new carriers.)
                 const predShort = shortenIRI(quad.predicate.value, ctx);
                 if (quad.object.termType === 'Literal') {
                     const value = String(quad.object.value ?? '');
@@ -1099,24 +945,20 @@ export function serialize({ text, diff, origin, options = {} }) {
                 }
             }
 
-            const span = readAttrsSpan(targetBlock);
+            const span = serializeHelpers.readAttrsSpan(targetBlock, text);
             if (!span) return;
-            const tokens = blockTokensFromEntries(targetBlock) || normalizeAttrsTokens(span.text);
+            const tokens = serializeHelpers.blockTokensFromEntries(targetBlock) || serializeHelpers.normalizeAttrsTokens(span.text);
 
-            // Add rdf:type by inserting a .Class token when possible
             if (quad.predicate.value.endsWith('rdf-syntax-ns#type') && quad.object?.termType === 'NamedNode') {
                 const typeShort = shortenIRI(quad.object.value, ctx);
                 const typeToken = typeShort.includes(':') || !typeShort.startsWith('http') ? `.${typeShort}` : null;
                 if (!typeToken) return;
                 if (tokens.includes(typeToken)) return;
                 const updated = [...tokens, typeToken];
-                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+                edits.push({ start: span.start, end: span.end, text: serializeHelpers.writeAttrsTokens(updated) });
                 return;
             }
 
-            // Add predicate token only (never encode object here; object lives in the value carrier)
-            // For stable routing, only add when we have a safe routing form.
-            // If anchored from a deleted quad, reuse that quad's routing form.
             const form = anchored?.entry?.form;
             if (form == null) return;
             const predShort = shortenIRI(quad.predicate.value, ctx);
@@ -1124,11 +966,10 @@ export function serialize({ text, diff, origin, options = {} }) {
             if (!predToken) return;
             if (tokens.includes(predToken)) return;
             const updated = [...tokens, predToken];
-            edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+            edits.push({ start: span.start, end: span.end, text: serializeHelpers.writeAttrsTokens(updated) });
         });
     }
 
-    // Sort edits by start position in reverse order to avoid position shifts
     edits.sort((a, b) => b.start - a.start);
     edits.forEach(edit => {
         result = result.substring(0, edit.start) + edit.text + result.substring(edit.end);
