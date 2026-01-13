@@ -13,6 +13,7 @@ const DataFactory = {
         if (typeof lang === 'string') {
             return { termType: 'Literal', value: v, language: lang, datatype: DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#langString') };
         }
+
         return { termType: 'Literal', value: v, language: '', datatype: lang || DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#string') };
     },
     quad: (s, p, o, g) => ({ subject: s, predicate: p, object: o, graph: g || DataFactory.namedNode('') })
@@ -91,12 +92,15 @@ function scanTokens(text) {
         if (line.startsWith('```')) {
             if (!codeBlock) {
                 const fence = line.match(/^(`{3,})(.*)/);
+                const attrsText = fence[2].match(/\{[^}]+\}/)?.[0] || null;
+                const attrsStartInLine = attrsText ? line.indexOf(attrsText) : -1;
                 codeBlock = {
                     fence: fence[1],
                     start: lineStart,
                     content: [],
                     lang: fence[2].trim().split(/[\s{]/)[0],
-                    attrs: fence[2].match(/\{[^}]+\}/)?.[0]
+                    attrs: attrsText,
+                    attrsRange: attrsText && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrsText.length] : null
                 };
             } else if (line.startsWith(codeBlock.fence)) {
                 tokens.push({
@@ -104,7 +108,8 @@ function scanTokens(text) {
                     range: [codeBlock.start, lineStart],
                     text: codeBlock.content.join('\n'),
                     lang: codeBlock.lang,
-                    attrs: codeBlock.attrs
+                    attrs: codeBlock.attrs,
+                    attrsRange: codeBlock.attrsRange
                 });
                 codeBlock = null;
             }
@@ -124,35 +129,44 @@ function scanTokens(text) {
 
         const headingMatch = line.match(/^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/);
         if (headingMatch) {
+            const attrs = headingMatch[3] || null;
+            const attrsStartInLine = attrs ? line.lastIndexOf(attrs) : -1;
             tokens.push({
                 type: 'heading',
                 depth: headingMatch[1].length,
                 range: [lineStart, pos - 1],
                 text: headingMatch[2].trim(),
-                attrs: headingMatch[3]
+                attrs,
+                attrsRange: attrs && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrs.length] : null
             });
             continue;
         }
 
         const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?$/);
         if (listMatch) {
+            const attrs = listMatch[4] || null;
+            const attrsStartInLine = attrs ? line.lastIndexOf(attrs) : -1;
             tokens.push({
                 type: 'list',
                 indent: listMatch[1].length,
                 range: [lineStart, pos - 1],
                 text: listMatch[3].trim(),
-                attrs: listMatch[4]
+                attrs,
+                attrsRange: attrs && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrs.length] : null
             });
             continue;
         }
 
         const blockquoteMatch = line.match(/^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/);
         if (blockquoteMatch) {
+            const attrs = blockquoteMatch[2] || null;
+            const attrsStartInLine = attrs ? line.lastIndexOf(attrs) : -1;
             tokens.push({
                 type: 'blockquote',
                 range: [lineStart, pos - 1],
                 text: blockquoteMatch[1].trim(),
-                attrs: blockquoteMatch[2]
+                attrs,
+                attrsRange: attrs && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrs.length] : null
             });
             continue;
         }
@@ -194,6 +208,7 @@ function extractInlineCarriers(text, baseOffset = 0) {
         if (bracketDepth > 0) break;
 
         const carrierText = text.substring(bracketStart + 1, bracketEnd - 1);
+        const valueRange = [baseOffset + bracketStart + 1, baseOffset + bracketEnd - 1];
         let spanEnd = bracketEnd;
         let url = null;
 
@@ -206,9 +221,13 @@ function extractInlineCarriers(text, baseOffset = 0) {
         }
 
         let attrs = null;
+        let attrsRange = null;
         const attrsMatch = text.substring(spanEnd).match(/^\s*\{([^}]+)\}/);
         if (attrsMatch) {
             attrs = `{${attrsMatch[1]}}`;
+            const braceIndex = attrsMatch[0].indexOf('{');
+            const absStart = baseOffset + spanEnd + (braceIndex >= 0 ? braceIndex : 0);
+            attrsRange = [absStart, absStart + attrs.length];
             spanEnd += attrsMatch[0].length;
         }
 
@@ -231,6 +250,8 @@ function extractInlineCarriers(text, baseOffset = 0) {
             text: carrierText,
             url: resourceIRI,
             attrs: attrs,
+            attrsRange,
+            valueRange,
             range: [baseOffset + bracketStart, baseOffset + spanEnd]
         });
 
@@ -240,7 +261,7 @@ function extractInlineCarriers(text, baseOffset = 0) {
     return carriers;
 }
 
-function createBlock(subject, types, predicates, range, ctx) {
+function createBlock(subject, types, predicates, range, attrsRange, valueRange, ctx) {
     const expanded = {
         subject: subject,
         types: types.map(t => expandIRI(t, ctx)),
@@ -254,6 +275,8 @@ function createBlock(subject, types, predicates, range, ctx) {
     return {
         id: blockId,
         range: { start: range[0], end: range[1] },
+        attrsRange: attrsRange ? { start: attrsRange[0], end: attrsRange[1] } : null,
+        valueRange: valueRange ? { start: valueRange[0], end: valueRange[1] } : null,
         subject,
         types: expanded.types,
         predicates: expanded.predicates,
@@ -261,16 +284,19 @@ function createBlock(subject, types, predicates, range, ctx) {
     };
 }
 
-function emitQuad(quads, quadIndex, blockId, subject, predicate, object, dataFactory) {
+function quadIndexKey(subject, predicate, object) {
+    const objKey = object.termType === 'Literal'
+        ? JSON.stringify({ t: 'Literal', v: object.value, lang: object.language || '', dt: object.datatype?.value || '' })
+        : JSON.stringify({ t: object.termType, v: object.value });
+    return JSON.stringify([subject.value, predicate.value, objKey]);
+}
+
+function emitQuad(quads, quadIndex, blockId, subject, predicate, object, dataFactory, meta = null) {
     if (!subject || !predicate || !object) return;
     const quad = dataFactory.quad(subject, predicate, object);
     quads.push(quad);
-    const key = JSON.stringify([
-        quad.subject.value,
-        quad.predicate.value,
-        quad.object.termType === 'Literal' ? quad.object.value : quad.object.value
-    ]);
-    quadIndex.set(key, blockId);
+    const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
+    quadIndex.set(key, meta ? { blockId, ...meta } : { blockId });
 }
 
 function createLiteral(value, datatype, language, context, dataFactory) {
@@ -310,6 +336,8 @@ function processAnnotation(carrier, sem, state) {
         sem.types,
         sem.predicates,
         carrier.range,
+        carrier.attrsRange || null,
+        carrier.valueRange || null,
         state.ctx
     );
     state.origin.blocks.set(block.id, block);
@@ -321,14 +349,16 @@ function processAnnotation(carrier, sem, state) {
     // §7 Emit type triples - types apply to the new subject (O or S)
     sem.types.forEach(typeIRI => {
         const typeSubject = O || S;
+        const expandedType = expandIRI(typeIRI, state.ctx);
         emitQuad(
             state.quads,
             state.origin.quadIndex,
             block.id,
             typeSubject,
             state.df.namedNode(expandIRI('rdf:type', state.ctx)),
-            state.df.namedNode(expandIRI(typeIRI, state.ctx)),
-            state.df
+            state.df.namedNode(expandedType),
+            state.df,
+            { kind: 'type', token: `.${typeIRI}`, expandedType }
         );
     });
 
@@ -336,27 +366,28 @@ function processAnnotation(carrier, sem, state) {
     // Predicates use the previous subject as S, new subject as O when applicable
     sem.predicates.forEach(pred => {
         const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
+        const token = `${pred.form}${pred.iri}`;
 
         if (pred.form === '') {
             // p: S → L (use current subject)
-            emitQuad(state.quads, state.origin.quadIndex, block.id, S, P, L, state.df);
+            emitQuad(state.quads, state.origin.quadIndex, block.id, S, P, L, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value });
         } else if (pred.form === '?') {
             // ?p: previousSubject → newSubject (if new subject declared)
             if (newSubject) {
-                emitQuad(state.quads, state.origin.quadIndex, block.id, previousSubject, P, newSubject, state.df);
+                emitQuad(state.quads, state.origin.quadIndex, block.id, previousSubject, P, newSubject, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value });
             } else if (O) {
                 // Fallback: S → O (regular link)
-                emitQuad(state.quads, state.origin.quadIndex, block.id, S, P, O, state.df);
+                emitQuad(state.quads, state.origin.quadIndex, block.id, S, P, O, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value });
             }
         } else if (pred.form === '^') {
             // ^p: reverse literal (L → S impossible, emit nothing per spec)
         } else if (pred.form === '^?') {
             // ^?p: newSubject → previousSubject (if new subject declared)
             if (newSubject) {
-                emitQuad(state.quads, state.origin.quadIndex, block.id, newSubject, P, previousSubject, state.df);
+                emitQuad(state.quads, state.origin.quadIndex, block.id, newSubject, P, previousSubject, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value });
             } else if (O) {
                 // Fallback: O → S (regular reverse link)
-                emitQuad(state.quads, state.origin.quadIndex, block.id, O, P, S, state.df);
+                emitQuad(state.quads, state.origin.quadIndex, block.id, O, P, S, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value });
             }
         }
     });
@@ -436,7 +467,7 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
         if (listToken.attrs) {
             const itemSem = parseSemanticBlock(listToken.attrs);
             // For list item attributes, the literal is the plain text content
-            const carrier = { type: 'list', text: listToken.text, range: listToken.range };
+            const carrier = { type: 'list', text: listToken.text, range: listToken.range, attrsRange: listToken.attrsRange || null };
             processAnnotation(carrier, itemSem, state);
         }
 
@@ -471,15 +502,15 @@ export function parse(text, options = {}) {
 
         if (token.type === 'heading' && token.attrs) {
             const sem = parseSemanticBlock(token.attrs);
-            const carrier = { type: 'heading', text: token.text, range: token.range };
+            const carrier = { type: 'heading', text: token.text, range: token.range, attrsRange: token.attrsRange || null };
             processAnnotation(carrier, sem, state);
         } else if (token.type === 'code' && token.attrs) {
             const sem = parseSemanticBlock(token.attrs);
-            const carrier = { type: 'code', text: token.text, range: token.range };
+            const carrier = { type: 'code', text: token.text, range: token.range, attrsRange: token.attrsRange || null };
             processAnnotation(carrier, sem, state);
         } else if (token.type === 'blockquote' && token.attrs) {
             const sem = parseSemanticBlock(token.attrs);
-            const carrier = { type: 'blockquote', text: token.text, range: token.range };
+            const carrier = { type: 'blockquote', text: token.text, range: token.range, attrsRange: token.attrsRange || null };
             processAnnotation(carrier, sem, state);
         } else if (token.type === 'para') {
             // Check for list context (simple single-level only)
@@ -532,7 +563,7 @@ export function parse(text, options = {}) {
     return { quads: state.quads, origin: state.origin, context: state.ctx };
 }
 
-function shortenIRI(iri, ctx) {
+export function shortenIRI(iri, ctx) {
     if (!iri || !iri.startsWith('http')) return iri;
 
     if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) {
@@ -555,81 +586,245 @@ export function serialize({ text, diff, origin, options = {} }) {
     const edits = [];
     const ctx = options.context || {};
 
-    if (diff.delete) {
-        diff.delete.forEach(quad => {
-            if (!quad || !quad.subject) return;
+    function readAttrsSpan(block) {
+        if (!block?.attrsRange) return null;
+        const start = block.attrsRange.start;
+        const end = block.attrsRange.end;
+        if (!(Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start)) return null;
+        return { start, end, text: text.substring(start, end) };
+    }
 
-            // Try to find matching quad by subject and predicate first
-            let blockId = null;
+    function readValueSpan(block) {
+        if (!block?.valueRange) return null;
+        const start = block.valueRange.start;
+        const end = block.valueRange.end;
+        if (!(Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end >= start)) return null;
+        return { start, end, text: text.substring(start, end) };
+    }
 
-            // First try exact match
-            const exactKey = JSON.stringify([
-                quad.subject.value,
-                quad.predicate.value,
-                quad.object.termType === 'Literal' ? quad.object.value : quad.object.value
-            ]);
-            blockId = origin?.quadIndex.get(exactKey);
+    function normalizeAttrsTokens(attrsText) {
+        const cleaned = String(attrsText || '').replace(/^\s*\{|\}\s*$/g, '').trim();
+        if (!cleaned) return [];
+        return cleaned.split(/\s+/).filter(Boolean);
+    }
 
-            // If not found, try to find any quad with same subject and predicate
-            if (!blockId) {
-                for (const [key, bid] of origin?.quadIndex || []) {
-                    const parsedKey = JSON.parse(key);
-                    if (parsedKey[0] === quad.subject.value && parsedKey[1] === quad.predicate.value) {
-                        blockId = bid;
-                        break;
-                    }
+    function writeAttrsTokens(tokens) {
+        const inside = tokens.join(' ').trim();
+        return `{${inside}}`;
+    }
+
+    function removeOneToken(tokens, matchFn) {
+        const i = tokens.findIndex(matchFn);
+        if (i === -1) return { tokens, removed: false };
+        return { tokens: [...tokens.slice(0, i), ...tokens.slice(i + 1)], removed: true };
+    }
+
+    function quadToKeyForOrigin(q) {
+        return quadIndexKey(q.subject, q.predicate, q.object);
+    }
+
+    function objectSignature(o) {
+        if (!o) return '';
+        if (o.termType === 'Literal') {
+            return JSON.stringify({ t: 'Literal', v: o.value, lang: o.language || '', dt: o.datatype?.value || '' });
+        }
+        return JSON.stringify({ t: o.termType, v: o.value });
+    }
+
+    // Build anchors from deletes so adds can be applied back into the exact same annotation span.
+    // Keyed by subject + object identity (carrier value/resource) since predicates may change in updates.
+    const anchors = new Map();
+    for (const q of diff.delete || []) {
+        if (!q?.subject || !q?.object || !q?.predicate) continue;
+        const key = JSON.stringify([q.subject.value, objectSignature(q.object)]);
+        const entry = origin?.quadIndex?.get(quadToKeyForOrigin(q));
+        const blockId = entry?.blockId || entry;
+        const block = blockId ? origin?.blocks?.get(blockId) : null;
+        if (!block?.attrsRange) continue;
+        anchors.set(key, { block, entry });
+    }
+
+    // Pair DELETE/ADD literal quads with the same S and P and update carrier value in-place.
+    // This is the primary SPARQL-update workflow: change only the value text, keep structure intact.
+    const addBySP = new Map();
+    for (const q of diff.add || []) {
+        if (!q?.subject || !q?.predicate || !q?.object) continue;
+        const k = JSON.stringify([q.subject.value, q.predicate.value]);
+        const list = addBySP.get(k) || [];
+        list.push(q);
+        addBySP.set(k, list);
+    }
+
+    const consumedAdds = new Set();
+    const literalUpdates = [];
+    for (const dq of diff.delete || []) {
+        if (!dq?.subject || !dq?.predicate || !dq?.object) continue;
+        if (dq.object.termType !== 'Literal') continue;
+        const k = JSON.stringify([dq.subject.value, dq.predicate.value]);
+        const candidates = addBySP.get(k) || [];
+        const aq = candidates.find(x => x?.object?.termType === 'Literal' && !consumedAdds.has(x));
+        if (!aq) continue;
+
+        const entry = origin?.quadIndex?.get(quadToKeyForOrigin(dq));
+        const blockId = entry?.blockId || entry;
+        const block = blockId ? origin?.blocks?.get(blockId) : null;
+        if (!block) continue;
+
+        literalUpdates.push({ deleteQuad: dq, addQuad: aq, entry, block });
+        consumedAdds.add(aq);
+    }
+
+    function sanitizeCarrierValue(s) {
+        // Carrier value is the raw text inside [...]. Keep this minimal and safe.
+        return String(s ?? '').replace(/[\n\r\[\]]/g, ' ').trim();
+    }
+
+    function updateAttrsDatatypeLang(tokens, newLit) {
+        // Keep subject/predicate/type tokens intact; only normalize @lang / ^^datatype for literal binding.
+        const without = tokens.filter(t => !t.startsWith('@') && !t.startsWith('^^'));
+        if (newLit?.language) return [...without, `@${newLit.language}`];
+        const dt = newLit?.datatype?.value;
+        if (dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
+            return [...without, `^^${shortenIRI(dt, ctx)}`];
+        }
+        return without;
+    }
+
+    // Apply literal updates first (so subsequent token edits use original coordinates).
+    for (const u of literalUpdates) {
+        const span = readValueSpan(u.block);
+        if (span) {
+            const newValue = sanitizeCarrierValue(u.addQuad.object.value);
+            edits.push({ start: span.start, end: span.end, text: newValue });
+        }
+
+        // Also adjust @lang/^^datatype tokens in the same annotation span when present.
+        const aSpan = readAttrsSpan(u.block);
+        if (aSpan) {
+            const tokens = normalizeAttrsTokens(aSpan.text);
+            const updated = updateAttrsDatatypeLang(tokens, u.addQuad.object);
+            if (updated.join(' ') !== tokens.join(' ')) {
+                if (updated.length === 0) {
+                    const before = text.substring(Math.max(0, aSpan.start - 1), aSpan.start);
+                    const deleteStart = before === ' ' ? aSpan.start - 1 : aSpan.start;
+                    edits.push({ start: deleteStart, end: aSpan.end, text: '' });
+                } else {
+                    edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(updated) });
                 }
             }
+        }
+    }
 
+    if (diff.delete) {
+        diff.delete.forEach(quad => {
+            if (!quad?.subject || !quad?.predicate || !quad?.object) return;
+
+            // If this delete is part of a literal update pair, skip token deletion.
+            // Updating the carrier value keeps the predicate token in-place.
+            if (quad.object.termType === 'Literal') {
+                const isUpdated = literalUpdates.some(u => u.deleteQuad === quad);
+                if (isUpdated) return;
+            }
+
+            const key = quadToKeyForOrigin(quad);
+            const entry = origin?.quadIndex?.get(key);
+            const blockId = entry?.blockId || entry;
             if (!blockId) return;
+            const block = origin?.blocks?.get(blockId);
+            const span = readAttrsSpan(block);
+            if (!span) return; // lossless: never touch carrier text, only edit when attrs span exists
 
-            const block = origin.blocks.get(blockId);
-            if (!block) return;
+            const tokens = normalizeAttrsTokens(span.text);
+            let updated = tokens;
+            let removed = false;
 
-            const start = block.range.start;
-            const end = block.range.end;
-            const before = text.substring(Math.max(0, start - 1), start);
-            const after = text.substring(end, Math.min(end + 1, text.length));
-            const deleteStart = before === '\n' ? start - 1 : start;
-            const deleteEnd = after === '\n' ? end + 1 : end;
+            if (entry?.kind === 'type' && quad.predicate.value.endsWith('rdf-syntax-ns#type')) {
+                const expectedType = entry.expandedType || quad.object.value;
+                ({ tokens: updated, removed } = removeOneToken(tokens, t => {
+                    if (!t.startsWith('.')) return false;
+                    const raw = t.slice(1);
+                    return expandIRI(raw, ctx) === expectedType;
+                }));
+            } else {
+                const expectedPred = entry?.expandedPredicate || quad.predicate.value;
+                const expectedForm = entry?.form;
+                ({ tokens: updated, removed } = removeOneToken(tokens, t => {
+                    // Match by expanded predicate + form
+                    const m = String(t).match(/^(\^\?|\^|\?|)(.+)$/);
+                    if (!m) return false;
+                    const form = m[1] || '';
+                    const raw = m[2];
+                    if (expectedForm != null && form !== expectedForm) return false;
+                    return expandIRI(raw, ctx) === expectedPred;
+                }));
+            }
 
-            edits.push({ start: deleteStart, end: deleteEnd, text: '' });
+            if (!removed) return;
+
+            // If the block becomes empty, remove just the annotation (optionally eat one leading space)
+            if (updated.length === 0) {
+                const before = text.substring(Math.max(0, span.start - 1), span.start);
+                const deleteStart = before === ' ' ? span.start - 1 : span.start;
+                edits.push({ start: deleteStart, end: span.end, text: '' });
+                return;
+            }
+
+            const newAttrs = writeAttrsTokens(updated);
+            edits.push({ start: span.start, end: span.end, text: newAttrs });
         });
     }
 
     if (diff.add) {
         diff.add.forEach(quad => {
-            let insertPos = result.length;
+            if (!quad?.subject || !quad?.predicate || !quad?.object) return;
 
-            // Find the best position to insert - look for existing blocks with same subject
-            let bestPos = result.length;
-            for (const [, block] of origin?.blocks || []) {
-                if (block.subject === quad.subject.value) {
-                    bestPos = Math.min(bestPos, block.range.end);
+            // If this add was consumed as a literal update, skip token insertion.
+            if (consumedAdds.has(quad)) return;
+
+            // Lossless rule: only add tokens into an existing {...} span; never create/move carriers.
+            // Prefer the exact annotation span where a related quad used to live (replacement update).
+            const anchorKey = JSON.stringify([quad.subject.value, objectSignature(quad.object)]);
+            const anchored = anchors.get(anchorKey) || null;
+            let targetBlock = anchored?.block || null;
+
+            // Fallback: pick the first block for this subject that has attrsRange (only if we can infer a safe token form).
+            if (!targetBlock) {
+                for (const [, block] of origin?.blocks || []) {
+                    if (block.subject === quad.subject.value && block.attrsRange) {
+                        targetBlock = block;
+                        break;
+                    }
                 }
             }
-            insertPos = bestPos;
 
-            const pred = shortenIRI(quad.predicate.value, ctx);
-            let objText;
-            let annotation = pred;
+            if (!targetBlock) return;
 
-            if (quad.object.termType === 'Literal') {
-                objText = quad.object.value;
+            const span = readAttrsSpan(targetBlock);
+            if (!span) return;
+            const tokens = normalizeAttrsTokens(span.text);
 
-                // Handle language tags and datatypes
-                if (quad.object.language) {
-                    annotation += ` @${quad.object.language}`;
-                } else if (quad.object.datatype && quad.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
-                    const datatype = shortenIRI(quad.object.datatype.value, ctx);
-                    annotation += ` ^^${datatype}`;
-                }
-            } else {
-                objText = shortenIRI(quad.object.value, ctx);
+            // Add rdf:type by inserting a .Class token when possible
+            if (quad.predicate.value.endsWith('rdf-syntax-ns#type') && quad.object?.termType === 'NamedNode') {
+                const typeShort = shortenIRI(quad.object.value, ctx);
+                const typeToken = typeShort.includes(':') || !typeShort.startsWith('http') ? `.${typeShort}` : null;
+                if (!typeToken) return;
+                if (tokens.includes(typeToken)) return;
+                const updated = [...tokens, typeToken];
+                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+                return;
             }
 
-            const newLine = `\n[${objText}] {${annotation}}`;
-            edits.push({ start: insertPos, end: insertPos, text: newLine });
+            // Add predicate token only (never encode object here; object lives in the value carrier)
+            // For stable routing, only add when we have a safe routing form.
+            // If anchored from a deleted quad, reuse that quad's routing form.
+            const form = anchored?.entry?.form;
+            if (form == null) return;
+            const predShort = shortenIRI(quad.predicate.value, ctx);
+            const predToken = `${form}${predShort}`;
+            if (!predToken) return;
+            if (tokens.includes(predToken)) return;
+            const updated = [...tokens, predToken];
+            edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
         });
     }
 
@@ -642,4 +837,4 @@ export function serialize({ text, diff, origin, options = {} }) {
     return { text: result, origin };
 }
 
-export default { parse, serialize, parseSemanticBlock };
+export default { parse, serialize, parseSemanticBlock, shortenIRI };

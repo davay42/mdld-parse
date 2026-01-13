@@ -11,303 +11,534 @@
         * {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            box-sizing: border-box
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
             line-height: 1.5;
             color: #e5e7eb;
-            background: #111827;
+            background: #111827
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 1rem;
+            padding: 1rem
         }
 
         header {
             text-align: center;
             margin-bottom: 2rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid #374151;
+            border-bottom: 1px solid #374151
         }
 
         h1 {
             font-size: 2.5rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: .5rem;
             background: linear-gradient(135deg, #3b82f6, #8b5cf6);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-text-fill-color: transparent
         }
 
         .tagline {
             font-size: 1rem;
             color: #9ca3af;
-            margin-bottom: 1rem;
+            margin-bottom: 1rem
         }
 
         .links {
             display: flex;
-            gap: 0.5rem;
+            gap: .5rem;
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: 1rem;
+            margin-bottom: 1rem
         }
 
         .links a {
             color: #60a5fa;
             text-decoration: none;
-            padding: 0.25rem 0.75rem;
+            padding: .25rem .75rem;
             border: 1px solid #374151;
             border-radius: 4px;
-            font-size: 0.875rem;
-            transition: all 0.2s;
+            font-size: .875rem;
+            transition: all .2s
         }
 
         .links a:hover {
             background: #374151;
-            border-color: #60a5fa;
+            border-color: #60a5fa
         }
 
-        .grid {
+        .format-section {
+            background: #1f2937;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem
+        }
+
+        .format-section h3 {
+            margin-bottom: .5rem;
+            color: #f3f4f6;
+            font-size: 1rem
+        }
+
+        .format-section p {
+            color: #9ca3af;
+            font-size: .875rem;
+            margin-bottom: .5rem
+        }
+
+        .feature-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: .5rem
         }
 
-        .playground {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .textarea {
-            width: 100%;
-            height: 250px;
-            padding: 0.75rem;
+        .feature {
+            background: #111827;
             border: 1px solid #374151;
             border-radius: 4px;
-            font-family: 'Monaco', 'Courier New', monospace;
-            font-size: 13px;
-            resize: vertical;
-            background: #1f2937;
-            color: #e5e7eb;
+            padding: .5rem
         }
 
-        .textarea:focus {
-            outline: none;
-            border-color: #60a5fa;
+        .feature h4 {
+            margin-bottom: .25rem;
+            color: #f3f4f6;
+            font-size: .875rem
         }
 
-        .output {
-            background: #1f2937;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            padding: 0.75rem;
-            height: 250px;
-            font-family: 'Monaco', 'Courier New', monospace;
-            font-size: 13px;
-            white-space: pre-wrap;
-            overflow: auto;
-            color: #e5e7eb;
-        }
-
-        .controls {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            align-items: center;
-        }
-
-        button {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-        }
-
-        button:hover {
-            background: #2563eb;
-        }
-
-        button:disabled {
-            background: #6b7280;
-            cursor: not-allowed;
-        }
-
-        button.secondary {
-            background: #4b5563;
-        }
-
-        button.secondary:hover {
-            background: #6b7280;
+        .feature p {
+            color: #9ca3af;
+            font-size: .75rem
         }
 
         .examples {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            gap: .5rem;
+            margin-bottom: 1rem
         }
 
         .example {
             background: #1f2937;
             border: 1px solid #374151;
             border-radius: 4px;
-            padding: 0.75rem;
+            padding: .75rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all .2s
         }
 
         .example:hover {
-            border-color: #60a5fa;
+            border-color: #60a5fa
         }
 
         .example h4 {
-            margin-bottom: 0.25rem;
+            margin-bottom: .25rem;
             color: #f3f4f6;
-            font-size: 0.875rem;
+            font-size: .875rem
         }
 
         .example p {
-            font-size: 0.75rem;
-            color: #9ca3af;
+            font-size: .75rem;
+            color: #9ca3af
+        }
+
+        .playground {
+            display: grid;
+            grid-template-columns: minmax(360px, 1.2fr) minmax(360px, 1fr) minmax(360px, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: start
+        }
+
+        .playground>* {
+            min-width: 0
+        }
+
+        .textarea {
+            width: 100%;
+            height: 250px;
+            padding: .75rem;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            background: #1f2937;
+            color: #e5e7eb
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #60a5fa
+        }
+
+        .output {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            padding: .75rem;
+            height: 250px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            overflow: auto;
+            color: #e5e7eb
+        }
+
+        .controls {
+            display: flex;
+            gap: .5rem;
+            margin-bottom: 1rem;
+            align-items: center
+        }
+
+        .hidden {
+            display: none
+        }
+
+        button {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: .5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: .875rem;
+            transition: all .2s
+        }
+
+        button:hover {
+            background: #2563eb
+        }
+
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed
+        }
+
+        button.secondary {
+            background: #4b5563
+        }
+
+        button.secondary:hover {
+            background: #6b7280
+        }
+
+        .compact-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: .875rem;
+            color: #9ca3af
+        }
+
+        .muted {
+            color: #9ca3af
+        }
+
+        .kv {
+            display: flex;
+            gap: .75rem;
+            flex-wrap: wrap
+        }
+
+        .pill {
+            border: 1px solid #374151;
+            background: #111827;
+            border-radius: 999px;
+            padding: .1rem .5rem;
+            font-size: .75rem;
+            color: #cbd5e1
+        }
+
+        .mdld-preview {
+            white-space: pre-wrap;
+            user-select: text
+        }
+
+        .mdld-ann {
+            opacity: .5;
+            background: #0b1220;
+            border: 1px solid #22304a;
+            border-radius: 3px;
+            padding: 0 .15rem
+        }
+
+        .mdld-carrier {
+            color: #e5e7eb
+        }
+
+        .quad {
+            display: flex;
+            gap: .4rem;
+            align-items: center;
+            padding: .2rem 0;
+            border-bottom: 1px dashed #374151;
+            min-width: 0
+        }
+
+        .quad:last-child {
+            border-bottom: none
+        }
+
+        .q-sep {
+            color: #64748b
+        }
+
+        .q-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            max-width: 100%;
+            border: 1px solid #334155;
+            background: #0b1220;
+            border-radius: 6px;
+            padding: .12rem .4rem
+        }
+
+        .q-k {
+            font-size: .68rem;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #94a3b8
+        }
+
+        .q-v {
+            display: inline-block;
+            max-width: 48ch;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .q-s {
+            border-color: #1e3a8a;
+            background: #0b1730
+        }
+
+        .q-s .q-k {
+            color: #93c5fd
+        }
+
+        .q-p {
+            border-color: #334155;
+            background: #0b1220
+        }
+
+        .q-p .q-k {
+            color: #e2e8f0
+        }
+
+        .q-o {
+            border-color: #3f3f46;
+            background: #0f172a
+        }
+
+        .q-o .q-k {
+            color: #a1a1aa
+        }
+
+        .q-lit {
+            border-color: #44403c;
+            background: #15110f
+        }
+
+        .q-lit .q-k {
+            color: #f5f5f4
+        }
+
+        .crud {
+            margin-top: .75rem
+        }
+
+        .crud-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem
+        }
+
+        .crud-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            overflow: hidden
+        }
+
+        .crud-table th,
+        .crud-table td {
+            border-bottom: 1px solid #374151;
+            padding: .35rem .5rem;
+            text-align: left;
+            font-size: .8rem
+        }
+
+        .crud-table th {
+            background: #111827;
+            color: #cbd5e1;
+            font-weight: 600
+        }
+
+        .crud-table tr:hover td {
+            background: #0f172a
+        }
+
+        .crud-input {
+            width: 100%;
+            background: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            padding: .25rem .4rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 12px
+        }
+
+        .crud-input:focus {
+            outline: none;
+            border-color: #60a5fa
+        }
+
+        .danger {
+            background: #ef4444
+        }
+
+        .danger:hover {
+            background: #dc2626
         }
 
         .test-section {
             background: #1f2937;
             border-radius: 6px;
             padding: 1rem;
-            margin-bottom: 1rem;
+            margin-bottom: 1rem
         }
 
         .test-controls {
             display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            align-items: center;
+            gap: .5rem;
+            margin-bottom: .5rem;
+            align-items: center
         }
 
         .stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
+            gap: .5rem;
+            margin-bottom: .5rem
         }
 
         .stat {
             background: #111827;
-            padding: 0.5rem;
+            padding: .5rem;
             border-radius: 4px;
             text-align: center;
-            border: 1px solid #374151;
+            border: 1px solid #374151
         }
 
         .stat-value {
             font-size: 1.25rem;
             font-weight: 700;
-            margin-bottom: 0.25rem;
+            margin-bottom: .25rem
         }
 
         .stat-label {
-            font-size: 0.75rem;
-            color: #9ca3af;
+            font-size: .75rem;
+            color: #9ca3af
         }
 
         .passed {
-            color: #10b981;
+            color: #10b981
         }
 
         .failed {
-            color: #ef4444;
+            color: #ef4444
         }
 
         .total {
-            color: #60a5fa;
+            color: #60a5fa
         }
 
         .test-list {
             max-height: 300px;
-            overflow-y: auto;
+            overflow-y: auto
         }
 
         .test-item {
             background: #111827;
             border: 1px solid #374151;
             border-radius: 4px;
-            padding: 0.75rem;
-            margin-bottom: 0.25rem;
-            transition: all 0.2s;
+            padding: .75rem;
+            margin-bottom: .25rem;
+            transition: all .2s
         }
 
         .test-item:hover {
-            border-color: #60a5fa;
+            border-color: #60a5fa
         }
 
         .test-item.passed {
-            border-left: 3px solid #10b981;
+            border-left: 3px solid #10b981
         }
 
         .test-item.failed {
-            border-left: 3px solid #ef4444;
+            border-left: 3px solid #ef4444
         }
 
         .test-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
+            gap: .5rem;
+            margin-bottom: .5rem
         }
 
         .test-icon {
-            font-size: 1rem;
+            font-size: 1rem
         }
 
         .test-name {
             flex: 1;
             font-weight: 500;
-            font-size: 0.875rem;
+            font-size: .875rem
         }
 
         .test-duration {
-            font-size: 0.75rem;
-            color: #9ca3af;
+            font-size: .75rem;
+            color: #9ca3af
         }
 
         .test-details {
-            margin-top: 0.5rem;
-            padding-top: 0.5rem;
+            margin-top: .5rem;
+            padding-top: .5rem;
             border-top: 1px solid #374151;
-            display: none;
+            display: none
         }
 
         .test-details.open {
-            display: block;
+            display: block
         }
 
         .test-input,
         .test-output {
             background: #0f172a;
-            padding: 0.5rem;
+            padding: .5rem;
             border-radius: 4px;
-            font-family: 'Monaco', 'Courier New', monospace;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
             font-size: 11px;
             white-space: pre-wrap;
             max-height: 150px;
             overflow-y: auto;
-            margin-bottom: 0.5rem;
+            margin-bottom: .5rem;
             color: #e5e7eb;
-            user-select: text;
+            user-select: text
         }
 
         .progress {
@@ -315,78 +546,28 @@
             background: #374151;
             border-radius: 2px;
             overflow: hidden;
-            margin-bottom: 0.5rem;
+            margin-bottom: .5rem
         }
 
         .progress-bar {
             height: 100%;
             background: #3b82f6;
-            transition: width 0.3s ease;
+            transition: width .3s ease
         }
 
-        .format-section {
-            background: #1f2937;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .format-section h3 {
-            margin-bottom: 0.5rem;
-            color: #f3f4f6;
-            font-size: 1rem;
-        }
-
-        .format-section p {
-            color: #9ca3af;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.5rem;
-        }
-
-        .feature {
-            background: #111827;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            padding: 0.5rem;
-        }
-
-        .feature h4 {
-            margin-bottom: 0.25rem;
-            color: #f3f4f6;
-            font-size: 0.875rem;
-        }
-
-        .feature p {
-            color: #9ca3af;
-            font-size: 0.75rem;
-        }
-
-        .compact-stats {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.875rem;
-            color: #9ca3af;
+        @media (max-width: 900px) {
+            .playground {
+                grid-template-columns: 1fr
+            }
         }
 
         @media (max-width: 768px) {
-
-            .grid,
-            .playground {
-                grid-template-columns: 1fr;
-            }
-
             .stats {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, 1fr)
             }
 
             h1 {
-                font-size: 2rem;
+                font-size: 2rem
             }
         }
     </style>
@@ -432,6 +613,11 @@
 
         <section id="playground" class="format-section">
             <h3>🎮 Interactive Playground</h3>
+            <div class="kv" style="margin-bottom: .5rem;">
+                <span class="pill">MD-LD highlight</span>
+                <span class="pill">Quad highlight</span>
+                <span class="pill">Quad CRUD → diff → serialize()</span>
+            </div>
             <div class="examples">
                 <div class="example" onclick="loadExample('journal')">
                     <h4>📔 Personal Journal</h4>
@@ -461,14 +647,53 @@ Title: [My Document] {name}
 Author: [Alice] {=ex:alice .Person ?author}"></textarea>
                 </div>
                 <div>
-                    <h3>RDF Triples Output</h3>
-                    <div id="output" class="output">RDF triples will appear here...</div>
+                    <h3>Quads (highlighted)</h3>
+                    <div id="output" class="output">Quads will appear here...</div>
+                </div>
+                <div>
+                    <h3>MD-LD (highlighted)</h3>
+                    <div id="mdld-preview" class="output mdld-preview">MD-LD preview will appear here...</div>
                 </div>
             </div>
             <div class="controls">
                 <button onclick="parseMDLD()">🔄 Parse MD-LD</button>
                 <button class="secondary" onclick="clearPlayground()">🗑️ Clear</button>
+                <button class="secondary" onclick="toggleQuadLab()">🧩 Quad Lab</button>
                 <span id="parse-stats" class="compact-stats" style="margin-left: auto;"></span>
+            </div>
+
+            <div class="crud hidden" id="quadlab">
+                <h3>🧩 Quad Lab (CRUD + diff apply)</h3>
+                <p class="muted">Edit quads below. Applying changes generates a diff and calls <code>serialize()</code>
+                    to patch the MD-LD source.</p>
+                <div class="controls" style="margin-bottom:.5rem;">
+                    <button class="secondary" onclick="quadLabReset()">↩ Reset from parse()</button>
+                    <button onclick="quadLabAddRow()">➕ Add quad</button>
+                    <button class="danger" onclick="quadLabDeleteSelected()">🗑 Delete selected</button>
+                    <span id="quadlab-stats" class="compact-stats" style="margin-left:auto;"></span>
+                </div>
+                <div class="crud-grid">
+                    <div>
+                        <table class="crud-table" id="quadlab-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 2.5rem;">Sel</th>
+                                    <th>S</th>
+                                    <th>P</th>
+                                    <th>O</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quadlab-body"></tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <div class="output" id="quadlab-diff">Diff will appear here...</div>
+                        <div class="controls" style="margin-top:.5rem;margin-bottom:0;">
+                            <button onclick="quadLabApplyDiff()">✅ Apply diff via serialize()</button>
+                            <button class="secondary" onclick="quadLabCopyDiff()">📋 Copy diff JSON</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -517,7 +742,7 @@ Author: [Alice] {=ex:alice .Person ?author}"></textarea>
   </script>
 
     <script type="module">
-        import { parse } from './index.js';
+        import { parse, serialize, shortenIRI } from './index.js';
         import { runTests, tests } from './tests.js';
 
         let currentTestResults = [];
@@ -644,14 +869,97 @@ Followed by: {^?ex:followedBy .SpaceMission}
             parseMDLD();
         };
 
+        let lastParse = null;
+
+        function escapeHtml(s) {
+            return String(s)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function short(term, ctx) {
+            return shortenIRI(term, ctx);
+        }
+
+        function clipTitle(full, display) {
+            return display === full ? display : `${display}\n${full}`;
+        }
+
+        function chip(kind, fullValue, displayValue, extraClass = '') {
+            const d = escapeHtml(displayValue);
+            const t = escapeHtml(clipTitle(fullValue, displayValue));
+            return `<span class="q-chip ${extraClass}"><span class="q-k">${kind}</span><span class="q-v" title="${t}">${d}</span></span>`;
+        }
+
+        function highlightMdld(text) {
+            const src = String(text || '');
+            let out = '';
+            let i = 0;
+            while (i < src.length) {
+                const open = src.indexOf('{', i);
+                if (open === -1) {
+                    out += escapeHtml(src.slice(i));
+                    break;
+                }
+                out += escapeHtml(src.slice(i, open));
+                let depth = 0;
+                let j = open;
+                while (j < src.length) {
+                    const ch = src[j];
+                    if (ch === '{') depth++;
+                    if (ch === '}') {
+                        depth--;
+                        if (depth === 0) {
+                            j++;
+                            break;
+                        }
+                    }
+                    j++;
+                }
+                const block = src.slice(open, j);
+                out += `<span class="mdld-ann">${escapeHtml(block)}</span>`;
+                i = j;
+            }
+            return out;
+        }
+
+        function quadKey(quad) {
+            const o = quad.object;
+            const oKey = o.termType === 'Literal'
+                ? JSON.stringify({ t: 'L', v: o.value, lang: o.language || '', dt: o.datatype?.value || '' })
+                : JSON.stringify({ t: o.termType, v: o.value });
+            return JSON.stringify([quad.subject.value, quad.predicate.value, oKey]);
+        }
+
+        function parseObjectField(raw) {
+            const s = String(raw || '').trim();
+            if (!s) return null;
+            if (s.startsWith('"')) {
+                const m = s.match(/^"([\s\S]*)"(?:@([a-zA-Z-]+)|\^\^<([^>]+)>|\^\^([^\s]+))?$/);
+                if (!m) return { termType: 'Literal', value: s.replace(/^"|"$/g, ''), language: '', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } };
+                const value = m[1].replace(/\\"/g, '"');
+                if (m[2]) return { termType: 'Literal', value, language: m[2], datatype: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString' } };
+                const dt = m[3] || m[4];
+                if (dt) return { termType: 'Literal', value, language: '', datatype: { termType: 'NamedNode', value: dt.startsWith('http') ? dt : dt } };
+                return { termType: 'Literal', value, language: '', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } };
+            }
+            const iri = s.startsWith('<') && s.endsWith('>') ? s.slice(1, -1) : s;
+            return { termType: 'NamedNode', value: iri };
+        }
+
         // Parse MD-LD
         window.parseMDLD = function () {
             const input = document.getElementById('input').value;
             const output = document.getElementById('output');
+            const preview = document.getElementById('mdld-preview');
             const stats = document.getElementById('parse-stats');
 
             if (!input.trim()) {
                 output.textContent = 'Enter MD-LD content to parse...';
+                preview.textContent = 'MD-LD preview will appear here...';
                 stats.textContent = '';
                 return;
             }
@@ -662,38 +970,45 @@ Followed by: {^?ex:followedBy .SpaceMission}
                 const result = parse(input, { context: { ex: 'http://example.org/' } });
                 const duration = Math.round(performance.now() - startTime);
 
-                // Convert quads to readable format
-                const quadText = quadsToText(result.quads);
+                lastParse = { input, result };
 
-                output.textContent = quadText;
+                preview.innerHTML = highlightMdld(input);
+
+                // Convert quads to readable format
+                output.innerHTML = quadsToHtml(result.quads);
                 stats.textContent = `${result.quads.length} triples • ${duration}ms`;
+
+                quadLabReset();
             } catch (error) {
                 output.textContent = `Error: ${error.message}`;
+                preview.textContent = 'MD-LD preview will appear here...';
                 stats.textContent = '';
             }
         };
 
-        // Convert quads to readable text format
-        function quadsToText(quads) {
-            if (quads.length === 0) return '# No triples generated';
+        function quadsToHtml(quads) {
+            if (!quads || quads.length === 0) return '<div class="muted"># No quads generated</div>';
+            return quads.map(q => {
+                const ctx = lastParse?.result?.context || {};
+                const sFull = q.subject.value;
+                const pFull = q.predicate.value;
+                const sDisp = short(sFull, ctx);
+                const pDisp = short(pFull, ctx);
 
-            let text = '';
-            quads.forEach((quad, i) => {
-                const subject = quad.subject.value;
-                const predicate = quad.predicate.value;
-                let object;
+                const s = chip('S', sFull, sDisp, 'q-s');
+                const p = chip('P', pFull, pDisp, 'q-p');
 
-                if (quad.object.termType === 'NamedNode') {
-                    object = `<${quad.object.value}>`;
+                let o;
+                if (q.object.termType === 'Literal') {
+                    o = chip('L', formatLiteral(q.object), formatLiteral(q.object), 'q-lit');
                 } else {
-                    object = formatLiteral(quad.object);
+                    const oFull = q.object.value;
+                    const oDisp = short(oFull, ctx);
+                    o = chip('O', oFull, oDisp, 'q-o');
                 }
 
-                text += `${subject} -> ${predicate} -> ${object}`;
-                if (i < quads.length - 1) text += '\n';
-            });
-
-            return text;
+                return `<div class="quad">${s}<span class="q-sep">→</span>${p}<span class="q-sep">→</span>${o}</div>`;
+            }).join('');
         }
 
         // Format literal with datatype/language
@@ -713,8 +1028,129 @@ Followed by: {^?ex:followedBy .SpaceMission}
         // Clear playground
         window.clearPlayground = function () {
             document.getElementById('input').value = '';
-            document.getElementById('output').textContent = 'RDF triples will appear here...';
+            document.getElementById('output').textContent = 'Quads will appear here...';
+            document.getElementById('mdld-preview').textContent = 'MD-LD preview will appear here...';
             document.getElementById('parse-stats').textContent = '';
+            document.getElementById('quadlab-body').innerHTML = '';
+            document.getElementById('quadlab-diff').textContent = 'Diff will appear here...';
+            document.getElementById('quadlab-stats').textContent = '';
+        };
+
+        function normalizeQuadFromFields(s, p, oField) {
+            const S = String(s || '').trim();
+            const P = String(p || '').trim();
+            const O = parseObjectField(oField);
+            if (!S || !P || !O) return null;
+            return { subject: { termType: 'NamedNode', value: S }, predicate: { termType: 'NamedNode', value: P }, object: O, graph: { termType: 'NamedNode', value: '' } };
+        }
+
+        function quadToRow(quad, idx) {
+            const tr = document.createElement('tr');
+            tr.dataset.idx = String(idx);
+            const oField = quad.object.termType === 'Literal' ? formatLiteral(quad.object) : `<${quad.object.value}>`;
+            tr.innerHTML = `
+                <td><input type="checkbox" data-role="sel" /></td>
+                <td><input class="crud-input" data-role="s" value="${escapeHtml(quad.subject.value)}" /></td>
+                <td><input class="crud-input" data-role="p" value="${escapeHtml(quad.predicate.value)}" /></td>
+                <td><input class="crud-input" data-role="o" value="${escapeHtml(oField)}" /></td>
+            `;
+            tr.addEventListener('input', () => quadLabUpdateDiff());
+            tr.addEventListener('change', () => quadLabUpdateDiff());
+            return tr;
+        }
+
+        function quadLabGetRows() {
+            const rows = [...document.querySelectorAll('#quadlab-body tr')];
+            return rows.map(tr => {
+                const s = tr.querySelector('[data-role="s"]').value;
+                const p = tr.querySelector('[data-role="p"]').value;
+                const o = tr.querySelector('[data-role="o"]').value;
+                return normalizeQuadFromFields(s, p, o);
+            }).filter(Boolean);
+        }
+
+        function quadLabDiffFrom(last, next) {
+            const lastMap = new Map((last || []).map(q => [quadKey(q), q]));
+            const nextMap = new Map((next || []).map(q => [quadKey(q), q]));
+            const del = [];
+            const add = [];
+            for (const [k, q] of lastMap) if (!nextMap.has(k)) del.push(q);
+            for (const [k, q] of nextMap) if (!lastMap.has(k)) add.push(q);
+            return { delete: del, add };
+        }
+
+        window.quadLabReset = function () {
+            const body = document.getElementById('quadlab-body');
+            body.innerHTML = '';
+            const base = lastParse?.result?.quads || [];
+            base.forEach((q, i) => body.appendChild(quadToRow(q, i)));
+            quadLabUpdateDiff();
+        };
+
+        window.quadLabAddRow = function () {
+            const body = document.getElementById('quadlab-body');
+            const idx = body.children.length;
+            const empty = {
+                subject: { termType: 'NamedNode', value: 'http://example.org/s' },
+                predicate: { termType: 'NamedNode', value: 'http://schema.org/name' },
+                object: { termType: 'Literal', value: 'value', language: '', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } },
+                graph: { termType: 'NamedNode', value: '' }
+            };
+            body.appendChild(quadToRow(empty, idx));
+            quadLabUpdateDiff();
+        };
+
+        window.quadLabDeleteSelected = function () {
+            const body = document.getElementById('quadlab-body');
+            [...body.querySelectorAll('tr')].forEach(tr => {
+                const sel = tr.querySelector('[data-role="sel"]');
+                if (sel?.checked) tr.remove();
+            });
+            quadLabUpdateDiff();
+        };
+
+        function quadLabUpdateDiff() {
+            const diffBox = document.getElementById('quadlab-diff');
+            const stats = document.getElementById('quadlab-stats');
+            const base = lastParse?.result?.quads || [];
+            const next = quadLabGetRows();
+            const diff = quadLabDiffFrom(base, next);
+            const payload = { delete: diff.delete, add: diff.add };
+            diffBox.textContent = JSON.stringify(payload, null, 2);
+            stats.textContent = `${next.length} quads • +${diff.add.length} / -${diff.delete.length}`;
+        }
+
+        window.quadLabCopyDiff = async function () {
+            const text = document.getElementById('quadlab-diff').textContent || '';
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch {
+                // ignore
+            }
+        };
+
+        window.quadLabApplyDiff = function () {
+            if (!lastParse?.result?.origin) return;
+            const inputEl = document.getElementById('input');
+            const base = lastParse.result.quads || [];
+            const next = quadLabGetRows();
+            const diff = quadLabDiffFrom(base, next);
+
+            const patched = serialize({
+                text: inputEl.value,
+                diff,
+                origin: lastParse.result.origin,
+                options: { context: lastParse.result.context }
+            });
+
+            inputEl.value = patched.text;
+            parseMDLD();
+        };
+
+        window.toggleQuadLab = function () {
+            const el = document.getElementById('quadlab');
+            if (!el) return;
+            el.classList.toggle('hidden');
         };
 
         // Run all tests
@@ -803,7 +1239,7 @@ Followed by: {^?ex:followedBy .SpaceMission}
         <div class="test-details" id="details-${name.replace(/\s+/g, '-')}">
           ${result ? `
             <div class="test-input">${result.input}</div>
-            <div class="test-output">${quadsToText(result.output.quads)}</div>
+            <div class="test-output">${(result.output.quads || []).map(q => `${q.subject.value} -> ${q.predicate.value} -> ${q.object.termType === 'Literal' ? formatLiteral(q.object) : `<${q.object.value}>`}`).join('\n')}</div>
           ` : ''}
           ${error ? `<div style="color: #ef4444; font-family: monospace; font-size: 11px;">${error}</div>` : ''}
         </div>
