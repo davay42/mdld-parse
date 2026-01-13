@@ -1,300 +1,455 @@
-# MD-LD Parse
+# MD-LD Parse v0.2
 
-**Markdown-Linked Data (MD-LD)** — a human-friendly RDF authoring format that extends Markdown with semantic annotations.
+**Markdown-Linked Data (MD-LD)** — a deterministic, streaming-friendly RDF authoring format that extends Markdown with explicit `{}` annotations.
 
-[NPM](https://www.npmjs.com/package/mdld-parse)
+[![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
+[![License](https://img.shields.io/npm/l/mdld-parse)](https://github.com/mdld-js/mdld-parse)
 
-[Website](https://mdld.js.org)
+[Documentation](https://mdld.js.org) | [Specification](https://mdld.js.org/spec) | [Playground](https://mdld.js.org/playground)
 
 ## What is MD-LD?
 
-MD-LD allows you to author RDF graphs directly in Markdown using familiar syntax:
+MD-LD allows you to author RDF graphs directly in Markdown using explicit `{}` annotations:
 
 ```markdown
-# My Note {=urn:mdld:my-note-20251231 .NoteDigitalDocument}
+# Apollo 11 {=ex:apollo11 .SpaceMission}
 
-[ex]{: http://example.org/}
-
-Written by [Alice Johnson](=ex:alice){author .Person}
-
-## Alice's biography {=ex:alice}
-
-[Alice](ex:alice){name} works at [Tech Corp](=ex:tech-corp){worksFor .Organization}
+Launch: [1969-07-16] {startDate ^^xsd:date}
+Crew: [Neil Armstrong](ex:armstrong) {?crewMember}
+Description: [First crewed Moon landing] {description}
 ```
 
-This generates valid RDF triples while remaining readable as plain Markdown.
+Generates valid RDF triples:
 
-```n-quads
-<urn:mdld:my-note-20251231> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/NoteDigitalDocument> .
-<urn:mdld:my-note-20251231> <http://schema.org/author> <http://example.org/alice> .
-<http://example.org/alice> <http://schema.org/name> "Alice" .
-<http://example.org/alice> <http://schema.org/worksFor> <http://example.org/tech-corp> .
+```turtle
+ex:apollo11 a schema:SpaceMission ;
+  schema:startDate "1969-07-16"^^xsd:date ;
+  schema:crewMember ex:armstrong ;
+  schema:description "First crewed Moon landing" .
 ```
 
-## Architecture
+## Core Guarantees
 
-### Design Principles
+MD-LD v0.2 provides strict semantic guarantees:
 
-1. **Streaming First** — Process documents incrementally without loading entire AST into memory
-2. **Zero Dependencies** — Pure JavaScript, runs in Node.js and browsers
-3. **Standards Compliant** — Outputs RDF quads compatible with RDFa semantics
-4. **Markdown Native** — Plain Markdown yields minimal but valid RDF
-5. **Progressive Enhancement** — Add semantics incrementally via attributes
-6. **BaseIRI Inference** — Automatically infers baseIRI from document structure
-7. **Default Vocabulary** — Provides default vocabulary for common properties, extensible via options
-
-### Stack Choices
-
-#### Parser: Custom Zero-Dependency Tokenizer
-
-We implement a **minimal, purpose-built parser** for maximum control and zero dependencies:
-
-- **Custom Markdown tokenizer** — Line-by-line parsing of headings, lists, paragraphs, code blocks
-- **Inline attribute parser** — Pandoc-style `{=iri .class key="value"}` attribute extraction
-- **RDF quad generator** — Direct mapping from tokens to RDF/JS quads
-
-**Why custom?**
-
-- **Zero dependencies** — Runs anywhere JavaScript runs
-- **Lightweight** — ~15KB minified, no AST overhead
-- **Focused** — Optimized specifically for MD-LD semantics
-- **Transparent** — Easy to understand and extend
-- **Fast** — Single-pass parsing with minimal allocations
-
-#### RDF Output: RDF/JS Data Model
-
-We implement the [RDF/JS specification](https://rdf.js.org/data-model-spec/):
-
-```javascript
-{
-  termType: 'NamedNode' | 'BlankNode' | 'Literal',
-  value: string,
-  language?: string,
-  datatype?: NamedNode
-}
-```
-
-This ensures compatibility with:
-
-- `n3.js` — Turtle/N-Triples serialization
-- `rdflib.js` — RDF store and reasoning
-- `sparqljs` — SPARQL query parsing
-- `rdf-ext` — Extended RDF utilities
-
-### Processing Pipeline
-
-```
-Markdown Text
-    ↓
-[Custom Tokenizer] — Extract headings, lists, paragraphs, code blocks
-    ↓
-[Attribute Parser] — Parse {=iri .class key="value"} from tokens
-    ↓
-[Inline Parser] — Extract [text](url){attrs} spans
-    ↓
-[RDF Quad Generator] — Map tokens to RDF/JS quads
-    ↓
-RDF Quads (RDF/JS format)
-    ↓
-[Optional] n3.js Writer → Turtle/N-Triples
-```
-
-### Architecture Benefits
-
-The zero-dependency design provides:
-
-1. **Single-pass parsing** — Process document once, emit quads immediately
-2. **Minimal memory** — No AST construction, only token stream
-3. **Predictable performance** — Linear time complexity, bounded memory
-4. **Easy integration** — Works in Node.js, browsers, and edge runtimes
+1. **CommonMark-preserving** — Removing `{}` yields valid Markdown
+2. **Explicit semantics** — Every quad originates from explicit `{}`
+3. **Single-pass parsing** — Streaming-friendly, deterministic
+4. **No blank nodes** — All subjects are stable IRIs
+5. **Complete traceability** — Every quad maps to source location
+6. **Round-trip capable** — Markdown ↔ RDF ↔ Markdown preserves structure
 
 ## Installation
-
-### Node.js
 
 ```bash
 npm install mdld-parse
 ```
 
-```javascript
-import { parse } from "mdld-parse";
+### Node.js
 
-const markdown = `# Hello {=urn:mdld:hello .Article}`;
-const result = parse(markdown);
-const quads = result.quads;
+```javascript
+import { parse } from 'mdld-parse';
+
+const markdown = `# Document {=ex:doc .Article}
+
+[Alice] {author}`;
+
+const result = parse(markdown, {
+  context: { ex: 'http://example.org/' }
+});
+
+console.log(result.quads);
+// RDF/JS quads ready for n3.js, rdflib, etc.
 ```
 
-### Browser (via CDN)
+### Browser (ES Modules)
 
 ```html
-<script type="importmap">
-	{
-		"imports": {
-			"mdld-parse": "https://cdn.jsdelivr.net/npm/mdld-parse/+esm"
-		}
-	}
-</script>
-
 <script type="module">
-	import { parse } from "mdld-parse";
-	// use parse...
+  import { parse } from 'https://cdn.jsdelivr.net/npm/mdld-parse/+esm';
+  
+  const result = parse('# Hello {=ex:hello}');
 </script>
 ```
 
-## API
+## Semantic Model
+
+MD-LD encodes a directed labeled multigraph where three nodes may be in scope:
+
+- **S** — current subject (IRI)
+- **O** — object resource (IRI from link/image)
+- **L** — literal value (string + optional datatype/language)
+
+### Predicate Routing (§8.1)
+
+Each predicate form determines the graph edge:
+
+| Form  | Edge    | Example                      | Meaning          |
+|-------|---------|------------------------------|------------------|
+| `p`   | S → L   | `[Alice] {name}`             | literal property |
+| `?p`  | S → O   | `[NASA](ex:nasa) {?org}`     | object property  |
+| `^p`  | *(none)*| *(literals can't be subjects)* | reverse literal  |
+| `^?p` | O → S   | `[Parent](ex:p) {^?hasPart}` | reverse object   |
+
+## Syntax Reference
+
+### Subject Declaration
+
+Set the current subject (emits no quads):
+
+```markdown
+## Apollo 11 {=ex:apollo11}
+```
+
+Subject remains in scope until reset with `{=}` or new subject declared.
+
+### Type Declaration
+
+Emit `rdf:type` triple:
+
+```markdown
+## Apollo 11 {=ex:apollo11 .SpaceMission .Event}
+```
+
+```turtle
+ex:apollo11 a schema:SpaceMission, schema:Event .
+```
+
+### Literal Properties
+
+Inline value carriers emit literal properties:
+
+```markdown
+# Mission {=ex:apollo11}
+
+[Neil Armstrong] {commander}
+[1969] {year ^^xsd:gYear}
+[Historic mission] {description @en}
+```
+
+```turtle
+ex:apollo11 schema:commander "Neil Armstrong" ;
+  schema:year "1969"^^xsd:gYear ;
+  schema:description "Historic mission"@en .
+```
+
+### Object Properties
+
+Links create relationships (use `?` prefix):
+
+```markdown
+# Mission {=ex:apollo11}
+
+[NASA](ex:nasa) {?organizer}
+```
+
+```turtle
+ex:apollo11 schema:organizer ex:nasa .
+```
+
+### Resource Declaration
+
+Declare resources inline with `(=iri)`:
+
+```markdown
+# Mission {=ex:apollo11}
+
+[Neil Armstrong](=ex:armstrong) {?commander .Person}
+```
+
+```turtle
+ex:apollo11 schema:commander ex:armstrong .
+ex:armstrong a schema:Person .
+```
+
+### Lists
+
+Lists require explicit subjects per item:
+
+```markdown
+# Recipe {=ex:recipe}
+
+Ingredients: {?ingredient .Ingredient}
+
+- [Flour](=ex:flour) {name}
+- [Water](=ex:water) {name}
+```
+
+```turtle
+ex:recipe schema:ingredient ex:flour, ex:water .
+ex:flour a schema:Ingredient ; schema:name "Flour" .
+ex:water a schema:Ingredient ; schema:name "Water" .
+```
+
+### Code Blocks
+
+Code blocks are value carriers:
+
+````markdown
+# Example {=ex:example}
+
+```javascript {=ex:code .SoftwareSourceCode text}
+console.log("hello");
+```
+````
+
+```turtle
+ex:code a schema:SoftwareSourceCode ;
+  schema:text "console.log(\"hello\")" .
+```
+
+### Blockquotes
+
+```markdown
+# Article {=ex:article}
+
+> MD-LD bridges Markdown and RDF. {abstract}
+```
+
+```turtle
+ex:article schema:abstract "MD-LD bridges Markdown and RDF." .
+```
+
+### Reverse Relations
+
+Reverse the relationship direction:
+
+```markdown
+# Part {=ex:part}
+
+Part of: {^?hasPart}
+
+- [Book](=ex:book) {}
+```
+
+```turtle
+ex:book schema:hasPart ex:part .
+```
+
+### Prefix Declarations
+
+```markdown
+[ex] {: http://example.org/}
+[foaf] {: http://xmlns.com/foaf/0.1/}
+
+# Person {=ex:alice .foaf:Person}
+```
+
+## API Reference
 
 ### `parse(markdown, options)`
 
-Parse MD-LD markdown and return parsing result.
+Parse MD-LD markdown and return RDF quads with origin tracking.
 
 **Parameters:**
 
 - `markdown` (string) — MD-LD formatted text
 - `options` (object, optional):
-  - `baseIRI` (string) — Base IRI for relative references
-  - `context` (object) — Additional context to merge with default context
-  - `dataFactory` (object) — Custom RDF/JS DataFactory (default: built-in)
+  - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://schema.org/', rdf, rdfs, xsd, schema }`)
+  - `dataFactory` (object) — Custom RDF/JS DataFactory
 
-**Returns:** Object containing:
+**Returns:** `{ quads, origin, context }`
+
 - `quads` — Array of RDF/JS Quads
-- `origin` — Object with `blocks` and `quadIndex` for serialization
-- `context` — Final context used for parsing
+- `origin` — Origin tracking object with:
+  - `blocks` — Map of block IDs to source locations
+  - `quadIndex` — Map of quads to block IDs
+- `context` — Final context used (includes prefixes)
 
-### `serialize({ text, diff, origin, options })`
-
-Serialize RDF changes back to markdown with proper positioning.
-
-**Parameters:**
-
-- `text` (string) — Original markdown text
-- `diff` (object) — Changes to apply:
-  - `add` — Array of quads to add
-  - `delete` — Array of quads to remove
-- `origin` (object) — Origin object from parse result
-- `options` (object, optional) — Additional options:
-  - `context` (object) — Context for IRI shortening (default: empty object)
-
-**Returns:** Object containing:
-- `text` — Updated markdown text
-- `origin` — Updated origin object
+**Example:**
 
 ```javascript
 const result = parse(
-	`
-# Article Title {=ex:article .Article}
-
-Written by [Alice](ex:alice) {ex:author}
-`,
-	{
-		baseIRI: "http://example.org/doc",
-		context: {
-      '@vocab': 'http://schema.org/',
-    },
-	}
+  `# Article {=ex:article .Article}
+  
+  [Alice](ex:alice) {?author}`,
+  { context: { ex: 'http://example.org/' } }
 );
 
-// result.quads[0] = {
-//   subject: { termType: 'NamedNode', value: 'http://example.org/doc#article' },
-//   predicate: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
-//   object: { termType: 'NamedNode', value: 'http://schema.org/Article' },
-//   graph: { termType: 'DefaultGraph' }
-// }
+console.log(result.quads);
+// [
+//   {
+//     subject: { termType: 'NamedNode', value: 'http://example.org/article' },
+//     predicate: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+//     object: { termType: 'NamedNode', value: 'http://schema.org/Article' }
+//   },
+//   ...
+// ]
+```
 
-// Add a new quad with proper IRI shortening
+### `serialize({ text, diff, origin, options })`
+
+Apply RDF changes back to markdown with proper positioning.
+
+**Parameters:**
+
+- `text` (string) — Original markdown
+- `diff` (object) — Changes to apply:
+  - `add` (array) — Quads to add
+  - `delete` (array) — Quads to remove
+- `origin` (object) — Origin from `parse()` result
+- `options` (object, optional):
+  - `context` (object) — Context for IRI shortening
+
+**Returns:** `{ text, origin }`
+
+- `text` — Updated markdown
+- `origin` — Updated origin tracking
+
+**Example:**
+
+```javascript
+const original = `# Article {=ex:article}
+
+[Alice] {author}`;
+
+const result = parse(original, { context: { ex: 'http://example.org/' } });
+
+// Add a new property
 const newQuad = {
-    subject: { termType: 'NamedNode', value: 'http://example.org/doc#article' },
-    predicate: { termType: 'NamedNode', value: 'http://schema.org/dateCreated' },
-    object: { termType: 'Literal', value: '2024-01-01' }
+  subject: { termType: 'NamedNode', value: 'http://example.org/article' },
+  predicate: { termType: 'NamedNode', value: 'http://schema.org/datePublished' },
+  object: { termType: 'Literal', value: '2024-01-01' }
 };
 
-const serialized = serialize({ 
-    text: originalText, 
-    diff: { add: [newQuad] }, 
-    origin: result.origin,
-    options: { context: result.context }  // Important: pass context for IRI shortening
+const updated = serialize({
+  text: original,
+  diff: { add: [newQuad] },
+  origin: result.origin,
+  options: { context: result.context }
 });
 
-// Result: [2024-01-01] {dateCreated}  // Properly shortened!
+console.log(updated.text);
+// # Article {=ex:article}
+//
+// [Alice] {author}
+// [2024-01-01] {datePublished}
 ```
 
-## Implementation Details
+## Value Carriers
 
-### Subject Resolution
+Only specific markdown elements can carry semantic values:
 
-MD-LD follows a clear subject inheritance model:
+**Inline:**
+- `[text]` — span with annotation
+- `[text](url)` — link to external resource
+- `[text](=iri)` — inline resource declaration
 
-1. **Root subject** — Declared in the first heading of the document or inferred it's text content
-2. **Heading subjects** — `## Title {=ex:title .Type}`
-3. **Inline subjects** — `[text](=ex:text) {.Type}`
-4. **Blank nodes** — Generated for incomplete triples
+**Block:**
+- Headings (`# Title`)
+- List items (`- item`)
+- Blockquotes (`> quote`)
+- Code blocks (` ```lang `)
+
+**Non-carriers:**
+- Plain paragraphs without `[...]`
+- Images (future)
+- Tables (future)
+
+## Architecture
+
+### Design Principles
+
+- **Zero dependencies** — Pure JavaScript, ~15KB minified
+- **Streaming-first** — Single-pass parsing, O(n) complexity
+- **Standards-compliant** — RDF/JS data model
+- **Origin tracking** — Full round-trip support with source maps
+- **Explicit semantics** — No guessing, inference, or heuristics
+
+### RDF/JS Compatibility
+
+Quads are compatible with:
+
+- [`n3.js`](https://github.com/rdfjs/N3.js) — Turtle/N-Triples serialization
+- [`rdflib.js`](https://github.com/linkeddata/rdflib.js) — RDF store and reasoning
+- [`sparqljs`](https://github.com/RubenVerborgh/SPARQL.js) — SPARQL queries
+- [`rdf-ext`](https://github.com/rdf-ext/rdf-ext) — Extended RDF utilities
+
+## Forbidden Constructs
+
+MD-LD explicitly forbids to ensure deterministic parsing:
+
+- ❌ Implicit semantics or structural inference
+- ❌ Auto-generated subjects or blank nodes
+- ❌ Predicate guessing from context
+- ❌ Multi-pass or backtracking parsers
+
+## Use Cases
+
+### Personal Knowledge Management
 
 ```markdown
-# Document {=urn:mdld:doc .Article}
+# Meeting Notes {=urn:note:2024-01-15 .Meeting}
 
-## Section 1 {=urn:mdld:sec1 .Section} 
+Attendees: {?attendee}
 
-[Text] {name} ← property of sec1
+- [Alice](=urn:person:alice) {name}
+- [Bob](=urn:person:bob) {name}
 
-Back to [doc](=urn:mdld:doc) {hasPart}
+Action items: {?actionItem}
+
+- [Review proposal](=urn:task:1) {name}
 ```
 
-### List Handling
+### Developer Documentation
 
-```markdown {item}
-- Item 1
-- Item 2
+````markdown
+# API Endpoint {=api:/users/:id .APIEndpoint}
+
+[GET] {method}
+[/users/:id] {path}
+
+Example:
+
+```bash {=api:/users/:id/example .CodeExample programmingLanguage}
+curl https://api.example.com/users/123
 ```
+````
 
-Creates **multiple triples** with same predicate (not RDF lists):
-
-```turtle
-<subject> schema:item "Item 1" .
-<subject> schema:item "Item 2" .
-```
-
-### Code Block Semantics
+### Academic Research
 
 ```markdown
-\`\`\`sparql {=ex:query-1 .SoftwareSourceCode}
-SELECT \* WHERE { ?s ?p ?o }
-\`\`\`
+# Paper {=doi:10.1234/example .ScholarlyArticle}
+
+[Semantic Web] {about}
+[Alice Johnson](=orcid:0000-0001-2345-6789) {?author .Person}
+[2024-01] {datePublished ^^xsd:gYearMonth}
+
+> This paper explores semantic markup in Markdown. {abstract @en}
 ```
 
-Creates:
+## Testing
 
-- A `schema:SoftwareSourceCode` resource (or custom type via `typeof`)
-- `schema:programmingLanguage` from the info string (`sparql`)
-- `schema:text` with the raw source code
-- `schema:hasPart` link from the surrounding section
+The parser includes comprehensive tests covering all spec requirements:
 
-This enables semantic queries like "find all SPARQL queries in my notes."
-
-## Syntax Overview
-
-### Core Features
-
-**Subject Declaration** — Headings create typed subjects:
-
-```markdown
-## Alice Johnson {=ex:alice .Person}
+```bash
+npm test
 ```
 
-**Literal Properties** — Inline spans create properties:
+Tests validate:
+- Subject declaration and context
+- All predicate forms (p, ?p, ^p, ^?p)
+- Datatypes and language tags
+- List processing
+- Code blocks and blockquotes
+- Round-trip serialization
 
-```markdown
-[Alice Johnson] {name}
-[30] {age ^^xsd:integer}
-```
+## Contributing
 
-**Object Properties** — Links create relationships:
+Contributions welcome! Please:
 
-```markdown
-[Tech Corp](=ex:company) {worksFor}
-```
+1. Read the [specification](https://mdld.js.org/spec)
+2. Add tests for new features
+3. Ensure all tests pass
+4. Follow existing code style
 
-**Lists** — Repeated properties:
+## Acknowledgments
 
-```markdown {tag}
-- Item 1
-- Item 2
-```
+Inspired by:
+- Thomas Francart's [Semantic Markdown](https://blog.sparna.fr/2020/02/20/semantic-markdown/)
+- RDFa decades of structured data experience
+- CommonMark's rigorous parsing approach
+
+## License
+
+See [LICENCE](./LICENCE)

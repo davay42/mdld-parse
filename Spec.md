@@ -1,182 +1,315 @@
-# MD-LD v0.2 Specification {=mdld:spec .Specification}
+# MD-LD v0.2 — Core Specification (Minimal)
 
-[mdld] {: https://mdld.js.org/}
+**Markdown-Linked Data**
 
-> MD-LD is **Markdown-Linked Data** — a minimal semantic annotation layer for CommonMark Markdown that uses Pandoc-style attribute blocks to author RDF in a streaming-friendly and unobtrusive way. {mdld:description}
+A deterministic, streaming-friendly semantic annotation layer for CommonMark Markdown that emits RDF quads **only** from explicit `{}` annotations.
 
-## Overview {=mdld:overview .Section}
+---
 
-[MD-LD] {mdld:name} **Markdown-Linked Data** — a minimal semantic annotation layer for CommonMark Markdown that uses [Pandoc-style] {mdld:style} attribute blocks. {mdld:description}
+## 1. Scope and guarantees
 
-## Core Principles {=mdld:principles .Section}
+1. MD-LD is **CommonMark-preserving**. Removing `{}` yields valid Markdown.
+2. **No implicit semantics** exist.
+3. **Every emitted quad originates from `{}`**.
+4. Parsing MUST be implementable as a **single-pass streaming algorithm**.
+5. **No blank nodes** are generated.
+6. **No guessing, inference, or structural heuristics** are permitted.
+7. Every quad MUST be traceable back to a concrete source span.
 
-- **No implicit semantics** — every RDF triple originates from `{...}` blocks {mdld:principle1}
-- **Explicit intent** — `{...}` always means "emit semantics" {mdld:principle2}
-- **Streaming-friendly** — single-pass parsing with bounded memory {mdld:principle3}
-- **CommonMark compatibility** — no reinterpretation of Markdown syntax {mdld:principle4}
+---
 
-## Value Carriers {=mdld:value-carriers .Concept}
+## 2. Graph model (normative)
 
-A `{}` block MAY extract a literal value from exactly one of:
+MD-LD emits a directed labeled multigraph:
 
-### Inline Spans {=mdld:inline-spans .Concept}
-- Span `[text]` {mdld:span-example}
-- Emphasis `*text*` {mdld:emphasis-example}
-- Strong emphasis `**text**` {mdld:strong-example}
-- Inline code `` `text` `` {mdld:code-example}
-
-### Block-level Containers {=mdld:block-containers .Concept}
-- Heading {mdld:heading-example}
-- List item {mdld:list-example}
-- Blockquote {mdld:blockquote-example}
-- Fenced code block {mdld:fenced-example}
-
-### Links and Embeds {=mdld:links .Concept}
-- Bare URL [https://example.com] {mdld:url-example}
-- Link [Example](https://example.com) {mdld:link-example}
-- Image ![alt text](https://example.com/image.jpg) {mdld:image-example}
-
-**Everything else is not a value carrier.** {mdld:non-carriers}
-
-## Semantic Blocks {=mdld:semantic-blocks .Concept}
-
-A `{...}` annotation MUST attach to the nearest preceding value carrier. The textual content of that carrier is the literal value unless an explicit IRI is provided.
-
-### Attachment Rule {=mdld:attachment-rule .Rule}
-
-A `{...}` block MUST appear immediately after:
-- A Markdown inline span, or
-- On its own line, optionally followed by a list
-
-**Plain text outside a span MUST NOT be used as a literal value source.** {mdld:literal-rule}
-
-## Subjects {=mdld:subjects .Concept}
-
-A subject exists only if explicitly declared with `{=IRI}`.
-
-### Subject Declaration {=mdld:subject-declaration .Rule}
-
-**Rules:**
-- Sets current subject {mdld:rule1}
-- Emits no properties automatically {mdld:rule2}
-- Context persists until overridden {mdld:rule3}
-
-## Types {=mdld:types .Concept}
-
-Assigns `rdf:type` to current subject.
-
-## Properties {=mdld:properties .Concept}
-
-### Literal Properties {=mdld:literal-properties .Concept}
-
-Launch year: [1969] {startDate ^^xsd:gYear}
-Start date: **1969-07-20** {startDate ^^xsd:date}
-Place: [The Moon] {location "en"}
-
-### Object Properties {=mdld:object-properties .Concept}
-
-[Neil Armstrong](https://www.wikidata.org/entity/Q1615) {astronaut}
-
-### Reverse Properties {=mdld:reverse-properties .Concept}
-
-Rocket {=mdld:rocket .schema:Rocket} is part of [Apollo Program] {=mdld:apollo ^schema:hasPart schema:name}
-
-## Lists {=mdld:lists .Concept}
-
-A `{}` block immediately preceding a list applies to **all list items**.
-
-Ingredients: {schema:hasPart .ex:Ingredient}
-
-- Flour {=mdld:flour name}
-- Water {=mdld:water name}
-
-### Reverse Relations in Lists {=mdld:list-reverse .Concept}
-
-Used in recipes: {^schema:hasPart}
-
-- Bread {=mdld:bread}
-- Cake {=mdld:cake}
-
-## Datatypes and Language {=mdld:datatypes .Concept}
-
-### Datatypes {=mdld:datatype-syntax .Rule}
-
-[1969] {startDate ^^xsd:gYear}
-
-### Language Tags {=mdld:language-syntax .Rule}
-
-[Berlin] {name "en"}
-[Берлин] {name "ru"}
-
-## Code Blocks {=mdld:code-blocks .Concept}
-
-Fenced code blocks may act as value carriers when `{}` is placed immediately after opening fence.
-
-Example SPARQL query: {mdld:query-example .SoftwareSourceCode}
-
-```sparql {=mdld:query1 .SoftwareSourceCode text programmingLanguage "SPARQL"}
-SELECT * WHERE { ?s ?p ?o }
+```
+G = (V, E)
+E ⊆ V × P × V
 ```
 
-## W3C Standards {=mdld:w3c-standards .Section}
+Where:
 
-MD-LD is built upon established W3C standards:
+* `V = IRIs ∪ Literals`
+* `P = IRIs`
+* Literals are terminal (never subjects)
 
-Core RDF Standards: {schema:isBasedOn .Standard}
-- [RDF 1.1 Concepts] {=mdld:rdf11 .Standard}
-- [RDF 1.1 Turtle] {=mdld:turtle .Standard}
-- [SPARQL 1.1 Query] {=mdld:sparql .Standard}
+---
 
-Schema.org Vocabulary: {schema:usesVocabulary .Vocabulary}
-- [Schema.org Core] {=mdld:schema-core .Vocabulary}
-- [Schema.org Structured Data] {=mdld:schema-structured .Vocabulary}
+## 3. In-scope nodes at parse time
 
-## Complete Example {=mdld:complete-example .Example}
+At any `{}` annotation, the parser may have:
 
-# Apollo 11 Mission {=mdld:apollo11 .SpaceMission}
+* **S** — current subject (IRI, optional)
+* **O** — object resource (IRI, optional, from link/image or `{=IRI}`)
+* **L** — literal value (string + optional datatype or language)
 
-Launch year: [1969] {startDate ^^xsd:gYear}
-Mission duration: [8 days] {duration}
-Crew: {hasPart .Person}
-- Neil Armstrong {=mdld:armstrong name "Neil Alden Armstrong" commander}
-- Buzz Aldrin {=mdld:aldrin name "Buzz Aldrin" lunarModulePilot}
-- Michael Collins {=mdld:collins name "Michael Collins" commandModulePilot}
+---
 
-> Mission director: [Gene Kranz] {director}
-> Deputy director: [Chris Kraft] {deputyDirector}
-> Flight controller: [Steve Bales] {flightController}
+## 4. Value carriers (normative)
 
-## Self-Validation {=mdld:self-validation .Section}
+A `{}` block MAY attach to exactly one **value carrier**.
 
-This specification validates itself using MD-LD format:
+Valid value carriers:
 
-Expected quads from parsing this specification: {mdld:expected-quads .SoftwareSourceCode}
+### Inline
 
-- Specification structure: {mdld:structure-validation .Validation}
-  - Main spec document {mdld:spec}
-  - Overview section {mdld:overview}
-  - Core principles {mdld:principles}
-  - Value carriers concept {mdld:value-carriers}
-  - Semantic blocks {mdld:semantic-blocks}
-  - Subjects {mdld:subjects}
-  - Types {mdld:types}
-  - Properties {mdld:properties}
-  - Lists {mdld:lists}
-  - Datatypes {mdld:datatypes}
-  - Code blocks {mdld:code-blocks}
-  - W3C standards {mdld:w3c-standards}
-  - Complete example {mdld:complete-example}
-  - Self-validation {mdld:self-validation}
+* `[text]`
+* `*text*`, `_text_`
+* `**text**`, `__text__`
+* `` `text` ``
 
-- Content validation: {mdld:content-validation .Validation}
-  - Literal values from spans: [58] {mdld:literal-count}
-  - No plain text literals: [Yes] {mdld:no-plain-literals}
-  - Proper value carrier usage: [Yes] {mdld:proper-carriers}
-  - Concepts defined: [9] {mdld:concept-count}
-  - Rules defined: [4] {mdld:rule-count}
+### Block-level
 
-## Summary {=mdld:summary .Section}
+* heading
+* list item
+* blockquote
+* fenced code block
 
-MD-LD v0.2 provides a **clean semantic layer** over Markdown with **explicit intent only**, **no heuristics**, and **production-grade streaming behavior**.
+### Links / embeds
 
-> If you can read Markdown, you can author linked data. {mdld:tagline}
+* bare URL
+* `[label](URL)`
+* `![alt](URL)`
+
+Everything else is **not** a value carrier.
+
+---
+
+## 5. Semantic block `{...}`
+
+### 5.1 Attachment rule
+
+A `{}` block MUST attach to the **nearest preceding value carrier**
+OR appear on its own line to apply to the **current subject** and/or the immediately following list.
+
+If attachment is ambiguous → **no quads emitted**.
+
+---
+
+## 6. Subjects
+
+### 6.1 Declaration
+
+```
+{=IRI}
+```
+
+Rules:
+
+* Sets **current subject S**
+* Emits no quads
+* Overrides previous subject
+* Subject context persists forward
+
+Example:
+
+```md
+# Apollo 11 {=wd:Q43653}
+```
+
+→ no output
+
+---
+
+## 7. Types
+
+```
+.Class
+```
+
+Emits:
+
+```
+S rdf:type Class
+```
+
+Example:
+
+```md
+# Apollo 11 {=wd:Q43653 .SpaceMission}
+```
+
+```turtle
+wd:Q43653 a schema:SpaceMission .
+```
+
+---
+
+## 8. Predicate routing (core rule)
+
+Predicate syntax determines **graph direction and node selection**.
+
+### 8.1 Predicate forms
+
+| Form  | Emits quad |
+| ----- | ---------- |
+| `p`   | `S —p→ L`  |
+| `?p`  | `S —p→ O`  |
+| `^p`  | `L —p→ S`  |
+| `^?p` | `O —p→ S`  |
+
+All four forms are **normative and required**.
+
+---
+
+### 8.2 Predicate emission rules
+
+A predicate emits a quad if:
+
+* all referenced nodes exist
+* subject and object roles are valid
+
+Otherwise → emit nothing.
+
+---
+
+## 9. Literals
+
+### 9.1 Extraction
+
+Literal `L` is extracted **only** from the attached value carrier.
+
+Plain text outside a value carrier MUST NOT be used.
+
+---
+
+### 9.2 Datatypes and language
+
+```
+^^datatypeIRI
+@lang
+```
+
+Rules:
+
+* Apply only to `L`
+* Mutually exclusive
+* Never inferred
+
+Example:
+
+```md
+[1969] {startDate ^^xsd:gYear}
+```
+
+```turtle
+S schema:startDate "1969"^^xsd:gYear .
+```
+
+---
+
+## 10. Object resources
+
+`O` is available only when explicitly present:
+
+* link URL
+* image URL
+* `{=IRI}`
+
+Example:
+
+```md
+[W3C RDF](https://www.w3.org/RDF) {?citation name}
+```
+
+```turtle
+S schema:citation <https://www.w3.org/RDF> .
+<https://www.w3.org/RDF> schema:name "W3C RDF" .
+```
+
+---
+
+## 11. Lists (normative)
+
+### 11.1 Scope rule
+
+A `{}` block immediately preceding a list applies to **all list items** until list end.
+
+Ordered and unordered lists are semantically identical.
+
+---
+
+### 11.2 Requirements
+
+* Each list item MUST declare its own subject to emit quads
+* No implicit item subjects
+* No blank nodes
+
+---
+
+### Example
+
+```md
+Ingredients: {hasPart .Ingredient}
+
+- Flour {=ex:flour name}
+- Water {=ex:water name}
+```
+
+```turtle
+S schema:hasPart ex:flour, ex:water .
+ex:flour a ex:Ingredient ; schema:name "Flour" .
+ex:water a ex:Ingredient ; schema:name "Water" .
+```
+
+---
+
+## 12. Reverse relations
+
+Reverse predicates invert direction **only**, never semantics.
+
+Example:
+
+```md
+Used in: {^hasPart}
+- Bread {=ex:bread}
+```
+
+```turtle
+ex:bread schema:hasPart S .
+```
+
+---
+
+## 13. Code blocks
+
+If `{}` appears on the opening fence, the code block is a value carrier.
+
+Example:
+
+````md
+```js {=ex:code .SoftwareSourceCode text programmingLanguage}
+console.log("hi")
+````
+
+````
+
+```turtle
+ex:code a schema:SoftwareSourceCode ;
+  schema:text "console.log(\"hi\")" ;
+  schema:programmingLanguage "js" .
+````
+
+---
+
+## 14. Forbidden constructs (normative)
+
+* Implicit labels
+* Structural inference
+* Auto-subjects
+* Blank nodes
+* Predicate guessing
+* Backtracking parses
+
+---
+
+## 15. Conformance
+
+An MD-LD processor is conformant if:
+
+1. All emitted quads follow §8 routing rules
+2. All quads originate from `{}` blocks
+3. Parsing is single-pass and deterministic
+4. Round-trip MD → RDF → MD preserves quads and origins
+
+---
