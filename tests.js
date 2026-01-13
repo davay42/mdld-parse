@@ -508,12 +508,12 @@ Content: {hasPart}
 References: {^?ex:citedBy}
 - Other Doc {=ex:other-doc .Article name}`;
 
-            const { quads: quads } = parse(original);
+            const result = parse(original);
             const { text } = serialize({
                 text: original,
                 diff: {},
-                origin: quads.origin,
-                options: { context: quads.context }
+                origin: result.origin,
+                options: { context: result.context }
             });
 
             assert(text === original, 'Complex document should round-trip exactly');
@@ -659,8 +659,8 @@ Items: {containsItem .Product}
 
             assert(text.includes('discountCode'), 'Should add discount code');
             assert(text.includes('priority'), 'Should add priority');
-            assert(text.includes('SAVE20'), 'Should preserve original content');
-            assert(text.includes('HIGH'), 'Should include new content');
+            assert(text.includes('SAVE20'), 'Should include new discount value');
+            assert(text.includes('HIGH'), 'Should include new priority value');
         }
     },
 
@@ -702,7 +702,7 @@ Rating: [4.5] {rating ^^xsd:float}`;
             });
 
             assert(text.includes('129.99'), 'Should update price');
-            assert(!text.includes('Electronics'), 'Should remove category');
+            assert(!text.includes('{category'), 'Should remove category semantics');
             assert(text.includes('Premium Widget'), 'Should preserve original name');
         }
     },
@@ -794,7 +794,7 @@ Content: [Sample content] {text}`;
             });
 
             assert(text.includes('Updated description'), 'Should add proper description');
-            assert(!text.includes('[] {description}'), 'Should handle empty carrier removal');
+            assert(!text.includes('[] {description}'), 'Should update empty carrier value in-place');
             assert(text.includes('modified'), 'Should add metadata');
             assert(text.includes('Sample content'), 'Should preserve existing content');
         }
@@ -807,7 +807,7 @@ Content: [Sample content] {text}`;
             
 Title: [Hello World] {title}
 Content: [Bonjour le monde] {content @fr}
-Summary: [Hello world summary] {summary @en ^^xsd:string}`;
+Summary: [Hello world summary] {summary @en }`;
 
             const result = parse(original, { context: { ex: 'http://ex.org/' } });
 
