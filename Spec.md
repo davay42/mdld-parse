@@ -277,16 +277,24 @@ ex:bread schema:hasPart S .
 
 If `{...}` appears on the opening fence, the code block is a value carrier.
 
-Example:
+Example: (note that `` is only two - to show mdld in md )
 
-```js {=ex:code .SoftwareSourceCode text}
+```md
+
+``js {=ex:code .SoftwareSourceCode code}
 console.log("hi")
+``
+
+Run this *JavaScript* {language} code in you browser console  to say 'hi'. 
+
 ```
 
-```turtle
+```turtle 
 ex:code a schema:SoftwareSourceCode ;
-  schema:text "console.log(\"hi\")" .
+  schema:text "console.log(\"hi\")" ;
+  schema:language "JavaScript" .
 ```
+
 
 ---
 

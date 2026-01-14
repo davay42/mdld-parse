@@ -24,6 +24,7 @@ function hash(str) {
     return Math.abs(h).toString(16).slice(0, 12);
 }
 
+// IRI Utilities
 function expandIRI(term, ctx) {
     if (term == null) return null;
     const raw = typeof term === 'string' ? term : (typeof term === 'object' && typeof term.value === 'string') ? term.value : String(term);
@@ -34,6 +35,21 @@ function expandIRI(term, ctx) {
         return ctx[prefix] ? ctx[prefix] + ref : t;
     }
     return (ctx['@vocab'] || '') + t;
+}
+
+export function shortenIRI(iri, ctx) {
+    if (!iri || !iri.startsWith('http')) return iri;
+    if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) return iri.substring(ctx['@vocab'].length);
+    for (const [prefix, namespace] of Object.entries(ctx)) {
+        if (prefix !== '@vocab' && iri.startsWith(namespace)) {
+            return prefix + ':' + iri.substring(namespace.length);
+        }
+    }
+    return iri;
+}
+
+function processIRI(term, ctx, operation = 'expand') {
+    return operation === 'expand' ? expandIRI(term, ctx) : shortenIRI(term, ctx);
 }
 
 function parseSemanticBlock(raw) {
@@ -339,6 +355,7 @@ function createBlock(subject, types, predicates, entries, range, attrsRange, val
     };
 }
 
+// Quad Utilities
 function quadIndexKey(subject, predicate, object) {
     const objKey = object.termType === 'Literal'
         ? JSON.stringify({ t: 'Literal', v: object.value, lang: object.language || '', dt: object.datatype?.value || '' })
@@ -346,11 +363,97 @@ function quadIndexKey(subject, predicate, object) {
     return JSON.stringify([subject.value, predicate.value, objKey]);
 }
 
+function normalizeQuad(q) {
+    if (!q) return null;
+    const { subject, predicate, object } = q;
+    if (object?.termType === 'Literal') {
+        const language = typeof object.language === 'string' ? object.language : '';
+        const datatype = object.datatype?.value || 'http://www.w3.org/2001/XMLSchema#string';
+        return { ...q, subject, predicate, object: { ...object, language, datatype } };
+    }
+    return { ...q, subject, predicate, object };
+}
+
+function objectSignature(o) {
+    if (!o) return '';
+    if (o.termType === 'Literal') {
+        return JSON.stringify({ t: 'Literal', v: o.value, lang: o.language || '', dt: o.datatype?.value || '' });
+    }
+    return JSON.stringify({ t: o.termType, v: o.value });
+}
+
+function quadToKeyForOrigin(q) {
+    const nq = normalizeQuad(q);
+    return nq ? quadIndexKey(nq.subject, nq.predicate, nq.object) : null;
+}
+
+function parseQuadIndexKey(key) {
+    try {
+        const [s, p, objKey] = JSON.parse(key);
+        return { s, p, o: JSON.parse(objKey) };
+    } catch {
+        return null;
+    }
+}
+
+// Semantic Slot Utilities
+function createSemanticSlotId(subject, predicate) {
+    return hash(`${subject.value}|${predicate.value}`);
+}
+
+function createSlotInfo(blockId, entryIndex, meta = {}) {
+    const slotId = meta.subject && meta.predicate ? createSemanticSlotId(meta.subject, meta.predicate) : null;
+    return {
+        blockId,
+        entryIndex,
+        slotId,
+        isVacant: false,
+        lastValue: null,
+        vacantSince: null,
+        ...meta
+    };
+}
+
+function markSlotAsVacant(slotInfo, deletedValue) {
+    if (!slotInfo) return null;
+    return {
+        ...slotInfo,
+        isVacant: true,
+        lastValue: deletedValue,
+        vacantSince: Date.now()
+    };
+}
+
+function findVacantSlot(quadIndex, subject, predicate) {
+    const targetSlotId = createSemanticSlotId(subject, predicate);
+    return Array.from(quadIndex.values())
+        .find(slot => slot.slotId === targetSlotId && slot.isVacant);
+}
+
+function occupySlot(slotInfo, newValue) {
+    if (!slotInfo || !slotInfo.isVacant) return null;
+    return {
+        ...slotInfo,
+        isVacant: false,
+        lastValue: newValue,
+        vacantSince: null
+    };
+}
+
 function emitQuad(quads, quadIndex, blockId, subject, predicate, object, dataFactory, meta = null) {
     if (!subject || !predicate || !object) return;
     const quad = dataFactory.quad(subject, predicate, object);
     quads.push(quad);
-    quadIndex.set(quadIndexKey(quad.subject, quad.predicate, quad.object), meta ? { blockId, ...meta } : { blockId });
+
+    // Create enhanced slot info with semantic slot tracking
+    const slotInfo = createSlotInfo(blockId, meta?.entryIndex, {
+        ...meta,
+        subject,
+        predicate,
+        object
+    });
+
+    quadIndex.set(quadIndexKey(quad.subject, quad.predicate, quad.object), slotInfo);
 }
 
 function createLiteral(value, datatype, language, context, dataFactory) {
@@ -552,98 +655,69 @@ export function parse(text, options = {}) {
     return { quads: state.quads, origin: state.origin, context: state.ctx };
 }
 
-export function shortenIRI(iri, ctx) {
-    if (!iri || !iri.startsWith('http')) return iri;
-    if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) return iri.substring(ctx['@vocab'].length);
-    for (const [prefix, namespace] of Object.entries(ctx)) {
-        if (prefix !== '@vocab' && iri.startsWith(namespace)) {
-            return prefix + ':' + iri.substring(namespace.length);
-        }
-    }
-    return iri;
+
+// Text Processing Utilities
+function readSpan(block, text, spanType = 'attrs') {
+    const range = spanType === 'attrs' ? block?.attrsRange : block?.valueRange;
+    if (!range) return null;
+    const { start, end } = range;
+    return (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end >= start)
+        ? { start, end, text: text.substring(start, end) }
+        : null;
 }
 
-const serializeHelpers = {
-    readAttrsSpan: (block, text) => {
-        if (!block?.attrsRange) return null;
-        const { start, end } = block.attrsRange;
-        return (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start)
-            ? { start, end, text: text.substring(start, end) }
-            : null;
-    },
+function normalizeAttrsTokens(attrsText) {
+    const cleaned = String(attrsText || '').replace(/^\s*\{|\}\s*$/g, '').trim();
+    return cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
+}
 
-    readValueSpan: (block, text) => {
-        if (!block?.valueRange) return null;
-        const { start, end } = block.valueRange;
-        return (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end >= start)
-            ? { start, end, text: text.substring(start, end) }
-            : null;
-    },
+function writeAttrsTokens(tokens) {
+    return `{${tokens.join(' ').trim()}}`;
+}
 
-    normalizeAttrsTokens: (attrsText) => {
-        const cleaned = String(attrsText || '').replace(/^\s*\{|\}\s*$/g, '').trim();
-        return cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
-    },
+function removeOneToken(tokens, matchFn) {
+    const i = tokens.findIndex(matchFn);
+    return i === -1 ? { tokens, removed: false } : { tokens: [...tokens.slice(0, i), ...tokens.slice(i + 1)], removed: true };
+}
 
-    blockTokensFromEntries: (block) => block?.entries?.length ? block.entries.map(e => e.raw).filter(Boolean) : null,
+function sanitizeCarrierValueForBlock(block, raw) {
+    const s = String(raw ?? '');
+    const t = block?.carrierType;
+    if (t === 'code') return s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const oneLine = s.replace(/[\n\r]+/g, ' ').trim();
+    return (t === 'span' || t === 'link') ? oneLine.replace(/[\[\]]/g, ' ') : oneLine;
+}
 
-    removeEntryAt: (block, entryIndex) => {
-        if (!block?.entries || entryIndex == null || entryIndex < 0 || entryIndex >= block.entries.length) return null;
-        return [...block.entries.slice(0, entryIndex), ...block.entries.slice(entryIndex + 1)];
-    },
+function blockTokensFromEntries(block) {
+    return block?.entries?.length ? block.entries.map(e => e.raw).filter(Boolean) : null;
+}
 
-    replaceLangDatatypeEntries: (block, lit, ctx) => {
-        if (!block?.entries) return null;
-        const filtered = block.entries.filter(e => e.kind !== 'language' && e.kind !== 'datatype');
-        const extras = [];
-        if (lit?.language) extras.push({ kind: 'language', language: lit.language, raw: `@${lit.language}`, relRange: { start: 0, end: 0 } });
-        const dt = lit?.datatype?.value;
-        if (!lit?.language && dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
-            extras.push({ kind: 'datatype', datatype: shortenIRI(dt, ctx), raw: `^^${shortenIRI(dt, ctx)}`, relRange: { start: 0, end: 0 } });
-        }
-        return [...filtered, ...extras];
-    },
+function removeEntryAt(block, entryIndex) {
+    if (!block?.entries || entryIndex == null || entryIndex < 0 || entryIndex >= block.entries.length) return null;
+    return [...block.entries.slice(0, entryIndex), ...block.entries.slice(entryIndex + 1)];
+}
 
-    writeAttrsTokens: (tokens) => `{${tokens.join(' ').trim()}}`,
-
-    removeOneToken: (tokens, matchFn) => {
-        const i = tokens.findIndex(matchFn);
-        return i === -1 ? { tokens, removed: false } : { tokens: [...tokens.slice(0, i), ...tokens.slice(i + 1)], removed: true };
-    },
-
-    normalizeQuad: (q) => {
-        if (!q) return null;
-        const { subject, predicate, object } = q;
-        if (object?.termType === 'Literal') {
-            const language = typeof object.language === 'string' ? object.language : '';
-            const datatype = object.datatype?.value || { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' };
-            return { ...q, subject, predicate, object: { ...object, language, datatype } };
-        }
-        return { ...q, subject, predicate, object };
-    },
-
-    quadToKeyForOrigin: (q) => {
-        const nq = serializeHelpers.normalizeQuad(q);
-        return nq ? quadIndexKey(nq.subject, nq.predicate, nq.object) : null;
-    },
-
-    parseQuadIndexKey: (key) => {
-        try {
-            const [s, p, objKey] = JSON.parse(key);
-            return { s, p, o: JSON.parse(objKey) };
-        } catch {
-            return null;
-        }
-    },
-
-    sanitizeCarrierValueForBlock: (block, raw) => {
-        const s = String(raw ?? '');
-        const t = block?.carrierType;
-        if (t === 'code') return s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-        const oneLine = s.replace(/[\n\r]+/g, ' ').trim();
-        return (t === 'span' || t === 'link') ? oneLine.replace(/[\[\]]/g, ' ') : oneLine;
+function replaceLangDatatypeEntries(block, lit, ctx) {
+    if (!block?.entries) return null;
+    const filtered = block.entries.filter(e => e.kind !== 'language' && e.kind !== 'datatype');
+    const extras = [];
+    if (lit?.language) extras.push({ kind: 'language', language: lit.language, raw: `@${lit.language}`, relRange: { start: 0, end: 0 } });
+    const dt = lit?.datatype?.value;
+    if (!lit?.language && dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
+        extras.push({ kind: 'datatype', datatype: shortenIRI(dt, ctx), raw: `^^${shortenIRI(dt, ctx)}`, relRange: { start: 0, end: 0 } });
     }
-};
+    return [...filtered, ...extras];
+}
+
+function updateAttrsDatatypeLang(tokens, newLit, ctx) {
+    const predicatesAndTypes = tokens.filter(t => !t.startsWith('@') && !t.startsWith('^^'));
+    if (newLit?.language) return [...predicatesAndTypes, `@${newLit.language}`];
+    const dt = newLit?.datatype?.value;
+    if (dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
+        return [...predicatesAndTypes, `^^${shortenIRI(dt, ctx)}`];
+    }
+    return predicatesAndTypes;
+}
 
 export function serialize({ text, diff, origin, options = {} }) {
     if (!diff || (!diff.add?.length && !diff.delete?.length)) {
@@ -658,12 +732,11 @@ export function serialize({ text, diff, origin, options = {} }) {
 
     const findOriginEntryForLiteralByValue = (subjectIri, predicateIri, literalValue) => {
         for (const [k, entry] of base?.quadIndex || []) {
-            const parsed = serializeHelpers.parseQuadIndexKey(k);
+            const parsed = parseQuadIndexKey(k);
             if (!parsed) continue;
             if (parsed.s !== subjectIri || parsed.p !== predicateIri) continue;
             if (parsed.o?.t !== 'Literal') continue;
-            if (parsed.o?.v !== literalValue) continue;
-            return entry;
+            if (parsed.o?.v === literalValue) return entry;
         }
         return null;
     };
@@ -671,7 +744,7 @@ export function serialize({ text, diff, origin, options = {} }) {
     const findLiteralCarrierBlocksBySP = (subjectIri, predicateIri) => {
         const out = [];
         for (const [k, entry] of base?.quadIndex || []) {
-            const parsed = serializeHelpers.parseQuadIndexKey(k);
+            const parsed = parseQuadIndexKey(k);
             if (!parsed) continue;
             if (parsed.s !== subjectIri || parsed.p !== predicateIri) continue;
             if (parsed.o?.t !== 'Literal') continue;
@@ -682,21 +755,13 @@ export function serialize({ text, diff, origin, options = {} }) {
         return out;
     };
 
-    const objectSignature = (o) => {
-        if (!o) return '';
-        if (o.termType === 'Literal') {
-            return JSON.stringify({ t: 'Literal', v: o.value, lang: o.language || '', dt: o.datatype?.value || '' });
-        }
-        return JSON.stringify({ t: o.termType, v: o.value });
-    };
-
     const anchors = new Map();
     for (const q0 of diff.delete || []) {
-        const q = serializeHelpers.normalizeQuad(q0);
+        const q = normalizeQuad(q0);
         if (!q) continue;
         if (!q?.subject || !q?.object || !q?.predicate) continue;
         const key = JSON.stringify([q.subject.value, objectSignature(q.object)]);
-        const qk = serializeHelpers.quadToKeyForOrigin(q);
+        const qk = quadToKeyForOrigin(q);
         const entry = qk ? base?.quadIndex?.get(qk) : null;
         const blockId = entry?.blockId || entry;
         const block = blockId ? base?.blocks?.get(blockId) : null;
@@ -706,7 +771,7 @@ export function serialize({ text, diff, origin, options = {} }) {
 
     const addBySP = new Map();
     for (const q0 of diff.add || []) {
-        const q = serializeHelpers.normalizeQuad(q0);
+        const q = normalizeQuad(q0);
         if (!q) continue;
         if (!q?.subject || !q?.predicate || !q?.object) continue;
         const k = JSON.stringify([q.subject.value, q.predicate.value]);
@@ -718,16 +783,16 @@ export function serialize({ text, diff, origin, options = {} }) {
     const consumedAdds = new Set();
     const literalUpdates = [];
     for (const dq0 of diff.delete || []) {
-        const dq = serializeHelpers.normalizeQuad(dq0);
+        const dq = normalizeQuad(dq0);
         if (!dq) continue;
         if (!dq?.subject || !dq?.predicate || !dq?.object) continue;
         if (dq.object.termType !== 'Literal') continue;
         const k = JSON.stringify([dq.subject.value, dq.predicate.value]);
         const candidates = addBySP.get(k) || [];
-        const aq = candidates.find(x => x?.object?.termType === 'Literal' && !consumedAdds.has(serializeHelpers.quadToKeyForOrigin(x)));
+        const aq = candidates.find(x => x?.object?.termType === 'Literal' && !consumedAdds.has(quadToKeyForOrigin(x)));
         if (!aq) continue;
 
-        const dqk = serializeHelpers.quadToKeyForOrigin(dq);
+        const dqk = quadToKeyForOrigin(dq);
         let entry = dqk ? base?.quadIndex?.get(dqk) : null;
         if (!entry && dq.object?.termType === 'Literal') {
             entry = findOriginEntryForLiteralByValue(dq.subject.value, dq.predicate.value, dq.object.value);
@@ -737,13 +802,49 @@ export function serialize({ text, diff, origin, options = {} }) {
         if (!block) continue;
 
         literalUpdates.push({ deleteQuad: dq, addQuad: aq, entry, block });
-        consumedAdds.add(serializeHelpers.quadToKeyForOrigin(aq));
+        consumedAdds.add(quadToKeyForOrigin(aq));
     }
 
     for (const q0 of diff.add || []) {
-        const quad = serializeHelpers.normalizeQuad(q0);
+        const quad = normalizeQuad(q0);
         if (!quad || quad.object?.termType !== 'Literal') continue;
-        if (consumedAdds.has(serializeHelpers.quadToKeyForOrigin(quad))) continue;
+        if (consumedAdds.has(quadToKeyForOrigin(quad))) continue;
+
+        // Check if there's a vacant slot we can reuse
+        const vacantSlot = findVacantSlot(base?.quadIndex, quad.subject, quad.predicate);
+        if (!vacantSlot) continue;
+
+        const block = base?.blocks?.get(vacantSlot.blockId);
+        if (!block) continue;
+
+        const span = readSpan(block, text, 'attrs');
+        if (!span) continue;
+
+        // Occupy the vacant slot and update the annotation
+        const occupiedSlot = occupySlot(vacantSlot, quad.object);
+        if (!occupiedSlot) continue;
+
+        // Update the carrier value
+        const valueSpan = readSpan(block, text, 'value');
+        if (valueSpan) {
+            edits.push({ start: valueSpan.start, end: valueSpan.end, text: quad.object.value });
+        }
+
+        // Update the annotation block to restore the predicate token
+        const tokens = normalizeAttrsTokens(span.text);
+        const predToken = `${vacantSlot.form || ''}${shortenIRI(quad.predicate.value, ctx)}`;
+
+        // For empty annotation blocks, replace entirely; for non-empty, add if missing
+        if (tokens.length === 0) {
+            edits.push({ start: span.start, end: span.end, text: `{${predToken}}` });
+        } else if (!tokens.includes(predToken)) {
+            const updated = [...tokens, predToken];
+            edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+        }
+
+        // Mark as consumed and continue
+        consumedAdds.add(quadToKeyForOrigin(quad));
+        continue;
 
         const matches = findLiteralCarrierBlocksBySP(quad.subject.value, quad.predicate.value);
         if (matches.length === 0) continue;
@@ -758,18 +859,18 @@ export function serialize({ text, diff, origin, options = {} }) {
 
         if (sameLang.length !== 1) continue;
         const target = sameLang[0].block;
-        const vSpan = serializeHelpers.readValueSpan(target, text);
+        const vSpan = readSpan(target, text, 'value');
         if (!vSpan) continue;
 
-        const newValue = serializeHelpers.sanitizeCarrierValueForBlock(target, quad.object.value);
+        const newValue = sanitizeCarrierValueForBlock(target, quad.object.value);
         edits.push({ start: vSpan.start, end: vSpan.end, text: newValue });
 
-        const aSpan = serializeHelpers.readAttrsSpan(target, text);
+        const aSpan = readSpan(target, text, 'attrs');
         if (aSpan && target?.entries?.length) {
-            const nextEntries = serializeHelpers.replaceLangDatatypeEntries(target, quad.object, ctx);
+            const nextEntries = replaceLangDatatypeEntries(target, quad.object, ctx);
             if (nextEntries) {
                 const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
-                edits.push({ start: aSpan.start, end: aSpan.end, text: serializeHelpers.writeAttrsTokens(nextTokens) });
+                edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(nextTokens) });
             }
         }
 
@@ -777,51 +878,42 @@ export function serialize({ text, diff, origin, options = {} }) {
     }
 
     for (const u of literalUpdates) {
-        const span = serializeHelpers.readValueSpan(u.block, text);
+        const span = readSpan(u.block, text, 'value');
         if (span) {
-            const newValue = serializeHelpers.sanitizeCarrierValueForBlock(u.block, u.addQuad.object.value);
+            const newValue = sanitizeCarrierValueForBlock(u.block, u.addQuad.object.value);
             edits.push({ start: span.start, end: span.end, text: newValue });
         }
 
-        const aSpan = serializeHelpers.readAttrsSpan(u.block, text);
+        const aSpan = readSpan(u.block, text, 'attrs');
         if (aSpan) {
             if (u.block?.entries?.length) {
-                const nextEntries = serializeHelpers.replaceLangDatatypeEntries(u.block, u.addQuad.object, ctx);
+                const nextEntries = replaceLangDatatypeEntries(u.block, u.addQuad.object, ctx);
                 if (nextEntries) {
                     const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
                     if (nextTokens.length === 0) {
                         edits.push({ start: aSpan.start, end: aSpan.end, text: '{}' });
                     } else {
-                        edits.push({ start: aSpan.start, end: aSpan.end, text: serializeHelpers.writeAttrsTokens(nextTokens) });
+                        edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(nextTokens) });
                     }
                 }
             } else {
-                const tokens = serializeHelpers.normalizeAttrsTokens(aSpan.text);
-                const updated = updateAttrsDatatypeLang(tokens, u.addQuad.object);
+                const tokens = normalizeAttrsTokens(aSpan.text);
+                const updated = updateAttrsDatatypeLang(tokens, u.addQuad.object, ctx);
                 if (updated.join(' ') !== tokens.join(' ')) {
                     if (updated.length === 0) {
                         edits.push({ start: aSpan.start, end: aSpan.end, text: '{}' });
                     } else {
-                        edits.push({ start: aSpan.start, end: aSpan.end, text: serializeHelpers.writeAttrsTokens(updated) });
+                        edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(updated) });
                     }
                 }
             }
         }
     }
 
-    const updateAttrsDatatypeLang = (tokens, newLit) => {
-        const predicatesAndTypes = tokens.filter(t => !t.startsWith('@') && !t.startsWith('^^'));
-        if (newLit?.language) return [...predicatesAndTypes, `@${newLit.language}`];
-        const dt = newLit?.datatype?.value;
-        if (dt && dt !== 'http://www.w3.org/2001/XMLSchema#string') {
-            return [...predicatesAndTypes, `^^${shortenIRI(dt, ctx)}`];
-        }
-        return predicatesAndTypes;
-    };
 
     if (diff.delete) {
         diff.delete.forEach(q0 => {
-            const quad = serializeHelpers.normalizeQuad(q0);
+            const quad = normalizeQuad(q0);
             if (!quad) return;
             if (!quad?.subject || !quad?.predicate || !quad?.object) return;
 
@@ -834,36 +926,60 @@ export function serialize({ text, diff, origin, options = {} }) {
                 if (isUpdated) return;
             }
 
-            const key = serializeHelpers.quadToKeyForOrigin(quad);
+            const key = quadToKeyForOrigin(quad);
             let entry = key ? base?.quadIndex?.get(key) : null;
             if (!entry && quad.object?.termType === 'Literal') {
                 entry = findOriginEntryForLiteralByValue(quad.subject.value, quad.predicate.value, quad.object.value);
             }
+
+            // Mark the semantic slot as vacant for future reuse
+            if (entry && entry.slotId) {
+                // Capture block information before marking as vacant
+                const block = base?.blocks?.get(entry.blockId);
+                const blockInfo = block ? {
+                    id: entry.blockId,
+                    range: block.range,
+                    attrsRange: block.attrsRange,
+                    valueRange: block.valueRange,
+                    carrierType: block.carrierType,
+                    subject: block.subject,
+                    context: block.context
+                } : null;
+
+                const vacantSlot = markSlotAsVacant(entry, quad.object);
+                if (vacantSlot && blockInfo) {
+                    vacantSlot.blockInfo = blockInfo;
+                    base.quadIndex.set(key, vacantSlot);
+                }
+            }
+
             const blockId = entry?.blockId || entry;
             if (!blockId) return;
+
             const block = base?.blocks?.get(blockId);
-            const span = serializeHelpers.readAttrsSpan(block, text);
+            if (!block) return;
+
+            const span = readSpan(block, text, 'attrs');
             if (!span) return;
 
+            // Handle entry removal by index
             if (entry?.entryIndex != null && block?.entries?.length) {
-                const nextEntries = serializeHelpers.removeEntryAt(block, entry.entryIndex);
+                const nextEntries = removeEntryAt(block, entry.entryIndex);
                 if (!nextEntries) return;
+
                 const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
-                if (nextTokens.length === 0) {
-                    edits.push({ start: span.start, end: span.end, text: '{}' });
-                } else {
-                    edits.push({ start: span.start, end: span.end, text: serializeHelpers.writeAttrsTokens(nextTokens) });
-                }
+                const newText = nextTokens.length === 0 ? '{}' : writeAttrsTokens(nextTokens);
+                edits.push({ start: span.start, end: span.end, text: newText });
                 return;
             }
 
-            const tokens = serializeHelpers.normalizeAttrsTokens(span.text);
+            const tokens = normalizeAttrsTokens(span.text);
             let updated = tokens;
             let removed = false;
 
             if (entry?.kind === 'type' && quad.predicate.value.endsWith('rdf-syntax-ns#type')) {
                 const expectedType = entry.expandedType || quad.object.value;
-                ({ tokens: updated, removed } = serializeHelpers.removeOneToken(tokens, t => {
+                ({ tokens: updated, removed } = removeOneToken(tokens, t => {
                     if (!t.startsWith('.')) return false;
                     const raw = t.slice(1);
                     return expandIRI(raw, ctx) === expectedType;
@@ -871,7 +987,7 @@ export function serialize({ text, diff, origin, options = {} }) {
             } else {
                 const expectedPred = entry?.expandedPredicate || quad.predicate.value;
                 const expectedForm = entry?.form;
-                ({ tokens: updated, removed } = serializeHelpers.removeOneToken(tokens, t => {
+                ({ tokens: updated, removed } = removeOneToken(tokens, t => {
                     const m = String(t).match(/^(\^\?|\^|\?|)(.+)$/);
                     if (!m) return false;
                     const form = m[1] || '';
@@ -888,18 +1004,18 @@ export function serialize({ text, diff, origin, options = {} }) {
                 return;
             }
 
-            const newAttrs = serializeHelpers.writeAttrsTokens(updated);
+            const newAttrs = writeAttrsTokens(updated);
             edits.push({ start: span.start, end: span.end, text: newAttrs });
         });
     }
 
     if (diff.add) {
         diff.add.forEach(q0 => {
-            const quad = serializeHelpers.normalizeQuad(q0);
+            const quad = normalizeQuad(q0);
             if (!quad) return;
             if (!quad?.subject || !quad?.predicate || !quad?.object) return;
 
-            if (consumedAdds.has(serializeHelpers.quadToKeyForOrigin(quad))) return;
+            if (consumedAdds.has(quadToKeyForOrigin(quad))) return;
 
             const anchorKey = JSON.stringify([quad.subject.value, objectSignature(quad.object)]);
             const anchored = anchors.get(anchorKey) || null;
@@ -928,7 +1044,7 @@ export function serialize({ text, diff, origin, options = {} }) {
                     } else {
                         const full = quad.object.value;
                         const label = shortenIRI(full, ctx);
-                        edits.push({ start: result.length, end: result.length, text: `\n[${label}](${full}) {?${predShort}}` });
+                        edits.push({ start: result.length, end: result.length, text: `\n[${label}] {=${label}) {?${predShort}}` });
                     }
                     return;
                 }
@@ -948,14 +1064,14 @@ export function serialize({ text, diff, origin, options = {} }) {
                 if (quad.object.termType === 'NamedNode') {
                     const full = quad.object.value;
                     const label = shortenIRI(full, ctx);
-                    edits.push({ start: result.length, end: result.length, text: `\n[${label}](${full}) {?${predShort}}` });
+                    edits.push({ start: result.length, end: result.length, text: `\n[${label}] {=${shortenIRI(full, ctx)} ?${predShort}}` });
                     return;
                 }
             }
 
-            const span = serializeHelpers.readAttrsSpan(targetBlock, text);
+            const span = readSpan(targetBlock, text, 'attrs');
             if (!span) return;
-            const tokens = serializeHelpers.blockTokensFromEntries(targetBlock) || serializeHelpers.normalizeAttrsTokens(span.text);
+            const tokens = blockTokensFromEntries(targetBlock) || normalizeAttrsTokens(span.text);
 
             if (quad.predicate.value.endsWith('rdf-syntax-ns#type') && quad.object?.termType === 'NamedNode') {
                 const typeShort = shortenIRI(quad.object.value, ctx);
@@ -963,7 +1079,7 @@ export function serialize({ text, diff, origin, options = {} }) {
                 if (!typeToken) return;
                 if (tokens.includes(typeToken)) return;
                 const updated = [...tokens, typeToken];
-                edits.push({ start: span.start, end: span.end, text: serializeHelpers.writeAttrsTokens(updated) });
+                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
                 return;
             }
 
@@ -974,7 +1090,7 @@ export function serialize({ text, diff, origin, options = {} }) {
             if (!predToken) return;
             if (tokens.includes(predToken)) return;
             const updated = [...tokens, predToken];
-            edits.push({ start: span.start, end: span.end, text: serializeHelpers.writeAttrsTokens(updated) });
+            edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
         });
     }
 
@@ -983,7 +1099,43 @@ export function serialize({ text, diff, origin, options = {} }) {
         result = result.substring(0, edit.start) + edit.text + result.substring(edit.end);
     });
 
+    // Extract vacant slots before reparsing to preserve them
+    const vacantSlots = new Map();
+    base?.quadIndex?.forEach((slot, key) => {
+        if (slot.isVacant) {
+            vacantSlots.set(key, slot);
+        }
+    });
+
     const reparsed = parse(result, { context: options.context || {} });
+
+    // Merge vacant slots back into the new origin
+    vacantSlots.forEach((vacantSlot, key) => {
+        // Check if the block still exists in the new origin
+        if (!reparsed.origin.blocks.has(vacantSlot.blockId)) {
+            // Recreate the empty block for the vacant slot using preserved info
+            const blockInfo = vacantSlot.blockInfo;
+            if (blockInfo) {
+                const emptyBlock = {
+                    id: blockInfo.id,
+                    range: blockInfo.range || { start: 0, end: 0 },
+                    attrsRange: blockInfo.attrsRange,
+                    valueRange: blockInfo.valueRange,
+                    carrierType: blockInfo.carrierType || 'span',
+                    subject: blockInfo.subject || '',
+                    types: [],
+                    predicates: [],
+                    entries: [], // Empty entries - just {} annotation
+                    context: blockInfo.context || { ...ctx }
+                };
+                reparsed.origin.blocks.set(vacantSlot.blockId, emptyBlock);
+            }
+        }
+
+        // Merge the vacant slot back
+        reparsed.origin.quadIndex.set(key, vacantSlot);
+    });
+
     return { text: result, origin: reparsed.origin };
 }
 
