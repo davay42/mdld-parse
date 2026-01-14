@@ -848,6 +848,108 @@ Summary: [Hello world summary] {summary @en }`;
         }
     },
 
+    // Soft IRI Tests - {=?IRI} syntax
+    {
+        name: 'Soft IRI declaration with ?predicate',
+        fn: () => {
+            const md = `# Apollo 11 {=wd:Q43653}
+
+Part of the [Apollo Program] {=?wd:Q495307 ?schema:partOf}
+and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
+            const { quads } = parse(md, { context: { wd: 'http://www.wikidata.org/entity/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://www.wikidata.org/entity/Q43653', 'http://schema.org/partOf', 'http://www.wikidata.org/entity/Q495307'),
+                'Should use soft IRI as object for partOf');
+            assert(hasQuad(quads, 'http://www.wikidata.org/entity/Q43653', 'http://schema.org/vehicle', 'http://www.wikidata.org/entity/Q193237'),
+                'Should use soft IRI as object for vehicle');
+        }
+    },
+
+    {
+        name: 'Soft IRI with reverse predicate ^?p',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+[Parent] {=?ex:parent ^?hasPart}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://ex.org/parent', 'http://schema.org/hasPart', 'http://ex.org/doc'),
+                'Should create reverse relationship from soft IRI to subject');
+        }
+    },
+
+    {
+        name: 'Soft IRI with type declaration',
+        fn: () => {
+            const md = `# Project {=ex:project}
+
+[Team Lead] {=?ex:alice ?schema:teamLead .Person}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://ex.org/project', 'http://schema.org/teamLead', 'http://ex.org/alice'),
+                'Should link project to alice');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Person'),
+                'Should declare alice as Person');
+        }
+    },
+
+    {
+        name: 'Soft IRI does not persist between annotations',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[First] {=?ex:object1 ?p}
+[Second] {?p}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/p', 'http://ex.org/object1'),
+                'Should use soft IRI from first annotation only');
+        }
+    },
+
+    {
+        name: 'Complex context switching with soft IRI and subject declarations',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+[One] {=urn:one .Article name} is an [text] {=?urn:text name ?isInstanceOf}. Then continue writing about One article, not the text. Like add [Jane] {=urn:jane.Person .Person name ?author} - now we switch context - we can annotate Jane now - [1987] {yearOfBirth ^^xsd:gYear}.`;
+            const { quads } = parse(md, {
+                context: {
+                    ex: 'http://example.org/',
+                    xsd: 'http://www.w3.org/2001/XMLSchema#'
+                }
+            });
+
+            assert(quads.length === 8, `Should emit 8 triples, got ${quads.length}`);
+
+            // Check urn:one (Article)
+            assert(hasQuad(quads, 'urn:one', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Article'),
+                'urn:one should have type Article');
+            assert(hasQuad(quads, 'urn:one', 'http://schema.org/name', 'One'),
+                'urn:one should have name "One"');
+            assert(hasQuad(quads, 'urn:one', 'http://schema.org/isInstanceOf', 'urn:text'),
+                'urn:one should be instance of urn:text');
+            assert(hasQuad(quads, 'urn:one', 'http://schema.org/author', 'urn:jane.Person'),
+                'urn:one should have author urn:jane.Person');
+
+            // Check urn:text (soft IRI object)
+            assert(hasQuad(quads, 'urn:text', 'http://schema.org/name', 'text'),
+                'urn:text should have name "text"');
+
+            // Check urn:jane.Person (subject declaration with type)
+            assert(hasQuad(quads, 'urn:jane.Person', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Person'),
+                'urn:jane.Person should have type Person');
+            assert(hasQuad(quads, 'urn:jane.Person', 'http://schema.org/name', 'Jane'),
+                'urn:jane.Person should have name "Jane"');
+            assert(hasQuad(quads, 'urn:jane.Person', 'http://schema.org/yearOfBirth', '1987'),
+                'urn:jane.Person should have yearOfBirth "1987"');
+        }
+    },
+
     // Fragment Syntax Tests
     {
         name: 'Fragment syntax uses current subject IRI base',

@@ -1,4 +1,4 @@
-const DEFAULT_CONTEXT = {
+export const DEFAULT_CONTEXT = {
     '@vocab': 'http://schema.org/',
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
@@ -6,7 +6,7 @@ const DEFAULT_CONTEXT = {
     schema: 'http://schema.org/'
 };
 
-const DataFactory = {
+export const DataFactory = {
     namedNode: (v) => ({ termType: 'NamedNode', value: v }),
     blankNode: (v = `b${Math.random().toString(36).slice(2, 11)}`) => ({ termType: 'BlankNode', value: v }),
     literal: (v, lang) => {
@@ -18,14 +18,14 @@ const DataFactory = {
     quad: (s, p, o, g) => ({ subject: s, predicate: p, object: o, graph: g || DataFactory.namedNode('') })
 };
 
-function hash(str) {
+export function hash(str) {
     let h = 5381;
     for (let i = 0; i < str.length; i++) h = ((h << 5) + h) + str.charCodeAt(i);
     return Math.abs(h).toString(16).slice(0, 12);
 }
 
 // IRI Utilities
-function expandIRI(term, ctx) {
+export function expandIRI(term, ctx) {
     if (term == null) return null;
     const raw = typeof term === 'string' ? term : (typeof term === 'object' && typeof term.value === 'string') ? term.value : String(term);
     const t = raw.trim();
@@ -48,17 +48,13 @@ export function shortenIRI(iri, ctx) {
     return iri;
 }
 
-function processIRI(term, ctx, operation = 'expand') {
-    return operation === 'expand' ? expandIRI(term, ctx) : shortenIRI(term, ctx);
-}
-
-function parseSemanticBlock(raw) {
+export function parseSemanticBlock(raw) {
     try {
         const src = String(raw || '').trim();
         const cleaned = src.replace(/^\{|\}$/g, '').trim();
-        if (!cleaned) return { subject: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
+        if (!cleaned) return { subject: null, object: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
 
-        const result = { subject: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
+        const result = { subject: null, object: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
         const re = /\S+/g;
         let m;
         while ((m = re.exec(cleaned)) !== null) {
@@ -77,6 +73,13 @@ function parseSemanticBlock(raw) {
                 const fragment = token.substring(2);
                 result.subject = `=#${fragment}`;
                 result.entries.push({ kind: 'fragment', fragment, relRange: { start: relStart, end: relEnd }, raw: token });
+                continue;
+            }
+
+            if (token.startsWith('=?')) {
+                const iri = token.substring(2);
+                result.object = iri;
+                result.entries.push({ kind: 'object', iri, relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
             }
 
@@ -137,7 +140,7 @@ function parseSemanticBlock(raw) {
         return result;
     } catch (error) {
         console.error(`Error parsing semantic block ${raw}:`, error);
-        return { subject: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
+        return { subject: null, object: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
     }
 }
 
@@ -472,11 +475,13 @@ function createLiteral(value, datatype, language, context, dataFactory) {
 function processAnnotation(carrier, sem, state) {
     if (sem.subject === 'RESET') {
         state.currentSubject = null;
+        state.currentObject = null;
         return;
     }
 
     const previousSubject = state.currentSubject;
     let newSubject = null;
+    let localObject = null;
 
     if (sem.subject) {
         if (sem.subject.startsWith('=#')) {
@@ -492,6 +497,12 @@ function processAnnotation(carrier, sem, state) {
             newSubject = state.df.namedNode(expandIRI(sem.subject, state.ctx));
         }
     }
+
+    if (sem.object) {
+        // Handle soft IRI object declaration - local to this annotation only
+        localObject = state.df.namedNode(expandIRI(sem.object, state.ctx));
+    }
+
     if (newSubject) state.currentSubject = newSubject;
 
     const S = state.currentSubject;
@@ -501,12 +512,15 @@ function processAnnotation(carrier, sem, state) {
     state.origin.blocks.set(block.id, block);
 
     const L = createLiteral(carrier.text, sem.datatype, sem.language, state.ctx, state.df);
-    const O = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
+    const carrierO = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
 
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
         const entryIndex = typeof t === 'string' ? null : t.entryIndex;
-        const typeSubject = O || S;
+        // For types with subject declarations, the type applies to the new subject
+        // For types with soft IRI declarations, the type applies to the soft IRI object
+        // Otherwise, type applies to carrier object or current subject
+        const typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
         const expandedType = expandIRI(typeIRI, state.ctx);
         emitQuad(state.quads, state.origin.quadIndex, block.id, typeSubject, state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(expandedType), state.df, { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex });
     });
@@ -516,18 +530,26 @@ function processAnnotation(carrier, sem, state) {
         const token = `${pred.form}${pred.iri}`;
 
         if (pred.form === '') {
-            emitQuad(state.quads, state.origin.quadIndex, block.id, S, P, L, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
+            // S —p→ L (use soft IRI object as subject if available, otherwise current subject)
+            const subjectIRI = localObject || S;
+            emitQuad(state.quads, state.origin.quadIndex, block.id, subjectIRI, P, L, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
         } else if (pred.form === '?') {
-            if (newSubject) {
-                emitQuad(state.quads, state.origin.quadIndex, block.id, previousSubject, P, newSubject, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
-            } else if (O) {
-                emitQuad(state.quads, state.origin.quadIndex, block.id, S, P, O, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
+            // S —p→ O (use previous subject as subject, newSubject as object)
+            const subjectIRI = newSubject ? previousSubject : S;
+            const objectIRI = localObject || newSubject || carrierO;
+            if (objectIRI && subjectIRI) {
+                emitQuad(state.quads, state.origin.quadIndex, block.id, subjectIRI, P, objectIRI, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
             }
+        } else if (pred.form === '^') {
+            // L —p→ S (use soft IRI object as subject if available, otherwise current subject)
+            const subjectIRI = localObject || S;
+            emitQuad(state.quads, state.origin.quadIndex, block.id, L, P, subjectIRI, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
         } else if (pred.form === '^?') {
-            if (newSubject) {
-                emitQuad(state.quads, state.origin.quadIndex, block.id, newSubject, P, previousSubject, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
-            } else if (O) {
-                emitQuad(state.quads, state.origin.quadIndex, block.id, O, P, S, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
+            // O —p→ S (use previous subject as object, newSubject as subject)
+            const objectIRI = newSubject ? previousSubject : S;
+            const subjectIRI = localObject || newSubject || carrierO;
+            if (objectIRI && subjectIRI) {
+                emitQuad(state.quads, state.origin.quadIndex, block.id, subjectIRI, P, objectIRI, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
             }
         }
     });
@@ -622,7 +644,8 @@ export function parse(text, options = {}) {
         df: options.dataFactory || DataFactory,
         quads: [],
         origin: { blocks: new Map(), quadIndex: new Map() },
-        currentSubject: null
+        currentSubject: null,
+        currentObject: null
     };
 
     const tokens = scanTokens(text);
@@ -718,6 +741,16 @@ function writeAttrsTokens(tokens) {
 function removeOneToken(tokens, matchFn) {
     const i = tokens.findIndex(matchFn);
     return i === -1 ? { tokens, removed: false } : { tokens: [...tokens.slice(0, i), ...tokens.slice(i + 1)], removed: true };
+}
+
+function addObjectToken(tokens, iri) {
+    const objectToken = `=?${iri}`;
+    return tokens.includes(objectToken) ? tokens : [...tokens, objectToken];
+}
+
+function removeObjectToken(tokens, iri) {
+    const objectToken = `=?${iri}`;
+    return removeOneToken(tokens, t => t === objectToken);
 }
 
 function sanitizeCarrierValueForBlock(block, raw) {
@@ -1013,6 +1046,17 @@ export function serialize({ text, diff, origin, options = {} }) {
                 return;
             }
 
+            // Handle object token removal
+            if (entry?.kind === 'object') {
+                const objectIRI = shortenIRI(quad.object.value, ctx);
+                const { tokens: updated, removed } = removeObjectToken(tokens, objectIRI);
+                if (!removed) return;
+
+                const newAttrs = updated.length === 0 ? '{}' : writeAttrsTokens(updated);
+                edits.push({ start: span.start, end: span.end, text: newAttrs });
+                return;
+            }
+
             const tokens = normalizeAttrsTokens(span.text);
             let updated = tokens;
             let removed = false;
@@ -1084,7 +1128,8 @@ export function serialize({ text, diff, origin, options = {} }) {
                     } else {
                         const full = quad.object.value;
                         const label = shortenIRI(full, ctx);
-                        edits.push({ start: result.length, end: result.length, text: `\n[${label}] {=${label}) {?${predShort}}` });
+                        const objectShort = shortenIRI(full, ctx);
+                        edits.push({ start: result.length, end: result.length, text: `\n[${label}] {=?${objectShort} ?${predShort}}` });
                     }
                     return;
                 }
@@ -1103,8 +1148,24 @@ export function serialize({ text, diff, origin, options = {} }) {
 
                 if (quad.object.termType === 'NamedNode') {
                     const full = quad.object.value;
-                    const label = shortenIRI(full, ctx);
-                    edits.push({ start: result.length, end: result.length, text: `\n[${label}] {=${shortenIRI(full, ctx)} ?${predShort}}` });
+                    const objectShort = shortenIRI(full, ctx);
+                    const predShort = shortenIRI(quad.predicate.value, ctx);
+
+                    // Check if this is a ?predicate form (should use object IRI)
+                    const span = readSpan(targetBlock, text, 'attrs');
+                    const tokens = blockTokensFromEntries(targetBlock) || normalizeAttrsTokens(span.text);
+                    const hasObjectToken = tokens.some(t => t.startsWith('=?'));
+
+                    if (hasObjectToken || anchored?.entry?.form === '?') {
+                        // Add object token if not present
+                        const updated = addObjectToken(tokens, objectShort);
+                        if (updated.length !== tokens.length) {
+                            edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+                        }
+                    } else {
+                        // Create new annotation with object token
+                        edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {=?${objectShort} ?${predShort}}` });
+                    }
                     return;
                 }
             }

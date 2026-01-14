@@ -93,6 +93,7 @@ If attachment is ambiguous → **no quads emitted**.
 ```
 {=IRI}
 {=#fragment}
+{=?iri}
 ```
 
 Rules:
@@ -147,6 +148,22 @@ Example:
 ex:document#section1 schema:name "Section content" .
 ex:document#section2 schema:name "More content" .
 ```
+
+#### 6.1.3 Object IRI Form
+
+```
+{=?iri}
+```
+
+{=?IRI} declares an object IRI for use by subsequent object predicates (?p, ^?p) without changing the current subject context. This enables temporary object declarations for complex relationships while maintaining the current subject for continued annotation.
+
+**Use cases:**
+- **Object property declarations**: `[Related Item] {=?ex:related ?schema:isRelatedTo}` creates `currentSubject → isRelatedTo → ex:related`
+- **Reverse relationships**: `[Parent] {=?ex:parent ^?schema:hasPart}` creates `ex:parent → hasPart → currentSubject`
+- **Multi-predicate annotations**: `[Text] {=?ex:entity name ?schema:describes .Thing}` creates `ex:entity name "Text"`, `currentSubject → describes → ex:entity`, and `ex:entity rdf:type Thing`
+
+The object IRI is local to the current annotation block and does not persist across subsequent annotations, ensuring proper scope isolation.
+
 
 ---
 
