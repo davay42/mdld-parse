@@ -385,6 +385,41 @@ MD-LD explicitly forbids to ensure deterministic parsing:
 - ❌ Predicate guessing from context
 - ❌ Multi-pass or backtracking parsers
 
+Below is a **tight, README-ready refinement** of the Algebra section.
+It keeps the math precise, examples exhaustive, and language compact.
+
+---
+
+## Algebra 
+
+> Every RDF triple `(s, p, o)` can be authored **explicitly, deterministically, and locally**, with no inference, guessing, or reordering.
+
+MD-LD models RDF authoring as a **closed edge algebra** over a small, explicit state. To be algebraically complete for RDF triple construction, a syntax must support:
+
+* Binding a **subject** `S`
+* Binding an **object** `O`
+* Emitting predicates in **both directions**
+* Distinguishing **IRI nodes** from **literal nodes**
+* Operating with **no implicit state or inference**
+
+MD-LD satisfies these requirements with four explicit operators.
+
+Each predicate is partitioned by **direction** and **node kind**:
+
+| Predicate form | Emitted triple |
+| -------------- | -------------- |
+| `p`            | `S ─p→ L`      |
+| `?p`           | `S ─p→ O`      |
+| `^p`           | `L ─p→ S`      |
+| `^?p`          | `O ─p→ S`      |
+
+This spans all **2 × 2** combinations of:
+
+* source ∈ {subject, object/literal}
+* target ∈ {subject, object/literal}
+
+Therefore, the algebra is **closed**.
+
 ## Use Cases
 
 ### Personal Knowledge Management
