@@ -73,6 +73,13 @@ function parseSemanticBlock(raw) {
                 continue;
             }
 
+            if (token.startsWith('=#')) {
+                const fragment = token.substring(2);
+                result.subject = `=#${fragment}`;
+                result.entries.push({ kind: 'fragment', fragment, relRange: { start: relStart, end: relEnd }, raw: token });
+                continue;
+            }
+
             if (token.startsWith('=')) {
                 const iri = token.substring(1);
                 result.subject = iri;
@@ -469,7 +476,22 @@ function processAnnotation(carrier, sem, state) {
     }
 
     const previousSubject = state.currentSubject;
-    let newSubject = sem.subject ? state.df.namedNode(expandIRI(sem.subject, state.ctx)) : null;
+    let newSubject = null;
+
+    if (sem.subject) {
+        if (sem.subject.startsWith('=#')) {
+            // Handle fragment syntax
+            const fragment = sem.subject.substring(2);
+            if (state.currentSubject) {
+                // Replace any existing fragment in current subject
+                const baseIRI = state.currentSubject.value.split('#')[0];
+                newSubject = state.df.namedNode(`${baseIRI}#${fragment}`);
+            }
+        } else {
+            // Regular IRI
+            newSubject = state.df.namedNode(expandIRI(sem.subject, state.ctx));
+        }
+    }
     if (newSubject) state.currentSubject = newSubject;
 
     const S = state.currentSubject;
@@ -522,7 +544,16 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
         if (listToken.attrs) {
             const itemSem = parseSemanticBlock(listToken.attrs);
             if (itemSem.subject && itemSem.subject !== 'RESET') {
-                itemSubject = state.df.namedNode(expandIRI(itemSem.subject, state.ctx));
+                if (itemSem.subject.startsWith('=#')) {
+                    // Handle fragment syntax in list items
+                    const fragment = itemSem.subject.substring(2);
+                    if (state.currentSubject) {
+                        const baseIRI = state.currentSubject.value.split('#')[0];
+                        itemSubject = state.df.namedNode(`${baseIRI}#${fragment}`);
+                    }
+                } else {
+                    itemSubject = state.df.namedNode(expandIRI(itemSem.subject, state.ctx));
+                }
                 itemSubjectCarrier = { type: 'list', text: listToken.text, attrs: listToken.attrs, range: listToken.range };
             }
         }
@@ -532,7 +563,16 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
                 if (carrier.attrs) {
                     const itemSem = parseSemanticBlock(carrier.attrs);
                     if (itemSem.subject && itemSem.subject !== 'RESET') {
-                        itemSubject = state.df.namedNode(expandIRI(itemSem.subject, state.ctx));
+                        if (itemSem.subject.startsWith('=#')) {
+                            // Handle fragment syntax in inline carriers
+                            const fragment = itemSem.subject.substring(2);
+                            if (state.currentSubject) {
+                                const baseIRI = state.currentSubject.value.split('#')[0];
+                                itemSubject = state.df.namedNode(`${baseIRI}#${fragment}`);
+                            }
+                        } else {
+                            itemSubject = state.df.namedNode(expandIRI(itemSem.subject, state.ctx));
+                        }
                         itemSubjectCarrier = carrier;
                         break;
                     }

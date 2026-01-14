@@ -848,6 +848,52 @@ Summary: [Hello world summary] {summary @en }`;
         }
     },
 
+    // Fragment Syntax Tests
+    {
+        name: 'Fragment syntax uses current subject IRI base',
+        fn: () => {
+            const md = `# Document {=ex:document}
+            
+{=#summary}
+[This is the summary] {name}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(hasQuad(quads, 'http://example.org/document#summary', 'http://schema.org/name', 'This is the summary'),
+                'Fragment should resolve to current subject + #fragment');
+        }
+    },
+
+    {
+        name: 'Fragment syntax with nested path segments',
+        fn: () => {
+            const md = `# Document {=ex:document}
+
+## Section {=#section1}
+[Section content] {headline}
+            
+## Subsection {=#subsection}
+[Content here] {name}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+
+
+            assert(hasQuad(quads, 'http://example.org/document#section1', 'http://schema.org/headline', 'Section content'),
+                'Fragment should append to existing path');
+            assert(hasQuad(quads, 'http://example.org/document#subsection', 'http://schema.org/name', 'Content here'),
+                'Fragment should replace existing fragment, not nest');
+        }
+    },
+
+    {
+        name: 'Fragment syntax without current subject emits nothing',
+        fn: () => {
+            const md = `{=#summary}
+[Content] {name}`;
+            const { quads } = parse(md);
+
+            assert(quads.length === 0, `Fragment without subject should emit nothing, got ${quads.length}`);
+        }
+    },
+
     // Subject Chaining Tests
     {
         name: 'Subject chaining with standalone declarations',

@@ -94,11 +94,27 @@ Each predicate form determines the graph edge:
 
 ### Subject Declaration
 
-Set the current subject (emits no quads):
+Set current subject (emits no quads):
 
 ```markdown
 ## Apollo 11 {=ex:apollo11}
 ```
+
+#### Fragment Syntax
+
+Create fragment IRIs relative to current subject:
+
+```markdown
+# Document {=ex:document}
+{=#summary}
+[Content] {name}
+```
+
+```turtle
+ex:document#summary schema:name "Content" .
+```
+
+Fragments replace any existing fragment and require a current subject.
 
 Subject remains in scope until reset with `{=}` or new subject declared.
 

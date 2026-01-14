@@ -92,6 +92,7 @@ If attachment is ambiguous → **no quads emitted**.
 
 ```
 {=IRI}
+{=#fragment}
 ```
 
 Rules:
@@ -101,6 +102,14 @@ Rules:
 * Overrides previous subject
 * Subject context persists forward
 
+#### 6.1.1 IRI Form
+
+```
+{=IRI}
+```
+
+Expands to a full IRI using context prefixes and vocabulary.
+
 Example:
 
 ```md
@@ -108,6 +117,36 @@ Example:
 ```
 
 → no output
+
+#### 6.1.2 Fragment Form
+
+```
+{=#fragment}
+```
+
+Creates a fragment IRI relative to the current subject:
+
+* If current subject exists: `currentSubjectBase + '#' + fragment`
+* If no current subject: **no subject is set** (invalid)
+* Replaces any existing fragment in current subject
+* Base IRI is determined by splitting current subject on first `#`
+* Multiple fragment declarations replace the previous fragment.
+
+Example:
+
+```md
+# Document {=ex:document}
+## Section 1 {=#section1}
+[Section content] {name}
+
+## Section 2 {=#section2}
+[More content] {name}
+```
+
+```turtle
+ex:document#section1 schema:name "Section content" .
+ex:document#section2 schema:name "More content" .
+```
 
 ---
 
