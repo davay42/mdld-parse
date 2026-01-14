@@ -1,15 +1,14 @@
 # MD-LD Parse v0.2
 
-**Markdown-Linked Data (MD-LD)** — a deterministic, streaming-friendly RDF authoring format that extends Markdown with explicit `{}` annotations.
+**Markdown-Linked Data (MD-LD)** — a deterministic, streaming-friendly RDF authoring format that extends Markdown with explicit `{...}` annotations.
 
 [![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
-[![License](https://img.shields.io/npm/l/mdld-parse)](https://github.com/mdld-js/mdld-parse)
 
-[Documentation](https://mdld.js.org) | [Specification](https://mdld.js.org/spec) | [Playground](https://mdld.js.org/playground)
+[Documentation](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse) | [Playground](https://mdld.js.org/playground)
 
 ## What is MD-LD?
 
-MD-LD allows you to author RDF graphs directly in Markdown using explicit `{}` annotations:
+MD-LD allows you to author RDF graphs directly in Markdown using explicit `{...}` annotations:
 
 ```markdown
 # Apollo 11 {=ex:apollo11 .SpaceMission}
@@ -32,8 +31,8 @@ ex:apollo11 a schema:SpaceMission ;
 
 MD-LD v0.2 provides strict semantic guarantees:
 
-1. **CommonMark-preserving** — Removing `{}` yields valid Markdown
-2. **Explicit semantics** — Every quad originates from explicit `{}`
+1. **CommonMark-preserving** — Removing `{...}` yields valid Markdown
+2. **Explicit semantics** — Every quad originates from explicit `{...}`
 3. **Single-pass parsing** — Streaming-friendly, deterministic
 4. **No blank nodes** — All subjects are stable IRIs
 5. **Complete traceability** — Every quad maps to source location
@@ -140,7 +139,7 @@ Links create relationships (use `?` prefix):
 ```markdown
 # Mission {=ex:apollo11}
 
-[NASA](ex:nasa) {?organizer}
+[NASA] {=ex:nasa ?organizer}
 ```
 
 ```turtle
@@ -294,7 +293,7 @@ Apply RDF changes back to markdown with proper positioning.
 **Returns:** `{ text, origin }`
 
 - `text` — Updated markdown
-- `origin` — Updated origin tracking
+- `origin` — Updated origin tracking vacant slots
 
 **Example:**
 
