@@ -583,6 +583,32 @@ Author is [Alice] {name} and [Bob] {contributor}`;
         }
     },
 
+    // All inline carrier variants
+    {
+        name: 'All inline carrier variants work correctly',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+[span] {spanName}
+*emphasis* {emphasisName}
+**strong** {strongName}
+_underline_ {underlineName}
+__double_underline__ {doubleUnderlineName}
+\`code\` {codeName}
+[link](http://example.com) {linkName}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', '@vocab': 'http://example.org/' } });
+
+            assert(quads.length === 7, `Should emit 7 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/spanName', 'span'), 'Should have span');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/emphasisName', 'emphasis'), 'Should have emphasis');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/strongName', 'strong'), 'Should have strong');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/underlineName', 'underline'), 'Should have underline');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/doubleUnderlineName', 'double_underline'), 'Should have double underline');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/codeName', 'code'), 'Should have code');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/linkName', 'link'), 'Should have link');
+        }
+    },
+
     // Edge cases
     {
         name: 'Empty annotation emits nothing',

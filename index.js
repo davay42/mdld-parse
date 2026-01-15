@@ -24,7 +24,6 @@ export function hash(str) {
     return Math.abs(h).toString(16).slice(0, 12);
 }
 
-// IRI Utilities
 export function expandIRI(term, ctx) {
     if (term == null) return null;
     const raw = typeof term === 'string' ? term : (typeof term === 'object' && typeof term.value === 'string') ? term.value : String(term);
@@ -281,6 +280,41 @@ function extractInlineCarriers(text, baseOffset = 0) {
     let pos = 0;
 
     while (pos < text.length) {
+        // Try emphasis patterns first (before brackets)
+        const emphasisMatch = text.match(/^[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/, pos);
+        if (emphasisMatch) {
+            const carrierText = emphasisMatch[1];
+            const valueRange = [baseOffset + emphasisMatch[0].length, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length];
+            carriers.push({
+                type: 'emphasis',
+                text: carrierText,
+                attrs: `{${emphasisMatch[2]}}`,
+                attrsRange: [baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + 2, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + emphasisMatch[2].length],
+                valueRange,
+                range: [baseOffset + emphasisMatch[0].length, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length]
+            });
+            pos = baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + emphasisMatch[2].length;
+            continue;
+        }
+
+        // Try code spans
+        const codeMatch = text.match(/^``(.+?)``\s*\{([^}]+)\}/, pos);
+        if (codeMatch) {
+            const carrierText = codeMatch[1];
+            const valueRange = [baseOffset + 2, baseOffset + 2 + codeMatch[1].length];
+            carriers.push({
+                type: 'code',
+                text: carrierText,
+                attrs: `{${codeMatch[2]}}`,
+                attrsRange: [baseOffset + 2 + codeMatch[1].length + 2, baseOffset + 2 + codeMatch[1].length + 2],
+                valueRange,
+                range: [baseOffset + 2, baseOffset + 2 + codeMatch[1].length + 2]
+            });
+            pos = baseOffset + 2 + codeMatch[1].length + 2;
+            continue;
+        }
+
+        // Try bracket patterns (original logic)
         const bracketStart = text.indexOf('[', pos);
         if (bracketStart === -1) break;
 
@@ -372,7 +406,6 @@ function createBlock(subject, types, predicates, entries, range, attrsRange, val
     };
 }
 
-// Quad Utilities
 function quadIndexKey(subject, predicate, object) {
     const objKey = object.termType === 'Literal'
         ? JSON.stringify({ t: 'Literal', v: object.value, lang: object.language || '', dt: object.datatype?.value || '' })
@@ -413,7 +446,6 @@ function parseQuadIndexKey(key) {
     }
 }
 
-// Semantic Slot Utilities
 function createSemanticSlotId(subject, predicate) {
     return hash(`${subject.value}|${predicate.value}`);
 }
@@ -735,8 +767,6 @@ export function parse(text, options = {}) {
     return { quads: state.quads, origin: state.origin, context: state.ctx };
 }
 
-
-// Text Processing Utilities
 function readSpan(block, text, spanType = 'attrs') {
     const range = spanType === 'attrs' ? block?.attrsRange : block?.valueRange;
     if (!range) return null;
