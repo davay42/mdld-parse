@@ -88,22 +88,18 @@ If attachment is ambiguous → **no quads emitted**.
 
 ## 6. Subjects
 
-### 6.1 Declaration
+#### 6.1.1 Subject Declaration Form
 
 ```
 {=IRI}
 {=#fragment}
-{=?iri}
 ```
 
-Rules:
-
-* Sets **current subject S**
-* Emits no quads
+Sets the current subject **S** to the expanded IRI or creates a fragment relative to the current subject base. Emits no quads
 * Overrides previous subject
 * Subject context persists forward
 
-#### 6.1.1 IRI Form
+#### 6.1.2 IRI Form
 
 ```
 {=IRI}
@@ -157,12 +153,21 @@ ex:document#section2 schema:name "More content" .
 
 {=?IRI} declares an object IRI for use by subsequent object predicates (?p, ^?p) without changing the current subject context. This enables temporary object declarations for complex relationships while maintaining the current subject for continued annotation.
 
+#### 6.1.4 Soft Fragment Form
+
+```
+{=?#fragment}
+```
+
+{=?#fragment} declares a soft fragment IRI relative to the current subject base, combining the locality of soft IRIs with the convenience of fragment resolution.
+
 **Use cases:**
 - **Object property declarations**: `[Related Item] {=?ex:related ?schema:isRelatedTo}` creates `currentSubject → isRelatedTo → ex:related`
 - **Reverse relationships**: `[Parent] {=?ex:parent ^?schema:hasPart}` creates `ex:parent → hasPart → currentSubject`
+- **Soft fragment declarations**: `[Section] {=?#section1 name ?hasPart}` creates `currentSubject → hasPart → currentSubject#section1`
 - **Multi-predicate annotations**: `[Text] {=?ex:entity name ?schema:describes .Thing}` creates `ex:entity name "Text"`, `currentSubject → describes → ex:entity`, and `ex:entity rdf:type Thing`
 
-The object IRI is local to the current annotation block and does not persist across subsequent annotations, ensuring proper scope isolation.
+The soft object IRI (regular or fragment) is local to the current annotation block and does not persist across subsequent annotations, ensuring proper scope isolation.
 
 
 ---
@@ -351,10 +356,43 @@ ex:code a schema:SoftwareSourceCode ;
   schema:language "JavaScript" .
 ```
 
-
 ---
 
-## 14. Forbidden constructs (normative)
+## 14. Context: initial, prefix, vocabulary
+
+MD-LD processors MUST provide this initial context by default:
+
+```json
+{
+    "@vocab": "http://schema.org/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#", 
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "schema": "http://schema.org/"
+}
+```
+
+It is used to expand CURIEs and vocabulary terms.
+
+`[prefix] {: IRI}`
+
+Declares a prefix for CURIE expansion within the current document scope.
+
+`[@vocab] {: IRI}`
+
+Sets the default vocabulary for un-prefixed terms and predicate names.
+
+
+### Scope
+
+- Context declarations apply forward from declaration point
+- Later declarations override earlier ones for subsequent parsing
+- Initial context cannot be unset, only overridden
+- Context is resolved during single-pass streaming parsing
+- No backtracking or look-ahead required
+
+
+## 15. Forbidden constructs (normative)
 
 * Implicit labels
 * Structural inference
@@ -363,6 +401,7 @@ ex:code a schema:SoftwareSourceCode ;
 * key=value syntax
 * Predicate guessing
 * Backtracking parses
+* CURIE in Markdown links
 
 ---
 

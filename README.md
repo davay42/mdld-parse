@@ -14,8 +14,11 @@ MD-LD allows you to author RDF graphs directly in Markdown using explicit `{...}
 # Apollo 11 {=ex:apollo11 .SpaceMission}
 
 Launch: [1969-07-16] {startDate ^^xsd:date}
-Crew: [Neil Armstrong](ex:armstrong) {?crewMember}
+Crew: [Neil Armstrong] {=?ex:armstrong ?crewMember fullName}
 Description: [First crewed Moon landing] {description}
+
+[Section] {=?#overview ?hasPart}
+Overview: [Mission summary] {description}
 ```
 
 Generates valid RDF triples:
@@ -25,18 +28,20 @@ ex:apollo11 a schema:SpaceMission ;
   schema:startDate "1969-07-16"^^xsd:date ;
   schema:crewMember ex:armstrong ;
   schema:description "First crewed Moon landing" .
+
+ex:armstrong schema:fullName "Neil Armstrong" .
 ```
 
-## Core Guarantees
+## Core Features
 
-MD-LD v0.2 provides strict semantic guarantees:
-
-1. **CommonMark-preserving** — Removing `{...}` yields valid Markdown
-2. **Explicit semantics** — Every quad originates from explicit `{...}`
-3. **Single-pass parsing** — Streaming-friendly, deterministic
-4. **No blank nodes** — All subjects are stable IRIs
-5. **Complete traceability** — Every quad maps to source location
-6. **Round-trip capable** — Markdown ↔ RDF ↔ Markdown preserves structure
+- **Subject declarations**: `{=IRI}` and `{=#fragment}` for context setting
+- **Object IRIs**: `{=?IRI}` and `{=?#fragment}` for temporary object declarations  
+- **Four predicate forms**: `p` (S→L), `?p` (S→O), `^p` (L→S), `^?p` (O→S)
+- **Type declarations**: `.Class` for rdf:type triples
+- **Datatypes & language**: `^^xsd:date` and `@en` support
+- **Lists**: Explicit subject declarations for structured data
+- **Fragments**: Built-in document structuring with `{=#fragment}`
+- **Round-trip serialization**: Markdown ↔ RDF ↔ Markdown preserves structure
 
 ## Installation
 
@@ -246,6 +251,7 @@ ex:book schema:hasPart ex:part .
 ```markdown
 [ex] {: http://example.org/}
 [foaf] {: http://xmlns.com/foaf/0.1/}
+[@vocab] {: http://schema.org/}
 
 # Person {=ex:alice .foaf:Person}
 ```

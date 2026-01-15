@@ -76,6 +76,13 @@ export function parseSemanticBlock(raw) {
                 continue;
             }
 
+            if (token.startsWith('=?#')) {
+                const fragment = token.substring(3);
+                result.object = `#${fragment}`;
+                result.entries.push({ kind: 'softFragment', fragment, relRange: { start: relStart, end: relEnd }, raw: token });
+                continue;
+            }
+
             if (token.startsWith('=?')) {
                 const iri = token.substring(2);
                 result.object = iri;
@@ -500,7 +507,17 @@ function processAnnotation(carrier, sem, state) {
 
     if (sem.object) {
         // Handle soft IRI object declaration - local to this annotation only
-        localObject = state.df.namedNode(expandIRI(sem.object, state.ctx));
+        if (sem.object.startsWith('#')) {
+            // Soft fragment - resolve against current subject base
+            const fragment = sem.object.substring(1);
+            if (state.currentSubject) {
+                const baseIRI = state.currentSubject.value.split('#')[0];
+                localObject = state.df.namedNode(`${baseIRI}#${fragment}`);
+            }
+        } else {
+            // Regular soft IRI
+            localObject = state.df.namedNode(expandIRI(sem.object, state.ctx));
+        }
     }
 
     if (newSubject) state.currentSubject = newSubject;
@@ -751,6 +768,16 @@ function addObjectToken(tokens, iri) {
 function removeObjectToken(tokens, iri) {
     const objectToken = `=?${iri}`;
     return removeOneToken(tokens, t => t === objectToken);
+}
+
+function addSoftFragmentToken(tokens, fragment) {
+    const fragmentToken = `=?#${fragment}`;
+    return tokens.includes(fragmentToken) ? tokens : [...tokens, fragmentToken];
+}
+
+function removeSoftFragmentToken(tokens, fragment) {
+    const fragmentToken = `=?#${fragment}`;
+    return removeOneToken(tokens, t => t === fragmentToken);
 }
 
 function sanitizeCarrierValueForBlock(block, raw) {
@@ -1057,6 +1084,17 @@ export function serialize({ text, diff, origin, options = {} }) {
                 return;
             }
 
+            // Handle soft fragment token removal
+            if (entry?.kind === 'softFragment') {
+                const fragment = entry.fragment;
+                const { tokens: updated, removed } = removeSoftFragmentToken(tokens, fragment);
+                if (!removed) return;
+
+                const newAttrs = updated.length === 0 ? '{}' : writeAttrsTokens(updated);
+                edits.push({ start: span.start, end: span.end, text: newAttrs });
+                return;
+            }
+
             const tokens = normalizeAttrsTokens(span.text);
             let updated = tokens;
             let removed = false;
@@ -1151,20 +1189,31 @@ export function serialize({ text, diff, origin, options = {} }) {
                     const objectShort = shortenIRI(full, ctx);
                     const predShort = shortenIRI(quad.predicate.value, ctx);
 
-                    // Check if this is a ?predicate form (should use object IRI)
-                    const span = readSpan(targetBlock, text, 'attrs');
-                    const tokens = blockTokensFromEntries(targetBlock) || normalizeAttrsTokens(span.text);
-                    const hasObjectToken = tokens.some(t => t.startsWith('=?'));
+                    // Check if this is a soft fragment
+                    const isSoftFragment = full.includes('#') && anchored?.entry?.kind === 'softFragment';
 
-                    if (hasObjectToken || anchored?.entry?.form === '?') {
-                        // Add object token if not present
-                        const updated = addObjectToken(tokens, objectShort);
-                        if (updated.length !== tokens.length) {
-                            edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+                    if (isSoftFragment || anchored?.entry?.form === '?') {
+                        // Add soft fragment token if not present
+                        if (isSoftFragment) {
+                            const fragment = full.split('#')[1];
+                            const updated = addSoftFragmentToken(tokens, fragment);
+                            if (updated.length !== tokens.length) {
+                                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+                            }
+                        } else {
+                            const updated = addObjectToken(tokens, objectShort);
+                            if (updated.length !== tokens.length) {
+                                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+                            }
                         }
                     } else {
                         // Create new annotation with object token
-                        edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {=?${objectShort} ?${predShort}}` });
+                        if (isSoftFragment) {
+                            const fragment = full.split('#')[1];
+                            edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {=?#${fragment} ?${predShort}}` });
+                        } else {
+                            edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {=?${objectShort} ?${predShort}}` });
+                        }
                     }
                     return;
                 }

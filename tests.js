@@ -950,6 +950,89 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
         }
     },
 
+    // Soft Fragment Tests - {=?#fragment} syntax
+    {
+        name: 'Soft fragment declaration with ?predicate',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+[Section] {=?#section1 name ?hasPart}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc#section1', 'http://schema.org/name', 'Section'),
+                'Soft fragment should have name');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/hasPart', 'http://example.org/doc#section1'),
+                'Should use soft fragment as object');
+        }
+    },
+
+    {
+        name: 'Soft fragment with reverse predicate ^?p',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+[Parent] {=?#parent ^?hasPart}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc#parent', 'http://schema.org/hasPart', 'http://example.org/doc'),
+                'Should create reverse relationship from soft fragment to subject');
+        }
+    },
+
+    {
+        name: 'Soft fragment with type declaration',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+[Chapter] {=?#chapter1 .Section name}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc#chapter1', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Section'),
+                'Soft fragment should have type');
+            assert(hasQuad(quads, 'http://example.org/doc#chapter1', 'http://schema.org/name', 'Chapter'),
+                'Soft fragment should have name');
+        }
+    },
+
+    {
+        name: 'Soft fragment does not persist between annotations',
+        fn: () => {
+            const md = `# Doc {=ex:doc}
+
+[First] {=?#frag1 ?p}
+[Second] {?p}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/p', 'http://ex.org/doc#frag1'),
+                'Should use soft fragment from first annotation only');
+        }
+    },
+
+    {
+        name: 'Complex context switching with soft fragments',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+[Section] {=?#section1 .Section name}
+[Subsection] {=?#section2 name ?hasPart}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(quads.length === 4, `Should emit 4 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc#section1', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Section'),
+                'Section should have type');
+            assert(hasQuad(quads, 'http://example.org/doc#section1', 'http://schema.org/name', 'Section'),
+                'Section should have name');
+            assert(hasQuad(quads, 'http://example.org/doc#section2', 'http://schema.org/name', 'Subsection'),
+                'Subsection should have name');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/hasPart', 'http://example.org/doc#section2'),
+                'Should use soft fragment as object');
+        }
+    },
+
     // Fragment Syntax Tests
     {
         name: 'Fragment syntax uses current subject IRI base',
