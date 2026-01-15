@@ -749,10 +749,11 @@ Author: [Alice] {=ex:alice .Person ?author}"></textarea>
 
         // Example templates
         const examples = {
-            journal: `
+            journal: `           
+## 2024-07-18 — A good day {=urn:journal:day-2024-07-18 .Event}
+
 [ex] {: http://example.org/}
-            
-## 2024-07-18 — A good day {=ex:day-2024-07-18 .Event}
+
 
 Mood: [Happy] {mood}
 Energy level: [8] {ex:energyLevel ^^xsd:integer}
@@ -774,35 +775,37 @@ Related events: {^?ex:relatedEvent}
 - Evening dinner {=ex:dinner-2024-07-18 .Event}`,
 
             recipe: `
-[ex] {: http://example.org/}
+## Apple Pie {=urn:recipe:apple-pie .Recipe name}
 
-## Apple Pie {=ex:apple-pie .Recipe}
+Description: **Classic homemade apple pie** {description}
+Cooking time: **45** {cookTime ^^xsd:integer} minutes
+Servings: **8** {recipeYield ^^xsd:integer}
+Difficulty: **Medium** {urn:skill:difficulty}
 
-Description: [Classic homemade apple pie] {description}
-Cooking time: [45] {cookTime ^^xsd:integer}
-Servings: [8] {recipeYield ^^xsd:integer}
-Difficulty: [Medium] {ex:difficulty}
+Ingredients: {recipeIngredient .urn:food:ingredient}
 
-Ingredients: {recipeIngredient .Food}
+* Apples {=urn:food:apples .urn:food:ingredient name}
+* Sugar {=urn:food:sugar .urn:food:ingredient name}
+* Butter {=urn:food:butter .urn:food:ingredient name}
+* Flour {=urn:food:flour .urn:food:ingredient name}
+* Cinnamon {=urn:food:cinnamon .urn:food:ingredient name}
 
-- Apples {=ex:apples .Food name}
-- Sugar {=ex:sugar .Food name}
-- Butter {=ex:butter .Food name}
-- Flour {=ex:flour .Food name}
-- Cinnamon {=ex:cinnamon .Food name}
+_Ingredient_ {=?urn:food:ingredient .Class name} - is a class for all ingredients in our **Cookbook** {=?urn:collection:cookbook .Collection name ?isPartOf}.
 
-Equipment: {ex:requiresEquipment}
-- Oven {=ex:oven-1 name}
-- Mixing bowl {=ex:bowl-1 name}
-- Rolling pin {=ex:pin-1 name}
+Equipment: {urn:requiresEquipment}
 
-Nutrition per serving: {ex:nutritionPerServing}
-- Calories {=ex:calories ^^xsd:integer}
-- Sugar content {=ex:sugarGrams ^^xsd:decimal}
+* Oven {=urn:kitchen:oven-1 .Device name}
+* Mixing bowl {=urn:kitchen:bowl-1 .Utensil name}
+* Rolling pin {=urn:kitchen:pin-1 .Utensil name}
 
-Related recipes: {^?ex:variationOf .Recipe}
-- Apple Crumble {=ex:apple-crumble .Recipe name}
-- Peach Pie {=ex:peach-pie .Recipe name}`,
+Calories:  [1235] {urn:nutrition:calories ^^xsd:integer} calories
+Sugar: [40.4] {urn:nutrition:sugarGrams ^^xsd:decimal} grams
+
+Related recipes: {^?urn:class:variationOf .Recipe}
+
+* Apple Crumble {=urn:recipe:apple-crumble .Recipe name}
+* Peach Pie {=urn:recipe:peach-pie .Recipe name}
+            `,
 
             project: `
 [ex] {: http://example.org/}

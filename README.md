@@ -14,7 +14,7 @@ MD-LD allows you to author RDF graphs directly in Markdown using explicit `{...}
 # Apollo 11 {=ex:apollo11 .SpaceMission}
 
 Launch: [1969-07-16] {startDate ^^xsd:date}
-Crew: [Neil Armstrong] {=?ex:armstrong ?crewMember fullName}
+Crew: [Neil Armstrong] {=?ex:armstrong ?crewMember name}
 Description: [First crewed Moon landing] {description}
 
 [Section] {=?#overview ?hasPart}
@@ -29,7 +29,7 @@ ex:apollo11 a schema:SpaceMission ;
   schema:crewMember ex:armstrong ;
   schema:description "First crewed Moon landing" .
 
-ex:armstrong schema:fullName "Neil Armstrong" .
+ex:armstrong schema:name "Neil Armstrong" .
 ```
 
 ## Core Features
