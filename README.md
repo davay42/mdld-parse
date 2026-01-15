@@ -497,8 +497,10 @@ Contributions welcome! Please:
 
 ## Acknowledgments
 
+Developed by [Denis Starov](https://github.com/davay42).
+
 Inspired by:
-- Thomas Francart's [Semantic Markdown](https://blog.sparna.fr/2020/02/20/semantic-markdown/)
+- Thomas Francart's [Semantic Markdown](https://blog.sparna.fr/2020/02/20/semantic-markdown/) article
 - RDFa decades of structured data experience
 - CommonMark's rigorous parsing approach
 
