@@ -1,6 +1,6 @@
 {
 	"name": "mdld-parse",
-	"version": "0.2.7",
+	"version": "0.2.8",
 	"description": "A standards-compliant parser for **MD-LD (Markdown-Linked Data)** — a human-friendly RDF authoring format that extends Markdown with semantic annotations.",
 	"type": "module",
 	"main": "index.js",
