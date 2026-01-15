@@ -7,11 +7,11 @@ Difficulty: **Medium** {urn:skill:difficulty}
 
 Ingredients: {recipeIngredient .urn:food:ingredient}
 
-* Apples {=urn:food:apples .urn:food:ingredient name}
-* Sugar {=urn:food:sugar .urn:food:ingredient name}
-* Butter {=urn:food:butter .urn:food:ingredient name}
-* Flour {=urn:food:flour .urn:food:ingredient name}
-* Cinnamon {=urn:food:cinnamon .urn:food:ingredient name}
+* Apples {=urn:food:apples name}
+* Sugar {=urn:food:sugar name}
+* Butter {=urn:food:butter name}
+* Flour {=urn:food:flour name}
+* Cinnamon {=urn:food:cinnamon name}
 
 _Ingredient_ {=?urn:food:ingredient .Class name} - is a class for all ingredients in our **Cookbook** {=?urn:collection:cookbook .Collection name ?isPartOf}.
 
