@@ -303,7 +303,7 @@ Ordered and unordered lists are semantically identical.
 ### Example
 
 ```md
-Ingredients: {hasPart .Ingredient}
+Ingredients: {?hasPart .Ingredient}
 
 - Flour {=ex:flour name}
 - Water {=ex:water name}
@@ -324,7 +324,7 @@ Reverse predicates invert direction **only**, never semantics.
 Example:
 
 ```md
-Used in: {^hasPart}
+Used in: {^?hasPart}
 - Bread {=ex:bread}
 ```
 

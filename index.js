@@ -660,11 +660,17 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
 
         contextSem.predicates.forEach(pred => {
             const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-            if (pred.form === '^' || pred.form === '^?') {
+
+            // According to MD-LD spec: list predicates that connect to item subjects MUST use object predicate forms (?p or ^?p)
+            // Literal predicate forms (p, ^p) in list scope emit no quads
+            if (pred.form === '^?') {
+                // Reverse object property: O —p→ S
                 emitQuad(state.quads, state.origin.quadIndex, 'list-context', itemSubject, P, contextSubject, state.df);
-            } else {
+            } else if (pred.form === '?') {
+                // Object property: S —p→ O
                 emitQuad(state.quads, state.origin.quadIndex, 'list-context', contextSubject, P, itemSubject, state.df);
             }
+            // Note: pred.form === '' and pred.form === '^' are intentionally ignored (literal predicate forms)
         });
 
         const prevSubject = state.currentSubject;

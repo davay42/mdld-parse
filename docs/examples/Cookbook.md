@@ -5,7 +5,7 @@ Cooking time: **45** {cookTime ^^xsd:integer} minutes
 Servings: **8** {recipeYield ^^xsd:integer}
 Difficulty: **Medium** {urn:skill:difficulty}
 
-Ingredients: {recipeIngredient .urn:food:ingredient}
+Ingredients: {?recipeIngredient .Ingredient}
 
 * Apples {=urn:food:apples name}
 * Sugar {=urn:food:sugar name}
@@ -15,7 +15,7 @@ Ingredients: {recipeIngredient .urn:food:ingredient}
 
 _Ingredient_ {=?urn:food:ingredient .Class name} - is a class for all ingredients in our **Cookbook** {=?urn:collection:cookbook .Collection name ?isPartOf}.
 
-Equipment: {urn:requiresEquipment}
+Equipment: {?urn:requiresEquipment}
 
 * Oven {=urn:kitchen:oven-1 .Device name}
 * Mixing bowl {=urn:kitchen:bowl-1 .Utensil name}
