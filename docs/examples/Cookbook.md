@@ -13,7 +13,7 @@ Ingredients: {?recipeIngredient .Ingredient}
 * Flour {=urn:food:flour name}
 * Cinnamon {=urn:food:cinnamon name}
 
-_Ingredient_ {=?urn:food:ingredient .Class name} - is a class for all ingredients in our **Cookbook** {=?urn:collection:cookbook .Collection name ?isPartOf}.
+_Ingredient_ {+urn:food:ingredient .Class name} - is a class for all ingredients in our **Cookbook** {+urn:collection:cookbook .Collection name ?isPartOf}.
 
 Equipment: {?urn:requiresEquipment}
 
@@ -24,7 +24,7 @@ Equipment: {?urn:requiresEquipment}
 Calories:  [1235] {urn:nutrition:calories ^^xsd:integer} calories
 Sugar: [40] {urn:nutrition:sugarGrams ^^xsd:decimal} grams
 
-Related recipes: {^?urn:class:variationOf .Recipe}
+Related recipes: {!urn:class:variationOf .Recipe}
 
 * Apple Crumble {=urn:recipe:apple-crumble .Recipe name}
 * Peach Pie {=urn:recipe:peach-pie .Recipe name}

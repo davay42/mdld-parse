@@ -25,7 +25,7 @@ At any annotation `{...}`, there may be:
 | Symbol | Meaning                                              |
 | ------ | ---------------------------------------------------- |
 | **S**  | current subject (IRI)                                |
-| **O**  | object IRI (from link, image, or `{=?iri}`)          |
+| **O**  | object IRI (from link, image, or `{+iri}`)          |
 | **L**  | literal text (from the attached Markdown span/block) |
 
 No subject → no triple
@@ -88,7 +88,7 @@ Every triple is written using **one of four predicate shapes**:
 | `p`   | `S → L` |
 | `?p`  | `S → O` |
 | `^p`  | `L → S` |
-| `^?p` | `O → S` |
+| `!p` | `O → S` |
 
 Nothing else exists.
 
@@ -96,9 +96,9 @@ Nothing else exists.
 
 ```md
 [Bread] {name}
-[Walnut] {=?urn:my:walnut ?hasIngredient}
+[Walnut] {+urn:my:walnut ?hasIngredient}
 [Traditional] {^category}
-[Recipe](https://en.wikipedia.org/wiki/Recipe) {^?hasPart}
+[Recipe](https://en.wikipedia.org/wiki/Recipe) {!hasPart}
 ```
 
 Never use shortened CURIE in regular Markdown links. They must be valid URLs for the browser to navigate to.
@@ -118,7 +118,7 @@ No datatype or language is ever inferred.
 
 ---
 
-## 5. Object IRIs (links or `{=?iri}`)
+## 5. Object IRIs (links or `{+iri}`)
 
 Objects exist only if explicitly present.
 
@@ -129,7 +129,7 @@ Objects exist only if explicitly present.
 or
 
 ```md
-[Walnuts] {=?urn:my:walnut ?ingredient}
+[Walnuts] {+urn:my:walnut ?ingredient}
 ```
 
 Same graph. Different ergonomics.
@@ -209,7 +209,7 @@ Language fences stay intact.
 ## 10. Reverse relations (write from either side)
 
 ```md
-Used in: {^?hasIngredient}
+Used in: {!hasIngredient}
 
 - Salad {=urn:my:salad}
 ````

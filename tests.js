@@ -151,13 +151,13 @@ const tests = [
         }
     },
 
-    // §8.1 Predicate Forms - Reverse Properties (^p, ^?p)
+    // §8.1 Predicate Forms - Reverse Properties (^p, !p)
     {
-        name: 'Reverse object property: O → S (form ^?p)',
+        name: 'Reverse object property: O → S (form !p)',
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Parent] {=ex:parent ^?hasPart}`;
+[Parent] {=ex:parent !hasPart}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
 
             const q = findQuad(quads, 'http://ex.org/parent', 'http://schema.org/hasPart', 'http://ex.org/doc');
@@ -271,11 +271,11 @@ Ingredients: {?ingredient}
     },
 
     {
-        name: 'Reverse list relationship (^?p)',
+        name: 'Reverse list relationship (!p)',
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-Part of: {^?hasPart}
+Part of: {!hasPart}
 
 - Book {=ex:book}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
@@ -433,11 +433,11 @@ Tasks: {?hasPart .Action}
         fn: () => {
             const md = `# Event {=ex:event}
 
-Attendees: {^?attendedBy}
+Attendees: {!attendedBy}
 - Alice {=ex:alice name}
 - Bob {=ex:bob name}
 
-Location: {^?locatedAt}
+Location: {!locatedAt}
 - Venue {=ex:venue name}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
 
@@ -534,7 +534,7 @@ Content: {?hasPart}
 - Section 1 {=ex:section1 .Section name}
 - Section 2 {=ex:section2 .Section name}
 
-References: {^?ex:citedBy}
+References: {!ex:citedBy}
 - Other Doc {=ex:other-doc .Article name}`;
 
             const result = parse(original);
@@ -903,14 +903,14 @@ Summary: [Hello world summary] {summary @en }`;
         }
     },
 
-    // Soft IRI Tests - {=?IRI} syntax
+    // Soft IRI Tests - {+IRI} syntax
     {
         name: 'Soft IRI declaration with ?predicate',
         fn: () => {
             const md = `# Apollo 11 {=wd:Q43653}
 
-Part of the [Apollo Program] {=?wd:Q495307 ?schema:partOf}
-and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
+Part of the [Apollo Program] {+wd:Q495307 ?schema:partOf}
+and launched on a [Saturn V] {+wd:Q193237 ?schema:vehicle}.`;
             const { quads } = parse(md, { context: { wd: 'http://www.wikidata.org/entity/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
@@ -922,11 +922,11 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
     },
 
     {
-        name: 'Soft IRI with reverse predicate ^?p',
+        name: 'Soft IRI with reverse predicate !p',
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Parent] {=?ex:parent ^?hasPart}`;
+[Parent] {+ex:parent !hasPart}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
 
             assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
@@ -940,7 +940,7 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `# Project {=ex:project}
 
-[Team Lead] {=?ex:alice ?schema:teamLead .Person}`;
+[Team Lead] {+ex:alice ?schema:teamLead .Person}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
@@ -956,7 +956,7 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[First] {=?ex:object1 ?p}
+[First] {+ex:object1 ?p}
 [Second] {?p}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
 
@@ -971,7 +971,7 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[One] {=urn:one .Article name} is an [text] {=?urn:text name ?isInstanceOf}. Then continue writing about One article, not the text. Like add [Jane] {=urn:jane.Person .Person name ?author} - now we switch context - we can annotate Jane now - [1987] {yearOfBirth ^^xsd:gYear}.`;
+[One] {=urn:one .Article name} is an [text] {+urn:text name ?isInstanceOf}. Then continue writing about One article, not the text. Like add [Jane] {=urn:jane.Person .Person name ?author} - now we switch context - we can annotate Jane now - [1987] {yearOfBirth ^^xsd:gYear}.`;
             const { quads } = parse(md, {
                 context: {
                     ex: 'http://example.org/',
@@ -1005,13 +1005,13 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
         }
     },
 
-    // Soft Fragment Tests - {=?#fragment} syntax
+    // Soft Fragment Tests - {+#fragment} syntax
     {
         name: 'Soft fragment declaration with ?predicate',
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Section] {=?#section1 name ?hasPart}`;
+[Section] {+#section1 name ?hasPart}`;
             const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
@@ -1023,11 +1023,11 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
     },
 
     {
-        name: 'Soft fragment with reverse predicate ^?p',
+        name: 'Soft fragment with reverse predicate !p',
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Parent] {=?#parent ^?hasPart}`;
+[Parent] {+#parent !hasPart}`;
             const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
 
             assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
@@ -1041,7 +1041,7 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Chapter] {=?#chapter1 .Section name}`;
+[Chapter] {+#chapter1 .Section name}`;
             const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
@@ -1057,7 +1057,7 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[First] {=?#frag1 ?p}
+[First] {+#frag1 ?p}
 [Second] {?p}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
 
@@ -1072,8 +1072,8 @@ and launched on a [Saturn V] {=?wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Section] {=?#section1 .Section name}
-[Subsection] {=?#section2 name ?hasPart}`;
+[Section] {+#section1 .Section name}
+[Subsection] {+#section2 name ?hasPart}`;
             const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
 
             assert(quads.length === 4, `Should emit 4 triples, got ${quads.length}`);
@@ -1274,7 +1274,7 @@ let passed = 0;
 let failed = 0;
 
 async function runTests() {
-    console.log('# MD-LD v0.2 Specification Test Suite\n');
+    console.log('# MD-LD v0.3 Specification Test Suite\n');
 
     const results = [];
 

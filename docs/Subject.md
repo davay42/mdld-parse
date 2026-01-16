@@ -159,7 +159,7 @@ She wants to validate Burj Khalifa against Wikidata.
 She chooses to **align**, not replace.
 
 ```md
-### Burj Khalifa  {=wd:Q134164 .Skyscraper name ^?sameAs}
+### Burj Khalifa  {=wd:Q134164 .Skyscraper name !sameAs}
 ```
 
 This emits:

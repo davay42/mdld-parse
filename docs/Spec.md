@@ -1,4 +1,4 @@
-# MD-LD v0.2 — Core Specification (Minimal)
+# MD-LD v0.3 — Core Specification (Minimal)
 
 **Markdown-Linked Data**
 
@@ -148,24 +148,24 @@ ex:document#section2 schema:name "More content" .
 #### 6.1.3 Object IRI Form
 
 ```
-{=?iri}
+{+iri}
 ```
 
-{=?IRI} declares an object IRI for use by subsequent object predicates (?p, ^?p) without changing the current subject context. This enables temporary object declarations for complex relationships while maintaining the current subject for continued annotation.
+{+IRI} declares an object IRI for use by subsequent object predicates (?p, !p) without changing the current subject context. This enables temporary object declarations for complex relationships while maintaining the current subject for continued annotation.
 
 #### 6.1.4 Soft Fragment Form
 
 ```
-{=?#fragment}
+{+#fragment}
 ```
 
-{=?#fragment} declares a soft fragment IRI relative to the current subject base, combining the locality of soft IRIs with the convenience of fragment resolution.
+{+#fragment} declares a soft fragment IRI relative to the current subject base, combining the locality of soft IRIs with the convenience of fragment resolution.
 
 **Use cases:**
-- **Object property declarations**: `[Related Item] {=?ex:related ?schema:isRelatedTo}` creates `currentSubject → isRelatedTo → ex:related`
-- **Reverse relationships**: `[Parent] {=?ex:parent ^?schema:hasPart}` creates `ex:parent → hasPart → currentSubject`
-- **Soft fragment declarations**: `[Section] {=?#section1 name ?hasPart}` creates `currentSubject → hasPart → currentSubject#section1`
-- **Multi-predicate annotations**: `[Text] {=?ex:entity name ?schema:describes .Thing}` creates `ex:entity name "Text"`, `currentSubject → describes → ex:entity`, and `ex:entity rdf:type Thing`
+- **Object property declarations**: `[Related Item] {+ex:related ?schema:isRelatedTo}` creates `currentSubject → isRelatedTo → ex:related`
+- **Reverse relationships**: `[Parent] {+ex:parent !schema:hasPart}` creates `ex:parent → hasPart → currentSubject`
+- **Soft fragment declarations**: `[Section] {+#section1 name ?hasPart}` creates `currentSubject → hasPart → currentSubject#section1`
+- **Multi-predicate annotations**: `[Text] {+ex:entity name ?schema:describes .Thing}` creates `ex:entity name "Text"`, `currentSubject → describes → ex:entity`, and `ex:entity rdf:type Thing`
 
 The soft object IRI (regular or fragment) is local to the current annotation block and does not persist across subsequent annotations, ensuring proper scope isolation.
 
@@ -207,7 +207,7 @@ Predicate syntax determines **graph direction and node selection**.
 | `p`   | `S —p→ L`  |
 | `?p`  | `S —p→ O`  |
 | `^p`  | `L —p→ S`  |
-| `^?p` | `O —p→ S`  |
+| `!p`  | `O —p→ S`  |
 
 All four forms are **normative and required**.
 
@@ -324,7 +324,7 @@ Reverse predicates invert direction **only**, never semantics.
 Example:
 
 ```md
-Used in: {^?hasPart}
+Used in: {!hasPart}
 - Bread {=ex:bread}
 ```
 

@@ -75,15 +75,15 @@ export function parseSemanticBlock(raw) {
                 continue;
             }
 
-            if (token.startsWith('=?#')) {
-                const fragment = token.substring(3);
+            if (token.startsWith('+#')) {
+                const fragment = token.substring(2);
                 result.object = `#${fragment}`;
                 result.entries.push({ kind: 'softFragment', fragment, relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
             }
 
-            if (token.startsWith('=?')) {
-                const iri = token.substring(2);
+            if (token.startsWith('+')) {
+                const iri = token.substring(1);
                 result.object = iri;
                 result.entries.push({ kind: 'object', iri, relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
@@ -118,10 +118,10 @@ export function parseSemanticBlock(raw) {
                 continue;
             }
 
-            if (token.startsWith('^?')) {
-                const iri = token.substring(2);
-                result.predicates.push({ iri, form: '^?', entryIndex });
-                result.entries.push({ kind: 'property', iri, form: '^?', relRange: { start: relStart, end: relEnd }, raw: token });
+            if (token.startsWith('!')) {
+                const iri = token.substring(1);
+                result.predicates.push({ iri, form: '!', entryIndex });
+                result.entries.push({ kind: 'property', iri, form: '!', relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
             }
 
@@ -593,7 +593,7 @@ function processAnnotation(carrier, sem, state) {
             // L —p→ S (use soft IRI object as subject if available, otherwise current subject)
             const subjectIRI = localObject || S;
             emitQuad(state.quads, state.origin.quadIndex, block.id, L, P, subjectIRI, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
-        } else if (pred.form === '^?') {
+        } else if (pred.form === '!') {
             // O —p→ S (use previous subject as object, newSubject as subject)
             const objectIRI = newSubject ? previousSubject : S;
             const subjectIRI = localObject || newSubject || carrierO;
@@ -661,9 +661,9 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
         contextSem.predicates.forEach(pred => {
             const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
 
-            // According to MD-LD spec: list predicates that connect to item subjects MUST use object predicate forms (?p or ^?p)
+            // According to MD-LD spec: list predicates that connect to item subjects MUST use object predicate forms (?p or !p)
             // Literal predicate forms (p, ^p) in list scope emit no quads
-            if (pred.form === '^?') {
+            if (pred.form === '!') {
                 // Reverse object property: O —p→ S
                 emitQuad(state.quads, state.origin.quadIndex, 'list-context', itemSubject, P, contextSubject, state.df);
             } else if (pred.form === '?') {
@@ -797,22 +797,22 @@ function removeOneToken(tokens, matchFn) {
 }
 
 function addObjectToken(tokens, iri) {
-    const objectToken = `=?${iri}`;
+    const objectToken = `+${iri}`;
     return tokens.includes(objectToken) ? tokens : [...tokens, objectToken];
 }
 
 function removeObjectToken(tokens, iri) {
-    const objectToken = `=?${iri}`;
+    const objectToken = `+${iri}`;
     return removeOneToken(tokens, t => t === objectToken);
 }
 
 function addSoftFragmentToken(tokens, fragment) {
-    const fragmentToken = `=?#${fragment}`;
+    const fragmentToken = `+#${fragment}`;
     return tokens.includes(fragmentToken) ? tokens : [...tokens, fragmentToken];
 }
 
 function removeSoftFragmentToken(tokens, fragment) {
-    const fragmentToken = `=?#${fragment}`;
+    const fragmentToken = `+#${fragment}`;
     return removeOneToken(tokens, t => t === fragmentToken);
 }
 
@@ -1203,7 +1203,7 @@ export function serialize({ text, diff, origin, options = {} }) {
                         const full = quad.object.value;
                         const label = shortenIRI(full, ctx);
                         const objectShort = shortenIRI(full, ctx);
-                        edits.push({ start: result.length, end: result.length, text: `\n[${label}] {=?${objectShort} ?${predShort}}` });
+                        edits.push({ start: result.length, end: result.length, text: `\n[${label}] {+${objectShort} ?${predShort}}` });
                     }
                     return;
                 }
@@ -1246,9 +1246,9 @@ export function serialize({ text, diff, origin, options = {} }) {
                         // Create new annotation with object token
                         if (isSoftFragment) {
                             const fragment = full.split('#')[1];
-                            edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {=?#${fragment} ?${predShort}}` });
+                            edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {+#${fragment} ?${predShort}}` });
                         } else {
-                            edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {=?${objectShort} ?${predShort}}` });
+                            edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {+${objectShort} ?${predShort}}` });
                         }
                     }
                     return;

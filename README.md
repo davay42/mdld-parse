@@ -1,4 +1,4 @@
-# MD-LD Parse v0.2
+# MD-LD Parse v0.3
 
 **Markdown-Linked Data (MD-LD)** — a deterministic, streaming-friendly RDF authoring format that extends Markdown with explicit `{...}` annotations.
 
@@ -14,10 +14,10 @@ MD-LD allows you to author RDF graphs directly in Markdown using explicit `{...}
 # Apollo 11 {=ex:apollo11 .SpaceMission}
 
 Launch: [1969-07-16] {startDate ^^xsd:date}
-Crew: [Neil Armstrong] {=?ex:armstrong ?crewMember name}
+Crew: [Neil Armstrong] {+ex:armstrong ?crewMember name}
 Description: [First crewed Moon landing] {description}
 
-[Section] {=?#overview ?hasPart}
+[Section] {+#overview ?hasPart}
 Overview: [Mission summary] {description}
 ```
 
@@ -35,8 +35,8 @@ ex:armstrong schema:name "Neil Armstrong" .
 ## Core Features
 
 - **Subject declarations**: `{=IRI}` and `{=#fragment}` for context setting
-- **Object IRIs**: `{=?IRI}` and `{=?#fragment}` for temporary object declarations  
-- **Four predicate forms**: `p` (S→L), `?p` (S→O), `^p` (L→S), `^?p` (O→S)
+- **Object IRIs**: `{+IRI}` and `{+#fragment}` for temporary object declarations  
+- **Four predicate forms**: `p` (S→L), `?p` (S→O), `^p` (L→S), `!p` (O→S)
 - **Type declarations**: `.Class` for rdf:type triples
 - **Datatypes & language**: `^^xsd:date` and `@en` support
 - **Lists**: Explicit subject declarations for structured data
@@ -93,7 +93,7 @@ Each predicate form determines the graph edge:
 | `p`   | S → L   | `[Alice] {name}`             | literal property |
 | `?p`  | S → O   | `[NASA](ex:nasa) {?org}`     | object property  |
 | `^p`  | *(none)*| *(literals can't be subjects)* | reverse literal  |
-| `^?p` | O → S   | `[Parent](ex:p) {^?hasPart}` | reverse object   |
+| `!p` | O → S   | `[Parent](ex:p) {!hasPart}` | reverse object   |
 
 ## Syntax Reference
 
@@ -237,7 +237,7 @@ Reverse the relationship direction:
 ```markdown
 # Part {=ex:part}
 
-Part of: {^?hasPart}
+Part of: {!hasPart}
 
 - Book {=ex:book}
 ```
@@ -417,7 +417,7 @@ Each predicate is partitioned by **direction** and **node kind**:
 | `p`            | `S ─p→ L`      |
 | `?p`           | `S ─p→ O`      |
 | `^p`           | `L ─p→ S`      |
-| `^?p`          | `O ─p→ S`      |
+| `!p`          | `O ─p→ S`      |
 
 This spans all **2 × 2** combinations of:
 
@@ -480,7 +480,7 @@ npm test
 
 Tests validate:
 - Subject declaration and context
-- All predicate forms (p, ?p, ^p, ^?p)
+- All predicate forms (p, ?p, ^p, !p)
 - Datatypes and language tags
 - List processing
 - Code blocks and blockquotes
