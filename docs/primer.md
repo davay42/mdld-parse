@@ -166,7 +166,6 @@ Here's the complete system:
 |------|-----------|-----------|----------|
 | `p` | Subject → Value | `S ─▶ L` | Adding text properties |
 | `?p` | Subject → Object | `S ─▶ O` | Linking to other things |
-| `^p` | Value → Subject | `L ─▶ S` | Categorizing by value |
 | `!p` | Object → Subject | `O ─▶ S` | Reversing a relationship |
 
 **Example using all four:**
@@ -304,19 +303,18 @@ Description: [First moon landing] {description @en}
 {=urn:id}          # Set current subject
 {=#fragment}       # Create fragment IRI
 .ClassName         # Add type
+{+urn:id}          # Temporary object
 ```
 
 ### Predicates
 ```markdown
 {prop}             # Subject → Value
 {?prop}            # Subject → Object  
-{^prop}            # Value → Subject
 {!prop}            # Object → Subject
 ```
 
-### Objects & Values
+### Values
 ```markdown
-{+urn:id}          # Temporary object
 ^^xsd:date         # Add datatype
 @en                # Add language
 ```

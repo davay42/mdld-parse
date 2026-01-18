@@ -206,10 +206,9 @@ Predicate syntax determines **graph direction and node selection**.
 | ----- | ---------- |
 | `p`   | `S —p→ L`  |
 | `?p`  | `S —p→ O`  |
-| `^p`  | `L —p→ S`  |
 | `!p`  | `O —p→ S`  |
 
-All four forms are **normative and required**.
+All three forms are **normative and required**.
 
 ---
 

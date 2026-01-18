@@ -36,7 +36,7 @@ ex:armstrong schema:name "Neil Armstrong" .
 
 - **Subject declarations**: `{=IRI}` and `{=#fragment}` for context setting
 - **Object IRIs**: `{+IRI}` and `{+#fragment}` for temporary object declarations  
-- **Four predicate forms**: `p` (S→L), `?p` (S→O), `^p` (L→S), `!p` (O→S)
+- **Four predicate forms**: `p` (S→L), `?p` (S→O), `!p` (O→S)
 - **Type declarations**: `.Class` for rdf:type triples
 - **Datatypes & language**: `^^xsd:date` and `@en` support
 - **Lists**: Explicit subject declarations for structured data
@@ -92,7 +92,6 @@ Each predicate form determines the graph edge:
 |-------|---------|------------------------------|------------------|
 | `p`   | S → L   | `[Alice] {name}`             | literal property |
 | `?p`  | S → O   | `[NASA](ex:nasa) {?org}`     | object property  |
-| `^p`  | *(none)*| *(literals can't be subjects)* | reverse literal  |
 | `!p` | O → S   | `[Parent](ex:p) {!hasPart}` | reverse object   |
 
 ## Syntax Reference
@@ -416,8 +415,8 @@ Each predicate is partitioned by **direction** and **node kind**:
 | -------------- | -------------- |
 | `p`            | `S ─p→ L`      |
 | `?p`           | `S ─p→ O`      |
-| `^p`           | `L ─p→ S`      |
-| `!p`          | `O ─p→ S`      |
+| not allowed    | `L ─p→ S`      |
+| `!p`           | `O ─p→ S`      |
 
 This spans all **2 × 2** combinations of:
 
@@ -480,7 +479,7 @@ npm test
 
 Tests validate:
 - Subject declaration and context
-- All predicate forms (p, ?p, ^p, !p)
+- All predicate forms (p, ?p, !p)
 - Datatypes and language tags
 - List processing
 - Code blocks and blockquotes

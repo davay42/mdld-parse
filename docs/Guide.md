@@ -79,25 +79,23 @@ If `{...}` cannot clearly attach → **nothing is emitted**.
 
 ---
 
-## 3. The four predicate forms (the whole algebra)
+## 3. The three predicate forms (the whole algebra)
 
-Every triple is written using **one of four predicate shapes**:
+Every triple is written using **one of three predicate shapes**:
 
 | Form  | Emits   |
 | ----- | ------- |
 | `p`   | `S → L` |
 | `?p`  | `S → O` |
-| `^p`  | `L → S` |
 | `!p` | `O → S` |
 
 Nothing else exists.
 
-### Example — all four at once
+### Example — all three at once
 
 ```md
 [Bread] {name}
 [Walnut] {+urn:my:walnut ?hasIngredient}
-[Traditional] {^category}
 [Recipe](https://en.wikipedia.org/wiki/Recipe) {!hasPart}
 ```
 
