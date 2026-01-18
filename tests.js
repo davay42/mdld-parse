@@ -151,7 +151,7 @@ const tests = [
         }
     },
 
-    // §8.1 Predicate Forms - Reverse Properties (^p, !p)
+    // §8.1 Predicate Forms - Reverse Properties (!p)
     {
         name: 'Reverse object property: O → S (form !p)',
         fn: () => {
@@ -221,9 +221,8 @@ const tests = [
             const md = `# Recipe {=ex:recipe}
 
 Ingredients: {?ingredient}
-
-- Flour {=ex:flour name}
-- Water {=ex:water name}`;
+- Flour {=ex:flour name} 
+- Water {=ex:water name}\t`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/recipe', 'http://schema.org/ingredient', 'http://ex.org/flour'),
@@ -1267,6 +1266,196 @@ Summary: [Document summary] {summary}`;
                 'Section 2 should have Section type');
         }
     },
+
+    // §16 List Item Predicate Inheritance
+    {
+        name: 'List items inherit literal predicates from context',
+        fn: () => {
+            const md = `# Meeting Notes {=ex:meeting}
+
+Attendees: {?attendee name}
+- Alice {=ex:alice}
+- Bob {=ex:bob}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/alice'),
+                'Meeting should have alice as attendee');
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/bob'),
+                'Meeting should have bob as attendee');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+                'Alice should inherit name predicate');
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+                'Bob should inherit name predicate');
+        }
+    },
+
+    {
+        name: 'List items inherit predicates with trailing spaces',
+        fn: () => {
+            const md = `# Meeting Notes {=ex:meeting}
+
+Attendees: {?attendee name}
+- Alice {=ex:alice} 
+- Bob {=ex:bob}  
+- Carol {=ex:carol}\t`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/alice'),
+                'Meeting should have alice as attendee (trailing space)');
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/bob'),
+                'Meeting should have bob as attendee (multiple trailing spaces)');
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/carol'),
+                'Meeting should have carol as attendee (tab trailing)');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+                'Alice should inherit name predicate (trailing space)');
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+                'Bob should inherit name predicate (multiple trailing spaces)');
+            assert(hasQuad(quads, 'http://ex.org/carol', 'http://schema.org/name', 'Carol'),
+                'Carol should inherit name predicate (tab trailing)');
+        }
+    },
+
+    {
+        name: 'List items inherit predicates with leading spaces in annotations',
+        fn: () => {
+            const md = `# Meeting Notes {=ex:meeting}
+
+Attendees: {?attendee name}
+- Alice { =ex:alice }
+- Bob {  =ex:bob  }
+- Carol {=ex:carol}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/alice'),
+                'Meeting should have alice as attendee (space in annotation)');
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/bob'),
+                'Meeting should have bob as attendee (multiple spaces in annotation)');
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/carol'),
+                'Meeting should have carol as attendee (normal annotation)');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+                'Alice should inherit name predicate (space in annotation)');
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+                'Bob should inherit name predicate (multiple spaces in annotation)');
+            assert(hasQuad(quads, 'http://ex.org/carol', 'http://schema.org/name', 'Carol'),
+                'Carol should inherit name predicate (normal annotation)');
+        }
+    },
+
+    {
+        name: 'List items inherit predicates with mixed whitespace patterns',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+Items: {?hasItem name description}
+- First item {=ex:item1}   
+- Second item{=ex:item2}\t
+- Third item  {=ex:item3} 
+- Fourth item{=ex:item4}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            // Should have 4 hasItem relationships
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/hasItem', 'http://ex.org/item1'),
+                'Doc should have first item');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/hasItem', 'http://ex.org/item2'),
+                'Doc should have second item');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/hasItem', 'http://ex.org/item3'),
+                'Doc should have third item');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/hasItem', 'http://ex.org/item4'),
+                'Doc should have fourth item');
+
+            // Should have 8 inherited predicates (name + description for each)
+            assert(hasQuad(quads, 'http://ex.org/item1', 'http://schema.org/name', 'First item'),
+                'First item should inherit name');
+            assert(hasQuad(quads, 'http://ex.org/item1', 'http://schema.org/description', 'First item'),
+                'First item should inherit description');
+            assert(hasQuad(quads, 'http://ex.org/item2', 'http://schema.org/name', 'Second item'),
+                'Second item should inherit name');
+            assert(hasQuad(quads, 'http://ex.org/item2', 'http://schema.org/description', 'Second item'),
+                'Second item should inherit description');
+            assert(hasQuad(quads, 'http://ex.org/item3', 'http://schema.org/name', 'Third item'),
+                'Third item should inherit name');
+            assert(hasQuad(quads, 'http://ex.org/item3', 'http://schema.org/description', 'Third item'),
+                'Third item should inherit description');
+            assert(hasQuad(quads, 'http://ex.org/item4', 'http://schema.org/name', 'Fourth item'),
+                'Fourth item should inherit name');
+            assert(hasQuad(quads, 'http://ex.org/item4', 'http://schema.org/description', 'Fourth item'),
+                'Fourth item should inherit description');
+        }
+    },
+
+    {
+        name: 'List items with own predicates dont inherit',
+        fn: () => {
+            const md = `# Meeting Notes {=ex:meeting}
+
+Attendees: {?attendee name}
+- Alice {=ex:alice name description}
+- Bob {=ex:bob}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/alice'),
+                'Meeting should have alice as attendee');
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/bob'),
+                'Meeting should have bob as attendee');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+                'Alice should have her own name predicate');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/description', 'Alice'),
+                'Alice should have her own description predicate');
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+                'Bob should inherit name predicate');
+        }
+    },
+
+    {
+        name: 'Only literal predicates are inherited',
+        fn: () => {
+            const md = `# Meeting Notes {=ex:meeting}
+
+Attendees: {?attendee name ?role}
+- Alice {=ex:alice}
+- Bob {=ex:bob}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/alice'),
+                'Meeting should have alice as attendee');
+            assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/bob'),
+                'Meeting should have bob as attendee');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+                'Alice should inherit literal name predicate');
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+                'Bob should inherit literal name predicate');
+            // Should NOT inherit ?role predicate as it's object predicate form
+            assert(!hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/role', 'Alice'),
+                'Alice should not inherit object predicate ?role');
+            assert(!hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/role', 'Bob'),
+                'Bob should not inherit object predicate ?role');
+        }
+    },
+
+    {
+        name: 'Multiple literal predicates inheritance',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+People: {?knows name description}
+- Alice {=ex:alice}
+- Bob {=ex:bob}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/knows', 'http://ex.org/alice'),
+                'Doc should know alice');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/knows', 'http://ex.org/bob'),
+                'Doc should know bob');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+                'Alice should inherit name');
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/description', 'Alice'),
+                'Alice should inherit description');
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+                'Bob should inherit name');
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/description', 'Bob'),
+                'Bob should inherit description');
+        }
+    }
 ];
 
 // Run tests

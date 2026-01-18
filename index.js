@@ -224,7 +224,7 @@ function scanTokens(text) {
             continue;
         }
 
-        const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?$/);
+        const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/);
         if (listMatch) {
             const attrs = listMatch[4] || null;
             const attrsStartInLine = attrs ? line.lastIndexOf(attrs) : -1;
@@ -662,7 +662,7 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
             const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
 
             // According to MD-LD spec: list predicates that connect to item subjects MUST use object predicate forms (?p or !p)
-            // Literal predicate forms (p, ^p) in list scope emit no quads
+            // Literal predicate forms (p) in list scope emit no quads
             if (pred.form === '!') {
                 // Reverse object property: O —p→ S
                 emitQuad(state.quads, state.origin.quadIndex, 'list-context', itemSubject, P, contextSubject, state.df);
@@ -676,8 +676,44 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
         const prevSubject = state.currentSubject;
         state.currentSubject = itemSubject;
 
+        // Check if item has its own predicates
+        let hasOwnPredicates = false;
+        let itemSem = null;
+
         if (listToken.attrs) {
-            const itemSem = parseSemanticBlock(listToken.attrs);
+            itemSem = parseSemanticBlock(listToken.attrs);
+            if (itemSem.predicates.length > 0) {
+                hasOwnPredicates = true;
+            }
+        }
+
+        if (!hasOwnPredicates) {
+            // Check inline carriers for predicates
+            for (const carrier of carriers) {
+                if (carrier.attrs) {
+                    const carrierSem = parseSemanticBlock(carrier.attrs);
+                    if (carrierSem.predicates.length > 0) {
+                        hasOwnPredicates = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // If item has no predicates, inherit literal predicates from context
+        if (!hasOwnPredicates) {
+            const inheritedPredicates = contextSem.predicates.filter(p => p.form === '');
+            if (inheritedPredicates.length > 0 && listToken.text) {
+                // Create inherited annotation block
+                const inheritedTokens = inheritedPredicates.map(p => p.iri).join(' ');
+                const inheritedSem = parseSemanticBlock(`{${inheritedTokens}}`);
+                const carrier = { type: 'list', text: listToken.text, range: listToken.range, attrsRange: listToken.attrsRange || null, valueRange: listToken.valueRange || null };
+                processAnnotation(carrier, inheritedSem, state);
+            }
+        }
+
+        if (listToken.attrs) {
+            if (!itemSem) itemSem = parseSemanticBlock(listToken.attrs);
             const carrier = { type: 'list', text: listToken.text, range: listToken.range, attrsRange: listToken.attrsRange || null, valueRange: listToken.valueRange || null };
             processAnnotation(carrier, itemSem, state);
         }

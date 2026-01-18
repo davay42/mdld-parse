@@ -314,6 +314,50 @@ ex:flour a ex:Ingredient ; schema:name "Flour" .
 ex:water a ex:Ingredient ; schema:name "Water" .
 ```
 
+### 11.3 Predicate Inheritance
+
+List items **inherit literal predicates** (form `p`) from the list context when they don't declare their own predicates.
+
+**Rules:**
+* Only literal predicates (form `p`) are inherited
+* Object predicates (`?p`, `!p`) are not inherited
+* Items with their own predicates don't inherit from context
+* Inherited predicates apply to the item's text as literal value
+
+### Example
+
+```md
+# Meeting Notes {=urn:note:2024-01-15 .Meeting}
+
+Attendees: {?attendee name}
+- Alice {=urn:person:alice}
+- Bob {=urn:person:bob}
+```
+
+```turtle
+urn:note:2024-01-15 schema:attendee urn:person:alice, urn:person:bob .
+urn:person:alice schema:name "Alice" .
+urn:person:bob schema:name "Bob" .
+```
+
+### Mixed Example
+
+```md
+# Document {=ex:doc}
+
+People: {?knows name description}
+- Alice {=ex:alice}
+- Bob {=ex:bob role}  // Has own predicate, doesn't inherit
+- Carol {=ex:carol}
+```
+
+```turtle
+ex:doc schema:knows ex:alice, ex:bob, ex:carol .
+ex:alice schema:name "Alice" ; schema:description "Alice" .
+ex:bob schema:role "Bob" .
+ex:carol schema:name "Carol" ; schema:description "Carol" .
+```
+
 ---
 
 ## 12. Reverse relations
