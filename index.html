@@ -8,6 +8,51 @@
     <meta name="description"
         content="MD-LD v0.3: Human-friendly RDF authoring format. Write semantic data in natural Markdown. Parse to RDF triples. Zero dependencies.">
     <style>
+        :root {
+            --bg-light: #f8f9fa;
+            --text-dark: #374151;
+            --accent-orange: #af540f;
+            --accent-orange-light: #d9711f;
+            --border-dark: #374151;
+            --bg-code: #e2e2e2;
+            --text-code: #1d1d1d;
+            --text-muted: #525253;
+            --bg-feature: rgb(255, 254, 248);
+            --text-feature: #181818;
+            --bg-hover: rgb(227, 222, 218);
+            --border-focus: #60a5fa;
+            --bg-button-primary: #21950d;
+            --bg-button-primary-hover: #2563eb;
+            --bg-button-secondary: #4b5563;
+            --bg-button-secondary-hover: #6b7280;
+            --bg-button-danger: #ef4444;
+            --bg-button-danger-hover: #dc2626;
+            --bg-input: #d2d2d2;
+            --border-chip-default: #334155;
+            --bg-chip-default: #7e7e7f;
+            --text-chip-key: #94a3b8;
+            --border-chip-subject: #1e3a8a;
+            --bg-chip-subject: #dbd9d9;
+            --text-chip-subject: #0c4587;
+            --border-chip-predicate: #334155;
+            --bg-chip-predicate: #cfd1d5;
+            --text-chip-predicate: #313335;
+            --border-chip-object: #3f3f46;
+            --bg-chip-object: #b8cfc0;
+            --text-chip-object: #0d361e;
+            --border-chip-literal: #44403c;
+            --bg-chip-literal: #b4c1b3;
+            --text-chip-literal: #bfc6be;
+            --text-separator: #64748b;
+            --color-success: #10b981;
+            --color-error: #ef4444;
+            --color-info: #60a5fa;
+            --text-pill: #cbd5e1;
+            --bg-table-header: #111827;
+            --text-table-header: #cbd5e1;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -17,8 +62,8 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
             line-height: 1.5;
-            color: #e5e7eb;
-            background: #111827
+            color: var(--text-dark);
+            background: var(--bg-light);
         }
 
         code {
@@ -26,548 +71,37 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 65ch;
             margin: 0 auto;
             padding: 1rem
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #374151
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: .5rem;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent
-        }
-
-        .tagline {
-            font-size: 1rem;
-            color: #9ca3af;
-            margin-bottom: 1rem
-        }
-
-        .links {
-            display: flex;
-            gap: .5rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 1rem
-        }
-
-        .links a {
-            color: #60a5fa;
-            text-decoration: none;
-            padding: .25rem .75rem;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            font-size: .875rem;
-            transition: all .2s
-        }
-
-        .links a:hover {
-            background: #374151;
-            border-color: #60a5fa
-        }
-
-        .format-section {
-            background: #1f2937;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-bottom: 1rem
-        }
-
-        .format-section h3 {
-            margin-bottom: .5rem;
-            color: #f3f4f6;
-            font-size: 1rem
-        }
-
-        .format-section p {
-            color: #9ca3af;
-            font-size: .875rem;
-            margin-bottom: .5rem
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: .5rem
-        }
-
-        .feature {
-            background: #111827;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            padding: .5rem
-        }
-
-        .feature h4 {
-            margin-bottom: .25rem;
-            color: #f3f4f6;
-            font-size: .875rem
-        }
-
-        .feature p {
-            color: #9ca3af;
-            font-size: .75rem
-        }
-
-        .examples {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: .5rem;
-            margin-bottom: 1rem
-        }
-
-        .example {
-            background: #1f2937;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            padding: .75rem;
-            cursor: pointer;
-            transition: all .2s
-        }
-
-        .example:hover {
-            border-color: #60a5fa
-        }
-
-        .example h4 {
-            margin-bottom: .25rem;
-            color: #f3f4f6;
-            font-size: .875rem
-        }
-
-        .example p {
-            font-size: .75rem;
-            color: #9ca3af
-        }
-
-        .playground {
-            display: grid;
-            grid-template-columns: minmax(360px, 1.2fr) minmax(360px, 1fr) minmax(360px, 1fr);
-            gap: 1rem;
-            margin-bottom: 1rem;
-            align-items: start
-        }
-
-        .playground>* {
-            min-width: 0
-        }
-
-        .textarea {
-            width: 100%;
-            height: 250px;
-            padding: .75rem;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-            font-size: 13px;
-            resize: vertical;
-            background: #1f2937;
-            color: #e5e7eb
-        }
-
-        .textarea:focus {
-            outline: none;
-            border-color: #60a5fa
-        }
-
-        .output {
-            background: #1f2937;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            padding: .75rem;
-            height: 250px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-            font-size: 13px;
-            white-space: pre-wrap;
-            overflow: auto;
-            color: #e5e7eb
-        }
-
-        .controls {
-            display: flex;
-            gap: .5rem;
-            margin-bottom: 1rem;
-            align-items: center
         }
 
         .hidden {
             display: none
         }
 
-        button {
-            background: #3b82f6;
-            color: #fff;
-            border: none;
-            padding: .5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: .875rem;
-            transition: all .2s
+        .link-hover:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-orange);
         }
 
-        button:hover {
-            background: #2563eb
+        .example-hover:hover {
+            border-color: var(--border-focus);
         }
 
-        button:disabled {
-            background: #6b7280;
-            cursor: not-allowed
-        }
-
-        button.secondary {
-            background: #4b5563
-        }
-
-        button.secondary:hover {
-            background: #6b7280
-        }
-
-        .compact-stats {
-            display: flex;
-            gap: 1rem;
-            font-size: .875rem;
-            color: #9ca3af
-        }
-
-        .muted {
-            color: #9ca3af
-        }
-
-        .kv {
-            display: flex;
-            gap: .75rem;
-            flex-wrap: wrap
-        }
-
-        .pill {
-            border: 1px solid #374151;
-            background: #111827;
-            border-radius: 999px;
-            padding: .1rem .5rem;
-            font-size: .75rem;
-            color: #cbd5e1
-        }
-
-        .mdld-preview {
-            white-space: pre-wrap;
-            user-select: text
-        }
-
-        .mdld-ann {
-            opacity: .5;
-            background: #0b1220;
-            border: 1px solid #22304a;
-            border-radius: 3px;
-            padding: 0 .15rem
-        }
-
-        .mdld-carrier {
-            color: #e5e7eb
-        }
-
-        .quad {
-            display: flex;
-            gap: .4rem;
-            align-items: center;
-            padding: .2rem 0;
-            border-bottom: 1px dashed #374151;
-            min-width: 0
-        }
-
-        .quad:last-child {
-            border-bottom: none
-        }
-
-        .q-sep {
-            color: #64748b
-        }
-
-        .q-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: .35rem;
-            max-width: 100%;
-            border: 1px solid #334155;
-            background: #0b1220;
-            border-radius: 6px;
-            padding: .12rem .4rem
-        }
-
-        .q-k {
-            font-size: .68rem;
-            letter-spacing: .06em;
-            text-transform: uppercase;
-            color: #94a3b8
-        }
-
-        .q-v {
-            display: inline-block;
-            max-width: 48ch;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap
-        }
-
-        .q-s {
-            border-color: #1e3a8a;
-            background: #0b1730
-        }
-
-        .q-s .q-k {
-            color: #93c5fd
-        }
-
-        .q-p {
-            border-color: #334155;
-            background: #0b1220
-        }
-
-        .q-p .q-k {
-            color: #e2e8f0
-        }
-
-        .q-o {
-            border-color: #3f3f46;
-            background: #0f172a
-        }
-
-        .q-o .q-k {
-            color: #a1a1aa
-        }
-
-        .q-lit {
-            border-color: #44403c;
-            background: #15110f
-        }
-
-        .q-lit .q-k {
-            color: #f5f5f4
-        }
-
-        .crud {
-            margin-top: .75rem
-        }
-
-        .crud-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem
-        }
-
-        .crud-table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            overflow: hidden
-        }
-
-        .crud-table th,
-        .crud-table td {
-            border-bottom: 1px solid #374151;
-            padding: .35rem .5rem;
-            text-align: left;
-            font-size: .8rem
-        }
-
-        .crud-table th {
-            background: #111827;
-            color: #cbd5e1;
-            font-weight: 600
-        }
-
-        .crud-table tr:hover td {
-            background: #0f172a
-        }
-
-        .crud-input {
-            width: 100%;
-            background: #0f172a;
-            color: #e5e7eb;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            padding: .25rem .4rem;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-            font-size: 12px
-        }
-
-        .crud-input:focus {
-            outline: none;
-            border-color: #60a5fa
-        }
-
-        .danger {
-            background: #ef4444
-        }
-
-        .danger:hover {
-            background: #dc2626
-        }
-
-        .test-section {
-            background: #1f2937;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-bottom: 1rem
-        }
-
-        .test-controls {
-            display: flex;
-            gap: .5rem;
-            margin-bottom: .5rem;
-            align-items: center
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: .5rem;
-            margin-bottom: .5rem
-        }
-
-        .stat {
-            background: #111827;
-            padding: .5rem;
-            border-radius: 4px;
-            text-align: center;
-            border: 1px solid #374151
-        }
-
-        .stat-value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: .25rem
-        }
-
-        .stat-label {
-            font-size: .75rem;
-            color: #9ca3af
-        }
-
-        .passed {
-            color: #10b981
-        }
-
-        .failed {
-            color: #ef4444
-        }
-
-        .total {
-            color: #60a5fa
-        }
-
-        .test-list {
-            max-height: 300px;
-            overflow-y: auto
-        }
-
-        .test-item {
-            background: #111827;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            padding: .75rem;
-            margin-bottom: .25rem;
-            transition: all .2s
-        }
-
-        .test-item:hover {
-            border-color: #60a5fa
-        }
-
-        .test-item.passed {
-            border-left: 3px solid #10b981
-        }
-
-        .test-item.failed {
-            border-left: 3px solid #ef4444
-        }
-
-        .test-header {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            margin-bottom: .5rem
-        }
-
-        .test-icon {
-            font-size: 1rem
-        }
-
-        .test-name {
-            flex: 1;
-            font-weight: 500;
-            font-size: .875rem
-        }
-
-        .test-duration {
-            font-size: .75rem;
-            color: #9ca3af
-        }
-
-        .test-details {
-            margin-top: .5rem;
-            padding-top: .5rem;
-            border-top: 1px solid #374151;
-            display: none
-        }
-
-        .test-details.open {
-            display: block
-        }
-
-        .test-input,
-        .test-output {
-            background: #0f172a;
-            padding: .5rem;
-            border-radius: 4px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-            font-size: 11px;
-            white-space: pre-wrap;
-            max-height: 150px;
-            overflow-y: auto;
-            margin-bottom: .5rem;
-            color: #e5e7eb;
-            user-select: text
-        }
-
-        .progress {
-            height: 3px;
-            background: #374151;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: .5rem
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: #3b82f6;
-            transition: width .3s ease
+        .btn-hover:hover {
+            transform: translateY(-1px);
         }
 
         @media (max-width: 900px) {
             .playground {
-                grid-template-columns: 1fr
+                grid-template-columns: 1fr !important
             }
         }
 
         @media (max-width: 768px) {
             .stats {
-                grid-template-columns: repeat(2, 1fr)
-            }
-
-            h1 {
-                font-size: 2rem
+                grid-template-columns: repeat(2, 1fr) !important
             }
         }
     </style>
@@ -575,161 +109,255 @@
 
 <body>
     <div class="container">
-        <header>
-            <h1>MD-LD</h1>
-            <p class="tagline">Markdown Linked Data - Human-friendly RDF authoring</p>
-            <div class="links">
-                <a href="https://github.com/davay42/mdld-parse" target="_blank">📦 GitHub</a>
-                <a href="https://www.npmjs.com/package/mdld-parse" target="_blank">📦 npm</a>
-                <a href="#format">📖 Format</a>
-                <a href="#tests">🧪 Tests</a>
+        <header
+            style="text-align: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-dark);">
+            <div style="font-size: 4em;">
+                <span style="opacity:50%">{</span><span style="color: var(--accent-orange)">=+ .?!</span><span
+                    style="opacity:50%">}</span>
+            </div>
+            <h1
+                style="font-size: 2.5rem; font-weight: 700; margin-bottom: .5rem; background: linear-gradient(135deg, var(--accent-orange-light), var(--accent-orange)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                MD-LD</h1>
+            <h2 style="font-size: 1.5rem; font-weight: 500; margin-bottom: .5rem; color: var(--text-dark);">Markdown
+                Linked Data</h2>
+            <p style="font-size: 1.2rem; color: var(--accent-orange); margin-bottom: 1rem;">Human-friendly knowledge
+                graph authoring</p>
+            <div style="display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
+                <a href="https://github.com/davay42/mdld-parse" target="_blank" class="link-hover"
+                    style="color: var(--accent-orange); text-decoration: none; padding: .25rem .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-size: .875rem; transition: all .2s;">📦
+                    GitHub</a>
+                <a href="https://www.npmjs.com/package/mdld-parse" target="_blank" class="link-hover"
+                    style="color: var(--accent-orange); text-decoration: none; padding: .25rem .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-size: .875rem; transition: all .2s;">📦
+                    npm</a>
             </div>
         </header>
 
-        <section id="format" class="format-section">
-            <h3>📖 What is MD-LD?</h3>
-            <p>MD-LD extends Markdown with semantic annotations using <code>{...}</code> blocks. Write natural language
+        <section id="format"
+            style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+            <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">📖 What is MD-LD?</h3>
+            <p style="color: var(--text-muted); font-size: .875rem; margin-bottom: .5rem;">MD-LD extends Markdown with
+                semantic annotations using <code>{...}</code> blocks. Write natural language
                 documents while embedding structured RDF data.</p>
 
-            <div class="feature-grid">
-                <div class="feature">
-                    <h4>📝 Natural Syntax</h4>
-                    <p>Write semantic data in familiar Markdown</p>
+            <div style="display: flex; flex-wrap: wrap; gap: .5rem;">
+                <div style="background: var(--bg-feature); border-radius: 0.5em; padding: .5rem; flex: 1">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">📝 Natural Syntax
+                    </h4>
+                    <p style="color: var(--text-muted); font-size: .75rem;">Write semantic data in familiar Markdown</p>
                 </div>
-                <div class="feature">
-                    <h4>🔗 RDF Output</h4>
-                    <p>Parse to standard RDF triples</p>
+                <div style="background: var(--bg-feature); border-radius: 0.5em; padding: .5rem; flex: 1">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🔗 RDF Output
+                    </h4>
+                    <p style="color: var(--text-muted); font-size: .75rem;">Parse to standard RDF triples</p>
                 </div>
-                <div class="feature">
-                    <h4>⚡ Zero Dependencies</h4>
-                    <p>Lightweight parser</p>
+                <div style="background: var(--bg-feature);  border-radius: .5em; padding: .5rem; flex: 1;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">⚡ Zero
+                        Dependencies</h4>
+                    <p style="color: var(--text-muted); font-size: .75rem;">Lightweight parser</p>
                 </div>
-                <div class="feature">
-                    <h4>🔄 Bidirectional</h4>
-                    <p>Parse & serialize round-trip</p>
+                <div style="background: var(--bg-feature); border-radius: .5em; padding: .5rem; flex: 1;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🔄 Bidirectional
+                    </h4>
+                    <p style="color: var(--text-muted); font-size: .75rem;">Parse & serialize round-trip</p>
                 </div>
             </div>
         </section>
 
-        <section id="playground" class="format-section">
-            <h3>🎮 Interactive Playground</h3>
-            <div class="kv" style="margin-bottom: .5rem;">
-                <span class="pill">MD-LD highlight</span>
-                <span class="pill">Quad highlight</span>
-                <span class="pill">Quad CRUD → diff → serialize()</span>
+        <section id="playground"
+            style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+            <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🎮 Interactive Playground
+            </h3>
+
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .5rem; margin-bottom: 1rem;">
+                <div onclick="loadExample('minimal')" class="example-hover"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🍌 Minimal viable
+                    </h4>
+                    <p style="font-size: .75rem; color: var(--text-muted);">Smallest example of knowledge authoring</p>
+                </div>
+                <div onclick="loadExample('journal')" class="example-hover"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">📔 Personal
+                        Journal</h4>
+                    <p style="font-size: .75rem; color: var(--text-muted);">Mood, location, people</p>
+                </div>
+                <div onclick="loadExample('recipe')" class="example-hover"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🍳 Recipe</h4>
+                    <p style="font-size: .75rem; color: var(--text-muted);">Ingredients & instructions</p>
+                </div>
+                <div onclick="loadExample('project')" class="example-hover"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">📋 Project</h4>
+                    <p style="font-size: .75rem; color: var(--text-muted);">Tasks & relationships</p>
+                </div>
+                <div onclick="loadExample('apollo')" class="example-hover"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🚀 Apollo Mission
+                    </h4>
+                    <p style="font-size: .75rem; color: var(--text-muted);">Complex structure</p>
+                </div>
             </div>
-            <div class="examples">
-                <div class="example" onclick="loadExample('journal')">
-                    <h4>📔 Personal Journal</h4>
-                    <p>Mood, location, people</p>
-                </div>
-                <div class="example" onclick="loadExample('recipe')">
-                    <h4>🍳 Recipe</h4>
-                    <p>Ingredients & instructions</p>
-                </div>
-                <div class="example" onclick="loadExample('project')">
-                    <h4>📋 Project</h4>
-                    <p>Tasks & relationships</p>
-                </div>
-                <div class="example" onclick="loadExample('apollo')">
-                    <h4>🚀 Apollo Mission</h4>
-                    <p>Complex structure</p>
-                </div>
-            </div>
-            <div class="playground">
-                <div>
-                    <h3>MD-LD Input</h3>
-                    <textarea id="input" class="textarea" placeholder="Write your MD-LD here...
+            <div
+                style="display: flex; flex-flow: wrap; grid-template-columns: minmax(360px, 1.2fr) minmax(360px, 1fr) minmax(360px, 1fr); gap: 1rem; margin-bottom: 1rem; align-items: start;">
+                <div style="min-width: 100%;">
+                    <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">MD-LD Input</h3>
+                    <textarea id="input"
+                        style="width: 100%; height: 250px; padding: .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-family: var(--font-mono); font-size: 13px; resize: vertical; background: var(--bg-light); color: var(--text-code);"
+                        placeholder="Write your MD-LD here...
 
 Example:
 ## Document {=ex:doc}
 Title: [My Document] {name}
-Author: [Alice] {=ex:alice .Person ?author}"></textarea>
+Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
                 </div>
-                <div>
-                    <h3>Quads (highlighted)</h3>
-                    <div id="output" class="output">Quads will appear here...</div>
+                <div style="min-width: 0;">
+                    <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Quads (highlighted)
+                    </h3>
+                    <div id="output"
+                        style="background: var(--bg-light); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow: auto; color: var(--text-code);">
+                        Quads will appear here...</div>
                 </div>
-                <div>
-                    <h3>MD-LD (highlighted)</h3>
-                    <div id="mdld-preview" class="output mdld-preview">MD-LD preview will appear here...</div>
-                </div>
+                <!-- <div style="min-width: 0;">
+                    <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Rendered HTML+RDFa
+                    </h3>
+                    <div id="rendered-output"
+                        style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; overflow: auto; color: var(--text-code);">
+                        Rendered HTML will appear here...</div> -->
             </div>
-            <div class="controls">
-                <button onclick="parseMDLD()">🔄 Parse MD-LD</button>
-                <button class="secondary" onclick="clearPlayground()">🗑️ Clear</button>
-                <button class="secondary" onclick="toggleQuadLab()">🧩 Quad Lab</button>
-                <span id="parse-stats" class="compact-stats" style="margin-left: auto;"></span>
-            </div>
+    </div>
+    <div class="container" style="display: flex; gap: .5rem; margin-bottom: 1rem; align-items: center;">
+        <button onclick="parseMDLD()" class="btn-hover"
+            style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🔄
+            Parse
+            MD-LD</button>
+        <button onclick="clearPlayground()" class="btn-hover"
+            style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🗑️
+            Clear</button>
+        <button onclick="toggleQuadLab()" class="btn-hover"
+            style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🧩
+            Quad
+            Lab</button>
+        <span id="parse-stats"
+            style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+    </div>
 
-            <div class="crud hidden" id="quadlab">
-                <h3>🧩 Quad Lab (CRUD + diff apply)</h3>
-                <p class="muted">Edit quads below. Applying changes generates a diff and calls <code>serialize()</code>
-                    to patch the MD-LD source.</p>
-                <div class="controls" style="margin-bottom:.5rem;">
-                    <button class="secondary" onclick="quadLabReset()">↩ Reset from parse()</button>
-                    <button onclick="quadLabAddRow()">➕ Add quad</button>
-                    <button class="danger" onclick="quadLabDeleteSelected()">🗑 Delete selected</button>
-                    <span id="quadlab-stats" class="compact-stats" style="margin-left:auto;"></span>
-                </div>
-                <div class="crud-grid">
-                    <div>
-                        <table class="crud-table" id="quadlab-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 2.5rem;">Sel</th>
-                                    <th>S</th>
-                                    <th>P</th>
-                                    <th>O</th>
-                                </tr>
-                            </thead>
-                            <tbody id="quadlab-body"></tbody>
-                        </table>
-                    </div>
-                    <div>
-                        <div class="output" id="quadlab-diff">Diff will appear here...</div>
-                        <div class="controls" style="margin-top:.5rem;margin-bottom:0;">
-                            <button onclick="quadLabApplyDiff()">✅ Apply diff via serialize()</button>
-                            <button class="secondary" onclick="quadLabCopyDiff()">📋 Copy diff JSON</button>
-                        </div>
-                    </div>
+    <div style="margin-top: .75rem;" class="hidden container" id="quadlab">
+        <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🧩 Quad Lab (CRUD + diff
+            apply)</h3>
+        <p style="color: var(--text-muted); margin-bottom: .5rem;">Edit quads below. Applying changes generates
+            a diff and calls <code>serialize()</code>
+            to patch the MD-LD source.</p>
+        <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
+            <button onclick="quadLabReset()" class="btn-hover"
+                style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">↩
+                Reset
+                from parse()</button>
+            <button onclick="quadLabAddRow()" class="btn-hover"
+                style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">➕
+                Add quad</button>
+            <button onclick="quadLabDeleteSelected()" class="btn-hover"
+                style="background: var(--bg-button-danger); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🗑
+                Delete selected</button>
+            <span id="quadlab-stats"
+                style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+                <table
+                    style="width: 100%; border-collapse: collapse; border: 1px solid var(--border-dark); border-radius: 4px; overflow: hidden;">
+                    <thead>
+                        <tr>
+                            <th
+                                style="width: 2.5rem; background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
+                                Sel</th>
+                            <th
+                                style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
+                                S</th>
+                            <th
+                                style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
+                                P</th>
+                            <th
+                                style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
+                                O</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quadlab-body"></tbody>
+                </table>
+            </div>
+            <div>
+                <div id="quadlab-diff"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow: auto; color: var(--text-code);">
+                    Diff will appear here...</div>
+                <div style="display: flex; gap: .5rem; margin-top: .5rem; margin-bottom: 0;">
+                    <button onclick="quadLabApplyDiff()" class="btn-hover btn-hover-primary"
+                        style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">✅
+                        Apply diff via
+                        serialize()</button>
+                    <button onclick="quadLabCopyDiff()" class="btn-hover btn-hover-secondary"
+                        style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">📋
+                        Copy diff
+                        JSON</button>
                 </div>
             </div>
-        </section>
+        </div>
+    </div>
+    </section>
 
-        <section id="tests" class="test-section">
-            <h3>🧪 Test Suite</h3>
-            <div class="test-controls">
-                <button onclick="runAllTests()">▶ Run Tests</button>
-                <button class="secondary" onclick="clearTests()">🗑️ Clear</button>
-                <span id="test-status" class="compact-stats" style="margin-left: auto;"></span>
+    <section class="container" id="tests"
+        style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+        <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🧪 Test Suite</h3>
+        <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
+            <button onclick="runAllTests()" class="btn-hover btn-hover-primary"
+                style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem; transition: all .2s;">▶
+                Run Tests</button>
+            <button onclick="clearTests()" class="btn-hover btn-hover-secondary"
+                style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem; transition: all .2s;">🗑️
+                Clear</button>
+            <span id="test-status"
+                style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+        </div>
+        <div id="test-progress"
+            style="height: 3px; background: var(--border-dark); border-radius: 2px; overflow: hidden; margin-bottom: .5rem; display: none;">
+            <div id="test-progress-bar"
+                style="height: 100%; background: var(--bg-button-primary); transition: width .3s ease;"></div>
+        </div>
+        <div id="test-stats"
+            style="display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .5rem; display: none;">
+            <div
+                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
+                <div id="passed-count"
+                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-success);">
+                    0</div>
+                <div style="font-size: .75rem; color: var(--text-muted);">Passed</div>
             </div>
-            <div class="progress" id="test-progress" style="display: none;">
-                <div class="progress-bar" id="test-progress-bar"></div>
+            <div
+                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
+                <div id="failed-count"
+                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-error);">
+                    0</div>
+                <div style="font-size: .75rem; color: var(--text-muted);">Failed</div>
             </div>
-            <div class="stats" id="test-stats" style="display: none;">
-                <div class="stat">
-                    <div class="stat-value passed" id="passed-count">0</div>
-                    <div class="stat-label">Passed</div>
+            <div
+                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
+                <div id="total-count"
+                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-info);">0
                 </div>
-                <div class="stat">
-                    <div class="stat-value failed" id="failed-count">0</div>
-                    <div class="stat-label">Failed</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value total" id="total-count">0</div>
-                    <div class="stat-label">Total</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="duration">0ms</div>
-                    <div class="stat-label">Duration</div>
-                </div>
+                <div style="font-size: .75rem; color: var(--text-muted);">Total</div>
             </div>
-            <div class="test-list" id="test-list">
-                <p style="text-align: center; color: #9ca3af; padding: 1rem;">Tests will run automatically on page
-                    load...</p>
+            <div
+                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
+                <div id="duration" style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem;">0ms</div>
+                <div style="font-size: .75rem; color: var(--text-muted);">Duration</div>
             </div>
-        </section>
+        </div>
+        <div id="test-list" style="max-height: 300px; overflow-y: auto;">
+            <p style="text-align: center; color: var(--text-muted); padding: 1rem;">Tests will run automatically on
+                page
+                load...</p>
+        </div>
+    </section>
     </div>
 
     <script type="importmap">
@@ -743,12 +371,18 @@ Author: [Alice] {=ex:alice .Person ?author}"></textarea>
 
     <script type="module">
         import { parse, serialize, shortenIRI } from './index.js';
+        // import { render } from './render.js';
         import { runTests, tests } from './tests.js';
 
         let currentTestResults = [];
 
         // Example templates
         const examples = {
+            minimal: `
+## Document {=urn:mdld:doc}
+Title: [My Document] {name}
+Author: [Alice] {+ex:alice .Person ?author name}
+            `,
             journal: `           
 ## 2024-07-18 — A good day {=urn:journal:day-2024-07-18 .Event}
 
@@ -792,11 +426,11 @@ Ingredients: {?recipeIngredient .urn:food:ingredient name}
 
 _Ingredient_ {+urn:food:ingredient .Class name} - is a class for all ingredients in our **Cookbook** {+urn:collection:cookbook .Collection name ?isPartOf}.
 
-Equipment: {?urn:requiresEquipment}
+Equipment: {?urn:requiresEquipment name}
 
-* Oven {=urn:kitchen:oven-1 .Device name}
-* Mixing bowl {=urn:kitchen:bowl-1 .Utensil name}
-* Rolling pin {=urn:kitchen:pin-1 .Utensil name}
+* Oven {=urn:kitchen:oven-1 .Device }
+* Mixing bowl {=urn:kitchen:bowl-1 .Utensil }
+* Rolling pin {=urn:kitchen:pin-1 .Utensil }
 
 Calories:  [1235] {urn:nutrition:calories ^^xsd:integer} calories
 Sugar: [40.4] {urn:nutrition:sugarGrams ^^xsd:decimal} grams
@@ -893,40 +527,33 @@ Followed by: {!ex:followedBy .SpaceMission name}
         function chip(kind, fullValue, displayValue, extraClass = '') {
             const d = escapeHtml(displayValue);
             const t = escapeHtml(clipTitle(fullValue, displayValue));
-            return `<span class="q-chip ${extraClass}"><span class="q-k">${kind}</span><span class="q-v" title="${t}">${d}</span></span>`;
+
+            let borderColor = 'var(--border-chip-default)';
+            let bgColor = 'var(--bg-chip-default)';
+            let keyColor = 'var(--text-chip-key)';
+
+            if (extraClass === 'q-s') {
+                borderColor = 'var(--border-chip-subject)';
+                bgColor = 'var(--bg-chip-subject)';
+                keyColor = 'var(--text-chip-subject)';
+            } else if (extraClass === 'q-p') {
+                borderColor = 'var(--border-chip-predicate)';
+                bgColor = 'var(--bg-chip-predicate)';
+                keyColor = 'var(--text-chip-predicate)';
+            } else if (extraClass === 'q-o') {
+                borderColor = 'var(--border-chip-object)';
+                bgColor = 'var(--bg-chip-object)';
+                keyColor = 'var(--text-chip-object)';
+            } else if (extraClass === 'q-lit') {
+                borderColor = 'var(--border-chip-literal)';
+                bgColor = 'var(--bg-chip-literal)';
+                keyColor = 'var(--text-chip-literal)';
+            }
+
+            return `<span style="display: inline-flex; align-items: center; gap: .35rem; max-width: 100%; border: 1px solid ${borderColor}; background: ${bgColor}; border-radius: 6px; padding: .12rem .4rem;">
+                <span style="display: inline-block; max-width: 48ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${t}">${d}</span></span>`;
         }
 
-        function highlightMdld(text) {
-            const src = String(text || '');
-            let out = '';
-            let i = 0;
-            while (i < src.length) {
-                const open = src.indexOf('{', i);
-                if (open === -1) {
-                    out += escapeHtml(src.slice(i));
-                    break;
-                }
-                out += escapeHtml(src.slice(i, open));
-                let depth = 0;
-                let j = open;
-                while (j < src.length) {
-                    const ch = src[j];
-                    if (ch === '{') depth++;
-                    if (ch === '}') {
-                        depth--;
-                        if (depth === 0) {
-                            j++;
-                            break;
-                        }
-                    }
-                    j++;
-                }
-                const block = src.slice(open, j);
-                out += `<span class="mdld-ann">${escapeHtml(block)}</span>`;
-                i = j;
-            }
-            return out;
-        }
 
         function quadKey(quad) {
             const o = quad.object;
@@ -956,25 +583,26 @@ Followed by: {!ex:followedBy .SpaceMission name}
         window.parseMDLD = function () {
             const input = document.getElementById('input').value;
             const output = document.getElementById('output');
-            const preview = document.getElementById('mdld-preview');
+            // const rendered = document.getElementById('rendered-output');
             const stats = document.getElementById('parse-stats');
 
             if (!input.trim()) {
-                output.textContent = 'Enter MD-LD content to parse...';
-                preview.textContent = 'MD-LD preview will appear here...';
+                output.textContent = 'Quads will appear here...';
+                // rendered.textContent = 'Rendered HTML will appear here...';
                 stats.textContent = '';
                 return;
             }
 
             try {
                 const startTime = performance.now();
-                // Only provide context for ex prefix, rely on default context for schema.org
                 const result = parse(input, { context: { ex: 'http://example.org/' } });
+                // const renderedResult = render(input, { context: { ex: 'http://example.org/' } });
                 const duration = Math.round(performance.now() - startTime);
 
                 lastParse = { input, result };
 
-                preview.innerHTML = highlightMdld(input);
+                // Display rendered HTML+RDFa
+                // rendered.innerHTML = `<div style="background: white; padding: 1rem; border-radius: 4px;">${renderedResult.text}</div>`;
 
                 // Convert quads to readable format
                 output.innerHTML = quadsToHtml(result.quads);
@@ -983,13 +611,13 @@ Followed by: {!ex:followedBy .SpaceMission name}
                 quadLabReset();
             } catch (error) {
                 output.textContent = `Error: ${error.message}`;
-                preview.textContent = 'MD-LD preview will appear here...';
+                rendered.textContent = `Error: ${error.message}`;
                 stats.textContent = '';
             }
         };
 
         function quadsToHtml(quads) {
-            if (!quads || quads.length === 0) return '<div class="muted"># No quads generated</div>';
+            if (!quads || quads.length === 0) return '<div style="color: var(--text-muted);"># No quads generated</div>';
             return quads.map(q => {
                 const ctx = lastParse?.result?.context || {};
                 const sFull = q.subject.value;
@@ -1009,7 +637,7 @@ Followed by: {!ex:followedBy .SpaceMission name}
                     o = chip('O', oFull, oDisp, 'q-o');
                 }
 
-                return `<div class="quad">${s}<span class="q-sep">→</span>${p}<span class="q-sep">→</span>${o}</div>`;
+                return `<div style="display: flex; gap: .4rem; align-items: center; padding: .2rem 0; border-bottom: 1px dashed var(--border-dark); min-width: 0;">${s}<span style="color: var(--text-separator);">→</span>${p}<span style="color: var(--text-separator);">→</span>${o}</div>`;
             }).join('');
         }
 
@@ -1031,7 +659,7 @@ Followed by: {!ex:followedBy .SpaceMission name}
         window.clearPlayground = function () {
             document.getElementById('input').value = '';
             document.getElementById('output').textContent = 'Quads will appear here...';
-            document.getElementById('mdld-preview').textContent = 'MD-LD preview will appear here...';
+            document.getElementById('rendered-output').textContent = 'Rendered HTML will appear here...';
             document.getElementById('parse-stats').textContent = '';
             document.getElementById('quadlab-body').innerHTML = '';
             document.getElementById('quadlab-diff').textContent = 'Diff will appear here...';
@@ -1052,9 +680,9 @@ Followed by: {!ex:followedBy .SpaceMission name}
             const oField = quad.object.termType === 'Literal' ? formatLiteral(quad.object) : `<${quad.object.value}>`;
             tr.innerHTML = `
                 <td><input type="checkbox" data-role="sel" /></td>
-                <td><input class="crud-input" data-role="s" value="${escapeHtml(quad.subject.value)}" /></td>
-                <td><input class="crud-input" data-role="p" value="${escapeHtml(quad.predicate.value)}" /></td>
-                <td><input class="crud-input" data-role="o" value="${escapeHtml(oField)}" /></td>
+                <td><input data-role="s" value="${escapeHtml(quad.subject.value)}" style="width: 100%; background: var(--bg-input); color: var(--text-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .25rem .4rem; font-family: var(--font-mono); font-size: 12px;" /></td>
+                <td><input data-role="p" value="${escapeHtml(quad.predicate.value)}" style="width: 100%; background: var(--bg-input); color: var(--text-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .25rem .4rem; font-family: var(--font-mono); font-size: 12px;" /></td>
+                <td><input data-role="o" value="${escapeHtml(oField)}" style="width: 100%; background: var(--bg-input); color: var(--text-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .25rem .4rem; font-family: var(--font-mono); font-size: 12px;" /></td>
             `;
             tr.addEventListener('input', () => quadLabUpdateDiff());
             tr.addEventListener('change', () => quadLabUpdateDiff());
@@ -1228,28 +856,36 @@ Followed by: {!ex:followedBy .SpaceMission name}
         function addTestItem(name, status, duration, result, error = null) {
             const testList = document.getElementById('test-list');
             const item = document.createElement('div');
-            item.className = `test-item ${status}`;
+
+            let borderLeft = 'none';
+            if (status === 'passed') {
+                borderLeft = '3px solid var(--color-success)';
+            } else if (status === 'failed') {
+                borderLeft = '3px solid var(--color-error)';
+            }
+
+            item.style.cssText = `background: var(--bg-feature); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; margin-bottom: .25rem; transition: all .2s; border-left: ${borderLeft};`;
 
             const icon = status === 'passed' ? '✅' : '❌';
 
             item.innerHTML = `
-        <div class="test-header">
-          <span class="test-icon">${icon}</span>
-          <span class="test-name">${name}</span>
-          <span class="test-duration">${duration}ms</span>
+        <div style="display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem;">
+          <span style="font-size: 1rem;">${icon}</span>
+          <span style="flex: 1; font-weight: 500; font-size: .875rem; font-family: var(--font);">${name}</span>
+          <span style="font-size: .75rem; color: var(--text-muted);">${duration}ms</span>
         </div>
-        <div class="test-details" id="details-${name.replace(/\s+/g, '-')}">
+        <div style="margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--border-dark); display: none;" id="details-${name.replace(/\s+/g, '-')}">
           ${result ? `
-            <div class="test-input">${result.input}</div>
-            <div class="test-output">${(result.output.quads || []).map(q => `${q.subject.value} -> ${q.predicate.value} -> ${q.object.termType === 'Literal' ? formatLiteral(q.object) : `<${q.object.value}>`}`).join('\n')}</div>
+            <div style="background: var(--bg-input); padding: .5rem; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; white-space: pre-wrap; max-height: 150px; overflow-y: auto; margin-bottom: .5rem; color: var(--text-code); user-select: text;">${result.input}</div>
+            <div style="background: var(--bg-input); padding: .5rem; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; white-space: pre-wrap; max-height: 150px; overflow-y: auto; margin-bottom: .5rem; color: var(--text-code); user-select: text;">${(result.output.quads || []).map(q => `${q.subject.value} -> ${q.predicate.value} -> ${q.object.termType === 'Literal' ? formatLiteral(q.object) : `<${q.object.value}>`}`).join('\n')}</div>
           ` : ''}
-          ${error ? `<div style="color: #ef4444; font-family: monospace; font-size: 11px;">${error}</div>` : ''}
+          ${error ? `<div style="color: var(--color-error); font-family: var(--font-mono); font-size: 11px;">${error}</div>` : ''}
         </div>
       `;
 
             item.addEventListener('click', () => {
-                const details = item.querySelector('.test-details');
-                details.classList.toggle('open');
+                const details = item.querySelector(`#details-${name.replace(/\s+/g, '-')}`);
+                details.style.display = details.style.display === 'none' ? 'block' : 'none';
             });
 
             testList.appendChild(item);
@@ -1258,7 +894,7 @@ Followed by: {!ex:followedBy .SpaceMission name}
         // Clear tests
         window.clearTests = function () {
             currentTestResults = [];
-            document.getElementById('test-list').innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 1rem;">Click "Run Tests" to see results</p>';
+            document.getElementById('test-list').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 1rem;">Click "Run Tests" to see results</p>';
             document.getElementById('test-stats').style.display = 'none';
             document.getElementById('test-progress').style.display = 'none';
             document.getElementById('test-status').textContent = '';

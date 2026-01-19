@@ -432,14 +432,14 @@ Therefore, the algebra is **closed**.
 ```markdown
 # Meeting Notes {=urn:note:2024-01-15 .Meeting}
 
-Attendees: {?attendee}
+Attendees: {?attendee name}
 
-- Alice {=urn:person:alice name}
-- Bob {=urn:person:bob name}
+- Alice {=urn:person:alice}
+- Bob {=urn:person:bob}
 
-Action items: {?actionItem}
+Action items: {?actionItem name}
 
-- Review proposal {=urn:task:1 name}
+- Review proposal {=urn:task:1}
 ```
 
 ### Developer Documentation
