@@ -18,6 +18,14 @@ import {
     expandIRI
 } from './utils.js';
 
+function getBlockById(base, blockId) {
+    return blockId ? base?.blocks?.get(blockId) : null;
+}
+
+function getEntryByQuadKey(base, quadKey) {
+    return quadKey ? base?.quadIndex?.get(quadKey) : null;
+}
+
 function isValidQuad(quad) {
     return quad && quad.subject && quad.predicate && quad.object;
 }
@@ -114,9 +122,9 @@ export function serialize({ text, diff, origin, options = {} }) {
         if (!isValidQuad(q)) continue;
         const key = JSON.stringify([q.subject.value, objectSignature(q.object)]);
         const qk = quadToKeyForOrigin(q);
-        const entry = qk ? base?.quadIndex?.get(qk) : null;
+        const entry = getEntryByQuadKey(base, qk);
         const blockId = entry?.blockId || entry;
-        const block = blockId ? base?.blocks?.get(blockId) : null;
+        const block = getBlockById(base, blockId);
         if (!block?.attrsRange) continue;
         anchors.set(key, { block, entry });
     }
