@@ -393,14 +393,10 @@ function resolveObject(sem, state) {
     }
 }
 
-function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier) {
+function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state) {
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
         const entryIndex = typeof t === 'string' ? null : t.entryIndex;
-
-        // For types with subject declarations, type applies to new subject
-        // For types with soft IRI declarations, type applies to soft IRI object
-        // Otherwise, type applies to carrier object or current subject
         const typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
         const expandedType = expandIRI(typeIRI, state.ctx);
 
@@ -419,33 +415,20 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
     sem.predicates.forEach(pred => {
         const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
 
-        if (pred.form === '') {
-            const subjectIRI = localObject || S;
+        // Pre-bind subject/object roles for clarity
+        const roles = {
+            '': { subject: localObject || S, object: L },
+            '?': { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO },
+            '!': { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S }
+        };
+
+        const role = roles[pred.form];
+        if (role && role.subject && role.object) {
             emitQuad(
                 state.quads, state.origin.quadIndex, block.id,
-                subjectIRI, P, L, state.df,
+                role.subject, P, role.object, state.df,
                 { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
             );
-        } else if (pred.form === '?') {
-            const subjectIRI = newSubject ? previousSubject : S;
-            const objectIRI = localObject || newSubjectOrCarrierO;
-            if (objectIRI && subjectIRI) {
-                emitQuad(
-                    state.quads, state.origin.quadIndex, block.id,
-                    subjectIRI, P, objectIRI, state.df,
-                    { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
-                );
-            }
-        } else if (pred.form === '!') {
-            const objectIRI = newSubject ? previousSubject : S;
-            const subjectIRI = localObject || newSubjectOrCarrierO;
-            if (objectIRI && subjectIRI) {
-                emitQuad(
-                    state.quads, state.origin.quadIndex, block.id,
-                    subjectIRI, P, objectIRI, state.df,
-                    { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
-                );
-            }
         }
     });
 }
@@ -461,7 +444,6 @@ function processAnnotation(carrier, sem, state, preserveGlobalSubject = false) {
     const newSubject = resolveSubject(sem, state);
     const localObject = resolveObject(sem, state);
 
-    // Only update global subject if not preserving it
     if (newSubject && !preserveGlobalSubject) {
         state.currentSubject = newSubject;
     }
@@ -479,7 +461,7 @@ function processAnnotation(carrier, sem, state, preserveGlobalSubject = false) {
     const carrierO = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
     const newSubjectOrCarrierO = newSubject || carrierO;
 
-    processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier);
+    processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state);
     processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state);
 }
 
@@ -555,35 +537,20 @@ function processListContextPredicates(contextSem, itemSubject, contextSubject, s
 
 function processInheritedPredicates(contextSem, listToken, state) {
     const inheritedPredicates = contextSem.predicates.filter(p => p.form === '');
-    if (inheritedPredicates.length > 0 && listToken.text) {
-        // Create inherited annotation block
-        const inheritedTokens = inheritedPredicates.map(p => p.iri).join(' ');
-        const inheritedSem = parseSemCached(`{${inheritedTokens}}`);
+    if (inheritedPredicates.length === 0 || !listToken.text) return;
 
-        // Find the current list item subject for this inherited predicate
-        const itemInfo = findItemSubject(listToken, [], state);
-        const itemSubject = itemInfo?.subject;
+    const inheritedSem = parseSemCached(`{${inheritedPredicates.map(p => p.iri).join(' ')}}`);
+    const itemInfo = findItemSubject(listToken, [], state);
+    const itemSubject = itemInfo?.subject;
 
-        if (!itemSubject) return; // Skip if no item subject found
+    if (!itemSubject) return;
 
-        // Create a carrier with the list item as the subject context
-        const carrier = {
-            type: 'list',
-            text: listToken.text,
-            range: listToken.range,
-            attrsRange: listToken.attrsRange || null,
-            valueRange: listToken.valueRange || null
-        };
+    const prevSubject = state.currentSubject;
+    state.currentSubject = itemSubject;
 
-        // Temporarily set current subject to the item subject for inheritance
-        const prevSubject = state.currentSubject;
-        state.currentSubject = itemSubject;
+    processAnnotation(createCarrierFromToken(listToken, 'list'), inheritedSem, state, true);
 
-        processAnnotation(carrier, inheritedSem, state, true); // Preserve global subject
-
-        // Restore the previous subject
-        state.currentSubject = prevSubject;
-    }
+    state.currentSubject = prevSubject;
 }
 
 function processListContext(contextSem, listTokens, state, contextSubject = null) {
@@ -591,48 +558,34 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
 
     listTokens.forEach(listToken => {
         const carriers = getCarriers(listToken);
-
-        // Find item subject from list token or inline carriers
         const itemInfo = findItemSubject(listToken, carriers, state);
         if (!itemInfo) return;
 
-        const { subject: itemSubject, carrier: itemSubjectCarrier } = itemInfo;
+        const { subject: itemSubject } = itemInfo;
 
-        // Apply context types to item subject
+        // Apply context types and predicates
         processListContextTypes(contextSem, itemSubject, state);
-
-        // Apply context predicates to item subject and context subject
         processListContextPredicates(contextSem, itemSubject, contextSubject, state);
 
         const prevSubject = state.currentSubject;
         state.currentSubject = itemSubject;
 
-        // Check if item has its own predicates
-        const hasOwnPreds = hasOwnPredicates(listToken, carriers);
-
-        // If item has no predicates, inherit literal predicates from context
-        if (!hasOwnPreds) {
+        // Inherit literal predicates if item has no own predicates
+        if (!hasOwnPredicates(listToken, carriers)) {
             processInheritedPredicates(contextSem, listToken, state);
         }
 
-        // Process list token's own annotations
+        // Process token annotations
         if (listToken.attrs) {
-            const itemSem = parseSemCached(listToken.attrs);
-            const carrier = {
-                type: 'list',
-                text: listToken.text,
-                range: listToken.range,
-                attrsRange: listToken.attrsRange || null,
-                valueRange: listToken.valueRange || null
-            };
-            processAnnotation(carrier, itemSem, state);
+            const sem = parseSemCached(listToken.attrs);
+            processAnnotation(createCarrierFromToken(listToken, 'list'), sem, state);
         }
 
-        // Process inline carriers' annotations
+        // Process inline carriers
         carriers.forEach(carrier => {
             if (carrier.attrs) {
-                const itemSem = parseSemCached(carrier.attrs);
-                processAnnotation(carrier, itemSem, state);
+                const sem = parseSemCached(carrier.attrs);
+                processAnnotation(carrier, sem, state);
             }
         });
 
@@ -666,7 +619,7 @@ function manageListStack(token, state) {
         state.listStack.push({
             indent: token.indent,
             anchorSubject: parentFrame?.anchorSubject || null,
-            contextSubject: parentFrame?.contextSubject || null,
+            contextSubject: parentFrame?.anchorSubject || null,
             contextSem: null
         });
     }
@@ -680,7 +633,7 @@ function processListItem(token, state) {
     const itemInfo = findItemSubject(token, carriers, state);
     if (!itemInfo) return;
 
-    const { subject: itemSubject, carrier: itemSubjectCarrier } = itemInfo;
+    const { subject: itemSubject } = itemInfo;
 
     // Update the current list frame to track this item's subject for nested contexts
     if (state.listStack.length > 0) {
@@ -704,28 +657,23 @@ function processListItem(token, state) {
 
     // Process item's own annotations - but don't change global current subject for list items
     const prevSubject = state.currentSubject;
-    const shouldUpdateGlobalSubject = !state.listStack.length; // Only update global subject if not in a list
+    const shouldUpdateGlobalSubject = !state.listStack.length;
+
     if (shouldUpdateGlobalSubject) {
         state.currentSubject = itemSubject;
     }
 
+    // Process token attributes using consolidated function
     if (token.attrs) {
-        const itemSem = parseSemCached(token.attrs);
-        const carrier = {
-            type: 'list',
-            text: token.text,
-            range: token.range,
-            attrsRange: token.attrsRange || null,
-            valueRange: token.valueRange || null
-        };
-        processAnnotation(carrier, itemSem, state, !shouldUpdateGlobalSubject);
+        const sem = parseSemCached(token.attrs);
+        processAnnotation(createCarrierFromToken(token, 'list'), sem, state, !shouldUpdateGlobalSubject);
     }
 
     // Process inline carriers' annotations
     carriers.forEach(carrier => {
         if (carrier.attrs) {
-            const itemSem = parseSemCached(carrier.attrs);
-            processAnnotation(carrier, itemSem, state, !shouldUpdateGlobalSubject);
+            const sem = parseSemCached(carrier.attrs);
+            processAnnotation(carrier, sem, state, !shouldUpdateGlobalSubject);
         }
     });
 
@@ -741,26 +689,20 @@ function processListContextFromParagraph(token, state) {
     if (contextMatch) {
         const contextSem = parseSemCached(`{${contextMatch[2]}}`);
 
-        // For list contexts, context subject should be:
-        // 1. Current subject (document level) for top-level lists
-        // 2. Current list item subject only for nested lists (greater indent)
-        let contextSubject = state.currentSubject;
+        // Context subject resolution:
+        // 1. For top-level lists: use current subject or document subject
+        // 2. For nested lists: use parent list item's subject
+        let contextSubject = state.currentSubject || state.documentSubject;
 
-        // Check if this is a nested list context by looking ahead to next token
+        // Check if this is a nested list context by looking ahead
         const nextTokenIndex = state.currentTokenIndex + 1;
         const nextToken = state.tokens && state.tokens[nextTokenIndex];
 
         if (state.listStack.length > 0 && nextToken && nextToken.type === 'list') {
             const currentFrame = state.listStack[state.listStack.length - 1];
             if (currentFrame.anchorSubject && nextToken.indent > currentFrame.indent) {
-                // This is a nested list context, use current item as subject
                 contextSubject = currentFrame.anchorSubject;
             }
-        }
-
-        // Fallback to document subject if no other option
-        if (!contextSubject) {
-            contextSubject = state.documentSubject;
         }
 
         state.pendingListContext = {
@@ -771,17 +713,31 @@ function processListContextFromParagraph(token, state) {
 }
 
 // Helper functions for token processing
-function processTokenWithAttrs(token, state, tokenType) {
-    if (!token.attrs) return;
-    const sem = parseSemCached(token.attrs);
-    const carrier = {
+function createCarrierFromToken(token, tokenType) {
+    return {
         type: tokenType,
         text: token.text,
         range: token.range,
         attrsRange: token.attrsRange || null,
         valueRange: token.valueRange || null
     };
-    processAnnotation(carrier, sem, state);
+}
+
+function processTokenAnnotations(token, state, tokenType) {
+    // Process token's own attributes
+    if (token.attrs) {
+        const sem = parseSemCached(token.attrs);
+        processAnnotation(createCarrierFromToken(token, tokenType), sem, state);
+    }
+
+    // Process inline carriers
+    const carriers = getCarriers(token);
+    carriers.forEach(carrier => {
+        if (carrier.attrs) {
+            const sem = parseSemCached(carrier.attrs);
+            processAnnotation(carrier, sem, state);
+        }
+    });
 }
 
 function processStandaloneSubject(token, state) {
@@ -799,16 +755,6 @@ function processStandaloneSubject(token, state) {
         attrsRange: [attrsStart, attrsEnd],
         valueRange: null
     }, sem, state);
-}
-
-function processInlineCarriers(token, state) {
-    const carriers = getCarriers(token);
-    carriers.forEach(carrier => {
-        if (carrier.attrs) {
-            const sem = parseSemCached(carrier.attrs);
-            processAnnotation(carrier, sem, state);
-        }
-    });
 }
 
 export function parse(text, options = {}) {
@@ -848,17 +794,17 @@ export function parse(text, options = {}) {
                         }
                     }
                 }
-                processTokenWithAttrs(token, state, token.type);
+                processTokenAnnotations(token, state, token.type);
                 break;
             case 'code':
             case 'blockquote':
-                processTokenWithAttrs(token, state, token.type);
+                processTokenAnnotations(token, state, token.type);
                 break;
 
             case 'para':
                 processStandaloneSubject(token, state);
                 processListContextFromParagraph(token, state);
-                processInlineCarriers(token, state);
+                processTokenAnnotations(token, state, token.type);
                 break;
 
             case 'list':
