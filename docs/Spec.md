@@ -285,77 +285,61 @@ ex:references dct:references <https://www.w3.org/RDF> .
 
 ### 11.1 Scope rule
 
-A `{...}` block immediately preceding a list applies to **all list items** until list end.
+A `{...}` block immediately preceding a list applies to **all list items** until list end. There must be some text before such list description annotation.
 
-Ordered and unordered lists are semantically identical.
+Ordered and unordered lists are semantically identical. Single list item is a single value carrier - no nesting is allowed.
 
----
+### 11.2 Nested Lists (normative)
 
-### 11.2 Requirements
+List semantics do not recurse across nesting levels. Nested list items MUST declare their own predicates if semantics are desired
 
-* Each list item MUST declare its own subject to emit quads
-* No implicit item subjects
-* No blank nodes
-
----
+Nested lists do not inherit semantic context.
+Semantic predicates and types declared for a list apply only to its immediate items. Nested lists constitute a new semantic scope and require their own explicit semantic declaration to emit quads.
 
 ### Example
 
 ```md
+[ex] <http://example.org/>
+
+## Recipe {=ex:recipe .Recipe name}
+
 Ingredients: {?hasPart .Ingredient name}
 
 - Flour {=ex:flour}
+  Variants: {?hasPart .FlourType name}
+  - Whole wheat {=ex:flour-whole-wheat .WholeGrainFour}
+    Whole grain includes {?hasPart .GrainPart name}
+    - Bran {=ex:grain-bran}
+    - Germ {=ex:grain-germ}
+    - Endosperm {=ex:grain-endosperm}
+  - White {=ex:flour-white title}
 - Water {=ex:water}
 ```
 
 ```turtle
-S schema:hasPart ex:flour, ex:water .
-ex:flour a ex:Ingredient ; schema:name "Flour" .
-ex:water a ex:Ingredient ; schema:name "Water" .
-```
+ex:recipe a schema:Recipe ; 
+          schema:name "Recipe" ;
+          schema:hasPart ex:flour, ex:water .
 
-### 11.3 Predicate Inheritance
+ex:flour a schema:Ingredient ; 
+         schema:name "Flour" ;
+         schema:hasPart ex:flour-whole-wheat, ex:flour-white .
 
-List items **inherit literal predicates** (form `p`) from the list context when they don't declare their own predicates.
+ex:flour-whole-wheat a schema:WholeGrainFlour ; 
+                     schema:name "Whole wheat" ;
+                     schema:hasPart ex:grain-bran, ex:grain-germ, ex:grain-endosperm .
 
-**Rules:**
-* Only literal predicates (form `p`) are inherited
-* Object predicates (`?p`, `!p`) are not inherited
-* Items with their own predicates don't inherit from context
-* Inherited predicates apply to the item's text as literal value
+ex:grain-bran a schema:GrainPart ;
+              schema:name "Bran" .
+ex:grain-germ a schema:GrainPart ;
+              schema:name "Germ" .
+ex:grain-endosperm a schema:GrainPart ;
+                   schema:name "Endosperm" .
 
-### Example
-
-```md
-# Meeting Notes {=urn:note:2024-01-15 .Meeting}
-
-Attendees: {?attendee name}
-- Alice {=urn:person:alice}
-- Bob {=urn:person:bob}
-```
-
-```turtle
-urn:note:2024-01-15 schema:attendee urn:person:alice, urn:person:bob .
-urn:person:alice schema:name "Alice" .
-urn:person:bob schema:name "Bob" .
-```
-
-### Mixed Example
-
-```md
-# Document {=ex:doc}
-
-People: {?knows name description}
-- Alice {=ex:alice}
-- Bob {=ex:bob role}  // Has own predicate, doesn't inherit
-- Carol {=ex:carol}
-```
-
-```turtle
-ex:doc schema:knows ex:alice, ex:bob, ex:carol .
-ex:alice schema:name "Alice" ; schema:description "Alice" .
-ex:bob schema:role "Bob" .
-ex:carol schema:name "Carol" ; schema:description "Carol" .
+ex:flour-white a schema:FlourType ; 
+                schema:title "White" .
+ex:water a schema:Ingredient ; 
+         schema:name "Water" .
 ```
 
 ---
