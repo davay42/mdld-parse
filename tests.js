@@ -1,4 +1,4 @@
-import { parse, serialize } from './index.js';
+import { parse, serialize } from './src/index.js';
 
 // Test helpers
 function assert(condition, message) {
