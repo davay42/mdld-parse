@@ -171,35 +171,35 @@ function extractInlineCarriers(text, baseOffset = 0) {
     return carriers;
 }
 
+function calcCarrierRanges(match, baseOffset, offset = 0) {
+    const valueStart = baseOffset + offset;
+    const valueEnd = valueStart + match[1].length;
+    const attrsStart = valueEnd + 2;
+    const attrsEnd = attrsStart + match[2].length;
+    return {
+        valueRange: [valueStart, valueEnd],
+        attrsRange: [attrsStart, attrsEnd],
+        range: [valueStart, attrsEnd],
+        pos: attrsEnd
+    };
+}
+
 function tryExtractEmphasisCarrier(text, pos, baseOffset) {
-    const emphasisMatch = text.match(INLINE_CARRIER_PATTERNS.EMPHASIS, pos);
-    if (!emphasisMatch) return null;
+    const match = text.match(INLINE_CARRIER_PATTERNS.EMPHASIS, pos);
+    if (!match) return null;
 
-    const carrierText = emphasisMatch[1];
-    const attrsStart = baseOffset + emphasisMatch[0].length;
-    const valueStart = attrsStart;
-    const valueEnd = valueStart + carrierText.length;
-    const attrsStartInValue = valueEnd + 2;
-    const attrsEnd = attrsStartInValue + emphasisMatch[2].length;
-
-    return createCarrier('emphasis', carrierText, `{${emphasisMatch[2]}}`,
-        [attrsStartInValue, attrsEnd], [valueStart, valueEnd],
-        [valueStart, valueEnd], attrsEnd);
+    const ranges = calcCarrierRanges(match, baseOffset, match[0].length);
+    return createCarrier('emphasis', match[1], `{${match[2]}}`,
+        ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
 }
 
 function tryExtractCodeCarrier(text, pos, baseOffset) {
-    const codeMatch = text.match(INLINE_CARRIER_PATTERNS.CODE_SPAN, pos);
-    if (!codeMatch) return null;
+    const match = text.match(INLINE_CARRIER_PATTERNS.CODE_SPAN, pos);
+    if (!match) return null;
 
-    const carrierText = codeMatch[1];
-    const valueStart = baseOffset + 2;
-    const valueEnd = valueStart + carrierText.length;
-    const attrsStart = valueEnd + 2;
-    const attrsEnd = attrsStart + codeMatch[2].length;
-
-    return createCarrier('code', carrierText, `{${codeMatch[2]}}`,
-        [attrsStart, attrsEnd], [valueStart, valueEnd],
-        [valueStart, attrsEnd], attrsEnd);
+    const ranges = calcCarrierRanges(match, baseOffset, 2);
+    return createCarrier('code', match[1], `{${match[2]}}`,
+        ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
 }
 
 function tryExtractBracketCarrier(text, pos, baseOffset) {
@@ -382,44 +382,32 @@ function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block
 function processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state) {
     sem.predicates.forEach(pred => {
         const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-        const token = `${pred.form}${pred.iri}`;
 
         if (pred.form === '') {
-            // S —p→ L (use soft IRI object as subject if available, otherwise current subject)
             const subjectIRI = localObject || S;
             emitQuad(
                 state.quads, state.origin.quadIndex, block.id,
                 subjectIRI, P, L, state.df,
-                { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+                { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
             );
         } else if (pred.form === '?') {
-            // S —p→ O (use previous subject as subject, newSubject as object)
             const subjectIRI = newSubject ? previousSubject : S;
             const objectIRI = localObject || newSubjectOrCarrierO;
             if (objectIRI && subjectIRI) {
                 emitQuad(
                     state.quads, state.origin.quadIndex, block.id,
                     subjectIRI, P, objectIRI, state.df,
-                    { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+                    { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
                 );
             }
-        } else if (pred.form === '^') {
-            // L —p→ S (use soft IRI object as subject if available, otherwise current subject)
-            const subjectIRI = localObject || S;
-            emitQuad(
-                state.quads, state.origin.quadIndex, block.id,
-                L, P, subjectIRI, state.df,
-                { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
-            );
         } else if (pred.form === '!') {
-            // O —p→ S (use previous subject as object, newSubject as subject)
             const objectIRI = newSubject ? previousSubject : S;
             const subjectIRI = localObject || newSubjectOrCarrierO;
             if (objectIRI && subjectIRI) {
                 emitQuad(
                     state.quads, state.origin.quadIndex, block.id,
                     subjectIRI, P, objectIRI, state.df,
-                    { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+                    { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
                 );
             }
         }

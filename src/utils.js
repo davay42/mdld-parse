@@ -56,7 +56,6 @@ const TOKEN_PATTERNS = {
     '@': { kind: 'language', extract: t => t.substring(1) },
     '.': { kind: 'type', extract: t => t.substring(1) },
     '!': { kind: 'property', form: '!', extract: t => t.substring(1) },
-    '^': { kind: 'property', form: '^', extract: t => t.substring(1) },
     '?': { kind: 'property', form: '?', extract: t => t.substring(1) }
 };
 

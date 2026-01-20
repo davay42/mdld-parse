@@ -18,6 +18,26 @@ import {
     expandIRI
 } from './utils.js';
 
+function isValidQuad(quad) {
+    return quad && quad.subject && quad.predicate && quad.object;
+}
+
+function createLiteralAnnotation(value, predicate, language, datatype, ctx) {
+    let ann = predicate;
+    if (language) ann += ` @${language}`;
+    else if (datatype?.value && datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+        ann += ` ^^${shortenIRI(datatype.value, ctx)}`;
+    }
+    return ann;
+}
+
+function createObjectAnnotation(objectShort, predicateShort, isSoftFragment = false, fragment = null) {
+    if (isSoftFragment) {
+        return `[${objectShort}] {+#${fragment} ?${predicateShort}}`;
+    }
+    return `[${objectShort}] {+${objectShort} ?${predicateShort}}`;
+}
+
 function readSpan(block, text, spanType = 'attrs') {
     const range = spanType === 'attrs' ? block?.attrsRange : block?.valueRange;
     if (!range) return null;
@@ -88,25 +108,10 @@ export function serialize({ text, diff, origin, options = {} }) {
         return null;
     };
 
-    const findLiteralCarrierBlocksBySP = (subjectIri, predicateIri) => {
-        const out = [];
-        for (const [k, entry] of base?.quadIndex || []) {
-            const parsed = parseQuadIndexKey(k);
-            if (!parsed) continue;
-            if (parsed.s !== subjectIri || parsed.p !== predicateIri) continue;
-            if (parsed.o?.t !== 'Literal') continue;
-            const blockId = entry?.blockId || entry;
-            const block = blockId ? base?.blocks?.get(blockId) : null;
-            if (block) out.push({ block, entry, obj: parsed.o });
-        }
-        return out;
-    };
-
     const anchors = new Map();
     for (const q0 of diff.delete || []) {
         const q = normalizeQuad(q0);
-        if (!q) continue;
-        if (!q?.subject || !q?.object || !q?.predicate) continue;
+        if (!isValidQuad(q)) continue;
         const key = JSON.stringify([q.subject.value, objectSignature(q.object)]);
         const qk = quadToKeyForOrigin(q);
         const entry = qk ? base?.quadIndex?.get(qk) : null;
@@ -119,8 +124,7 @@ export function serialize({ text, diff, origin, options = {} }) {
     const addBySP = new Map();
     for (const q0 of diff.add || []) {
         const q = normalizeQuad(q0);
-        if (!q) continue;
-        if (!q?.subject || !q?.predicate || !q?.object) continue;
+        if (!isValidQuad(q)) continue;
         const k = JSON.stringify([q.subject.value, q.predicate.value]);
         const list = addBySP.get(k) || [];
         list.push(q);
@@ -131,9 +135,7 @@ export function serialize({ text, diff, origin, options = {} }) {
     const literalUpdates = [];
     for (const dq0 of diff.delete || []) {
         const dq = normalizeQuad(dq0);
-        if (!dq) continue;
-        if (!dq?.subject || !dq?.predicate || !dq?.object) continue;
-        if (dq.object.termType !== 'Literal') continue;
+        if (!isValidQuad(dq) || dq.object.termType !== 'Literal') continue;
         const k = JSON.stringify([dq.subject.value, dq.predicate.value]);
         const candidates = addBySP.get(k) || [];
         const aq = candidates.find(x => x?.object?.termType === 'Literal' && !consumedAdds.has(quadToKeyForOrigin(x)));
@@ -192,36 +194,6 @@ export function serialize({ text, diff, origin, options = {} }) {
         // Mark as consumed and continue
         consumedAdds.add(quadToKeyForOrigin(quad));
         continue;
-
-        const matches = findLiteralCarrierBlocksBySP(quad.subject.value, quad.predicate.value);
-        if (matches.length === 0) continue;
-
-        const desiredLang = quad.object.language || '';
-        const sameLang = matches.filter(m => {
-            const entries = m.block?.entries || [];
-            const langEntry = entries.find(e => e.kind === 'language');
-            const lang = langEntry?.language || '';
-            return lang === desiredLang;
-        });
-
-        if (sameLang.length !== 1) continue;
-        const target = sameLang[0].block;
-        const vSpan = readSpan(target, text, 'value');
-        if (!vSpan) continue;
-
-        const newValue = sanitizeCarrierValueForBlock(target, quad.object.value);
-        edits.push({ start: vSpan.start, end: vSpan.end, text: newValue });
-
-        const aSpan = readSpan(target, text, 'attrs');
-        if (aSpan && target?.entries?.length) {
-            const nextEntries = replaceLangDatatypeEntries(target, quad.object, ctx);
-            if (nextEntries) {
-                const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
-                edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(nextTokens) });
-            }
-        }
-
-        consumedAdds.add(quad);
     }
 
     for (const u of literalUpdates) {
@@ -261,8 +233,7 @@ export function serialize({ text, diff, origin, options = {} }) {
     if (diff.delete) {
         diff.delete.forEach(q0 => {
             const quad = normalizeQuad(q0);
-            if (!quad) return;
-            if (!quad?.subject || !quad?.predicate || !quad?.object) return;
+            if (!isValidQuad(quad)) return;
 
             if (quad.object.termType === 'Literal') {
                 const isUpdated = literalUpdates.some(u =>
@@ -381,8 +352,7 @@ export function serialize({ text, diff, origin, options = {} }) {
     if (diff.add) {
         diff.add.forEach(q0 => {
             const quad = normalizeQuad(q0);
-            if (!quad) return;
-            if (!quad?.subject || !quad?.predicate || !quad?.object) return;
+            if (!isValidQuad(quad)) return;
 
             if (consumedAdds.has(quadToKeyForOrigin(quad))) return;
 
@@ -404,17 +374,13 @@ export function serialize({ text, diff, origin, options = {} }) {
                     const predShort = shortenIRI(quad.predicate.value, ctx);
                     if (quad.object.termType === 'Literal') {
                         const value = String(quad.object.value ?? '');
-                        let ann = predShort;
-                        if (quad.object.language) ann += ` @${quad.object.language}`;
-                        else if (quad.object.datatype?.value && quad.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
-                            ann += ` ^^${shortenIRI(quad.object.datatype.value, ctx)}`;
-                        }
+                        const ann = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
                         edits.push({ start: result.length, end: result.length, text: `\n[${value}] {${ann}}` });
                     } else {
                         const full = quad.object.value;
                         const label = shortenIRI(full, ctx);
                         const objectShort = shortenIRI(full, ctx);
-                        edits.push({ start: result.length, end: result.length, text: `\n[${label}] {+${objectShort} ?${predShort}}` });
+                        edits.push({ start: result.length, end: result.length, text: createObjectAnnotation(objectShort, predShort) });
                     }
                     return;
                 }
@@ -422,11 +388,7 @@ export function serialize({ text, diff, origin, options = {} }) {
                 const predShort = shortenIRI(quad.predicate.value, ctx);
                 if (quad.object.termType === 'Literal') {
                     const value = String(quad.object.value ?? '');
-                    let ann = predShort;
-                    if (quad.object.language) ann += ` @${quad.object.language}`;
-                    else if (quad.object.datatype?.value && quad.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
-                        ann += ` ^^${shortenIRI(quad.object.datatype.value, ctx)}`;
-                    }
+                    const ann = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
                     edits.push({ start: result.length, end: result.length, text: `\n[${value}] {${ann}}` });
                     return;
                 }
@@ -438,11 +400,11 @@ export function serialize({ text, diff, origin, options = {} }) {
 
                     // Check if this is a soft fragment
                     const isSoftFragment = full.includes('#') && anchored?.entry?.kind === 'softFragment';
+                    const fragment = isSoftFragment ? full.split('#')[1] : null;
 
                     if (isSoftFragment || anchored?.entry?.form === '?') {
                         // Add soft fragment token if not present
                         if (isSoftFragment) {
-                            const fragment = full.split('#')[1];
                             const updated = addSoftFragmentToken(tokens, fragment);
                             if (updated.length !== tokens.length) {
                                 edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
@@ -454,13 +416,7 @@ export function serialize({ text, diff, origin, options = {} }) {
                             }
                         }
                     } else {
-                        // Create new annotation with object token
-                        if (isSoftFragment) {
-                            const fragment = full.split('#')[1];
-                            edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {+#${fragment} ?${predShort}}` });
-                        } else {
-                            edits.push({ start: result.length, end: result.length, text: `\n[${objectShort}] {+${objectShort} ?${predShort}}` });
-                        }
+                        edits.push({ start: result.length, end: result.length, text: createObjectAnnotation(objectShort, predShort, isSoftFragment, fragment) });
                     }
                     return;
                 }
