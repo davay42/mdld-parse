@@ -9,6 +9,20 @@ import {
     hash
 } from './utils.js';
 
+// Semantic block cache to avoid repeated parsing
+const semCache = new Map();
+const EMPTY_SEM = { predicates: [], types: [], subject: null };
+
+function parseSemCached(attrs) {
+    if (!attrs) return EMPTY_SEM;
+    let sem = semCache.get(attrs);
+    if (!sem) {
+        sem = parseSemanticBlock(attrs);
+        semCache.set(attrs, sem);
+    }
+    return sem;
+}
+
 function calcAttrsRange(line, attrs, lineStart) {
     if (!attrs) return null;
     const attrsStartInLine = line.lastIndexOf(attrs);
@@ -20,7 +34,21 @@ function calcValueRange(lineStart, valueStartInLine, valueEndInLine) {
 }
 
 function createToken(type, range, text, attrs = null, attrsRange = null, valueRange = null, extra = {}) {
-    return { type, range, text, attrs, attrsRange, valueRange, ...extra };
+    const token = { type, range, text, attrs, attrsRange, valueRange, ...extra };
+    // Add lazy carrier caching
+    Object.defineProperty(token, '_carriers', {
+        enumerable: false,
+        writable: true,
+        value: null
+    });
+    return token;
+}
+
+function getCarriers(token) {
+    if (!token._carriers) {
+        token._carriers = extractInlineCarriers(token.text, token.range[0]);
+    }
+    return token._carriers;
 }
 
 function scanTokens(text) {
@@ -289,7 +317,15 @@ function createBlock(subject, types, predicates, entries, range, attrsRange, val
         types: types.map(t => expandIRI(typeof t === 'string' ? t : t.iri, ctx)),
         predicates: predicates.map(p => ({ iri: expandIRI(p.iri, ctx), form: p.form }))
     };
-    const blockId = hash([subject, JSON.stringify(expanded)].join('|'));
+
+    // Use semantic signature for stable block identity
+    const signature = [
+        subject,
+        expanded.types.sort().join(','),
+        expanded.predicates.map(p => `${p.form}${p.iri}`).sort().join(',')
+    ].join('|');
+
+    const blockId = hash(signature);
     return {
         id: blockId,
         range: { start: range[0], end: range[1] },
@@ -414,7 +450,7 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
     });
 }
 
-function processAnnotation(carrier, sem, state) {
+function processAnnotation(carrier, sem, state, preserveGlobalSubject = false) {
     if (sem.subject === 'RESET') {
         state.currentSubject = null;
         state.currentObject = null;
@@ -425,8 +461,11 @@ function processAnnotation(carrier, sem, state) {
     const newSubject = resolveSubject(sem, state);
     const localObject = resolveObject(sem, state);
 
-    if (newSubject) state.currentSubject = newSubject;
-    const S = state.currentSubject;
+    // Only update global subject if not preserving it
+    if (newSubject && !preserveGlobalSubject) {
+        state.currentSubject = newSubject;
+    }
+    const S = preserveGlobalSubject ? (newSubject || previousSubject) : state.currentSubject;
     if (!S) return;
 
     const block = createBlock(
@@ -445,12 +484,8 @@ function processAnnotation(carrier, sem, state) {
 }
 
 // Helper functions for list item processing
-function parseAttrsToSem(attrs) {
-    return attrs ? parseSemanticBlock(attrs) : { predicates: [], types: [], subject: null };
-}
-
 function findSubjectInAttrs(attrs, state, carrierInfo = null) {
-    const sem = parseAttrsToSem(attrs);
+    const sem = parseSemCached(attrs);
     if (sem.subject && sem.subject !== 'RESET') {
         const subject = resolveSubject(sem, state);
         if (subject) {
@@ -461,11 +496,11 @@ function findSubjectInAttrs(attrs, state, carrierInfo = null) {
 }
 
 function hasPredicatesInAttrs(attrs) {
-    const sem = parseAttrsToSem(attrs);
+    const sem = parseSemCached(attrs);
     return sem.predicates.length > 0;
 }
 
-function findItemSubject(listToken, carriers, state) {
+export function findItemSubject(listToken, carriers, state) {
     const subjectFromAttrs = findSubjectInAttrs(listToken.attrs, state, {
         type: 'list', text: listToken.text, attrs: listToken.attrs, range: listToken.range
     });
@@ -480,8 +515,18 @@ function findItemSubject(listToken, carriers, state) {
 }
 
 function hasOwnPredicates(listToken, carriers) {
-    if (hasPredicatesInAttrs(listToken.attrs)) return true;
-    return carriers.some(carrier => hasPredicatesInAttrs(carrier.attrs));
+    // Check for explicit predicates (excluding subject declarations)
+    if (hasPredicatesInAttrs(listToken.attrs)) {
+        const attrs = parseSemCached(listToken.attrs);
+        // Only count non-subject predicates as "own predicates"
+        const nonSubjectPreds = attrs.predicates.filter(p => !p.subject && p.iri !== 'RESET');
+        return nonSubjectPreds.length > 0;
+    }
+    return carriers.some(carrier => {
+        const carrierAttrs = parseSemCached(carrier.attrs);
+        const nonSubjectPreds = carrierAttrs.predicates.filter(p => !p.subject && p.iri !== 'RESET');
+        return nonSubjectPreds.length > 0;
+    });
 }
 
 function processListContextTypes(contextSem, itemSubject, state) {
@@ -513,7 +558,15 @@ function processInheritedPredicates(contextSem, listToken, state) {
     if (inheritedPredicates.length > 0 && listToken.text) {
         // Create inherited annotation block
         const inheritedTokens = inheritedPredicates.map(p => p.iri).join(' ');
-        const inheritedSem = parseSemanticBlock(`{${inheritedTokens}}`);
+        const inheritedSem = parseSemCached(`{${inheritedTokens}}`);
+
+        // Find the current list item subject for this inherited predicate
+        const itemInfo = findItemSubject(listToken, [], state);
+        const itemSubject = itemInfo?.subject;
+
+        if (!itemSubject) return; // Skip if no item subject found
+
+        // Create a carrier with the list item as the subject context
         const carrier = {
             type: 'list',
             text: listToken.text,
@@ -521,7 +574,15 @@ function processInheritedPredicates(contextSem, listToken, state) {
             attrsRange: listToken.attrsRange || null,
             valueRange: listToken.valueRange || null
         };
-        processAnnotation(carrier, inheritedSem, state);
+
+        // Temporarily set current subject to the item subject for inheritance
+        const prevSubject = state.currentSubject;
+        state.currentSubject = itemSubject;
+
+        processAnnotation(carrier, inheritedSem, state, true); // Preserve global subject
+
+        // Restore the previous subject
+        state.currentSubject = prevSubject;
     }
 }
 
@@ -529,7 +590,7 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
     if (!contextSubject) contextSubject = state.currentSubject;
 
     listTokens.forEach(listToken => {
-        const carriers = extractInlineCarriers(listToken.text, listToken.range[0]);
+        const carriers = getCarriers(listToken);
 
         // Find item subject from list token or inline carriers
         const itemInfo = findItemSubject(listToken, carriers, state);
@@ -556,7 +617,7 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
 
         // Process list token's own annotations
         if (listToken.attrs) {
-            const itemSem = parseSemanticBlock(listToken.attrs);
+            const itemSem = parseSemCached(listToken.attrs);
             const carrier = {
                 type: 'list',
                 text: listToken.text,
@@ -570,7 +631,7 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
         // Process inline carriers' annotations
         carriers.forEach(carrier => {
             if (carrier.attrs) {
-                const itemSem = parseSemanticBlock(carrier.attrs);
+                const itemSem = parseSemCached(carrier.attrs);
                 processAnnotation(carrier, itemSem, state);
             }
         });
@@ -579,10 +640,140 @@ function processListContext(contextSem, listTokens, state, contextSubject = null
     });
 }
 
+// List stack management functions
+function manageListStack(token, state) {
+    // Pop stack frames for lists that have ended (strictly less indent)
+    while (
+        state.listStack.length &&
+        token.indent < state.listStack[state.listStack.length - 1].indent
+    ) {
+        state.listStack.pop();
+    }
+
+    // If we have pending context, always create a new frame for it
+    if (state.pendingListContext) {
+        state.listStack.push({
+            indent: token.indent,
+            anchorSubject: state.pendingListContext.subject,
+            contextSubject: state.pendingListContext.subject,
+            contextSem: state.pendingListContext.sem
+        });
+        state.pendingListContext = null;
+    } else if (state.listStack.length === 0 || token.indent > state.listStack[state.listStack.length - 1].indent) {
+        // Push empty frame for nested lists without explicit context
+        // Inherit anchorSubject from parent frame if available
+        const parentFrame = state.listStack.length > 0 ? state.listStack[state.listStack.length - 1] : null;
+        state.listStack.push({
+            indent: token.indent,
+            anchorSubject: parentFrame?.anchorSubject || null,
+            contextSubject: parentFrame?.contextSubject || null,
+            contextSem: null
+        });
+    }
+    // If token.indent == current frame indent and no pending context, we're at same level - do nothing
+}
+
+function processListItem(token, state) {
+    const carriers = getCarriers(token);
+
+    // Find item subject from list token or inline carriers
+    const itemInfo = findItemSubject(token, carriers, state);
+    if (!itemInfo) return;
+
+    const { subject: itemSubject, carrier: itemSubjectCarrier } = itemInfo;
+
+    // Update the current list frame to track this item's subject for nested contexts
+    if (state.listStack.length > 0) {
+        const currentFrame = state.listStack[state.listStack.length - 1];
+        currentFrame.anchorSubject = itemSubject;
+    }
+
+    const listFrame = state.listStack[state.listStack.length - 1];
+
+    // Apply list context if available
+    if (listFrame?.contextSem) {
+        processListContextTypes(listFrame.contextSem, itemSubject, state);
+        processListContextPredicates(listFrame.contextSem, itemSubject, listFrame.contextSubject, state);
+
+        // Inherit literal predicates if item has no own predicates
+        const hasOwnPreds = hasOwnPredicates(token, carriers);
+        if (!hasOwnPreds) {
+            processInheritedPredicates(listFrame.contextSem, token, state);
+        }
+    }
+
+    // Process item's own annotations - but don't change global current subject for list items
+    const prevSubject = state.currentSubject;
+    const shouldUpdateGlobalSubject = !state.listStack.length; // Only update global subject if not in a list
+    if (shouldUpdateGlobalSubject) {
+        state.currentSubject = itemSubject;
+    }
+
+    if (token.attrs) {
+        const itemSem = parseSemCached(token.attrs);
+        const carrier = {
+            type: 'list',
+            text: token.text,
+            range: token.range,
+            attrsRange: token.attrsRange || null,
+            valueRange: token.valueRange || null
+        };
+        processAnnotation(carrier, itemSem, state, !shouldUpdateGlobalSubject);
+    }
+
+    // Process inline carriers' annotations
+    carriers.forEach(carrier => {
+        if (carrier.attrs) {
+            const itemSem = parseSemCached(carrier.attrs);
+            processAnnotation(carrier, itemSem, state, !shouldUpdateGlobalSubject);
+        }
+    });
+
+    // Restore global current subject
+    if (shouldUpdateGlobalSubject) {
+        state.currentSubject = prevSubject;
+    }
+}
+
+function processListContextFromParagraph(token, state) {
+    const contextMatch = token.text.match(/^(.+?)\s*\{([^}]+)\}$/);
+
+    if (contextMatch) {
+        const contextSem = parseSemCached(`{${contextMatch[2]}}`);
+
+        // For list contexts, context subject should be:
+        // 1. Current subject (document level) for top-level lists
+        // 2. Current list item subject only for nested lists (greater indent)
+        let contextSubject = state.currentSubject;
+
+        // Check if this is a nested list context by looking ahead to next token
+        const nextTokenIndex = state.currentTokenIndex + 1;
+        const nextToken = state.tokens && state.tokens[nextTokenIndex];
+
+        if (state.listStack.length > 0 && nextToken && nextToken.type === 'list') {
+            const currentFrame = state.listStack[state.listStack.length - 1];
+            if (currentFrame.anchorSubject && nextToken.indent > currentFrame.indent) {
+                // This is a nested list context, use current item as subject
+                contextSubject = currentFrame.anchorSubject;
+            }
+        }
+
+        // Fallback to document subject if no other option
+        if (!contextSubject) {
+            contextSubject = state.documentSubject;
+        }
+
+        state.pendingListContext = {
+            sem: contextSem,
+            subject: contextSubject
+        };
+    }
+}
+
 // Helper functions for token processing
 function processTokenWithAttrs(token, state, tokenType) {
     if (!token.attrs) return;
-    const sem = parseSemanticBlock(token.attrs);
+    const sem = parseSemCached(token.attrs);
     const carrier = {
         type: tokenType,
         text: token.text,
@@ -597,7 +788,7 @@ function processStandaloneSubject(token, state) {
     const match = token.text.match(/^\s*\{=(.*?)\}\s*$/);
     if (!match) return;
 
-    const sem = parseSemanticBlock(`{=${match[1]}}`);
+    const sem = parseSemCached(`{=${match[1]}}`);
     const attrsStart = token.range[0] + token.text.indexOf('{=');
     const attrsEnd = attrsStart + (match[1] ? match[1].length : 0);
 
@@ -610,50 +801,14 @@ function processStandaloneSubject(token, state) {
     }, sem, state);
 }
 
-function findFollowingLists(tokens, start) {
-    const lists = [];
-    let j = start + 1;
-    while (j < tokens.length && tokens[j].type === 'list') {
-        lists.push(tokens[j]);
-        j++;
-    }
-    return { lists, nextIndex: j - 1 };
-}
-
-function findContextSubject(tokens, i, state) {
-    for (let k = i - 1; k >= 0; k--) {
-        const prevToken = tokens[k];
-        if (prevToken.type === 'heading' && prevToken.attrs) {
-            const headingSem = parseSemanticBlock(prevToken.attrs);
-            if (headingSem.subject) {
-                return state.df.namedNode(expandIRI(headingSem.subject, state.ctx));
-            }
-        }
-    }
-    return state.currentSubject;
-}
-
 function processInlineCarriers(token, state) {
-    const carriers = extractInlineCarriers(token.text, token.range[0]);
+    const carriers = getCarriers(token);
     carriers.forEach(carrier => {
         if (carrier.attrs) {
-            const sem = parseSemanticBlock(carrier.attrs);
+            const sem = parseSemCached(carrier.attrs);
             processAnnotation(carrier, sem, state);
         }
     });
-}
-
-function processListContextFromParagraph(token, tokens, i, state) {
-    const { lists, nextIndex } = findFollowingLists(tokens, i);
-    const contextMatch = token.text.match(/^(.+?)\s*\{([^}]+)\}$/);
-
-    if (contextMatch && lists.length > 0) {
-        const contextSem = parseSemanticBlock(`{${contextMatch[2]}}`);
-        const contextSubject = findContextSubject(tokens, i, state);
-        processListContext(contextSem, lists, state, contextSubject);
-        return nextIndex;
-    }
-    return i;
 }
 
 export function parse(text, options = {}) {
@@ -663,20 +818,38 @@ export function parse(text, options = {}) {
         quads: [],
         origin: { blocks: new Map(), quadIndex: new Map() },
         currentSubject: null,
-        currentObject: null
+        currentObject: null,
+        documentSubject: null, // Track main document subject from headings
+        listStack: [],
+        pendingListContext: null,
+        tokens: null, // Store tokens for lookahead
+        currentTokenIndex: -1 // Track current token index
     };
 
-    const tokens = scanTokens(text);
+    state.tokens = scanTokens(text);
 
     // Process prefix declarations first
-    tokens.filter(t => t.type === 'prefix').forEach(t => state.ctx[t.prefix] = t.iri);
+    state.tokens.filter(t => t.type === 'prefix').forEach(t => state.ctx[t.prefix] = t.iri);
 
     // Process all other tokens
-    for (let i = 0; i < tokens.length; i++) {
-        const token = tokens[i];
+    for (let i = 0; i < state.tokens.length; i++) {
+        const token = state.tokens[i];
+        state.currentTokenIndex = i;
 
         switch (token.type) {
             case 'heading':
+                // Update document subject when processing headings
+                if (token.attrs) {
+                    const headingSem = parseSemCached(token.attrs);
+                    if (headingSem.subject) {
+                        const subject = resolveSubject(headingSem, state);
+                        if (subject) {
+                            state.documentSubject = subject;
+                        }
+                    }
+                }
+                processTokenWithAttrs(token, state, token.type);
+                break;
             case 'code':
             case 'blockquote':
                 processTokenWithAttrs(token, state, token.type);
@@ -684,12 +857,13 @@ export function parse(text, options = {}) {
 
             case 'para':
                 processStandaloneSubject(token, state);
-                const nextIndex = processListContextFromParagraph(token, tokens, i, state);
-                if (nextIndex !== i) {
-                    i = nextIndex;
-                    continue;
-                }
+                processListContextFromParagraph(token, state);
                 processInlineCarriers(token, state);
+                break;
+
+            case 'list':
+                manageListStack(token, state);
+                processListItem(token, state);
                 break;
         }
     }

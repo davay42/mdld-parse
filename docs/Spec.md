@@ -287,14 +287,13 @@ ex:references dct:references <https://www.w3.org/RDF> .
 
 A `{...}` block immediately preceding a list applies to **all list items** until list end. There must be some text before such list description annotation.
 
-Ordered and unordered lists are semantically identical. Single list item is a single value carrier - no nesting is allowed.
+Ordered and unordered lists are semantically identical. A single list item represents a single value carrier. Structural nesting is allowed, but semantic interpretation does not recurse across nesting levels.
 
 ### 11.2 Nested Lists (normative)
 
-List semantics do not recurse across nesting levels. Nested list items MUST declare their own predicates if semantics are desired
+Semantic predicates and types declared for a list apply only to its immediate items at the same indentation level. Nested lists establish a new semantic scope and do not inherit semantic context.
 
-Nested lists do not inherit semantic context.
-Semantic predicates and types declared for a list apply only to its immediate items. Nested lists constitute a new semantic scope and require their own explicit semantic declaration to emit quads.
+Implementations MUST scope list semantic context to the indentation level at which it is declared and MUST discard it when entering or leaving nested lists. A nested list has no semantics unless there is an explicit {...} block immediately before it.
 
 ### Example
 

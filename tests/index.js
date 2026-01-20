@@ -1455,7 +1455,79 @@ People: {?knows name description}
             assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/description', 'Bob'),
                 'Bob should inherit description');
         }
-    }
+    },
+
+
+    {
+        name: 'Nested lists with explicit contexts',
+        fn: () => {
+            const md = `[ex] <http://example.org/>
+
+## Recipe {=ex:recipe .Recipe name}
+
+Ingredients: {?hasPart .Ingredient name}
+
+- Flour {=ex:flour}
+  Variants: {?hasPart .FlourType name}
+  - Whole wheat {=ex:flour-whole-wheat .WholeGrainFlour}
+    Whole grain includes {?hasPart .GrainPart name}
+    - Bran {=ex:grain-bran}
+    - Germ {=ex:grain-germ}
+    - Endosperm {=ex:grain-endosperm}
+  - White {=ex:flour-white title}
+- Water {=ex:water}`;
+
+            const { quads } = parse(md);
+
+            // Check recipe structure
+            assert(hasQuad(quads, 'http://example.org/recipe', 'http://schema.org/name', 'Recipe'),
+                'Recipe should have name');
+            assert(hasQuad(quads, 'http://example.org/recipe', 'http://schema.org/hasPart', 'http://example.org/flour'),
+                'Recipe should have flour');
+            assert(hasQuad(quads, 'http://example.org/recipe', 'http://schema.org/hasPart', 'http://example.org/water'),
+                'Recipe should have water');
+
+            // Check flour types
+            assert(hasQuad(quads, 'http://example.org/flour', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Ingredient'),
+                'Flour should be Ingredient');
+            assert(hasQuad(quads, 'http://example.org/flour', 'http://schema.org/hasPart', 'http://example.org/flour-whole-wheat'),
+                'Flour should have whole wheat variant');
+            assert(hasQuad(quads, 'http://example.org/flour', 'http://schema.org/hasPart', 'http://example.org/flour-white'),
+                'Flour should have white variant');
+
+            // Check nested flour types
+            assert(hasQuad(quads, 'http://example.org/flour-whole-wheat', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/FlourType'),
+                'Whole wheat should be FlourType');
+            assert(hasQuad(quads, 'http://example.org/flour-whole-wheat', 'http://schema.org/hasPart', 'http://example.org/grain-bran'),
+                'Whole wheat should have bran');
+            assert(hasQuad(quads, 'http://example.org/flour-whole-wheat', 'http://schema.org/hasPart', 'http://example.org/grain-germ'),
+                'Whole wheat should have germ');
+            assert(hasQuad(quads, 'http://example.org/flour-whole-wheat', 'http://schema.org/hasPart', 'http://example.org/grain-endosperm'),
+                'Whole wheat should have endosperm');
+
+            // Check grain parts
+            assert(hasQuad(quads, 'http://example.org/grain-bran', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/GrainPart'),
+                'Bran should be GrainPart');
+            assert(hasQuad(quads, 'http://example.org/grain-germ', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/GrainPart'),
+                'Germ should be GrainPart');
+            assert(hasQuad(quads, 'http://example.org/grain-endosperm', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/GrainPart'),
+                'Endosperm should be GrainPart');
+
+            // Check white flour
+            assert(hasQuad(quads, 'http://example.org/flour-white', 'http://schema.org/title', 'White'),
+                'White flour should have title');
+
+            // Check water
+            assert(hasQuad(quads, 'http://example.org/water', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Ingredient'),
+                'Water should be Ingredient');
+
+        }
+    },
+
+
+
+
+
 ];
 
 // Run tests
