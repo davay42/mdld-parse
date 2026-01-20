@@ -302,10 +302,10 @@ Ordered and unordered lists are semantically identical.
 ### Example
 
 ```md
-Ingredients: {?hasPart .Ingredient}
+Ingredients: {?hasPart .Ingredient name}
 
-- Flour {=ex:flour name}
-- Water {=ex:water name}
+- Flour {=ex:flour}
+- Water {=ex:water}
 ```
 
 ```turtle

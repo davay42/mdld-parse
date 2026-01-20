@@ -134,114 +134,180 @@ function scanTokens(text) {
     return tokens;
 }
 
+// Inline carrier pattern constants
+const INLINE_CARRIER_PATTERNS = {
+    EMPHASIS: /^[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/,
+    CODE_SPAN: /^``(.+?)``\s*\{([^}]+)\}/
+};
+
 function extractInlineCarriers(text, baseOffset = 0) {
     const carriers = [];
     let pos = 0;
 
     while (pos < text.length) {
         // Try emphasis patterns first (before brackets)
-        const emphasisMatch = text.match(/^[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/, pos);
-        if (emphasisMatch) {
-            const carrierText = emphasisMatch[1];
-            const valueRange = [baseOffset + emphasisMatch[0].length, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length];
-            carriers.push({
-                type: 'emphasis',
-                text: carrierText,
-                attrs: `{${emphasisMatch[2]}}`,
-                attrsRange: [baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + 2, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + emphasisMatch[2].length],
-                valueRange,
-                range: [baseOffset + emphasisMatch[0].length, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length]
-            });
-            pos = baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + emphasisMatch[2].length;
+        const emphasisCarrier = tryExtractEmphasisCarrier(text, pos, baseOffset);
+        if (emphasisCarrier) {
+            carriers.push(emphasisCarrier);
+            pos = emphasisCarrier.pos;
             continue;
         }
 
         // Try code spans
-        const codeMatch = text.match(/^``(.+?)``\s*\{([^}]+)\}/, pos);
-        if (codeMatch) {
-            const carrierText = codeMatch[1];
-            const valueRange = [baseOffset + 2, baseOffset + 2 + codeMatch[1].length];
-            carriers.push({
-                type: 'code',
-                text: carrierText,
-                attrs: `{${codeMatch[2]}}`,
-                attrsRange: [baseOffset + 2 + codeMatch[1].length + 2, baseOffset + 2 + codeMatch[1].length + 2],
-                valueRange,
-                range: [baseOffset + 2, baseOffset + 2 + codeMatch[1].length + 2]
-            });
-            pos = baseOffset + 2 + codeMatch[1].length + 2;
+        const codeCarrier = tryExtractCodeCarrier(text, pos, baseOffset);
+        if (codeCarrier) {
+            carriers.push(codeCarrier);
+            pos = codeCarrier.pos;
             continue;
         }
 
         // Try bracket patterns (original logic)
-        const bracketStart = text.indexOf('[', pos);
-        if (bracketStart === -1) break;
-
-        let bracketDepth = 1;
-        let bracketEnd = bracketStart + 1;
-
-        while (bracketEnd < text.length && bracketDepth > 0) {
-            if (text[bracketEnd] === '[') {
-                bracketDepth++;
-            } else if (text[bracketEnd] === ']') {
-                bracketDepth--;
-            }
-            bracketEnd++;
-        }
-
-        if (bracketDepth > 0) break;
-
-        const carrierText = text.substring(bracketStart + 1, bracketEnd - 1);
-        const valueRange = [baseOffset + bracketStart + 1, baseOffset + bracketEnd - 1];
-        let spanEnd = bracketEnd;
-        let url = null;
-
-        if (text[spanEnd] === '(') {
-            const parenEnd = text.indexOf(')', spanEnd);
-            if (parenEnd !== -1) {
-                url = text.substring(spanEnd + 1, parenEnd);
-                spanEnd = parenEnd + 1;
-            }
-        }
-
-        let attrs = null;
-        let attrsRange = null;
-        const attrsMatch = text.substring(spanEnd).match(/^\s*\{([^}]+)\}/);
-        if (attrsMatch) {
-            attrs = `{${attrsMatch[1]}}`;
-            const braceIndex = attrsMatch[0].indexOf('{');
-            const absStart = baseOffset + spanEnd + (braceIndex >= 0 ? braceIndex : 0);
-            attrsRange = [absStart, absStart + attrs.length];
-            spanEnd += attrsMatch[0].length;
-        }
-
-        let carrierType = 'span';
-        let resourceIRI = null;
-
-        if (url) {
-            if (url.startsWith('=')) {
-                pos = spanEnd;
+        const bracketCarrier = tryExtractBracketCarrier(text, pos, baseOffset);
+        if (bracketCarrier) {
+            if (bracketCarrier.skip) {
+                pos = bracketCarrier.pos;
                 continue;
-            } else {
-                carrierType = 'link';
-                resourceIRI = url;
             }
+            carriers.push(bracketCarrier);
+            pos = bracketCarrier.pos;
+            continue;
         }
 
-        carriers.push({
-            type: carrierType,
-            text: carrierText,
-            url: resourceIRI,
-            attrs: attrs,
-            attrsRange,
-            valueRange,
-            range: [baseOffset + bracketStart, baseOffset + spanEnd]
-        });
-
-        pos = spanEnd;
+        break;
     }
 
     return carriers;
+}
+
+function tryExtractEmphasisCarrier(text, pos, baseOffset) {
+    const emphasisMatch = text.match(INLINE_CARRIER_PATTERNS.EMPHASIS, pos);
+    if (!emphasisMatch) return null;
+
+    const carrierText = emphasisMatch[1];
+    const valueRange = [baseOffset + emphasisMatch[0].length, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length];
+
+    return {
+        type: 'emphasis',
+        text: carrierText,
+        attrs: `{${emphasisMatch[2]}}`,
+        attrsRange: [baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + 2, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + emphasisMatch[2].length],
+        valueRange,
+        range: [baseOffset + emphasisMatch[0].length, baseOffset + emphasisMatch[0].length + emphasisMatch[1].length],
+        pos: baseOffset + emphasisMatch[0].length + emphasisMatch[1].length + emphasisMatch[2].length
+    };
+}
+
+function tryExtractCodeCarrier(text, pos, baseOffset) {
+    const codeMatch = text.match(INLINE_CARRIER_PATTERNS.CODE_SPAN, pos);
+    if (!codeMatch) return null;
+
+    const carrierText = codeMatch[1];
+    const valueRange = [baseOffset + 2, baseOffset + 2 + codeMatch[1].length];
+
+    return {
+        type: 'code',
+        text: carrierText,
+        attrs: `{${codeMatch[2]}}`,
+        attrsRange: [baseOffset + 2 + codeMatch[1].length + 2, baseOffset + 2 + codeMatch[1].length + 2],
+        valueRange,
+        range: [baseOffset + 2, baseOffset + 2 + codeMatch[1].length + 2],
+        pos: baseOffset + 2 + codeMatch[1].length + 2
+    };
+}
+
+function tryExtractBracketCarrier(text, pos, baseOffset) {
+    const bracketStart = text.indexOf('[', pos);
+    if (bracketStart === -1) return null;
+
+    const bracketEnd = findMatchingBracket(text, bracketStart);
+    if (!bracketEnd) return null;
+
+    const carrierText = text.substring(bracketStart + 1, bracketEnd - 1);
+    const valueRange = [baseOffset + bracketStart + 1, baseOffset + bracketEnd - 1];
+
+    // Extract URL if present
+    const { url, spanEnd } = extractUrlFromBrackets(text, bracketEnd);
+
+    // Extract attributes if present
+    const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, spanEnd, baseOffset);
+
+    // Determine carrier type and resource IRI
+    const { carrierType, resourceIRI } = determineCarrierType(url);
+
+    // Handle reference-style links
+    if (url && url.startsWith('=')) {
+        return { skip: true, pos: finalSpanEnd };
+    }
+
+    return {
+        type: carrierType,
+        text: carrierText,
+        url: resourceIRI,
+        attrs,
+        attrsRange,
+        valueRange,
+        range: [baseOffset + bracketStart, baseOffset + finalSpanEnd],
+        pos: finalSpanEnd
+    };
+}
+
+function findMatchingBracket(text, bracketStart) {
+    let bracketDepth = 1;
+    let bracketEnd = bracketStart + 1;
+
+    while (bracketEnd < text.length && bracketDepth > 0) {
+        if (text[bracketEnd] === '[') {
+            bracketDepth++;
+        } else if (text[bracketEnd] === ']') {
+            bracketDepth--;
+        }
+        bracketEnd++;
+    }
+
+    return bracketDepth > 0 ? null : bracketEnd;
+}
+
+function extractUrlFromBrackets(text, bracketEnd) {
+    let url = null;
+    let spanEnd = bracketEnd;
+
+    if (text[spanEnd] === '(') {
+        const parenEnd = text.indexOf(')', spanEnd);
+        if (parenEnd !== -1) {
+            url = text.substring(spanEnd + 1, parenEnd);
+            spanEnd = parenEnd + 1;
+        }
+    }
+
+    return { url, spanEnd };
+}
+
+function extractAttributesFromText(text, spanEnd, baseOffset) {
+    let attrs = null;
+    let attrsRange = null;
+
+    const attrsMatch = text.substring(spanEnd).match(/^\s*\{([^}]+)\}/);
+    if (attrsMatch) {
+        attrs = `{${attrsMatch[1]}}`;
+        const braceIndex = attrsMatch[0].indexOf('{');
+        const absStart = baseOffset + spanEnd + (braceIndex >= 0 ? braceIndex : 0);
+        attrsRange = [absStart, absStart + attrs.length];
+        spanEnd += attrsMatch[0].length;
+    }
+
+    return { attrs, attrsRange, finalSpanEnd: spanEnd };
+}
+
+function determineCarrierType(url) {
+    let carrierType = 'span';
+    let resourceIRI = null;
+
+    if (url && !url.startsWith('=')) {
+        carrierType = 'link';
+        resourceIRI = url;
+    }
+
+    return { carrierType, resourceIRI };
 }
 
 function createBlock(subject, types, predicates, entries, range, attrsRange, valueRange, carrierType, ctx) {
@@ -282,6 +348,111 @@ function emitQuad(quads, quadIndex, blockId, subject, predicate, object, dataFac
 }
 
 
+// Helper functions for subject and object resolution
+function resolveSubject(sem, state) {
+    if (!sem.subject) return null;
+
+    if (sem.subject.startsWith('=#')) {
+        // Handle fragment syntax
+        const fragment = sem.subject.substring(2);
+        if (state.currentSubject) {
+            const baseIRI = state.currentSubject.value.split('#')[0];
+            return state.df.namedNode(`${baseIRI}#${fragment}`);
+        }
+        return null;
+    } else {
+        // Regular IRI
+        return state.df.namedNode(expandIRI(sem.subject, state.ctx));
+    }
+}
+
+function resolveObject(sem, state) {
+    if (!sem.object) return null;
+
+    // Handle soft IRI object declaration - local to this annotation only
+    if (sem.object.startsWith('#')) {
+        // Soft fragment - resolve against current subject base
+        const fragment = sem.object.substring(1);
+        if (state.currentSubject) {
+            const baseIRI = state.currentSubject.value.split('#')[0];
+            return state.df.namedNode(`${baseIRI}#${fragment}`);
+        }
+        return null;
+    } else {
+        // Regular soft IRI
+        return state.df.namedNode(expandIRI(sem.object, state.ctx));
+    }
+}
+
+function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier) {
+    sem.types.forEach(t => {
+        const typeIRI = typeof t === 'string' ? t : t.iri;
+        const entryIndex = typeof t === 'string' ? null : t.entryIndex;
+
+        // For types with subject declarations, type applies to new subject
+        // For types with soft IRI declarations, type applies to soft IRI object
+        // Otherwise, type applies to carrier object or current subject
+        const typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
+        const expandedType = expandIRI(typeIRI, state.ctx);
+
+        emitQuad(
+            state.quads, state.origin.quadIndex, block.id,
+            typeSubject,
+            state.df.namedNode(expandIRI('rdf:type', state.ctx)),
+            state.df.namedNode(expandedType),
+            state.df,
+            { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex }
+        );
+    });
+}
+
+function processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state) {
+    sem.predicates.forEach(pred => {
+        const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
+        const token = `${pred.form}${pred.iri}`;
+
+        if (pred.form === '') {
+            // S —p→ L (use soft IRI object as subject if available, otherwise current subject)
+            const subjectIRI = localObject || S;
+            emitQuad(
+                state.quads, state.origin.quadIndex, block.id,
+                subjectIRI, P, L, state.df,
+                { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+            );
+        } else if (pred.form === '?') {
+            // S —p→ O (use previous subject as subject, newSubject as object)
+            const subjectIRI = newSubject ? previousSubject : S;
+            const objectIRI = localObject || newSubjectOrCarrierO;
+            if (objectIRI && subjectIRI) {
+                emitQuad(
+                    state.quads, state.origin.quadIndex, block.id,
+                    subjectIRI, P, objectIRI, state.df,
+                    { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+                );
+            }
+        } else if (pred.form === '^') {
+            // L —p→ S (use soft IRI object as subject if available, otherwise current subject)
+            const subjectIRI = localObject || S;
+            emitQuad(
+                state.quads, state.origin.quadIndex, block.id,
+                L, P, subjectIRI, state.df,
+                { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+            );
+        } else if (pred.form === '!') {
+            // O —p→ S (use previous subject as object, newSubject as subject)
+            const objectIRI = newSubject ? previousSubject : S;
+            const subjectIRI = localObject || newSubjectOrCarrierO;
+            if (objectIRI && subjectIRI) {
+                emitQuad(
+                    state.quads, state.origin.quadIndex, block.id,
+                    subjectIRI, P, objectIRI, state.df,
+                    { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+                );
+            }
+        }
+    });
+}
+
 function processAnnotation(carrier, sem, state) {
     if (sem.subject === 'RESET') {
         state.currentSubject = null;
@@ -290,89 +461,30 @@ function processAnnotation(carrier, sem, state) {
     }
 
     const previousSubject = state.currentSubject;
-    let newSubject = null;
-    let localObject = null;
-
-    if (sem.subject) {
-        if (sem.subject.startsWith('=#')) {
-            // Handle fragment syntax
-            const fragment = sem.subject.substring(2);
-            if (state.currentSubject) {
-                // Replace any existing fragment in current subject
-                const baseIRI = state.currentSubject.value.split('#')[0];
-                newSubject = state.df.namedNode(`${baseIRI}#${fragment}`);
-            }
-        } else {
-            // Regular IRI
-            newSubject = state.df.namedNode(expandIRI(sem.subject, state.ctx));
-        }
-    }
-
-    if (sem.object) {
-        // Handle soft IRI object declaration - local to this annotation only
-        if (sem.object.startsWith('#')) {
-            // Soft fragment - resolve against current subject base
-            const fragment = sem.object.substring(1);
-            if (state.currentSubject) {
-                const baseIRI = state.currentSubject.value.split('#')[0];
-                localObject = state.df.namedNode(`${baseIRI}#${fragment}`);
-            }
-        } else {
-            // Regular soft IRI
-            localObject = state.df.namedNode(expandIRI(sem.object, state.ctx));
-        }
-    }
+    const newSubject = resolveSubject(sem, state);
+    const localObject = resolveObject(sem, state);
 
     if (newSubject) state.currentSubject = newSubject;
 
     const S = state.currentSubject;
     if (!S) return;
 
-    const block = createBlock(S.value, sem.types, sem.predicates, sem.entries, carrier.range, carrier.attrsRange || null, carrier.valueRange || null, carrier.type || null, state.ctx);
+    const block = createBlock(
+        S.value, sem.types, sem.predicates, sem.entries,
+        carrier.range, carrier.attrsRange || null, carrier.valueRange || null,
+        carrier.type || null, state.ctx
+    );
     state.origin.blocks.set(block.id, block);
 
     const L = createLiteral(carrier.text, sem.datatype, sem.language, state.ctx, state.df);
     const carrierO = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
+    const newSubjectOrCarrierO = newSubject || carrierO;
 
-    sem.types.forEach(t => {
-        const typeIRI = typeof t === 'string' ? t : t.iri;
-        const entryIndex = typeof t === 'string' ? null : t.entryIndex;
-        // For types with subject declarations, the type applies to the new subject
-        // For types with soft IRI declarations, the type applies to the soft IRI object
-        // Otherwise, type applies to carrier object or current subject
-        const typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
-        const expandedType = expandIRI(typeIRI, state.ctx);
-        emitQuad(state.quads, state.origin.quadIndex, block.id, typeSubject, state.df.namedNode(expandIRI('rdf:type', state.ctx)), state.df.namedNode(expandedType), state.df, { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex });
-    });
+    // Process type annotations
+    processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier);
 
-    sem.predicates.forEach(pred => {
-        const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-        const token = `${pred.form}${pred.iri}`;
-
-        if (pred.form === '') {
-            // S —p→ L (use soft IRI object as subject if available, otherwise current subject)
-            const subjectIRI = localObject || S;
-            emitQuad(state.quads, state.origin.quadIndex, block.id, subjectIRI, P, L, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
-        } else if (pred.form === '?') {
-            // S —p→ O (use previous subject as subject, newSubject as object)
-            const subjectIRI = newSubject ? previousSubject : S;
-            const objectIRI = localObject || newSubject || carrierO;
-            if (objectIRI && subjectIRI) {
-                emitQuad(state.quads, state.origin.quadIndex, block.id, subjectIRI, P, objectIRI, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
-            }
-        } else if (pred.form === '^') {
-            // L —p→ S (use soft IRI object as subject if available, otherwise current subject)
-            const subjectIRI = localObject || S;
-            emitQuad(state.quads, state.origin.quadIndex, block.id, L, P, subjectIRI, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
-        } else if (pred.form === '!') {
-            // O —p→ S (use previous subject as object, newSubject as subject)
-            const objectIRI = newSubject ? previousSubject : S;
-            const subjectIRI = localObject || newSubject || carrierO;
-            if (objectIRI && subjectIRI) {
-                emitQuad(state.quads, state.origin.quadIndex, block.id, subjectIRI, P, objectIRI, state.df, { kind: 'pred', token, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex });
-            }
-        }
-    });
+    // Process predicate annotations
+    processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state);
 }
 
 function processListContext(contextSem, listTokens, state, contextSubject = null) {

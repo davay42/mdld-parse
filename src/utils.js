@@ -47,6 +47,19 @@ export function shortenIRI(iri, ctx) {
     return iri;
 }
 
+// Token pattern definitions for semantic block parsing
+const TOKEN_PATTERNS = {
+    '=#': { kind: 'fragment', extract: t => t.substring(2) },
+    '+#': { kind: 'softFragment', extract: t => t.substring(2) },
+    '+': { kind: 'object', extract: t => t.substring(1) },
+    '^^': { kind: 'datatype', extract: t => t.substring(2) },
+    '@': { kind: 'language', extract: t => t.substring(1) },
+    '.': { kind: 'type', extract: t => t.substring(1) },
+    '!': { kind: 'property', form: '!', extract: t => t.substring(1) },
+    '^': { kind: 'property', form: '^', extract: t => t.substring(1) },
+    '?': { kind: 'property', form: '?', extract: t => t.substring(1) }
+};
+
 export function parseSemanticBlock(raw) {
     try {
         const src = String(raw || '').trim();
@@ -56,91 +69,80 @@ export function parseSemanticBlock(raw) {
         const result = { subject: null, object: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
         const re = /\S+/g;
         let m;
+
         while ((m = re.exec(cleaned)) !== null) {
             const token = m[0];
             const relStart = 1 + m.index;
             const relEnd = relStart + token.length;
             const entryIndex = result.entries.length;
 
+            // Handle special tokens first
             if (token === '=') {
                 result.subject = 'RESET';
                 result.entries.push({ kind: 'subjectReset', relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
             }
 
-            if (token.startsWith('=#')) {
-                const fragment = token.substring(2);
-                result.subject = `=#${fragment}`;
-                result.entries.push({ kind: 'fragment', fragment, relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
-            }
-
-            if (token.startsWith('+#')) {
-                const fragment = token.substring(2);
-                result.object = `#${fragment}`;
-                result.entries.push({ kind: 'softFragment', fragment, relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
-            }
-
-            if (token.startsWith('+')) {
-                const iri = token.substring(1);
-                result.object = iri;
-                result.entries.push({ kind: 'object', iri, relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
-            }
-
-            if (token.startsWith('=')) {
+            // Handle '=' pattern for subject declarations (not reset)
+            if (token.startsWith('=') && !token.startsWith('=#')) {
                 const iri = token.substring(1);
                 result.subject = iri;
                 result.entries.push({ kind: 'subject', iri, relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
             }
 
-            if (token.startsWith('^^')) {
-                const datatype = token.substring(2);
-                if (!result.language) result.datatype = datatype;
-                result.entries.push({ kind: 'datatype', datatype, relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
+            // Handle pattern-based tokens
+            let processed = false;
+            for (const [pattern, config] of Object.entries(TOKEN_PATTERNS)) {
+                if (token.startsWith(pattern)) {
+                    const entry = {
+                        kind: config.kind,
+                        relRange: { start: relStart, end: relEnd },
+                        raw: token
+                    };
+
+                    if (config.extract) {
+                        const extracted = config.extract(token);
+                        if (config.kind === 'fragment') {
+                            result.subject = `=#${extracted}`;
+                            entry.fragment = extracted;
+                        } else if (config.kind === 'softFragment') {
+                            result.object = `#${extracted}`;
+                            entry.fragment = extracted;
+                        } else if (config.kind === 'object') {
+                            result.object = extracted;
+                            entry.iri = extracted;
+                        } else if (config.kind === 'datatype') {
+                            if (!result.language) result.datatype = extracted;
+                            entry.datatype = extracted;
+                        } else if (config.kind === 'language') {
+                            result.language = extracted;
+                            result.datatype = null;
+                            entry.language = extracted;
+                        } else if (config.kind === 'type') {
+                            result.types.push({ iri: extracted, entryIndex });
+                            entry.iri = extracted;
+                        } else if (config.kind === 'property') {
+                            result.predicates.push({ iri: extracted, form: config.form, entryIndex });
+                            entry.iri = extracted;
+                            entry.form = config.form;
+                        }
+                    } else {
+                        // For '=' pattern (subjectReset handled above)
+                        if (config.kind === 'subjectReset') continue;
+                    }
+
+                    result.entries.push(entry);
+                    processed = true;
+                    break;
+                }
             }
 
-            if (token.startsWith('@')) {
-                const language = token.substring(1);
-                result.language = language;
-                result.datatype = null;
-                result.entries.push({ kind: 'language', language, relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
+            // Handle default case (no pattern match)
+            if (!processed) {
+                result.predicates.push({ iri: token, form: '', entryIndex });
+                result.entries.push({ kind: 'property', iri: token, form: '', relRange: { start: relStart, end: relEnd }, raw: token });
             }
-
-            if (token.startsWith('.')) {
-                const classIRI = token.substring(1);
-                result.types.push({ iri: classIRI, entryIndex });
-                result.entries.push({ kind: 'type', iri: classIRI, relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
-            }
-
-            if (token.startsWith('!')) {
-                const iri = token.substring(1);
-                result.predicates.push({ iri, form: '!', entryIndex });
-                result.entries.push({ kind: 'property', iri, form: '!', relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
-            }
-
-            if (token.startsWith('^')) {
-                const iri = token.substring(1);
-                result.predicates.push({ iri, form: '^', entryIndex });
-                result.entries.push({ kind: 'property', iri, form: '^', relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
-            }
-
-            if (token.startsWith('?')) {
-                const iri = token.substring(1);
-                result.predicates.push({ iri, form: '?', entryIndex });
-                result.entries.push({ kind: 'property', iri, form: '?', relRange: { start: relStart, end: relEnd }, raw: token });
-                continue;
-            }
-
-            result.predicates.push({ iri: token, form: '', entryIndex });
-            result.entries.push({ kind: 'property', iri: token, form: '', relRange: { start: relStart, end: relEnd }, raw: token });
         }
 
         return result;
@@ -194,43 +196,65 @@ export function createSemanticSlotId(subject, predicate) {
     return hash(`${subject.value}|${predicate.value}`);
 }
 
-export function createSlotInfo(blockId, entryIndex, meta = {}) {
-    const slotId = meta.subject && meta.predicate ? createSemanticSlotId(meta.subject, meta.predicate) : null;
+// Consolidated quad management
+export function createQuadManager() {
     return {
-        blockId,
-        entryIndex,
-        slotId,
-        isVacant: false,
-        lastValue: null,
-        vacantSince: null,
-        ...meta
+        createSlot: (blockId, entryIndex, meta = {}) => {
+            const slotId = meta.subject && meta.predicate ? createSemanticSlotId(meta.subject, meta.predicate) : null;
+            return {
+                blockId,
+                entryIndex,
+                slotId,
+                isVacant: false,
+                lastValue: null,
+                vacantSince: null,
+                ...meta
+            };
+        },
+
+        markVacant: (slotInfo, deletedValue) => {
+            if (!slotInfo) return null;
+            return {
+                ...slotInfo,
+                isVacant: true,
+                lastValue: deletedValue,
+                vacantSince: Date.now()
+            };
+        },
+
+        findVacant: (quadIndex, subject, predicate) => {
+            const targetSlotId = createSemanticSlotId(subject, predicate);
+            return Array.from(quadIndex.values())
+                .find(slot => slot.slotId === targetSlotId && slot.isVacant);
+        },
+
+        occupy: (slotInfo, newValue) => {
+            if (!slotInfo || !slotInfo.isVacant) return null;
+            return {
+                ...slotInfo,
+                isVacant: false,
+                lastValue: newValue,
+                vacantSince: null
+            };
+        }
     };
+}
+
+// Backward compatibility exports
+export function createSlotInfo(blockId, entryIndex, meta = {}) {
+    return createQuadManager().createSlot(blockId, entryIndex, meta);
 }
 
 export function markSlotAsVacant(slotInfo, deletedValue) {
-    if (!slotInfo) return null;
-    return {
-        ...slotInfo,
-        isVacant: true,
-        lastValue: deletedValue,
-        vacantSince: Date.now()
-    };
+    return createQuadManager().markVacant(slotInfo, deletedValue);
 }
 
 export function findVacantSlot(quadIndex, subject, predicate) {
-    const targetSlotId = createSemanticSlotId(subject, predicate);
-    return Array.from(quadIndex.values())
-        .find(slot => slot.slotId === targetSlotId && slot.isVacant);
+    return createQuadManager().findVacant(quadIndex, subject, predicate);
 }
 
 export function occupySlot(slotInfo, newValue) {
-    if (!slotInfo || !slotInfo.isVacant) return null;
-    return {
-        ...slotInfo,
-        isVacant: false,
-        lastValue: newValue,
-        vacantSince: null
-    };
+    return createQuadManager().occupy(slotInfo, newValue);
 }
 
 export function normalizeAttrsTokens(attrsText) {
@@ -247,24 +271,32 @@ export function removeOneToken(tokens, matchFn) {
     return i === -1 ? { tokens, removed: false } : { tokens: [...tokens.slice(0, i), ...tokens.slice(i + 1)], removed: true };
 }
 
+// Consolidated token management
+function manageToken(tokens, action, tokenType, value) {
+    const token = tokenType === 'object' ? `+${value}` :
+        tokenType === 'softFragment' ? `+#${value}` : value;
+
+    switch (action) {
+        case 'add': return tokens.includes(token) ? tokens : [...tokens, token];
+        case 'remove': return removeOneToken(tokens, t => t === token);
+        default: return tokens;
+    }
+}
+
 export function addObjectToken(tokens, iri) {
-    const objectToken = `+${iri}`;
-    return tokens.includes(objectToken) ? tokens : [...tokens, objectToken];
+    return manageToken(tokens, 'add', 'object', iri);
 }
 
 export function removeObjectToken(tokens, iri) {
-    const objectToken = `+${iri}`;
-    return removeOneToken(tokens, t => t === objectToken);
+    return manageToken(tokens, 'remove', 'object', iri);
 }
 
 export function addSoftFragmentToken(tokens, fragment) {
-    const fragmentToken = `+#${fragment}`;
-    return tokens.includes(fragmentToken) ? tokens : [...tokens, fragmentToken];
+    return manageToken(tokens, 'add', 'softFragment', fragment);
 }
 
 export function removeSoftFragmentToken(tokens, fragment) {
-    const fragmentToken = `+#${fragment}`;
-    return removeOneToken(tokens, t => t === fragmentToken);
+    return manageToken(tokens, 'remove', 'softFragment', fragment);
 }
 
 export function createLiteral(value, datatype, language, context, dataFactory) {
