@@ -248,9 +248,9 @@ ex:book schema:hasPart ex:part .
 ### Prefix Declarations
 
 ```markdown
-[ex] {: http://example.org/}
-[foaf] {: http://xmlns.com/foaf/0.1/}
-[@vocab] {: http://schema.org/}
+[ex] <http://example.org/>
+[foaf] <http://xmlns.com/foaf/0.1/>
+[@vocab] <http://schema.org/>
 
 # Person {=ex:alice .foaf:Person}
 ```

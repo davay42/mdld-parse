@@ -110,7 +110,7 @@ Fragments are:
 She prepares for growth.
 
 ```md
-[alice] {: urn:alice:}
+[alice] <urn:alice:>
 ```
 
 Now she can write:
@@ -141,7 +141,7 @@ She decides these IRIs should be globally valid.
 She changes **one line**.
 
 ```md
-[alice] {: https://alice.com/}
+[alice] <https://alice.com/>
 ```
 
 Nothing else changes.

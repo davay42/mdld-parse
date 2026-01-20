@@ -198,7 +198,7 @@ function scanTokens(text) {
             continue;
         }
 
-        const prefixMatch = line.match(/^\[([^\]]+)\]\s*\{:\s*([^}]+)\}/);
+        const prefixMatch = line.match(/^\[([^\]]+)\]\s*<([^>]+)>/);
         if (prefixMatch) {
             tokens.push({ type: 'prefix', prefix: prefixMatch[1], iri: prefixMatch[2].trim() });
             continue;

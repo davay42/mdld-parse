@@ -501,7 +501,7 @@ Location: {!locatedAt}
     {
         name: 'Circular prefix reference should not crash',
         fn: () => {
-            const md = `[ex] {: http://example.org/ex:}
+            const md = `[ex] <http://example.org/ex:>
 
 # Doc {=ex:doc}
 
@@ -517,8 +517,8 @@ Location: {!locatedAt}
     {
         name: 'Complex document round-trip',
         fn: () => {
-            const original = `[@vocab] {: http://schema.org/}
-[ex] {: http://example.org/}
+            const original = `[@vocab] <http://schema.org/>
+[ex] <http://example.org/>
 
 ## Complex Document {=ex:doc .Article}
 
@@ -584,7 +584,7 @@ References: {!ex:citedBy}
     {
         name: 'Prefix declarations',
         fn: () => {
-            const md = `[ex] {: http://example.org/}
+            const md = `[ex] <http://example.org/>
 
 # Doc {=ex:doc}
 
@@ -1137,7 +1137,7 @@ and launched on a [Saturn V] {+wd:Q193237 ?schema:vehicle}.`;
     {
         name: 'Subject chaining with standalone declarations',
         fn: () => {
-            const md = `[ex] {: http://example.org/}
+            const md = `[ex] <http://example.org/>
 
 ## Main Event {=ex:main-event .Event}
 Title: [Main Title] {title}
@@ -1190,7 +1190,7 @@ Back to main: [Back to main] {description}`;
     {
         name: 'Subject reset with standalone {=}',
         fn: () => {
-            const md = `[ex] {: http://example.org/}
+            const md = `[ex] <http://example.org/>
 
 ## First {=ex:first}
 Title: [First Title] {title}
@@ -1221,7 +1221,7 @@ Description: [No subject description] {description}`;
     {
         name: 'Mixed subject declarations with carriers and standalone',
         fn: () => {
-            const md = `[ex] {: http://example.org/}
+            const md = `[ex] <http://example.org/>
 
 ## Document {=ex:doc .Document}
 Title: [Document Title] {title}

@@ -417,11 +417,11 @@ MD-LD processors MUST provide this initial context by default:
 
 It is used to expand CURIEs and vocabulary terms.
 
-`[prefix] {: IRI}`
+`[prefix] <IRI>`
 
 Declares a prefix for CURIE expansion within the current document scope.
 
-`[@vocab] {: IRI}`
+`[@vocab] <IRI>`
 
 Sets the default vocabulary for un-prefixed terms and predicate names.
 

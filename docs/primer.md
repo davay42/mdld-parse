@@ -244,8 +244,8 @@ The `{+urn:food:sugar}` exists only for that annotation.
 Stop typing long URNs:
 
 ```markdown
-[me] {: urn:me:}
-[book] {: urn:book:}
+[me] <urn:me:>
+[book] <urn:book:>
 
 # Reading List {=me:list .Collection}
 
@@ -321,8 +321,8 @@ Description: [First moon landing] {description @en}
 
 ### Context
 ```markdown
-[prefix] {: URI}   # Define prefix
-[@vocab] {: URI}   # Set vocabulary
+[prefix] <URI>   # Define prefix
+[@vocab] <URI>   # Set vocabulary
 ```
 
 ---
