@@ -163,7 +163,7 @@ export function normalizeQuad(q) {
     const { subject, predicate, object } = q;
     if (object?.termType === 'Literal') {
         const language = typeof object.language === 'string' ? object.language : '';
-        const datatype = object.datatype?.value || 'http://www.w3.org/2001/XMLSchema#string';
+        const datatype = object.datatype || { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' };
         return { ...q, subject, predicate, object: { ...object, language, datatype } };
     }
     return { ...q, subject, predicate, object };

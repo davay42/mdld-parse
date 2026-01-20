@@ -94,6 +94,82 @@ function updateAttrsDatatypeLang(tokens, newLit, ctx) {
     return predicatesAndTypes;
 }
 
+// Slot abstraction for cleaner operations
+class Slot {
+    constructor(block, entry, kind = null) {
+        this.block = block;
+        this.entry = entry;
+        this.kind = kind || entry?.kind;
+        this.entryIndex = entry?.entryIndex;
+        this.isVacant = entry?.isVacant || false;
+        this.form = entry?.form;
+    }
+
+    removeToken(tokens, ctx, quad) {
+        if (!this.entry) return { tokens, removed: false };
+
+        if (this.kind === 'object') {
+            const objectIRI = shortenIRI(quad.object.value, ctx);
+            return removeObjectToken(tokens, objectIRI);
+        } else if (this.kind === 'softFragment') {
+            const fragment = this.entry.fragment;
+            return removeSoftFragmentToken(tokens, fragment);
+        } else if (this.kind === 'type' && quad.predicate.value.endsWith('rdf-syntax-ns#type')) {
+            const expectedType = this.entry.expandedType || quad.object.value;
+            return removeOneToken(tokens, t => {
+                if (!t.startsWith('.')) return false;
+                const raw = t.slice(1);
+                return expandIRI(raw, ctx) === expectedType;
+            });
+        } else {
+            const expectedPred = this.entry.expandedPredicate || quad.predicate.value;
+            const expectedForm = this.entry.form;
+            return removeOneToken(tokens, t => {
+                const m = String(t).match(/^(\^\?|\^|\?|)(.+)$/);
+                if (!m) return false;
+                const form = m[1] || '';
+                const raw = m[2];
+                if (expectedForm != null && form !== expectedForm) return false;
+                return expandIRI(raw, ctx) === expectedPred;
+            });
+        }
+    }
+
+    addToken(tokens, ctx, quad) {
+        if (quad.predicate.value.endsWith('rdf-syntax-ns#type') && quad.object?.termType === 'NamedNode') {
+            const typeShort = shortenIRI(quad.object.value, ctx);
+            const typeToken = typeShort.includes(':') || !typeShort.startsWith('http') ? `.${typeShort}` : null;
+            if (typeToken && !tokens.includes(typeToken)) {
+                return [...tokens, typeToken];
+            }
+        } else if (quad.object.termType === 'NamedNode') {
+            const objectShort = shortenIRI(quad.object.value, ctx);
+            const isSoftFragment = quad.object.value.includes('#');
+            const fragment = isSoftFragment ? quad.object.value.split('#')[1] : null;
+
+            if (isSoftFragment) {
+                return addSoftFragmentToken(tokens, fragment);
+            } else {
+                return addObjectToken(tokens, objectShort);
+            }
+        } else if (quad.object.termType === 'Literal') {
+            // For literal predicates, we need to add the predicate token
+            const predShort = shortenIRI(quad.predicate.value, ctx);
+            if (!tokens.includes(predShort)) {
+                return [...tokens, predShort];
+            }
+        }
+        return tokens;
+    }
+
+    markVacant(quad) {
+        if (this.entry && this.entry.slotId) {
+            return markSlotAsVacant(this.entry, quad.object);
+        }
+        return null;
+    }
+}
+
 export function serialize({ text, diff, origin, options = {} }) {
     if (!diff || (!diff.add?.length && !diff.delete?.length)) {
         const reparsed = parse(text, { context: options.context || {} });
@@ -101,366 +177,287 @@ export function serialize({ text, diff, origin, options = {} }) {
     }
 
     const base = origin || parse(text, { context: options.context || {} }).origin;
-    let result = text;
-    const edits = [];
     const ctx = options.context || {};
 
-    const findOriginEntryForLiteralByValue = (subjectIri, predicateIri, literalValue) => {
-        for (const [k, entry] of base?.quadIndex || []) {
-            const parsed = parseQuadIndexKey(k);
-            if (!parsed) continue;
-            if (parsed.s !== subjectIri || parsed.p !== predicateIri) continue;
-            if (parsed.o?.t !== 'Literal') continue;
-            if (parsed.o?.v === literalValue) return entry;
-        }
-        return null;
+    // Phase 1: Plan operations (pure, no text edits)
+    const plan = planOperations(diff, base, ctx);
+
+    // Phase 2: Materialize edits (ranges + strings)
+    const edits = materializeEdits(plan, text, ctx, base);
+
+    // Phase 3: Apply edits + reparse
+    return applyEdits(text, edits, ctx, base);
+}
+
+function planOperations(diff, base, ctx) {
+    // Normalize quads once
+    const normAdds = (diff.add || []).map(normalizeQuad).filter(isValidQuad);
+    const normDeletes = (diff.delete || []).map(normalizeQuad).filter(isValidQuad);
+
+    const plan = {
+        literalUpdates: [],
+        vacantSlotOccupations: [],
+        deletes: [],
+        adds: [],
+        consumedAdds: new Set()
     };
 
-    const anchors = new Map();
-    for (const q0 of diff.delete || []) {
-        const q = normalizeQuad(q0);
-        if (!isValidQuad(q)) continue;
-        const key = JSON.stringify([q.subject.value, objectSignature(q.object)]);
-        const qk = quadToKeyForOrigin(q);
-        const entry = getEntryByQuadKey(base, qk);
-        const blockId = entry?.blockId || entry;
-        const block = getBlockById(base, blockId);
-        if (!block?.attrsRange) continue;
-        anchors.set(key, { block, entry });
-    }
-
+    // Build lookup maps
     const addBySP = new Map();
-    for (const q0 of diff.add || []) {
-        const q = normalizeQuad(q0);
-        if (!isValidQuad(q)) continue;
-        const k = JSON.stringify([q.subject.value, q.predicate.value]);
+    for (const quad of normAdds) {
+        const k = JSON.stringify([quad.subject.value, quad.predicate.value]);
         const list = addBySP.get(k) || [];
-        list.push(q);
+        list.push(quad);
         addBySP.set(k, list);
     }
 
-    const consumedAdds = new Set();
-    const literalUpdates = [];
-    for (const dq0 of diff.delete || []) {
-        const dq = normalizeQuad(dq0);
-        if (!isValidQuad(dq) || dq.object.termType !== 'Literal') continue;
-        const k = JSON.stringify([dq.subject.value, dq.predicate.value]);
-        const candidates = addBySP.get(k) || [];
-        const aq = candidates.find(x => x?.object?.termType === 'Literal' && !consumedAdds.has(quadToKeyForOrigin(x)));
-        if (!aq) continue;
-
-        const dqk = quadToKeyForOrigin(dq);
-        let entry = dqk ? base?.quadIndex?.get(dqk) : null;
-        if (!entry && dq.object?.termType === 'Literal') {
-            entry = findOriginEntryForLiteralByValue(dq.subject.value, dq.predicate.value, dq.object.value);
-        }
+    // Build anchors for delete operations
+    const anchors = new Map();
+    for (const quad of normDeletes) {
+        const key = JSON.stringify([quad.subject.value, objectSignature(quad.object)]);
+        const quadKey = quadToKeyForOrigin(quad);
+        const entry = getEntryByQuadKey(base, quadKey);
         const blockId = entry?.blockId || entry;
-        const block = blockId ? base?.blocks?.get(blockId) : null;
-        if (!block) continue;
-
-        literalUpdates.push({ deleteQuad: dq, addQuad: aq, entry, block });
-        consumedAdds.add(quadToKeyForOrigin(aq));
+        const block = getBlockById(base, blockId);
+        if (block?.attrsRange) {
+            anchors.set(key, { block, entry });
+        }
     }
 
-    for (const q0 of diff.add || []) {
-        const quad = normalizeQuad(q0);
-        if (!quad || quad.object?.termType !== 'Literal') continue;
-        if (consumedAdds.has(quadToKeyForOrigin(quad))) continue;
+    // Detect literal updates early
+    for (const deleteQuad of normDeletes) {
+        if (deleteQuad.object.termType !== 'Literal') continue;
 
-        // Check if there's a vacant slot we can reuse
+        const k = JSON.stringify([deleteQuad.subject.value, deleteQuad.predicate.value]);
+        const candidates = addBySP.get(k) || [];
+        const addQuad = candidates.find(x =>
+            x?.object?.termType === 'Literal' && !plan.consumedAdds.has(quadToKeyForOrigin(x))
+        );
+
+        if (!addQuad) continue;
+
+        const entry = resolveOriginEntry(deleteQuad, base);
+        const block = entry ? getBlockById(base, entry.blockId || entry) : null;
+
+        if (block) {
+            plan.literalUpdates.push({ deleteQuad, addQuad, entry, block });
+            plan.consumedAdds.add(quadToKeyForOrigin(addQuad));
+        }
+    }
+
+    // Find vacant slot occupations
+    for (const quad of normAdds) {
+        if (quad.object.termType !== 'Literal') continue;
+        if (plan.consumedAdds.has(quadToKeyForOrigin(quad))) continue;
+
         const vacantSlot = findVacantSlot(base?.quadIndex, quad.subject, quad.predicate);
         if (!vacantSlot) continue;
 
         const block = base?.blocks?.get(vacantSlot.blockId);
-        if (!block) continue;
+        if (block) {
+            plan.vacantSlotOccupations.push({ quad, vacantSlot, block });
+            plan.consumedAdds.add(quadToKeyForOrigin(quad));
+        }
+    }
 
+    // Plan remaining deletes
+    for (const quad of normDeletes) {
+        if (quad.object.termType === 'Literal') {
+            const isUpdated = plan.literalUpdates.some(u =>
+                u.deleteQuad.subject.value === quad.subject.value &&
+                u.deleteQuad.predicate.value === quad.predicate.value &&
+                u.deleteQuad.object.value === quad.object.value
+            );
+            if (isUpdated) continue;
+        }
+
+        const entry = resolveOriginEntry(quad, base);
+        const block = entry ? getBlockById(base, entry.blockId || entry) : null;
+        if (block) {
+            plan.deletes.push({ quad, entry, block });
+        }
+    }
+
+    // Plan remaining adds
+    for (const quad of normAdds) {
+        if (plan.consumedAdds.has(quadToKeyForOrigin(quad))) continue;
+
+        const targetBlock = findTargetBlock(quad, base, anchors);
+        plan.adds.push({ quad, targetBlock });
+    }
+
+    return plan;
+}
+
+function materializeEdits(plan, text, ctx, base) {
+    const edits = [];
+
+    // Materialize vacant slot occupations
+    for (const { quad, vacantSlot, block } of plan.vacantSlotOccupations) {
         const span = readSpan(block, text, 'attrs');
         if (!span) continue;
 
-        // Occupy the vacant slot and update the annotation
-        const occupiedSlot = occupySlot(vacantSlot, quad.object);
-        if (!occupiedSlot) continue;
-
-        // Update the carrier value
+        // Update carrier value
         const valueSpan = readSpan(block, text, 'value');
         if (valueSpan) {
             edits.push({ start: valueSpan.start, end: valueSpan.end, text: quad.object.value });
         }
 
-        // Update the annotation block to restore the predicate token
+        // Update annotation block
         const tokens = normalizeAttrsTokens(span.text);
         const predToken = `${vacantSlot.form || ''}${shortenIRI(quad.predicate.value, ctx)}`;
 
-        // For empty annotation blocks, replace entirely; for non-empty, add if missing
         if (tokens.length === 0) {
             edits.push({ start: span.start, end: span.end, text: `{${predToken}}` });
         } else if (!tokens.includes(predToken)) {
             const updated = [...tokens, predToken];
             edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
         }
-
-        // Mark as consumed and continue
-        consumedAdds.add(quadToKeyForOrigin(quad));
-        continue;
     }
 
-    for (const u of literalUpdates) {
-        const span = readSpan(u.block, text, 'value');
+    // Materialize literal updates
+    for (const { deleteQuad, addQuad, entry, block } of plan.literalUpdates) {
+        const span = readSpan(block, text, 'value');
         if (span) {
-            const newValue = sanitizeCarrierValueForBlock(u.block, u.addQuad.object.value);
+            const newValue = sanitizeCarrierValueForBlock(block, addQuad.object.value);
             edits.push({ start: span.start, end: span.end, text: newValue });
         }
 
-        const aSpan = readSpan(u.block, text, 'attrs');
+        const aSpan = readSpan(block, text, 'attrs');
         if (aSpan) {
-            if (u.block?.entries?.length) {
-                const nextEntries = replaceLangDatatypeEntries(u.block, u.addQuad.object, ctx);
+            if (block?.entries?.length) {
+                const nextEntries = replaceLangDatatypeEntries(block, addQuad.object, ctx);
                 if (nextEntries) {
                     const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
-                    if (nextTokens.length === 0) {
-                        edits.push({ start: aSpan.start, end: aSpan.end, text: '{}' });
-                    } else {
-                        edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(nextTokens) });
-                    }
+                    const newText = nextTokens.length === 0 ? '{}' : writeAttrsTokens(nextTokens);
+                    edits.push({ start: aSpan.start, end: aSpan.end, text: newText });
                 }
             } else {
                 const tokens = normalizeAttrsTokens(aSpan.text);
-                const updated = updateAttrsDatatypeLang(tokens, u.addQuad.object, ctx);
+                const updated = updateAttrsDatatypeLang(tokens, addQuad.object, ctx);
                 if (updated.join(' ') !== tokens.join(' ')) {
-                    if (updated.length === 0) {
-                        edits.push({ start: aSpan.start, end: aSpan.end, text: '{}' });
-                    } else {
-                        edits.push({ start: aSpan.start, end: aSpan.end, text: writeAttrsTokens(updated) });
-                    }
+                    const newText = updated.length === 0 ? '{}' : writeAttrsTokens(updated);
+                    edits.push({ start: aSpan.start, end: aSpan.end, text: newText });
                 }
             }
         }
     }
 
+    // Materialize deletes
+    for (const { quad, entry, block } of plan.deletes) {
+        const slot = new Slot(block, entry);
 
-    if (diff.delete) {
-        diff.delete.forEach(q0 => {
-            const quad = normalizeQuad(q0);
-            if (!isValidQuad(quad)) return;
-
-            if (quad.object.termType === 'Literal') {
-                const isUpdated = literalUpdates.some(u =>
-                    u.deleteQuad.subject.value === quad.subject.value &&
-                    u.deleteQuad.predicate.value === quad.predicate.value &&
-                    u.deleteQuad.object.value === quad.object.value
-                );
-                if (isUpdated) return;
-            }
-
+        // Mark slot as vacant
+        const vacantSlot = slot.markVacant(quad);
+        if (vacantSlot && block) {
+            const blockInfo = {
+                id: entry.blockId,
+                range: block.range,
+                attrsRange: block.attrsRange,
+                valueRange: block.valueRange,
+                carrierType: block.carrierType,
+                subject: block.subject,
+                context: block.context
+            };
+            vacantSlot.blockInfo = blockInfo;
             const key = quadToKeyForOrigin(quad);
-            let entry = key ? base?.quadIndex?.get(key) : null;
-            if (!entry && quad.object?.termType === 'Literal') {
-                entry = findOriginEntryForLiteralByValue(quad.subject.value, quad.predicate.value, quad.object.value);
-            }
+            if (key) base.quadIndex.set(key, vacantSlot);
+        }
 
-            // Mark the semantic slot as vacant for future reuse
-            if (entry && entry.slotId) {
-                // Capture block information before marking as vacant
-                const block = base?.blocks?.get(entry.blockId);
-                const blockInfo = block ? {
-                    id: entry.blockId,
-                    range: block.range,
-                    attrsRange: block.attrsRange,
-                    valueRange: block.valueRange,
-                    carrierType: block.carrierType,
-                    subject: block.subject,
-                    context: block.context
-                } : null;
+        const span = readSpan(block, text, 'attrs');
+        if (!span) continue;
 
-                const vacantSlot = markSlotAsVacant(entry, quad.object);
-                if (vacantSlot && blockInfo) {
-                    vacantSlot.blockInfo = blockInfo;
-                    base.quadIndex.set(key, vacantSlot);
-                }
-            }
-
-            const blockId = entry?.blockId || entry;
-            if (!blockId) return;
-
-            const block = base?.blocks?.get(blockId);
-            if (!block) return;
-
-            const span = readSpan(block, text, 'attrs');
-            if (!span) return;
-
-            // Handle entry removal by index
-            if (entry?.entryIndex != null && block?.entries?.length) {
-                const nextEntries = removeEntryAt(block, entry.entryIndex);
-                if (!nextEntries) return;
-
+        // Handle entry removal by index
+        if (entry?.entryIndex != null && block?.entries?.length) {
+            const nextEntries = removeEntryAt(block, entry.entryIndex);
+            if (nextEntries) {
                 const nextTokens = nextEntries.map(e => e.raw).filter(Boolean);
                 const newText = nextTokens.length === 0 ? '{}' : writeAttrsTokens(nextTokens);
                 edits.push({ start: span.start, end: span.end, text: newText });
-                return;
+                continue;
             }
+        }
 
-            // Handle object token removal
-            if (entry?.kind === 'object') {
-                const objectIRI = shortenIRI(quad.object.value, ctx);
-                const { tokens: updated, removed } = removeObjectToken(tokens, objectIRI);
-                if (!removed) return;
+        // Handle token-based removals using Slot abstraction
+        const tokens = normalizeAttrsTokens(span.text);
+        const { tokens: updated, removed } = slot.removeToken(tokens, ctx, quad);
 
-                const newAttrs = updated.length === 0 ? '{}' : writeAttrsTokens(updated);
-                edits.push({ start: span.start, end: span.end, text: newAttrs });
-                return;
-            }
-
-            // Handle soft fragment token removal
-            if (entry?.kind === 'softFragment') {
-                const fragment = entry.fragment;
-                const { tokens: updated, removed } = removeSoftFragmentToken(tokens, fragment);
-                if (!removed) return;
-
-                const newAttrs = updated.length === 0 ? '{}' : writeAttrsTokens(updated);
-                edits.push({ start: span.start, end: span.end, text: newAttrs });
-                return;
-            }
-
-            const tokens = normalizeAttrsTokens(span.text);
-            let updated = tokens;
-            let removed = false;
-
-            if (entry?.kind === 'type' && quad.predicate.value.endsWith('rdf-syntax-ns#type')) {
-                const expectedType = entry.expandedType || quad.object.value;
-                ({ tokens: updated, removed } = removeOneToken(tokens, t => {
-                    if (!t.startsWith('.')) return false;
-                    const raw = t.slice(1);
-                    return expandIRI(raw, ctx) === expectedType;
-                }));
-            } else {
-                const expectedPred = entry?.expandedPredicate || quad.predicate.value;
-                const expectedForm = entry?.form;
-                ({ tokens: updated, removed } = removeOneToken(tokens, t => {
-                    const m = String(t).match(/^(\^\?|\^|\?|)(.+)$/);
-                    if (!m) return false;
-                    const form = m[1] || '';
-                    const raw = m[2];
-                    if (expectedForm != null && form !== expectedForm) return false;
-                    return expandIRI(raw, ctx) === expectedPred;
-                }));
-            }
-
-            if (!removed) return;
-
-            if (updated.length === 0) {
-                edits.push({ start: span.start, end: span.end, text: '{}' });
-                return;
-            }
-
-            const newAttrs = writeAttrsTokens(updated);
-            edits.push({ start: span.start, end: span.end, text: newAttrs });
-        });
+        if (removed) {
+            const newText = updated.length === 0 ? '{}' : writeAttrsTokens(updated);
+            edits.push({ start: span.start, end: span.end, text: newText });
+        }
     }
 
-    if (diff.add) {
-        diff.add.forEach(q0 => {
-            const quad = normalizeQuad(q0);
-            if (!isValidQuad(quad)) return;
-
-            if (consumedAdds.has(quadToKeyForOrigin(quad))) return;
-
-            const anchorKey = JSON.stringify([quad.subject.value, objectSignature(quad.object)]);
-            const anchored = anchors.get(anchorKey) || null;
-            let targetBlock = anchored?.block || null;
-
+    // Materialize adds
+    for (const { quad, targetBlock } of plan.adds) {
+        if (quad.object.termType === 'Literal' || quad.object.termType === 'NamedNode') {
             if (!targetBlock) {
-                for (const [, block] of base?.blocks || []) {
-                    if (block.subject === quad.subject.value && block.attrsRange) {
-                        targetBlock = block;
-                        break;
-                    }
-                }
-            }
-
-            if (quad.object.termType === 'Literal' || quad.object.termType === 'NamedNode') {
-                if (!targetBlock) {
-                    const predShort = shortenIRI(quad.predicate.value, ctx);
-                    if (quad.object.termType === 'Literal') {
-                        const value = String(quad.object.value ?? '');
-                        const ann = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
-                        edits.push({ start: result.length, end: result.length, text: `\n[${value}] {${ann}}` });
-                    } else {
-                        const full = quad.object.value;
-                        const label = shortenIRI(full, ctx);
-                        const objectShort = shortenIRI(full, ctx);
-                        edits.push({ start: result.length, end: result.length, text: createObjectAnnotation(objectShort, predShort) });
-                    }
-                    return;
-                }
-
                 const predShort = shortenIRI(quad.predicate.value, ctx);
                 if (quad.object.termType === 'Literal') {
                     const value = String(quad.object.value ?? '');
                     const ann = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
-                    edits.push({ start: result.length, end: result.length, text: `\n[${value}] {${ann}}` });
-                    return;
+                    edits.push({ start: text.length, end: text.length, text: `\n[${value}] {${ann}}` });
+                } else {
+                    const objectShort = shortenIRI(quad.object.value, ctx);
+                    edits.push({ start: text.length, end: text.length, text: createObjectAnnotation(objectShort, predShort) });
                 }
-
-                if (quad.object.termType === 'NamedNode') {
-                    const full = quad.object.value;
-                    const objectShort = shortenIRI(full, ctx);
-                    const predShort = shortenIRI(quad.predicate.value, ctx);
-
-                    // Check if this is a soft fragment
-                    const isSoftFragment = full.includes('#') && anchored?.entry?.kind === 'softFragment';
-                    const fragment = isSoftFragment ? full.split('#')[1] : null;
-
-                    if (isSoftFragment || anchored?.entry?.form === '?') {
-                        // Add soft fragment token if not present
-                        if (isSoftFragment) {
-                            const updated = addSoftFragmentToken(tokens, fragment);
-                            if (updated.length !== tokens.length) {
-                                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
-                            }
-                        } else {
-                            const updated = addObjectToken(tokens, objectShort);
-                            if (updated.length !== tokens.length) {
-                                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
-                            }
-                        }
-                    } else {
-                        edits.push({ start: result.length, end: result.length, text: createObjectAnnotation(objectShort, predShort, isSoftFragment, fragment) });
-                    }
-                    return;
-                }
+                continue;
             }
 
             const span = readSpan(targetBlock, text, 'attrs');
-            if (!span) return;
-            const tokens = blockTokensFromEntries(targetBlock) || normalizeAttrsTokens(span.text);
+            if (!span) continue;
 
-            if (quad.predicate.value.endsWith('rdf-syntax-ns#type') && quad.object?.termType === 'NamedNode') {
-                const typeShort = shortenIRI(quad.object.value, ctx);
-                const typeToken = typeShort.includes(':') || !typeShort.startsWith('http') ? `.${typeShort}` : null;
-                if (!typeToken) return;
-                if (tokens.includes(typeToken)) return;
-                const updated = [...tokens, typeToken];
-                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
-                return;
+            // Check if this is a subject-only block (like {=ex:order-123})
+            const tokens = normalizeAttrsTokens(span.text);
+            const hasSubjectToken = tokens.some(t => t.startsWith('='));
+            const hasPredicateTokens = tokens.some(t => !t.startsWith('=') && !t.startsWith('.'));
+
+            if (tokens.length === 1 && tokens[0].startsWith('=')) {
+                // This is a subject-only block, create new annotation
+                const predShort = shortenIRI(quad.predicate.value, ctx);
+                if (quad.object.termType === 'Literal') {
+                    const value = String(quad.object.value ?? '');
+                    const ann = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
+                    edits.push({ start: text.length, end: text.length, text: `\n[${value}] {${ann}}` });
+                } else {
+                    const objectShort = shortenIRI(quad.object.value, ctx);
+                    edits.push({ start: text.length, end: text.length, text: createObjectAnnotation(objectShort, predShort) });
+                }
+                continue;
             }
 
-            const form = anchored?.entry?.form;
-            if (form == null) return;
-            const predShort = shortenIRI(quad.predicate.value, ctx);
-            const predToken = `${form}${predShort}`;
-            if (!predToken) return;
-            if (tokens.includes(predToken)) return;
-            const updated = [...tokens, predToken];
-            edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
-        });
+            // Normal annotation block, add tokens
+            const existingTokens = blockTokensFromEntries(targetBlock) || tokens;
+            const slot = new Slot(targetBlock, null);
+            let updated = slot.addToken(existingTokens, ctx, quad);
+
+            // For literal predicates with datatypes, we need to add datatype token too
+            if (quad.object.termType === 'Literal' && quad.object.datatype && quad.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+                const datatypeToken = `^^${shortenIRI(quad.object.datatype.value, ctx)}`;
+                if (!updated.includes(datatypeToken)) {
+                    updated = [...updated, datatypeToken];
+                }
+            }
+
+            if (updated.length !== existingTokens.length) {
+                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+            }
+        }
     }
 
+    return edits;
+}
+
+function applyEdits(text, edits, ctx, base) {
+    let result = text;
+
+    // Sort edits descending to avoid position shifts
     edits.sort((a, b) => b.start - a.start);
     edits.forEach(edit => {
         result = result.substring(0, edit.start) + edit.text + result.substring(edit.end);
     });
 
-    // Extract vacant slots before reparsing to preserve them
+    // Extract vacant slots before reparsing
     const vacantSlots = new Map();
     base?.quadIndex?.forEach((slot, key) => {
         if (slot.isVacant) {
@@ -468,13 +465,11 @@ export function serialize({ text, diff, origin, options = {} }) {
         }
     });
 
-    const reparsed = parse(result, { context: options.context || {} });
+    const reparsed = parse(result, { context: ctx });
 
-    // Merge vacant slots back into the new origin
+    // Merge vacant slots back
     vacantSlots.forEach((vacantSlot, key) => {
-        // Check if the block still exists in the new origin
         if (!reparsed.origin.blocks.has(vacantSlot.blockId)) {
-            // Recreate the empty block for the vacant slot using preserved info
             const blockInfo = vacantSlot.blockInfo;
             if (blockInfo) {
                 const emptyBlock = {
@@ -486,16 +481,51 @@ export function serialize({ text, diff, origin, options = {} }) {
                     subject: blockInfo.subject || '',
                     types: [],
                     predicates: [],
-                    entries: [], // Empty entries - just {} annotation
+                    entries: [],
                     context: blockInfo.context || { ...ctx }
                 };
                 reparsed.origin.blocks.set(vacantSlot.blockId, emptyBlock);
             }
         }
-
-        // Merge the vacant slot back
         reparsed.origin.quadIndex.set(key, vacantSlot);
     });
 
     return { text: result, origin: reparsed.origin };
+}
+
+// Helper functions for origin lookup
+function resolveOriginEntry(quad, base) {
+    const key = quadToKeyForOrigin(quad);
+    let entry = key ? base?.quadIndex?.get(key) : null;
+
+    if (!entry && quad.object?.termType === 'Literal') {
+        // Fallback: search by value
+        for (const [k, e] of base?.quadIndex || []) {
+            const parsed = parseQuadIndexKey(k);
+            if (parsed && parsed.s === quad.subject.value &&
+                parsed.p === quad.predicate.value &&
+                parsed.o?.t === 'Literal' &&
+                parsed.o?.v === quad.object.value) {
+                entry = e;
+                break;
+            }
+        }
+    }
+
+    return entry;
+}
+
+function findTargetBlock(quad, base, anchors) {
+    const anchorKey = JSON.stringify([quad.subject.value, objectSignature(quad.object)]);
+    const anchored = anchors.get(anchorKey);
+    if (anchored?.block) return anchored.block;
+
+    // Block affinity: prefer same block, then same subject
+    for (const [, block] of base?.blocks || []) {
+        if (block.subject === quad.subject.value && block.attrsRange) {
+            return block;
+        }
+    }
+
+    return null;
 }

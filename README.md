@@ -91,8 +91,8 @@ Each predicate form determines the graph edge:
 | Form  | Edge    | Example                      | Meaning          |
 |-------|---------|------------------------------|------------------|
 | `p`   | S → L   | `[Alice] {name}`             | literal property |
-| `?p`  | S → O   | `[NASA](ex:nasa) {?org}`     | object property  |
-| `!p` | O → S   | `[Parent](ex:p) {!hasPart}` | reverse object   |
+| `?p`  | S → O   | `[NASA] {=ex:nasa ?org}`     | object property  |
+| `!p` | O → S    | `[Parent] {=ex:p !hasPart}`  | reverse object   |
 
 ## Syntax Reference
 
@@ -282,7 +282,7 @@ Parse MD-LD markdown and return RDF quads with origin tracking.
 const result = parse(
   `# Article {=ex:article .Article}
   
-  [Alice](ex:alice) {?author}`,
+  [Alice] {=ex:alice ?author}`,
   { context: { ex: 'http://example.org/' } }
 );
 

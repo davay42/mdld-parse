@@ -65,7 +65,7 @@ function scanTokens(text) {
         if (line.startsWith('```')) {
             if (!codeBlock) {
                 const fence = line.match(/^(`{3,})(.*)/);
-                const attrsText = fence[2].match(/\{[^}]+\}/)?.[0] || null;
+                const attrsText = fence[2].match(/\{[^{}]*\}/)?.[0] || null;
                 const attrsStartInLine = attrsText ? line.indexOf(attrsText) : -1;
                 const contentStart = lineStart + line.length + 1;
                 codeBlock = {

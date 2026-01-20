@@ -113,7 +113,7 @@ const tests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Alice](ex:alice) {?author}`;
+[Alice] {=ex:alice ?author}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
 
             const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/author', 'http://ex.org/alice');
@@ -681,7 +681,7 @@ This is plain text.
         fn: () => {
             const original = `# Order {=ex:order-123}
             
-Customer: [John Doe](ex:customer-456) {.Person name}
+Customer: [John Doe] {ex:customer-456 .Person name}
 Amount: [99.95 USD] {price ^^xsd:decimal}
 Status: [Pending] {status ^^ex:orderStatus}
 Date: [2024-01-15] {orderDate ^^xsd:date}
@@ -764,15 +764,18 @@ Rating: [4.5] {rating ^^xsd:float}`;
     {
         name: 'Serialize - Simple structure updates',
         fn: () => {
-            const original = `# Project {=ex:project-alpha}
+            const original = `
+            
+# Project {=ex:project-alpha}
             
 Team: {?hasMember .Person}
 - Alice {=ex:alice .Person name}
 - Bob {=ex:bob .Person name}
 
-Milestones: {?hasMilestone .Event}
-- Planning Complete {=ex:milestone-1 .Event date ^^xsd:date}
-- Testing Phase {=ex:milestone-2 .Event date ^^xsd:date}`;
+Milestones: {?hasMilestone .Event name}
+
+- Planning Complete {=ex:milestone-1}
+- Testing Phase {=ex:milestone-2}`;
 
             const result = parse(original, { context: { ex: 'http://ex.org/' } });
 
