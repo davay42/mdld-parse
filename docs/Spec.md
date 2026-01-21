@@ -283,6 +283,14 @@ ex:references dct:references <https://www.w3.org/RDF> .
 
 ## 11. Lists (normative)
 
+Lists are for repeating values of the same relation.
+Paragraph groups are for describing an entity.
+
+Use lists when:
+- One predicate
+- Many objects
+- Homogeneous semantics
+
 ### 11.1 Scope rule
 
 A `{...}` block immediately preceding a list applies to **all list items** until list end. There must be some text before such list description annotation.
