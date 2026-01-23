@@ -193,20 +193,20 @@ function extractInlineCarriers(text, baseOffset = 0) {
             continue;
         }
 
-        break;
+        pos++; // Advance to next character if no carrier found
     }
 
     return carriers;
 }
 
-function calcCarrierRanges(match, baseOffset, offset = 0) {
-    const valueStart = baseOffset + offset;
+function calcCarrierRanges(match, baseOffset, matchStart) {
+    const valueStart = baseOffset + matchStart;
     const valueEnd = valueStart + match[1].length;
-    const attrsStart = valueEnd + 2;
-    const attrsEnd = attrsStart + match[2].length;
+    const attrsStart = matchStart + match[0].indexOf('{');
+    const attrsEnd = attrsStart + match[2].length + 2; // +2 for { and }
     return {
         valueRange: [valueStart, valueEnd],
-        attrsRange: [attrsStart, attrsEnd],
+        attrsRange: [attrsStart + 1, attrsEnd - 1], // Exclude braces
         range: [valueStart, attrsEnd],
         pos: attrsEnd
     };
@@ -217,7 +217,7 @@ function tryExtractEmphasisCarrier(text, pos, baseOffset) {
     const match = INLINE_CARRIER_PATTERNS.EMPHASIS.exec(text);
     if (!match) return null;
 
-    const ranges = calcCarrierRanges(match, baseOffset, match[0].length);
+    const ranges = calcCarrierRanges(match, baseOffset, match.index);
     return createCarrier('emphasis', match[1], `{${match[2]}}`,
         ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
 }
@@ -227,14 +227,14 @@ function tryExtractCodeCarrier(text, pos, baseOffset) {
     const match = INLINE_CARRIER_PATTERNS.CODE_SPAN.exec(text);
     if (!match) return null;
 
-    const ranges = calcCarrierRanges(match, baseOffset, 2);
+    const ranges = calcCarrierRanges(match, baseOffset, match.index);
     return createCarrier('code', match[1], `{${match[2]}}`,
         ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
 }
 
 function tryExtractBracketCarrier(text, pos, baseOffset) {
     const bracketStart = text.indexOf('[', pos);
-    if (bracketStart === -1) return null;
+    if (bracketStart === -1 || bracketStart !== pos) return null;
 
     const bracketEnd = findMatchingBracket(text, bracketStart);
     if (!bracketEnd) return null;

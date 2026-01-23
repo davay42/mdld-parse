@@ -6,131 +6,236 @@ A deterministic, streaming-friendly semantic annotation layer for CommonMark Mar
 
 ---
 
-## 1. Scope and guarantees
+## 1. What MD-LD Guarantees
 
-1. MD-LD is **CommonMark-preserving**. Removing `{...}` yields valid Markdown.
-2. **No implicit semantics** exist.
-3. **Every emitted quad originates from `{...}`**.
-4. Parsing MUST be implementable as a **single-pass streaming algorithm**.
-5. **No blank nodes** are generated.
-6. **No guessing, inference, or structural heuristics** are permitted.
-7. Every quad MUST be traceable back to a concrete source span.
+MD-LD follows these strict rules to make it predictable and reliable:
 
----
+1. **Markdown stays valid** - If you remove all `{...}` blocks, you get perfectly normal Markdown
+2. **No hidden meanings** - MD-LD never guesses what you meant. Everything must be explicit
+3. **Every fact comes from `{...}`** - All RDF data comes directly from your annotations
+4. **One-pass processing** - MD-LD can read your document from start to finish just once
+5. **No blank nodes** - Every entity has a proper identifier
+6. **No guessing games** - MD-LD doesn't infer or assume anything from structure
+7. **Traceable origins** - Every fact can be traced back to exactly where you wrote it
 
-## 2. Graph model (normative)
-
-MD-LD emits a directed labeled multigraph:
-
-```
-G = (V, E)
-E ⊆ V × P × V
-```
-
-Where:
-
-* `V = IRIs ∪ Literals`
-* `P = IRIs`
-* Literals are terminal (never subjects)
+These rules make MD-LD **deterministic** - the same input always produces the same output.
 
 ---
 
-## 3. In-scope nodes at parse time
+## 2. How MD-LD Creates Data
 
-At any `{...}` annotation, the parser may have:
+MD-LD turns your annotations into **facts** about things. Think of it like creating sentences:
 
-* **S** — current subject (IRI, optional)
-* **O** — object resource (IRI, optional, from link/image or `{=IRI}`)
-* **L** — literal value (string + optional datatype or language)
+**Subject → Predicate → Object**
 
----
+For example:
+- "Apollo 11 → has name → "Apollo 11""
+- "Apollo 11 → is a → Space Mission"
+- "Apollo 11 → launched in → 1969"
 
-## 4. Value carriers (normative)
+### The Building Blocks
 
-A `{...}` block MAY attach to exactly one **value carrier**.
+MD-LD uses two types of things:
 
-Valid value carriers:
+1. **IRIs** - Unique identifiers for entities (like web addresses)
+   - `http://schema.org/Person` - the concept of "Person"
+   - `https://www.wikidata.org/entity/Q43653` - Apollo 11 mission
+   - `urn:isbn:0060831014` - A book global identifier
 
-### Inline
+2. **Literals** - Actual data values (text, numbers, dates)
+   - "Apollo 11" (text)
+   - 1969 (number)
+   - "1969"^^xsd:gYear (typed date)
 
-* `[text] {...}` - inline spans
-* `*text* {...}`, `_text_ {...}` - emphasis
-* `**text** {...}`, `__text__ {...}` - strong
-* `` `text` {...}`` - code
+### The Rules
 
-### Block-level
+- **IRIs** can be subjects or objects - they can point to things or be pointed at
+- **Literals** are always objects - they can only be pointed at (never subjects)
+- Every fact connects exactly two things through a predicate
 
-* `# Heading {...}` - headings
-* `- item {...}` - list items
-* `> quote {...}` - blockquotes
-* ````lang {...}\n...\n```` - code blocks
-
-### Links / embeds
-
-* `http://example.com {...}` - bare links
-* `[label](URL) {...}` - links
-* `![alt](URL) {...}` - images
-
-Everything else is **not** a value carrier.
+This creates a **graph** - a network of connected facts that computers can process.
 
 ---
 
-## 5. Semantic block `{...}`
+## 3. What's Available When You Write `{...}`
 
-### 5.1 Attachment rule
+When you add a `{...}` annotation, MD-LD knows about three things:
 
-A `{...}` block MUST attach to the **nearest preceding value carrier**
-OR appear on its own line to apply to the **current subject** and/or the immediately following list.
+### **S - The Current Subject** (What we're talking about)
+- This is the main entity we're describing
+- Set by `{=IRI}` or `{=#fragment}` 
+- Stays current until you change it
 
-If attachment is ambiguous → **no quads emitted**.
+**Example:**
+```md
+# Apollo 11 {=wd:Q43653}  ← Sets S to Apollo 11
+[1969] {launchYear}       ← S is still Apollo 11
+```
+
+### **O - The Object Resource** (What we're linking to)
+- Comes from links, images, or `{=IRI}` inside the annotation
+- Only available when you explicitly provide it
+
+**Example:**
+```md
+# NASA {=urn:org:nasa .Organization name}
+
+<https://nasa.gov> {?sameAs}
+[NASA website](https://nasa.gov) {?website .Website name}
+![NASA Logo](https://nasa.gov/logo.png) {?logo .Image name}
+
+```
+
+### **L - The Literal Value** (The actual text)
+- The text content of what you're annotating
+- Can have datatypes (`^^xsd:gYear`) or languages (`@en`)
+
+**Example:**
+```md
+[1969] {launchYear}      ← L = "1969"
+[July 20] {launchDate @en} ← L = "July 20"@en
+```
+
+These three pieces let MD-LD create the right facts from your annotations.
 
 ---
 
-## 6. Subjects
+## 4. What Can Carry Annotations
 
-#### 6.1.1 Subject Declaration Form
+A `{...}` block can attach to exactly one **value carrier** - the piece of Markdown that provides the literal value.
 
-```
-{=IRI}
-{=#fragment}
-```
+### Inline Elements (text-level)
 
-Sets the current subject **S** to the expanded IRI or creates a fragment relative to the current subject base. Emits no quads
-* Overrides previous subject
-* Subject context persists forward
+| Markdown | What it captures | Example |
+|----------|------------------|---------|
+| `[text] {...}` | Link text | `[Apollo 11] {name}` |
+| `*text* {...}` | Italic text | `*important* {emphasis}` |
+| `_text_ {...}` | Italic text | `_important_ {emphasis}` |
+| `**text** {...}` | Bold text | `**warning** {alert}` |
+| `__text__ {...}` | Bold text | `__warning__ {alert}` |
+| `` `text` {...}` | Code text | `` `console.log()` {code}`` |
 
-#### 6.1.2 IRI Form
+### Block Elements (structure-level)
 
-```
-{=IRI}
-```
+| Markdown | What it captures | Example |
+|----------|------------------|---------|
+| `# Heading {...}` | Heading text | `# Apollo 11 {=ex:mission .Mission name}` |
+| `- item {...}` | List item text | `- Neil Armstrong {=ex:person .Person name}` |
+| `> quote {...}` | Quote text | `> "One small step" {quote}` |
+| ````lang {...}`` | Code block content | ````js {=ex:code .SoftwareSourceCode}` |
 
-Expands to a full IRI using context prefixes and vocabulary.
+### Links and Media (with URLs)
 
-Example:
+| Markdown | What it captures | Example |
+|----------|------------------|---------|
+| `http://example.com {...}` | The URL itself | `https://nasa.gov {?website}` |
+| `[label](URL) {...}` | Link text + URL | `[NASA](https://nasa.gov) {?website name}` |
+| `![alt](URL) {...}` | Alt text + URL | `![Photo](photo.jpg) {?image name}` |
+
+### What CAN'T Carry Annotations
+
+- Plain paragraphs without inline formatting
+- Raw URLs without `{...}`
+- Text that's not in one of the formats above
+- Multiple elements at once (one `{...}` per carrier)
+
+**Key Rule:** The `{...}` block must come **immediately after** the value carrier.
+
+---
+
+## 5. How `{...}` Blocks Attach
+
+A `{...}` block needs to know what it's describing. MD-LD follows simple rules to figure this out.
+
+### The Attachment Rules
+
+1. **Attach to the nearest value carrier** - The `{...}` grabs the closest thing that can carry it
+2. **Or stand alone** - If on its own line, it applies to the current subject or the next list
+
+### Rule 1: Attach to Nearest Carrier
 
 ```md
-# Apollo 11 {=wd:Q43653}
+[Apollo 11] {name} was launched in [1969] {launchYear}.
+```
+- `{name}` attaches to `[Apollo 11]` → L = "Apollo 11"
+- `{launchYear}` attaches to `[1969]` → L = "1969"
+
+### Rule 2: Stand Alone for Subjects
+
+```md
+# Apollo 11 Mission {=ex:apollo11 .Mission}
+```
+- `{=ex:apollo11 .Mission}` stands alone
+- Sets the current subject to `ex:apollo11`
+- Declares it's a `.Mission`
+
+### Rule 3: Stand Alone for Lists
+
+```md
+Crew members: {?crew .Person name}
+- Neil Armstrong {=ex:neil}
+- Buzz Aldrin {=ex:buzz}
+```
+- `{?crew .Person name}` stands alone before the list
+- Applies to ALL list items that follow
+
+### What Happens When It's Ambiguous?
+
+If MD-LD can't figure out what the `{...}` should attach to, **no data is emitted**. This prevents mistakes.
+
+**Ambiguous example:**
+```md
+Some text here {name}
+```
+- "Some text here" isn't a valid value carrier
+- Result: No RDF data is created
+
+**Clear example:**
+```md
+[Some text here] {name}
+```
+- `[Some text here]` is a valid value carrier
+- Result: Creates the expected RDF data
+
+---
+
+## 6. Setting the Subject
+
+The **subject** is what you're talking about. Once set, it stays current until you change it.
+
+### Full IRI Subject
+
+```
+{=IRI}
 ```
 
-→ no output
+Sets the current subject to a complete identifier.
 
-#### 6.1.2 Fragment Form
+**Example:**
+```md
+# Apollo 11 {=wd:Q43653}
+[1969] {launchYear}
+```
+
+**Result:**
+```turtle
+wd:Q43653 schema:launchYear "1969" .
+```
+
+### Fragment Subject
 
 ```
 {=#fragment}
 ```
 
-Creates a fragment IRI relative to the current subject:
+Creates a local identifier relative to the current subject base.
 
-* If current subject exists: `currentSubjectBase + '#' + fragment`
-* If no current subject: **no subject is set** (invalid)
-* Replaces any existing fragment in current subject
-* Base IRI is determined by splitting current subject on first `#`
-* Multiple fragment declarations replace the previous fragment.
+**Rules:**
+- Requires a current subject to exist
+- Replaces any existing fragment
+- Creates `currentSubjectBase#fragment`
 
-Example:
-
+**Example:**
 ```md
 # Document {=ex:document}
 ## Section 1 {=#section1}
@@ -140,189 +245,270 @@ Example:
 [More content] {name}
 ```
 
+**Result:**
 ```turtle
 ex:document#section1 schema:name "Section content" .
 ex:document#section2 schema:name "More content" .
 ```
 
-#### 6.1.3 Object IRI Form
+### Object IRI (Temporary)
 
 ```
 {+iri}
 ```
 
-{+IRI} declares an object IRI for use by subsequent object predicates (?p, !p) without changing the current subject context. This enables temporary object declarations for complex relationships while maintaining the current subject for continued annotation.
+Declares a temporary object for use with `?` and `!` predicates, without changing the current subject.
 
-#### 6.1.4 Soft Fragment Form
+### Soft Fragment (Temporary)
 
 ```
 {+#fragment}
 ```
 
-{+#fragment} declares a soft fragment IRI relative to the current subject base, combining the locality of soft IRIs with the convenience of fragment resolution.
+Creates a temporary fragment relative to the current subject base.
 
 **Use cases:**
-- **Object property declarations**: `[Related Item] {+ex:related ?schema:isRelatedTo}` creates `currentSubject → isRelatedTo → ex:related`
-- **Reverse relationships**: `[Parent] {+ex:parent !schema:hasPart}` creates `ex:parent → hasPart → currentSubject`
-- **Soft fragment declarations**: `[Section] {+#section1 name ?hasPart}` creates `currentSubject → hasPart → currentSubject#section1`
-- **Multi-predicate annotations**: `[Text] {+ex:entity name ?schema:describes .Thing}` creates `ex:entity name "Text"`, `currentSubject → describes → ex:entity`, and `ex:entity rdf:type Thing`
+- `[Related Item] {+ex:related ?schema:isRelatedTo}` - Links to a local fragment
+- `[Parent] {+ex:parent !schema:hasPart}` - Reverse relationship
+- `[Section] {+#section1 name ?hasPart}` - Object property with fragment
 
-The soft object IRI (regular or fragment) is local to the current annotation block and does not persist across subsequent annotations, ensuring proper scope isolation.
+The soft IRI only exists within the current annotation block.
 
 
 ---
 
-## 7. Types
+## 7. Declaring Types
+
+Types tell us **what something is**. Use the dot notation.
 
 ```
 .Class
 ```
 
-Emits:
-
+**What it creates:**
 ```
 S rdf:type schema:Class
 ```
 
-Example:
-
+**Example:**
 ```md
 # Apollo 11 {=wd:Q43653 .SpaceMission}
 ```
 
+**Result:**
 ```turtle
 wd:Q43653 a schema:SpaceMission .
 ```
 
----
-
-## 8. Predicate routing (core rule)
-
-Predicate syntax determines **graph direction and node selection**.
-
-### 8.1 Predicate forms
-
-| Form  | Emits quad |
-| ----- | ---------- |
-| `p`   | `S —p→ L`  |
-| `?p`  | `S —p→ O`  |
-| `!p`  | `O —p→ S`  |
-
-All three forms are **normative and required**.
-
----
-
-### 8.2 Predicate emission rules
-
-A predicate emits a quad if:
-
-* all referenced nodes exist
-* subject and object roles are valid
-
-Otherwise → emit nothing.
-
----
-
-## 9. Literals
-
-### 9.1 Extraction
-
-Literal `L` is extracted **only** from the attached value carrier.
-
-Plain text outside a value carrier MUST NOT be used.
-
----
-
-### 9.2 Datatypes and language
-
-```
-^^datatypeIRI
-@lang
-```
-
-Rules:
-
-* Apply only to `L`
-* Mutually exclusive
-* Never inferred
-
-Example:
-
+**Multiple types:**
 ```md
-[1969] {startDate ^^xsd:gYear}
+# Neil Armstrong {=ex:neil .Person .Astronaut}
 ```
 
+**Result:**
 ```turtle
-S schema:startDate "1969"^^xsd:gYear .
+ex:neil a schema:Person, schema:Astronaut .
 ```
+
+**Key points:**
+- Types are declared with a leading dot `.ClassName`
+- Multiple types can be listed in the same `{...}`
+- The current subject gets the type(s)
 
 ---
 
-## 10. Object resources
+## 8. How Predicates Work
 
-`O` is available only when explicitly present:
+Predicates create the actual **facts** by connecting subjects to objects. The syntax determines the direction.
 
-* link URL
-* image URL
-* `{=IRI}`
+### The Three Predicate Forms
 
-Example:
+| Syntax | Direction | What it means | Example use case |
+|--------|-----------|---------------|------------------|
+| `p` | Subject → Literal | "Has property" | `[Apollo 11] {name}` |
+| `?p` | Subject → Object | "Points to" | `[NASA] {?operator}` |
+| `!p` | Object → Subject | "Is pointed at by" | `[Mission] {!hasPart}` |
+
+### How They Work
+
+**`p` - Subject to Literal**
+```md
+[Apollo 11] {name}
+```
+Creates: `S → name → "Apollo 11"`
+
+**`?p` - Subject to Object**  
+```md
+[NASA](https://nasa.gov) {?operator}
+```
+Creates: `S → operator → https://nasa.gov`
+
+**`!p` - Object to Subject**
+```md
+[Mission] {=ex:mission !hasPart}
+```
+Creates: `ex:mission → hasPart → S`
+
+### When Facts Are Created
+
+A predicate creates a fact only when:
+- All required pieces exist (subject, predicate, object)
+- The roles make sense (literals can't be subjects)
+
+If anything is missing, **no fact is created** - this prevents errors.
+
+### All Forms Are Required
+
+MD-LD implementations must support all three forms. They're not optional - they're core to how MD-LD works.
+
+---
+
+## 9. Working with Literals
+
+Literals are the actual text values - the data itself.
+
+### Where Literals Come From
+
+The literal value `L` comes **only** from the value carrier you're annotating.
+
+**Good:**
+```md
+[Apollo 11] {name}  ← L = "Apollo 11"
+```
+
+**Bad:**
+```md
+Apollo 11 {name}  ← "Apollo 11" is not in a value carrier
+```
+Result: No data is created
+
+### Adding Datatypes and Languages
+
+```
+^^datatypeIRI    # For typed data
+@lang           # For language-specific text
+```
+
+**Rules:**
+- Use only one per literal (datatype OR language, not both)
+- Never inferred - you must specify them explicitly
+
+**Examples:**
+```md
+[1969] {launchYear ^^xsd:gYear}
+[July] {month @en}
+[Juillet] {month @fr}
+```
+
+**Results:**
+```turtle
+S schema:launchYear "1969"^^xsd:gYear .
+S schema:month "July"@en .
+S schema:month "Juillet"@fr .
+```
+
+### Common Datatypes
+
+- `^^xsd:string` - Plain text (default)
+- `^^xsd:integer` - Whole numbers
+- `^^xsd:gYear` - Years (like 1969)
+- `^^xsd:date` - Full dates
+- `^^xsd:boolean` - true/false values
+
+---
+
+## 10. Working with Object Resources
+
+Object resources are the **things** you link to, not the text about them.
+
+### Where Objects Come From
+
+The object `O` is available only from:
+- Link URLs: `[text](URL)`
+- Image URLs: `![alt](URL)`
+- Explicit IRIs: `{=IRI}` inside the annotation
+
+### Examples
 
 ```md
 ## References {=ex:references}
 
+[Example image](https://www.example.com/image.jpg) {?image name}
 [W3C RDF](https://www.w3.org/RDF) {?dct:references name}
+[Alice] {=urn:person:alice ?author name}
 ```
 
+### What This Creates
+
 ```turtle
+ex:references schema:image <https://www.example.com/image.jpg> .
+<https://www.example.com/image.jpg> schema:name "Example image" .
+
 ex:references dct:references <https://www.w3.org/RDF> .
 <https://www.w3.org/RDF> schema:name "W3C RDF" .
+
+ex:references schema:author <urn:person:alice> .
+<urn:person:alice> schema:name "Alice" .
 ```
+
+### How It Works
+
+1. **Link URLs**: The URL becomes the object
+2. **Predicate `?`**: Connects subject to the URL object
+3. **Predicate without `?`**: Creates a fact about the URL object itself
+
+### Key Points
+
+- Objects are always IRIs (web identifiers)
+- Objects can be subjects of other facts in the same annotation
+- Use `?` to point to objects, no prefix for facts about them
 
 ---
 
-## 11. Lists (normative)
+## 11. Working with Lists
 
-Lists are for repeating values of the same relation.
-Paragraph groups are for describing an entity.
+Lists are for **repeating values** of the same relationship. Paragraphs are for describing one entity.
 
-Use lists when:
+### When to Use Lists
+
+Use lists when you have:
 - One predicate
-- Many objects
-- Homogeneous semantics
+- Multiple objects
+- The same type of relationship
 
-### 11.1 Scope rule
+**Example:** Crew members of a mission
+```md
+Crew: {?crew .Person name}
+- Neil Armstrong {=ex:neil}
+- Buzz Aldrin {=ex:buzz}
+- Michael Collins {=ex:michael}
+```
 
-A `{...}` block immediately preceding a list applies to **all list items** until list end. There must be some text before such list description annotation.
+### How List Context Works
 
-Ordered and unordered lists are semantically identical. A single list item represents a single value carrier. Structural nesting is allowed, but semantic interpretation does not recurse across nesting levels.
+A `{...}` block immediately before a list applies to **all items** in that list.
 
-### 11.2 Nested Lists (normative)
+**Rules:**
+- Must have some text before the list annotation
+- Ordered (`1.`) and unordered (`-`) lists work the same
+- Each list item is a separate value carrier
 
-Semantic predicates and types declared for a list apply only to its immediate items at the same indentation level. Nested lists establish a new semantic scope and do not inherit semantic context.
+### Nested Lists
 
-Implementations MUST scope list semantic context to the indentation level at which it is declared and MUST discard it when entering or leaving nested lists. A nested list has no semantics unless there is an explicit {...} block immediately before it.
-
-### Example
+Each indentation level creates a new semantic scope:
 
 ```md
-[ex] <http://example.org/>
-
 ## Recipe {=ex:recipe .Recipe name}
 
 Ingredients: {?hasPart .Ingredient name}
-
 - Flour {=ex:flour}
   Variants: {?hasPart .FlourType name}
-  - Whole wheat {=ex:flour-whole-wheat .WholeGrainFour}
-    Whole grain includes {?hasPart .GrainPart name}
-    - Bran {=ex:grain-bran}
-    - Germ {=ex:grain-germ}
-    - Endosperm {=ex:grain-endosperm}
-  - White {=ex:flour-white title}
+  - Whole wheat {=ex:flour-whole-wheat .WholeGrainFlour}
+  - White {=ex:flour-white .FlourType title}
 - Water {=ex:water}
 ```
 
+**What This Creates:**
 ```turtle
 ex:recipe a schema:Recipe ; 
           schema:name "Recipe" ;
@@ -332,69 +518,132 @@ ex:flour a schema:Ingredient ;
          schema:name "Flour" ;
          schema:hasPart ex:flour-whole-wheat, ex:flour-white .
 
-ex:flour-whole-wheat a schema:WholeGrainFlour ; 
-                     schema:name "Whole wheat" ;
-                     schema:hasPart ex:grain-bran, ex:grain-germ, ex:grain-endosperm .
-
-ex:grain-bran a schema:GrainPart ;
-              schema:name "Bran" .
-ex:grain-germ a schema:GrainPart ;
-              schema:name "Germ" .
-ex:grain-endosperm a schema:GrainPart ;
-                   schema:name "Endosperm" .
+ex:flour-whole-wheat a schema:WholeGrainFlour , schema:FlourType ; 
+                     schema:name "Whole wheat" .
 
 ex:flour-white a schema:FlourType ; 
                 schema:title "White" .
+                
 ex:water a schema:Ingredient ; 
          schema:name "Water" .
 ```
 
+### Key Points
+
+- List context applies only to items at the same indentation level
+- Nested lists don't inherit semantic context
+- Each level needs its own annotation if you want semantics
+
 ---
 
-## 12. Reverse relations
+## 12. Reverse Relationships
 
-Reverse predicates invert direction **only**, never semantics.
+Reverse predicates flip the direction of a relationship without changing its meaning.
 
-Example:
+### How It Works
+
+**Normal predicate (`p`):** Subject → Object
+```md
+[The Mission] {hasPart Crew}
+```
+Creates: `Mission → hasPart → Crew`
+
+**Reverse predicate (`!p`):** Object → Subject  
+```mdn
+[The Mission] {!hasPart Crew}
+```
+Creates: `Crew → hasPart → Mission`
+
+### Practical Example
 
 ```md
 Used in: {!hasPart}
 - Bread {=ex:bread}
 ```
 
+**Result:**
 ```turtle
 ex:bread schema:hasPart S .
 ```
 
----
+### When to Use Reverse Relationships
 
-## 13. Code blocks
+Use `!` when you want to:
+- Point back to the current subject from an object
+- Create bidirectional relationships
+- Express "is part of" vs "has part"
 
-If `{...}` appears on the opening fence, the code block is a value carrier.
-
-Example: (note that `` is only two - to show mdld in md )
-
+**Example:**
 ```md
-
-``js {=ex:code .SoftwareSourceCode code}
-console.log("hi")
-``
-
-Run this *JavaScript* {language} code in you browser console  to say 'hi'. 
-
+# Chapter 1 {=ex:chapter1 .Chapter name}
+[Book] {!hasPart .Book title}
 ```
 
-```turtle 
+**Creates:**
+```turtle
+ex:chapter1 a schema:Chapter ;
+             schema:name "Chapter 1" .
+             
+ex:book a schema:Book ;
+         schema:title "Book" ;
+         schema:hasPart ex:chapter1 .
+```
+
+### Key Points
+
+- `!` only flips direction, not meaning
+- Useful for creating inverse relationships
+- The object becomes the subject in the resulting fact
+
+---
+
+## 13. Code Blocks
+
+Code blocks can carry annotations when you put `{...}` on the opening fence.
+
+### How It Works
+
+```md
+```js {=ex:code .SoftwareSourceCode text}
+console.log("hi")
+```
+```
+
+The code block content becomes the literal value.
+
+### Example
+
+```md
+```js {=ex:code .SoftwareSourceCode text}
+console.log("hi")
+```
+
+Run this *JavaScript* {language} code in your browser console to say 'hi'.
+```
+
+### What It Creates
+
+```turtle
 ex:code a schema:SoftwareSourceCode ;
   schema:text "console.log(\"hi\")" ;
   schema:language "JavaScript" .
 ```
 
+### Key Points
+
+- The `{...}` goes on the opening fence line
+- The entire code content becomes the literal
+- Useful for documenting code, scripts, and configuration
+
 ---
 
-## 14. Context: initial, prefix, vocabulary
+## 14. Context and Vocabulary
 
-MD-LD processors MUST provide this initial context by default:
+Context tells MD-LD how to expand short names into full identifiers.
+
+### Default Context
+
+MD-LD always provides this context by default:
 
 ```json
 {
@@ -406,46 +655,91 @@ MD-LD processors MUST provide this initial context by default:
 }
 ```
 
-It is used to expand CURIEs and vocabulary terms.
+This means:
+- `name` expands to `http://schema.org/name`
+- `Person` expands to `http://schema.org/Person`
+- `rdf:type` expands to `http://www.w3.org/1999/02/22-rdf-syntax-ns#type`
 
-`[prefix] <IRI>`
+### Adding Prefixes
 
-Declares a prefix for CURIE expansion within the current document scope.
+Declare prefixes for your own identifiers:
 
-`[@vocab] <IRI>`
+```md
+[ex] <http://example.org/>
+[wd] <https://www.wikidata.org/entity/>
+```
 
-Sets the default vocabulary for un-prefixed terms and predicate names.
+Now you can use:
+- `ex:person` → `http://example.org/person`
+- `wd:Q43653` → `https://www.wikidata.org/entity/Q43653`
+
+### Setting Vocabulary
+
+Change the default vocabulary:
+
+```md
+[@vocab] <http://example.org/ontology/>
+```
+
+Now unprefixed terms use your namespace:
+- `name` → `http://example.org/ontology/name`
+- `Person` → `http://example.org/ontology/Person`
+
+### Context Rules
+
+- Context applies forward from where you declare it
+- Later declarations override earlier ones
+- Initial context can't be removed, only overridden
+- Works in a single pass - no look-ahead needed
 
 
-### Scope
+## 15. What MD-LD Doesn't Do
 
-- Context declarations apply forward from declaration point
-- Later declarations override earlier ones for subsequent parsing
-- Initial context cannot be unset, only overridden
-- Context is resolved during single-pass streaming parsing
-- No backtracking or look-ahead required
+To keep things simple and predictable, MD-LD explicitly avoids these features:
 
+### Forbidden Constructs
 
-## 15. Forbidden constructs (normative)
+- **Implicit labels** - No automatic naming from structure
+- **Structural inference** - No guessing from document layout
+- **Auto-subjects** - No automatic subject creation
+- **Literal lists** - Structure doesn't imply semantics
+- **Blank nodes** - Every entity must have a proper identifier
+- **key=value syntax** - Use the explicit `{...}` format instead
+- **Predicate guessing** - No automatic predicate selection
+- **Backtracking parses** - Always single-pass, forward-only
+- **CURIE in Markdown links** - Keep links and semantics separate
 
-* Implicit labels
-* Structural inference
-* Auto-subjects
-* Blank nodes
-* key=value syntax
-* Predicate guessing
-* Backtracking parses
-* CURIE in Markdown links
+### Why These Are Forbidden
+
+These restrictions make MD-LD:
+- **Predictable** - Same input always produces same output
+- **Traceable** - Every fact comes from an explicit annotation
+- **Fast** - Can process in a single pass
+- **Clear** - No magic or hidden behavior
+
+If you need these features, use them in your application logic, not in the MD-LD syntax itself.
 
 ---
 
-## 15. Conformance
+## 16. Conformance
 
-An MD-LD processor is conformant if:
+An MD-LD processor is conformant if it follows these rules:
 
-1. All emitted quads follow §8 routing rules
-2. All quads originate from `{...}` blocks
-3. Parsing is single-pass and deterministic
-4. Round-trip MD → RDF → MD preserves quads and origins
+### Required Behaviors
+
+1. **Follow predicate routing rules** - All facts must follow §8 patterns
+2. **Explicit source only** - All facts must come from `{...}` blocks
+3. **Single-pass parsing** - Must be implementable as streaming algorithm
+4. **Deterministic output** - Same input always produces same output
+5. **Traceable origins** - Every fact must be traceable to its source
+
+### What This Means
+
+- **No guessing** - Processors can't infer or assume anything
+- **No blank nodes** - Every entity must have an IRI
+- **No backtracking** - Must process forward-only
+- **Round-trip preservation** - MD → RDF → MD should preserve all facts
+
+If you implement these rules, you have a conformant MD-LD processor.
 
 ---

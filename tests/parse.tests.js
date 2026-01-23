@@ -425,6 +425,22 @@ __double_underline__ {doubleUnderlineName}
         }
     },
 
+    {
+        name: 'Multiple inline carriers on same line',
+        fn: () => {
+            const md = `
+# Document {=ex:doc}
+
+[span] {spanName} *emphasis* {emphasisName} **strong** {strongName}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', '@vocab': 'http://example.org/' } });
+
+            assert(quads.length === 3, `Should emit 3 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/spanName', 'span'), 'Should have span');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/emphasisName', 'emphasis'), 'Should have emphasis');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/strongName', 'strong'), 'Should have strong');
+        }
+    },
+
     // Edge cases
     {
         name: 'Empty annotation emits nothing',
