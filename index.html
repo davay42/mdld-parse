@@ -116,7 +116,7 @@
                     style="opacity:50%">}</span>
             </div>
             <h1
-                style="font-size: 2.5rem; font-weight: 700; margin-bottom: .5rem; background: linear-gradient(135deg, var(--accent-orange-light), var(--accent-orange)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                style="font-size: 3.5rem; font-weight: 700; margin-bottom: .5rem; background: linear-gradient(135deg, var(--accent-orange-light), var(--accent-orange)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                 MD-LD</h1>
             <h2 style="font-size: 1.5rem; font-weight: 500; margin-bottom: .5rem; color: var(--text-dark);">Markdown
                 Linked Data</h2>
@@ -380,8 +380,8 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
         const examples = {
             minimal: `
 ## Document {=urn:mdld:doc}
-Title: [My Document] {name}
-Author: [Alice] {+ex:alice .Person ?author name}
+Title: [My Document] {label}
+Author: [Alice] {+urn:mdld:alice .urn:class:Person ?urn:role:author urn:cred:name}
             `,
             journal: `           
 ## 2024-07-18 — A good day {=urn:journal:day-2024-07-18 .Event}
@@ -391,49 +391,49 @@ Author: [Alice] {+ex:alice .Person ?author name}
 
 Mood: [Happy] {mood}
 Energy level: [8] {ex:energyLevel ^^xsd:integer}
-Place: [Central Park] {=ex:central-park ?location}
-Park label: [Central Park] {rdfs:label @en}
-With: [Sam] {=ex:sam .Person ?attendee}
+Place: [Central Park] {=ex:central-park ?ex:location}
+Park label: [Central Park] {label @en}
+With: [Sam] {=ex:sam .ex:Person ?ex:attendee}
 Weather: [Sunny] {ex:weather}
 
-Activities: {?ex:hasActivity .Action name}
+Activities: {?ex:hasActivity .ex:Action label}
 
 - Walking {=ex:walking-1}
 - Reading {=ex:reading-1}
 
 Reflections:
-I felt [peaceful] {ex:emotionalState} and the park was [beautiful] {description}.
+I felt [peaceful] {ex:emotionalState} and the park was [beautiful] {ex:description}.
 
-Related events: {!ex:relatedEvent  .Event}
+Related events: {!ex:relatedEvent  .ex:Event}
 - Morning coffee {=ex:coffee-2024-07-18}
 - Evening dinner {=ex:dinner-2024-07-18}`,
 
             recipe: `
-## Apple Pie {=urn:recipe:apple-pie .Recipe name}
+## Apple Pie {=ex:apple-pie .ex:Recipe label}
 
-Description: **Classic homemade apple pie** {description}
-Cooking time: **45** {cookTime ^^xsd:integer} minutes
-Servings: **8** {recipeYield ^^xsd:integer}
-Difficulty: **Medium** {urn:skill:difficulty}
+Description: **Classic homemade apple pie** {comment}
+Cooking time: **45** {ex:cookTime ^^xsd:integer} minutes
+Servings: **8** {ex:recipeYield ^^xsd:integer}
+Difficulty: **Medium** {ex:difficulty}
 
-Ingredients: {?recipeIngredient .urn:food:ingredient name}
+Ingredients: {?ex:recipeIngredient .ex:ingredient name}
 
-* Apples {=urn:food:apples}
-* Sugar {=urn:food:sugar}
-* Butter {=urn:food:butter}
-* Flour {=urn:food:flour}
-* Cinnamon {=urn:food:cinnamon}
+* Apples {=ex:apples}
+* Sugar {=ex:sugar}
+* Butter {=ex:butter}
+* Flour {=ex:flour}
+* Cinnamon {=ex:cinnamon}
 
-_Ingredient_ {+urn:food:ingredient .Class name} - is a class for all ingredients in our **Cookbook** {+urn:collection:cookbook .Collection name ?isPartOf}.
+_Ingredient_ {+ex:ingredient .ex:Class label} - is a class for all ingredients in our **Cookbook** {+ex:cookbook .ex:Collection label ?isPartOf}.
 
-Equipment: {?urn:requiresEquipment name}
+Equipment: {?ex:requiresEquipment label}
 
-* Oven {=urn:kitchen:oven-1 .Device }
-* Mixing bowl {=urn:kitchen:bowl-1 .Utensil }
-* Rolling pin {=urn:kitchen:pin-1 .Utensil }
+* Oven {=ex:oven .ex:Device }
+* Mixing bowl {=ex:bowl .ex:Utensil }
+* Rolling pin {=urn:ex:pin .ex:Utensil }
 
-Calories:  [1235] {urn:nutrition:calories ^^xsd:integer} calories
-Sugar: [40.4] {urn:nutrition:sugarGrams ^^xsd:decimal} grams
+Calories:  [1235] {ex:calories ^^xsd:integer} calories
+Sugar: [40.4] {ex:sugarGrams ^^xsd:decimal} grams
 
 Related recipes: {!urn:class:variationOf .Recipe name}
 
@@ -444,58 +444,57 @@ Related recipes: {!urn:class:variationOf .Recipe name}
             project: `
 [ex] <http://example.org/>
 
-## Weekend goals {=ex:weekend-goals .Project}
+## Weekend goals {=ex:weekend-goals .ex:Project}
 
-Tasks: {?hasPart .Action name}
+Tasks: {?ex:hasPart .ex:Action label}
 - Clean kitchen {=ex:task-clean} 
 - Fix bike {=ex:task-bike} 
 - Read book {=ex:task-read}
 
-Dependencies: {?dependsOn .Store name}
+Dependencies: {?ex:dependsOn .ex:Store label}
 - Hardware store {=ex:hardware-store }
 
-People involved: {?assignedTo .Person name}
+People involved: {?ex:assignedTo .ex:Person}
 - Myself {=ex:myself}
 
-Blocked by: {!blocks name}
+Blocked by: {!ex:blocks label}
 - Rain forecast {=ex:weather-forecast}
 
-Progress tracking: {?hasMilestone .Achievement name}
+Progress tracking: {?ex:hasMilestone .ex:Achievement label}
 - Kitchen cleaned {=ex:milestone-kitchen}
 - Bike fixed {=ex:milestone-bike}`,
 
-            apollo: `# Apollo 11 {=wd:Q43653 .SpaceMission}
+            apollo: `
+[nasa] <http://nasa.org/>
 
-[ex] <http://example.org/>
+# Apollo 11 {=wd:Q43653 .nasa:SpaceMission {rdfs:label @en}
 
-Mission name: [Apollo 11] {name}
-Label: [Apollo 11] {rdfs:label @en}
-Launch year: [1969] {startDate ^^xsd:gYear}
-Landing date: [1969-07-20] {endDate ^^xsd:date}
-Duration: [8] {ex:durationDays ^^xsd:integer}
-Budget: [2.5] {ex:billionUSD ^^xsd:decimal}
+Launch year: [1969] {nasa:startDate ^^xsd:gYear}
+Landing date: [1969-07-20] {nasa:endDate ^^xsd:date}
+Duration: [8] {nasa:durationDays ^^xsd:integer}
+Budget: [2.5] {nasa:billionUSD ^^xsd:decimal}
 
-Crew: {?hasPart .Person name}
+Crew: {?nasa:hasPart .nasa:Person nasa:name}
 
 - Neil Armstrong {=wd:Q1615}
 - Buzz Aldrin {=wd:Q2252} 
 - Michael Collins {=wd:Q298} 
 
-Equipment: {?ex:hasEquipment name}
+Equipment: {?nasa:hasEquipment label}
 
-- Saturn V {=ex:saturn-v}
-- Lunar Module {=ex:lm-eagle}
-- Command Module {=ex:cm-columbia}
+- Saturn V {=nasa:saturn-v}
+- Lunar Module {=nasa:lm-eagle}
+- Command Module {=nasa:cm-columbia}
 
-Mission objectives: {?ex:objective .Goal name}
-- Land on Moon {ex:goal-land}
-- Return safely {ex:goal-return}
-- Collect samples {ex:goal-sample}
+Mission objectives: {?nasa:objective .nasa:Goal label}
+- Land on Moon {nasa:goal-land}
+- Return safely {nasa:goal-return}
+- Collect samples {nasa:goal-sample}
 
-Related missions: {!ex:precededBy .SpaceMission name}
+Related missions: {!nasa:precededBy .nasa:SpaceMission label}
 - Apollo 10 {=wd:Q2705}
 
-Followed by: {!ex:followedBy .SpaceMission name}
+Followed by: {!nasa:followedBy .nasa:SpaceMission label}
 - Apollo 12 {=wd:Q2707}`
         };
 
@@ -722,7 +721,7 @@ Followed by: {!ex:followedBy .SpaceMission name}
             const idx = body.children.length;
             const empty = {
                 subject: { termType: 'NamedNode', value: 'http://example.org/s' },
-                predicate: { termType: 'NamedNode', value: 'http://schema.org/name' },
+                predicate: { termType: 'NamedNode', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
                 object: { termType: 'Literal', value: 'value', language: '', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } },
                 graph: { termType: 'NamedNode', value: '' }
             };

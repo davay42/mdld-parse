@@ -1,16 +1,19 @@
 [mdld] <https://mdld.js.org/>
 [wd] <https://www.wikidata.org/wiki/>
 [w3c] <https://www.w3.org/TR/>
+[@vocab] <http://www.w3.org/2000/01/rdf-schema#>
 
-# MDLD Dogfood Specification {=mdld:dogfood .Document name}
+# MDLD Dogfood Specification {=mdld:dogfood .mdld:Document label}
 
-This document is a dogfood example for the **MDLD specification** {=mdld:spec ?about .Document name}. It demonstrates how to use the *MDLD syntax* {=mdld:syntax ?hasPart .programmingLanguage name} to annotate __Markdown__ {+wd:Q18019138 ?derivedFrom .programmingLanguage name} documents with _semantic information_ {describes}. 
+It is a self-describing **MDLD Document** {=mdld:Document .Class label} - a semantically annotated _Text_ {+mdld:Text .Class ?subClassOf label}.
 
-**MD-LD Parser** {=mdld:parser .Program name} emits *RDF* {=w3c:rdf11-concepts .Framework name} from explicit `{...}` {=mdld:annotation name} annotations.
+This _document_ {=mdld:dogfood} is a dogfood example of the **MDLD specification** {=mdld:spec ?about .mdld:Document label}. It demonstrates how to use the *MDLD syntax* {=mdld:syntax ?hasPart .programmingLanguage label} to annotate __Markdown__ {+wd:Q18019138 ?derivedFrom .programmingLanguage label} documents with _semantic information_ {describes}. 
 
-## Rules {=mdld:rules .Rules name}
+**MD-LD Parser** {=mdld:parser .Program label} emits *RDF* {=w3c:rdf11-concepts .Framework label} from explicit `{...}` {=mdld:annotation label} annotations.
 
-MD-LD follows stric rules to make it predictable and reliable: {?hasPart .Rule name}
+## Rules {=mdld:rules .Rules label}
+
+MD-LD follows strict rules to make it predictable and reliable: {?hasPart .Rule label}
 
 1. No guessing {=#no-guessing}
 2. Valid CommonMark {=#valid-commonmark}
@@ -18,34 +21,36 @@ MD-LD follows stric rules to make it predictable and reliable: {?hasPart .Rule n
 4. Each facts comes from a `{...}` {=#explicit-rdf}
 5. Single-pass processing {=#streaming}
 
-## The Building Blocks {=mdld:blocks}
+## The Building Blocks {=mdld:Block .Class comment}
 
 MD-LD uses two types of things: 
 
-1. **IRI** {+#iri .Value name} - Unique identifiers for entities (like web addresses)
+1. **IRI** {+#iri .mdld:Block label} - Unique identifiers for entities (like web addresses)
    - `http://schema.org/Person` - the concept of "Person"
-   - `https://www.wikidata.org/entity/Q43653` - Apollo 11 mission
+   - `https://www.wikidata.org/wiki/Q2005` - JavaScript language
    - `urn:isbn:0060831014` - A book global identifier
 
-2. **Literal** {+#literal .Value name} - Actual data values (text, numbers, dates)
+2. **Literal** {+#literal .mdld:Block label} - Actual data values (text, numbers, dates)
    - "Apollo 11" (text)
    - 1969 (number)
    - "1969"^^xsd:gYear (typed date)
    - "Hola"@es (with language)
 
-## Graph model {=mdld:model .Model name}
+## Graph model {=mdld:model .Class label}
 
-MD-LD creates knowledge graphs from your Markdown documents. {?hasPart .Concept name}
+MDLD is built on **RDF** {+mdld:rdf ?subClassOf label} - _the Resource Definition Framework_ {+mdld:rdf comment}. It's a W3C international standards way to operate on knowledge.
 
-- Subject {=mdld:rdf-subject}
-- Predicate {=mdld:rdf-predicate}
-- Object {=mdld:rdf-object}
+MD-LD creates RDF knowledge graphs from your Markdown documents. {?hasPart .Concept label}
+
+- Subject {=#subject}
+- Predicate {=#predicate}
+- Object {=#object}
 
 **IRIs** {=mdld:blocks#iri} can be *subjects* {+mdld:rdf-subject ?canBe} or *objects* {+mdld:rdf-subject ?canBe} - they can point to things or be pointed at
 
 **Literals** {=mdld:blocks#literal} are always *objects* {+mdld:rdf-object ?canBe} - they can only be pointed at (never subjects)
 
-Every fact connects exactly two things through a **predicate** {=mdld:rdf-predicate .Concept name}
+Every fact connects exactly two things through a **Predicate** {=mdld:rdf-predicate .Class label}
 
 ### Subject {=mdld:rdf-subject}
 
@@ -53,5 +58,12 @@ What we're talking about:
 
 - This is the entity we're describing
 - Set by `=IRI` or `=#fragment` 
-- Temporarily set by `+IRI` and `+#fragment`
-- Stays current until you change it
+- Is used as current until next subject declaration or subject reset `{=}` marker
+
+## Predicate {=mdld:rdf-predicate}
+
+What is the property of the subject we are describing:
+
+- set by a `{property}` annotation
+- defines a relation between the subject and the object
+- 

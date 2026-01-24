@@ -647,18 +647,18 @@ MD-LD always provides this context by default:
 
 ```json
 {
-    "@vocab": "http://schema.org/",
+    "@vocab": "http://www.w3.org/2000/01/rdf-schema#",
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-    "rdfs": "http://www.w3.org/2000/01/rdf-schema#", 
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
-    "schema": "http://schema.org/"
+    "sh": "http://www.w3.org/ns/shacl#",
+    "prov": "http://www.w3.org/ns/prov#"
 }
 ```
 
 This means:
-- `name` expands to `http://schema.org/name`
-- `Person` expands to `http://schema.org/Person`
 - `rdf:type` expands to `http://www.w3.org/1999/02/22-rdf-syntax-ns#type`
+- `rdfs:label` expands to `http://www.w3.org/2000/01/rdf-schema#label`
 
 ### Adding Prefixes
 
@@ -675,15 +675,15 @@ Now you can use:
 
 ### Setting Vocabulary
 
-Change the default vocabulary:
+Change the default vocabulary (http://www.w3.org/2000/01/rdf-schema#):
 
 ```md
-[@vocab] <http://example.org/ontology/>
+[@vocab] <http://schema.org/>
 ```
 
 Now unprefixed terms use your namespace:
-- `name` → `http://example.org/ontology/name`
-- `Person` → `http://example.org/ontology/Person`
+- `name` → `http://schema.org/name`
+- `Person` → `http://schema.org/Person`
 
 ### Context Rules
 

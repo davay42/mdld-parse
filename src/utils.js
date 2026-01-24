@@ -1,9 +1,10 @@
 export const DEFAULT_CONTEXT = {
-    '@vocab': 'http://schema.org/',
+    '@vocab': "http://www.w3.org/2000/01/rdf-schema#",
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
     xsd: 'http://www.w3.org/2001/XMLSchema#',
-    schema: 'http://schema.org/'
+    sh: "http://www.w3.org/ns/shacl#",
+    prov: 'http://www.w3.org/ns/prov#'
 };
 
 export const DataFactory = {

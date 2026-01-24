@@ -1,5 +1,9 @@
 # MD-LD evolution
 
+## v.0.3.5 (2026-01-24)
+
+Removed `schema` vocabulary - now it's `rdfs` and pure meta position to custom or imported ontologies.
+
 ## v.0.3.2 (2026-01-20)
 
 + Changed prefix pattern to `[ex] <http://example.org/>`

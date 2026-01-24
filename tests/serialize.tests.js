@@ -25,8 +25,8 @@ export const serializeTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-> This is a quote. {description}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+> This is a quote. {schema:description}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/description', 'This is a quote.'),
                 'Should extract blockquote text');
@@ -39,13 +39,13 @@ export const serializeTests = [
         fn: () => {
             const original = `# Order {=ex:order-123}
             
-Customer: [John Doe] {ex:customer-456 .Person name}
-Amount: [99.95 USD] {price ^^xsd:decimal}
-Status: [Pending] {status ^^ex:orderStatus}
-Date: [2024-01-15] {orderDate ^^xsd:date}
-Items: {?containsItem .Product}
-- Widget A {=ex:widget-a .Product name}
-- Widget B {=ex:widget-b .Product name}`;
+Customer: [John Doe] {ex:customer-456 .Person label}
+Amount: [99.95 USD] {schema:price ^^xsd:decimal}
+Status: [Pending] {schema:status ^^ex:orderStatus}
+Date: [2024-01-15] {schema:orderDate ^^xsd:date}
+Items: {?schema:containsItem .Product}
+- Widget A {=ex:widget-a .Product label}
+- Widget B {=ex:widget-b .Product label}`;
 
             const result = parse(original, { context: { ex: 'http://ex.org/' } });
 
@@ -81,10 +81,10 @@ Items: {?containsItem .Product}
         fn: () => {
             const original = `# Product {=ex:product-789}
             
-Name: [Premium Widget] {name}
-Price: [149.99] {price ^^xsd:decimal}
-Category: [Electronics] {category}
-Rating: [4.5] {rating ^^xsd:float}`;
+Name: [Premium Widget] {label}
+Price: [149.99] {schema:price ^^xsd:decimal}
+Category: [Electronics] {schema:category}
+Rating: [4.5] {schema:rating ^^xsd:float}`;
 
             const result = parse(original, { context: { ex: 'http://ex.org/' } });
 
@@ -172,9 +172,9 @@ Milestones: {?hasMilestone .Event name}
         fn: () => {
             const original = `# Document {=ex:doc-001}
 
-Title: [My Document] {title}
-[] {description}
-Content: [Sample content] {text}`;
+Title: [My Document] {schema:title}
+[] {schema:description}
+Content: [Sample content] {schema:text}`;
 
             const result = parse(original, { context: { ex: 'http://ex.org/' } });
 
@@ -220,9 +220,9 @@ Content: [Sample content] {text}`;
         fn: () => {
             const original = `# Article {=ex:article-multilang}
             
-Title: [Hello World] {title}
-Content: [Bonjour le monde] {content @fr}
-Summary: [Hello world summary] {summary @en }`;
+Title: [Hello World] {schema:title}
+Content: [Bonjour le monde] {schema:content @fr}
+Summary: [Hello world summary] {schema:summary @en }`;
 
             const result = parse(original, { context: { ex: 'http://ex.org/' } });
 

@@ -265,7 +265,7 @@ Parse MD-LD markdown and return RDF quads with origin tracking.
 
 - `markdown` (string) — MD-LD formatted text
 - `options` (object, optional):
-  - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://schema.org/', rdf, rdfs, xsd, schema }`)
+  - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, schema }`)
   - `dataFactory` (object) — Custom RDF/JS DataFactory
 
 **Returns:** `{ quads, origin, context }`
@@ -280,7 +280,7 @@ Parse MD-LD markdown and return RDF quads with origin tracking.
 
 ```javascript
 const result = parse(
-  `# Article {=ex:article .Article}
+  `# Article {=ex:article .ex:Article}
   
   [Alice] {=ex:alice ?author}`,
   { context: { ex: 'http://example.org/' } }
@@ -291,7 +291,7 @@ console.log(result.quads);
 //   {
 //     subject: { termType: 'NamedNode', value: 'http://example.org/article' },
 //     predicate: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
-//     object: { termType: 'NamedNode', value: 'http://schema.org/Article' }
+//     object: { termType: 'NamedNode', value: 'http://example.org/Article' }
 //   },
 //   ...
 // ]

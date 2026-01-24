@@ -124,7 +124,7 @@ console.log("hi")
 
 **Default**:
 ```json
-{"@vocab": "http://schema.org/", "rdf": "...", "rdfs": "...", "xsd": "...", "schema": "..."}
+{"@vocab": "http://www.w3.org/2000/01/rdf-schema#", "rdf": "...", "rdfs": "...", "xsd": "...", "schema": "..."}
 ```
 
 **Declarations**:

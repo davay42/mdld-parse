@@ -230,11 +230,11 @@ ex:code a schema:SoftwareSourceCode ;
 ### Default Context
 ```json
 {
-    "@vocab": "http://schema.org/",
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-    "rdfs": "http://www.w3.org/2000/01/rdf-schema#", 
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
-    "schema": "http://schema.org/"
+    "sh": "http://www.w3.org/ns/shacl#",
+    "prov": "http://www.w3.org/ns/prov#"
 }
 ```
 

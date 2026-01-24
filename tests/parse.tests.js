@@ -25,10 +25,10 @@ export const parseTests = [
         fn: () => {
             const md = `# Title {=ex:doc}
 
-[value] {name}`;
-            const { quads, context } = parse(md, { context: { ex: 'http://ex.org/' } });
+[value] {label}`;
+            const { quads, context } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
-            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'value'),
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'value'),
                 'Subject should be ex:doc');
         }
     },
@@ -38,15 +38,15 @@ export const parseTests = [
         fn: () => {
             const md = `# First {=ex:first}
 
-[value1] {name}
+[value1] {label}
 
 # Reset {=}
 
-[value2] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[value2] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 1, `Should only emit 1 quad, got ${quads.length}`);
-            assert(hasQuad(quads, 'http://ex.org/first', 'http://schema.org/name', 'value1'),
+            assert(hasQuad(quads, 'http://ex.org/first', 'http://www.w3.org/2000/01/rdf-schema#label', 'value1'),
                 'Only first value should emit');
         }
     },
@@ -55,8 +55,8 @@ export const parseTests = [
     {
         name: 'Type declaration emits rdf:type',
         fn: () => {
-            const md = `# Doc {=ex:doc .Article}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const md = `# Doc {=ex:doc .schema:Article}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Article'),
                 'Should emit type triple');
@@ -66,8 +66,8 @@ export const parseTests = [
     {
         name: 'Multiple types on same subject',
         fn: () => {
-            const md = `# Doc {=ex:doc .Article .CreativeWork}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const md = `# Doc {=ex:doc .schema:Article .schema:CreativeWork}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 type triples, got ${quads.length}`);
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Article'),
@@ -83,10 +83,10 @@ export const parseTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Alice] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Alice] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
-            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Alice');
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Alice');
             assert(q, 'Should find name triple');
             assert(q.object.termType === 'Literal', 'Object should be Literal');
             assert(q.object.value === 'Alice', `Value should be "Alice", got "${q.object.value}"`);
@@ -98,11 +98,11 @@ export const parseTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Alice] {name author}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Alice] {label schema:author}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
-            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Alice'), 'Should have name');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Alice'), 'Should have label');
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/author', 'Alice'), 'Should have author');
         }
     },
@@ -113,8 +113,8 @@ export const parseTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Alice] {=ex:alice ?author}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Alice] {=ex:alice ?schema:author}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/author', 'http://ex.org/alice');
             assert(q, 'Should find author triple');
@@ -128,8 +128,8 @@ export const parseTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Alice] {=ex:alice ?author .Person}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Alice] {=ex:alice ?schema:author .schema:Person}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/author', 'http://ex.org/alice'),
@@ -145,7 +145,7 @@ export const parseTests = [
             const md = `# Doc {=ex:doc}
 
 [Alice] {?author}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 0, `Should emit 0 triples when O missing, got ${quads.length}`);
         }
@@ -157,8 +157,8 @@ export const parseTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Parent] {=ex:parent !hasPart}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Parent] {=ex:parent !schema:hasPart}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             const q = findQuad(quads, 'http://ex.org/parent', 'http://schema.org/hasPart', 'http://ex.org/doc');
             assert(q, 'Should find reverse triple');
@@ -173,8 +173,8 @@ export const parseTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[42] {count ^^xsd:integer}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[42] {schema:count ^^xsd:integer}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/count', '42');
             assert(q, 'Should find count triple');
@@ -188,8 +188,8 @@ export const parseTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Hello] {greeting @en}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Hello] {schema:greeting @en}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/greeting', 'Hello');
             assert(q, 'Should find greeting triple');
@@ -202,9 +202,9 @@ export const parseTests = [
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[2024-01-01] {date ^^xsd:date}
-[19.99] {price ^^xsd:decimal}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[2024-01-01] {schema:date ^^xsd:date}
+[19.99] {schema:price ^^xsd:decimal}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             const dateQ = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/date', '2024-01-01');
             const priceQ = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/price', '19.99');
@@ -220,19 +220,19 @@ export const parseTests = [
         fn: () => {
             const md = `# Recipe {=ex:recipe}
 
-Ingredients: {?ingredient}
-- Flour {=ex:flour name} 
-- Water {=ex:water name}\t`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+Ingredients: {?schema:ingredient}
+- Flour {=ex:flour label}
+- Water {=ex:water label}	`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/recipe', 'http://schema.org/ingredient', 'http://ex.org/flour'),
                 'Recipe should have flour');
             assert(hasQuad(quads, 'http://ex.org/recipe', 'http://schema.org/ingredient', 'http://ex.org/water'),
                 'Recipe should have water');
-            assert(hasQuad(quads, 'http://ex.org/flour', 'http://schema.org/name', 'Flour'),
-                'Flour should have name');
-            assert(hasQuad(quads, 'http://ex.org/water', 'http://schema.org/name', 'Water'),
-                'Water should have name');
+            assert(hasQuad(quads, 'http://ex.org/flour', 'http://www.w3.org/2000/01/rdf-schema#label', 'Flour'),
+                'Flour should have label');
+            assert(hasQuad(quads, 'http://ex.org/water', 'http://www.w3.org/2000/01/rdf-schema#label', 'Water'),
+                'Water should have label');
         }
     },
 
@@ -241,11 +241,11 @@ Ingredients: {?ingredient}
         fn: () => {
             const md = `# Recipe {=ex:recipe}
 
-Ingredients: {?ingredient .Ingredient}
+Ingredients: {?schema:ingredient .schema:Ingredient}
 
-- Flour {=ex:flour name}
-- Water {=ex:water name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+- Flour {=ex:flour label}
+- Water {=ex:water label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/flour', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Ingredient'),
                 'Flour should be Ingredient');
@@ -263,7 +263,7 @@ Ingredients: {?ingredient}
 
 - Flour
 - Water`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 0, `Should emit 0 triples without item subjects, got ${quads.length}`);
         }
@@ -274,10 +274,10 @@ Ingredients: {?ingredient}
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-Part of: {!hasPart}
+Part of: {!schema:hasPart}
 
 - Book {=ex:book}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/book', 'http://schema.org/hasPart', 'http://ex.org/doc'),
                 'Book should have doc as part');
@@ -289,18 +289,18 @@ Part of: {!hasPart}
         fn: () => {
             const md = `# Recipe {=ex:recipe}
 
-Ingredients: {ingredient .Ingredient}
+Ingredients: {schema:ingredient .schema:Ingredient}
 
-- Flour {=ex:flour name}
-- Water {=ex:water name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+- Flour {=ex:flour label}
+- Water {=ex:water label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
-            // Should have type quads from .Ingredient and name quads from list items, but NOT ingredient relationships
-            assert(quads.length === 4, `Should emit 4 triples (2 types + 2 names), got ${quads.length}`);
-            assert(hasQuad(quads, 'http://ex.org/flour', 'http://schema.org/name', 'Flour'),
-                'Flour should have name');
-            assert(hasQuad(quads, 'http://ex.org/water', 'http://schema.org/name', 'Water'),
-                'Water should have name');
+            // Should have type quads from .Ingredient and label quads from list items, but NOT ingredient relationships
+            assert(quads.length === 4, `Should emit 4 triples (2 types + 2 labels), got ${quads.length}`);
+            assert(hasQuad(quads, 'http://ex.org/flour', 'http://www.w3.org/2000/01/rdf-schema#label', 'Flour'),
+                'Flour should have label');
+            assert(hasQuad(quads, 'http://ex.org/water', 'http://www.w3.org/2000/01/rdf-schema#label', 'Water'),
+                'Water should have label');
             assert(hasQuad(quads, 'http://ex.org/flour', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Ingredient'),
                 'Flour should have Ingredient type');
             assert(hasQuad(quads, 'http://ex.org/water', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Ingredient'),
@@ -317,11 +317,11 @@ Ingredients: {ingredient .Ingredient}
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 1, `Should emit 1 quad, got ${quads.length}`);
-            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', '');
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', '');
             assert(q.object.value === '', 'Empty literal should be empty string');
         }
     },
@@ -331,10 +331,10 @@ Ingredients: {ingredient .Ingredient}
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Hello "world"! @#$%] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Hello "world"! @#$%] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
-            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Hello "world"! @#$%');
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Hello "world"! @#$%');
             assert(q, 'Should handle special characters');
         }
     },
@@ -344,11 +344,11 @@ Ingredients: {ingredient .Ingredient}
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Value] {name description author}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Value] {label schema:description schema:author}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 3, `Should emit 3 triples, got ${quads.length}`);
-            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Value'), 'Should have name');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Value'), 'Should have label');
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/description', 'Value'), 'Should have description');
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/author', 'Value'), 'Should have author');
         }
@@ -359,10 +359,10 @@ Ingredients: {ingredient .Ingredient}
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Hello] {name @en ^^xsd:string}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Hello] {label @en ^^xsd:string}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
-            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Hello');
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Hello');
             assert(q.object.language === 'en', 'Should have language tag');
             assert(q.object.datatype.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString', 'Should use langString datatype when language present');
         }
@@ -390,11 +390,11 @@ Ingredients: {ingredient .Ingredient}
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-Author is [Alice] {name} and [Bob] {contributor}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+Author is [Alice] {label} and [Bob] {schema:contributor}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
-            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Alice'), 'Should have Alice');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Alice'), 'Should have Alice');
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/contributor', 'Bob'), 'Should have Bob');
         }
     },
@@ -448,7 +448,7 @@ __double_underline__ {doubleUnderlineName}
             const md = `# Doc {=ex:doc}
 
 [value] {}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 0, `Empty annotation should emit nothing, got ${quads.length}`);
         }
@@ -457,7 +457,7 @@ __double_underline__ {doubleUnderlineName}
     {
         name: 'Annotation without subject emits nothing',
         fn: () => {
-            const md = `[value] {name}`;
+            const md = `[value] {label}`;
             const { quads } = parse(md);
 
             assert(quads.length === 0, `No subject means no quads, got ${quads.length}`);
@@ -471,11 +471,11 @@ __double_underline__ {doubleUnderlineName}
 
 This is plain text.
 
-[value] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[value] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 1, 'Only annotated value should emit');
-            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'value'), 'Should have value');
+            assert(hasQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'value'), 'Should have value');
         }
     },
 
@@ -502,8 +502,8 @@ and launched on a [Saturn V] {+wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Parent] {+ex:parent !hasPart}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Parent] {+ex:parent !schema:hasPart}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
             assert(hasQuad(quads, 'http://ex.org/parent', 'http://schema.org/hasPart', 'http://ex.org/doc'),
@@ -516,7 +516,7 @@ and launched on a [Saturn V] {+wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `# Project {=ex:project}
 
-[Team Lead] {+ex:alice ?schema:teamLead .Person}`;
+[Team Lead] {+ex:alice ?schema:teamLead .schema:Person}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
@@ -534,10 +534,10 @@ and launched on a [Saturn V] {+wd:Q193237 ?schema:vehicle}.`;
             const md = `# Document {=ex:document}
             
 {=#summary}
-[This is the summary] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+[This is the summary] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
 
-            assert(hasQuad(quads, 'http://example.org/document#summary', 'http://schema.org/name', 'This is the summary'),
+            assert(hasQuad(quads, 'http://example.org/document#summary', 'http://www.w3.org/2000/01/rdf-schema#label', 'This is the summary'),
                 'Fragment should resolve to current subject + #fragment');
         }
     },
@@ -548,16 +548,16 @@ and launched on a [Saturn V] {+wd:Q193237 ?schema:vehicle}.`;
             const md = `# Document {=ex:document}
 
 ## Section {=#section1}
-[Section content] {headline}
+[Section content] {schema:headline}
             
 ## Subsection {=#subsection}
-[Content here] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+[Content here] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
 
 
             assert(hasQuad(quads, 'http://example.org/document#section1', 'http://schema.org/headline', 'Section content'),
                 'Fragment should append to existing path');
-            assert(hasQuad(quads, 'http://example.org/document#subsection', 'http://schema.org/name', 'Content here'),
+            assert(hasQuad(quads, 'http://example.org/document#subsection', 'http://www.w3.org/2000/01/rdf-schema#label', 'Content here'),
                 'Fragment should replace existing fragment, not nest');
         }
     },
@@ -566,7 +566,7 @@ and launched on a [Saturn V] {+wd:Q193237 ?schema:vehicle}.`;
         name: 'Fragment syntax without current subject emits nothing',
         fn: () => {
             const md = `{=#summary}
-[Content] {name}`;
+[Content] {label}`;
             const { quads } = parse(md);
 
             assert(quads.length === 0, `Fragment without subject should emit nothing, got ${quads.length}`);
@@ -579,21 +579,21 @@ and launched on a [Saturn V] {+wd:Q193237 ?schema:vehicle}.`;
         fn: () => {
             const md = `[ex] <http://example.org/>
 
-## Recipe {=ex:recipe .Recipe name}
+## Recipe {=ex:recipe .schema:Recipe schema:name}
 
-Ingredients: {?hasPart .Ingredient name}
+Ingredients: {?schema:hasPart .schema:Ingredient label}
 
 - Flour {=ex:flour}
-  Variants: {?hasPart .FlourType name}
-  - Whole wheat {=ex:flour-whole-wheat .WholeGrainFlour}
-    Whole grain includes {?hasPart .GrainPart name}
+  Variants: {?schema:hasPart .schema:FlourType label}
+  - Whole wheat {=ex:flour-whole-wheat .schema:WholeGrainFlour}
+    Whole grain includes {?schema:hasPart .schema:GrainPart label}
     - Bran {=ex:grain-bran}
     - Germ {=ex:grain-germ}
     - Endosperm {=ex:grain-endosperm}
-  - White {=ex:flour-white title}
+  - White {=ex:flour-white schema:title}
 - Water {=ex:water}`;
 
-            const { quads } = parse(md);
+            const { quads } = parse(md, { context: { schema: 'http://schema.org/' } });
 
             // Check recipe structure
             assert(hasQuad(quads, 'http://example.org/recipe', 'http://schema.org/name', 'Recipe'),
@@ -646,7 +646,7 @@ Ingredients: {?hasPart .Ingredient name}
             const md = `# Doc {=ex:doc}
 
 [Value] {name incomplete`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 0, `Malformed annotation should emit nothing, got ${quads.length}`);
         }
@@ -658,7 +658,7 @@ Ingredients: {?hasPart .Ingredient name}
             const md = `# Doc {=ex:doc}
 
 [Value] {}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 0, `Empty annotation should emit nothing, got ${quads.length}`);
         }
@@ -669,11 +669,11 @@ Ingredients: {?hasPart .Ingredient name}
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[Value [nested]] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Value [nested]] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 1, `Should handle nested brackets gracefully, got ${quads.length}`);
-            const q = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/name', 'Value [nested]');
+            const q = findQuad(quads, 'http://ex.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Value [nested]');
             assert(q, 'Should extract literal with brackets');
         }
     },
@@ -684,9 +684,9 @@ Ingredients: {?hasPart .Ingredient name}
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[true] {active ^^xsd:boolean}
-[false] {completed ^^xsd:boolean}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[true] {schema:active ^^xsd:boolean}
+[false] {schema:completed ^^xsd:boolean}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             const trueQ = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/active', 'true');
             const falseQ = findQuad(quads, 'http://ex.org/doc', 'http://schema.org/completed', 'false');
@@ -704,8 +704,8 @@ Ingredients: {?hasPart .Ingredient name}
         fn: () => {
             const md = `# Doc {=ex:invalid-iri-with spaces}
 
-[Value] {name}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[Value] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             // Should handle gracefully - either emit nothing or expand as-is
             assert(quads.length >= 0, 'Should not crash on invalid IRI');
@@ -718,18 +718,18 @@ Ingredients: {?hasPart .Ingredient name}
         fn: () => {
             const md = `# Meeting Notes {=ex:meeting}
 
-Attendees: {?attendee name}
+Attendees: {?schema:attendee label}
 - Alice {=ex:alice}
 - Bob {=ex:bob}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/alice'),
                 'Meeting should have alice as attendee');
             assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/bob'),
                 'Meeting should have bob as attendee');
-            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://www.w3.org/2000/01/rdf-schema#label', 'Alice'),
                 'Alice should inherit name predicate');
-            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://www.w3.org/2000/01/rdf-schema#label', 'Bob'),
                 'Bob should inherit name predicate');
         }
     },
@@ -739,18 +739,18 @@ Attendees: {?attendee name}
         fn: () => {
             const md = `# Meeting Notes {=ex:meeting}
 
-Attendees: {?attendee name ?role}
+Attendees: {?schema:attendee label ?role}
 - Alice {=ex:alice}
 - Bob {=ex:bob}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/alice'),
                 'Meeting should have alice as attendee');
             assert(hasQuad(quads, 'http://ex.org/meeting', 'http://schema.org/attendee', 'http://ex.org/bob'),
                 'Meeting should have bob as attendee');
-            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://www.w3.org/2000/01/rdf-schema#label', 'Alice'),
                 'Alice should inherit literal name predicate');
-            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://www.w3.org/2000/01/rdf-schema#label', 'Bob'),
                 'Bob should inherit literal name predicate');
             // Should NOT inherit ?role predicate as it's object predicate form
             assert(!hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/role', 'Alice'),
@@ -765,20 +765,20 @@ Attendees: {?attendee name ?role}
         fn: () => {
             const md = `# Document {=ex:doc}
 
-People: {?knows name description}
+People: {?schema:knows label schema:description}
 - Alice {=ex:alice}
 - Bob {=ex:bob}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/knows', 'http://ex.org/alice'),
                 'Doc should know alice');
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/knows', 'http://ex.org/bob'),
                 'Doc should know bob');
-            assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/name', 'Alice'),
+            assert(hasQuad(quads, 'http://ex.org/alice', 'http://www.w3.org/2000/01/rdf-schema#label', 'Alice'),
                 'Alice should inherit name');
             assert(hasQuad(quads, 'http://ex.org/alice', 'http://schema.org/description', 'Alice'),
                 'Alice should inherit description');
-            assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/name', 'Bob'),
+            assert(hasQuad(quads, 'http://ex.org/bob', 'http://www.w3.org/2000/01/rdf-schema#label', 'Bob'),
                 'Bob should inherit name');
             assert(hasQuad(quads, 'http://ex.org/bob', 'http://schema.org/description', 'Bob'),
                 'Bob should inherit description');
@@ -791,21 +791,21 @@ People: {?knows name description}
         fn: () => {
             const md = `[ex] <http://example.org/>
 
-## Main Event {=ex:main-event .Event}
-Title: [Main Title] {title}
-Description: [Main description] {description}
+## Main Event {=ex:main-event .schema:Event}
+Title: [Main Title] {schema:title}
+Description: [Main description] {schema:description}
 
-{=ex:sub-event-1 .Event}
-Sub title: [Sub Title 1] {title}
-Sub description: [Sub description 1] {description}
+{=ex:sub-event-1 .schema:Event}
+Sub title: [Sub Title 1] {schema:title}
+Sub description: [Sub description 1] {schema:description}
 
-{=ex:sub-event-2 .Event}
-Sub title: [Sub Title 2] {title}
-Sub description: [Sub description 2] {description}
+{=ex:sub-event-2 .schema:Event}
+Sub title: [Sub Title 2] {schema:title}
+Sub description: [Sub description 2] {schema:description}
 
-Back to main: [Back to main] {description}`;
+Back to main: [Back to main] {schema:description}`;
 
-            const { quads } = parse(md);
+            const { quads } = parse(md, { context: { schema: 'http://schema.org/' } });
 
             // Main event quads
             assert(hasQuad(quads, 'http://example.org/main-event', 'http://schema.org/title', 'Main Title'),
@@ -845,14 +845,14 @@ Back to main: [Back to main] {description}`;
             const md = `[ex] <http://example.org/>
 
 ## First {=ex:first}
-Title: [First Title] {title}
-Description: [First description] {description}
+Title: [First Title] {schema:title}
+Description: [First description] {schema:description}
 
 {=}
-Title: [No subject title] {title}
-Description: [No subject description] {description}`;
+Title: [No subject title] {schema:title}
+Description: [No subject description] {schema:description}`;
 
-            const { quads } = parse(md);
+            const { quads } = parse(md, { context: { schema: 'http://schema.org/' } });
 
             // Should only have quads for the first subject
             assert(hasQuad(quads, 'http://example.org/first', 'http://schema.org/title', 'First Title'),
@@ -876,11 +876,11 @@ Description: [No subject description] {description}`;
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Section] {+#section1 name ?hasPart}`;
-            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+[Section] {+#section1 label ?schema:hasPart}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
-            assert(hasQuad(quads, 'http://example.org/doc#section1', 'http://schema.org/name', 'Section'),
+            assert(hasQuad(quads, 'http://example.org/doc#section1', 'http://www.w3.org/2000/01/rdf-schema#label', 'Section'),
                 'Soft fragment should have name');
             assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/hasPart', 'http://example.org/doc#section1'),
                 'Should use soft fragment as object');
@@ -892,8 +892,8 @@ Description: [No subject description] {description}`;
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Parent] {+#parent !hasPart}`;
-            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+[Parent] {+#parent !schema:hasPart}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
             assert(hasQuad(quads, 'http://example.org/doc#parent', 'http://schema.org/hasPart', 'http://example.org/doc'),
@@ -906,13 +906,13 @@ Description: [No subject description] {description}`;
         fn: () => {
             const md = `# Document {=ex:doc}
 
-[Chapter] {+#chapter1 .Section name}`;
-            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+[Chapter] {+#chapter1 .schema:Section label}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
             assert(hasQuad(quads, 'http://example.org/doc#chapter1', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Section'),
                 'Soft fragment should have type');
-            assert(hasQuad(quads, 'http://example.org/doc#chapter1', 'http://schema.org/name', 'Chapter'),
+            assert(hasQuad(quads, 'http://example.org/doc#chapter1', 'http://www.w3.org/2000/01/rdf-schema#label', 'Chapter'),
                 'Soft fragment should have name');
         }
     },
@@ -922,9 +922,9 @@ Description: [No subject description] {description}`;
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[First] {+#frag1 ?p}
-[Second] {?p}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[First] {+#frag1 ?schema:p}
+[Second] {?schema:p}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/p', 'http://ex.org/doc#frag1'),
@@ -937,9 +937,9 @@ Description: [No subject description] {description}`;
         fn: () => {
             const md = `# Doc {=ex:doc}
 
-[First] {+ex:object1 ?p}
-[Second] {?p}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/' } });
+[First] {+ex:object1 ?schema:p}
+[Second] {?schema:p}`;
+            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
             assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/p', 'http://ex.org/object1'),
