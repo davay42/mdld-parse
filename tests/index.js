@@ -1,10 +1,12 @@
 import { parseTests } from './parse.tests.js';
 import { serializeTests } from './serialize.tests.js';
+import { tagIriTests } from './tag-iri.tests.js';
 
 // Combine all test suites
 const tests = [
     ...parseTests,
-    ...serializeTests
+    ...serializeTests,
+    ...tagIriTests
 ];
 
 // Run tests
