@@ -237,7 +237,7 @@ Creates a local identifier relative to the current subject base.
 
 **Example:**
 ```md
-# Document {=ex:document}
+# Document {=tag:alice@example.com,2026:doc}
 ## Section 1 {=#section1}
 [Section content] {name}
 
@@ -247,8 +247,8 @@ Creates a local identifier relative to the current subject base.
 
 **Result:**
 ```turtle
-ex:document#section1 schema:name "Section content" .
-ex:document#section2 schema:name "More content" .
+tag:alice@example.com,2026:doc#section1 schema:name "Section content" .
+tag:alice@example.com,2026:doc#section2 schema:name "More content" .
 ```
 
 ### Object IRI (Temporary)
@@ -431,24 +431,24 @@ The object `O` is available only from:
 ### Examples
 
 ```md
-## References {=ex:references}
+## References {=tag:alice@example.com,2026:refs}
 
 [Example image](https://www.example.com/image.jpg) {?image name}
 [W3C RDF](https://www.w3.org/RDF) {?dct:references name}
-[Alice] {=urn:person:alice ?author name}
+[Alice] {=tag:alice@example.com,2026:alice ?author name}
 ```
 
 ### What This Creates
 
 ```turtle
-ex:references schema:image <https://www.example.com/image.jpg> .
+tag:alice@example.com,2026:refs schema:image <https://www.example.com/image.jpg> .
 <https://www.example.com/image.jpg> schema:name "Example image" .
 
-ex:references dct:references <https://www.w3.org/RDF> .
+tag:alice@example.com,2026:refs dct:references <https://www.w3.org/RDF> .
 <https://www.w3.org/RDF> schema:name "W3C RDF" .
 
-ex:references schema:author <urn:person:alice> .
-<urn:person:alice> schema:name "Alice" .
+tag:alice@example.com,2026:refs schema:author <tag:alice@example.com,2026:alice> .
+<tag:alice@example.com,2026:alice> schema:name "Alice" .
 ```
 
 ### How It Works
@@ -498,33 +498,33 @@ A `{...}` block immediately before a list applies to **all items** in that list.
 Each indentation level creates a new semantic scope:
 
 ```md
-## Recipe {=ex:recipe .Recipe name}
+## Recipe {=tag:alice@example.com,2026:recipe .Recipe name}
 
 Ingredients: {?hasPart .Ingredient name}
-- Flour {=ex:flour}
+- Flour {=tag:alice@example.com,2026:flour}
   Variants: {?hasPart .FlourType name}
-  - Whole wheat {=ex:flour-whole-wheat .WholeGrainFlour}
-  - White {=ex:flour-white .FlourType title}
-- Water {=ex:water}
+  - Whole wheat {=tag:alice@example.com,2026:flour-whole-wheat .WholeGrainFlour}
+  - White {=tag:alice@example.com,2026:flour-white .FlourType title}
+- Water {=tag:alice@example.com,2026:water}
 ```
 
 **What This Creates:**
 ```turtle
-ex:recipe a schema:Recipe ; 
+tag:alice@example.com,2026:recipe a schema:Recipe ; 
           schema:name "Recipe" ;
-          schema:hasPart ex:flour, ex:water .
+          schema:hasPart tag:alice@example.com,2026:flour, tag:alice@example.com,2026:water .
 
-ex:flour a schema:Ingredient ; 
+tag:alice@example.com,2026:flour a schema:Ingredient ; 
          schema:name "Flour" ;
-         schema:hasPart ex:flour-whole-wheat, ex:flour-white .
+         schema:hasPart tag:alice@example.com,2026:flour-whole-wheat, tag:alice@example.com,2026:flour-white .
 
-ex:flour-whole-wheat a schema:WholeGrainFlour , schema:FlourType ; 
+tag:alice@example.com,2026:flour-whole-wheat a schema:WholeGrainFlour , schema:FlourType ; 
                      schema:name "Whole wheat" .
 
-ex:flour-white a schema:FlourType ; 
+tag:alice@example.com,2026:flour-white a schema:FlourType ; 
                 schema:title "White" .
                 
-ex:water a schema:Ingredient ; 
+tag:alice@example.com,2026:water a schema:Ingredient ; 
          schema:name "Water" .
 ```
 
@@ -575,18 +575,18 @@ Use `!` when you want to:
 
 **Example:**
 ```md
-# Chapter 1 {=ex:chapter1 .Chapter name}
+# Chapter 1 {=tag:alice@example.com,2026:chapter1 .Chapter name}
 [Book] {!hasPart .Book title}
 ```
 
 **Creates:**
 ```turtle
-ex:chapter1 a schema:Chapter ;
+tag:alice@example.com,2026:chapter1 a schema:Chapter ;
              schema:name "Chapter 1" .
              
-ex:book a schema:Book ;
+tag:alice@example.com,2026:book a schema:Book ;
          schema:title "Book" ;
-         schema:hasPart ex:chapter1 .
+         schema:hasPart tag:alice@example.com,2026:chapter1 .
 ```
 
 ### Key Points
@@ -665,12 +665,12 @@ This means:
 Declare prefixes for your own identifiers:
 
 ```md
-[ex] <http://example.org/>
+[alice] <tag:alice@example.com,2026:/>
 [wd] <https://www.wikidata.org/entity/>
 ```
 
 Now you can use:
-- `ex:person` → `http://example.org/person`
+- `alice:person` → `tag:alice@example.com,2026:/person`
 - `wd:Q43653` → `https://www.wikidata.org/entity/Q43653`
 
 ### Setting Vocabulary

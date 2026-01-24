@@ -430,16 +430,18 @@ Therefore, the algebra is **closed**.
 ### Personal Knowledge Management
 
 ```markdown
-# Meeting Notes {=urn:note:2024-01-15 .Meeting}
+[alice] <tag:alice@example.com,2026:>
+
+# Meeting Notes {=alice:meeting-2024-01-15 .Meeting}
 
 Attendees: {?attendee name}
 
-- Alice {=urn:person:alice}
-- Bob {=urn:person:bob}
+- Alice {=alice:alice}
+- Bob {=alice:bob}
 
 Action items: {?actionItem name}
 
-- Review proposal {=urn:task:1}
+- Review proposal {=alice:task-1}
 ```
 
 ### Developer Documentation
@@ -460,10 +462,12 @@ curl https://api.example.com/users/123
 ### Academic Research
 
 ```markdown
-# Paper {=doi:10.1234/example .ScholarlyArticle}
+[alice] <tag:alice@example.com,2026:>
+
+# Paper {=alice:paper-semantic-markdown .ScholarlyArticle}
 
 [Semantic Web] {about}
-[Alice Johnson] {=orcid:0000-0001-2345-6789 author}
+[Alice Johnson] {=alice:alice-johnson ?author}
 [2024-01] {datePublished ^^xsd:gYearMonth}
 
 > This paper explores semantic markup in Markdown. {abstract @en}

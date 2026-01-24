@@ -26,13 +26,15 @@ She realizes this list itself is meaningful.
 She gives the heading an explicit subject.
 
 ```md
-# Highest Buildings {=urn:alice:hb .Collection name}
+[alice] <tag:alice@example.com,2026:>
+
+# Highest Buildings {=alice:hb .Collection name}
 ```
 
 Now, and only now, RDF exists:
 
 ```turtle
-urn:alice:hb a schema:Collection ;
+tag:alice@example.com,2026:hb a schema:Collection ;
   schema:name "Highest Buildings" .
 ```
 
@@ -54,11 +56,13 @@ Each building must have its **own subject**.
 She keeps everything personal and local for now.
 
 ```md
-## Burj Khalifa {=urn:alice:burj-khalifa name}
+[alice] <tag:alice@example.com,2026:>
+
+## Burj Khalifa {=alice:burj-khalifa name}
 
 [828] {height ^^xsd:integer}
 
-## Shanghai Tower {=urn:alice:shanghai-tower name}
+## Shanghai Tower {=alice:shanghai-tower name}
 
 [632] {height ^^xsd:integer}
 ```
@@ -79,7 +83,9 @@ She notices all buildings belong to the same topic.
 Fragments let her keep a clean hierarchy.
 
 ```md
-# Highest Buildings {=urn:alice:hb .Collection name}
+[alice] <tag:alice@example.com,2026:>
+
+# Highest Buildings {=alice:hb .Collection name}
 
 ## Burj Khalifa {=#burj-khalifa name}
 
@@ -93,8 +99,8 @@ Fragments let her keep a clean hierarchy.
 This expands to:
 
 ```
-urn:alice:hb#burj-khalifa
-urn:alice:hb#shanghai-tower
+tag:alice@example.com,2026:hb#burj-khalifa
+tag:alice@example.com,2026:hb#shanghai-tower
 ```
 
 Fragments are:
@@ -110,7 +116,7 @@ Fragments are:
 She prepares for growth.
 
 ```md
-[alice] <urn:alice:>
+[alice] <tag:alice@example.com,2026:>
 ```
 
 Now she can write:
@@ -141,7 +147,7 @@ She decides these IRIs should be globally valid.
 She changes **one line**.
 
 ```md
-[alice] <https://alice.com/>
+[alice] <tag:alice@example.com,2026:>
 ```
 
 Nothing else changes.
@@ -167,7 +173,7 @@ This emits:
 ```turtle
 wd:Q134164 a schema:Skyscraper ;
   schema:name "Burj Khalifa" ;
-  owl:sameAs https://alice.com/hb#burj-khalifa .
+  owl:sameAs tag:alice@example.com,2026:hb#burj-khalifa .
 ```
 
 Now agents can:

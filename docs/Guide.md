@@ -39,13 +39,15 @@ No `{...}` → no semantics
 Always declare a subject first.
 
 ```md
-# Walnut Bread {=urn:my:walnut-bread .Recipe name}
+[alice] <tag:alice@example.com,2026:>
+
+# Walnut Bread {=alice:walnut-bread .Recipe name}
 ```
 
 This emits:
 
 ```turtle
-urn:my:walnut-bread
+tag:alice@example.com,2026:walnut-bread
   a schema:Recipe ;
   schema:name "Walnut Bread" .
 ```
@@ -94,8 +96,10 @@ Nothing else exists.
 ### Example — all three at once
 
 ```md
+[alice] <tag:alice@example.com,2026:>
+
 [Bread] {name}
-[Walnut] {+urn:my:walnut ?hasIngredient}
+[Walnut] {+alice:walnut ?hasIngredient}
 [Recipe](https://en.wikipedia.org/wiki/Recipe) {!hasPart}
 ```
 
@@ -121,13 +125,15 @@ No datatype or language is ever inferred.
 Objects exist only if explicitly present.
 
 ```md
-[Walnuts](urn:my:walnut) {?ingredient}
+[alice] <tag:alice@example.com,2026:>
+
+[Walnuts](tag:alice@example.com,2026:walnut) {?ingredient}
 ```
 
 or
 
 ```md
-[Walnuts] {+urn:my:walnut ?ingredient}
+[Walnuts] {+alice:walnut ?ingredient}
 ```
 
 Same graph. Different ergonomics.
@@ -140,11 +146,13 @@ Lists **do not create subjects**.
 Each item must declare one.
 
 ```md
+[alice] <tag:alice@example.com,2026:>
+
 Ingredients: {?hasIngredient .Ingredient}
 
-- Walnuts {=urn:my:walnut name}
-- Flour {=urn:my:flour name}
-- Water {=urn:my:water name}
+- Walnuts {=alice:walnut name}
+- Flour {=alice:flour name}
+- Water {=alice:water name}
 ```
 
 Result: clean, explicit graph. No blank nodes.
@@ -156,6 +164,8 @@ Result: clean, explicit graph. No blank nodes.
 Fragments turn sections into addressable nodes.
 
 ```md
+[alice] <tag:alice@example.com,2026:>
+
 ## Instructions {=#steps .HowTo}
 
 ### Mixing {=#step-1 .HowToStep rdfs:label}
@@ -170,9 +180,9 @@ Fragments turn sections into addressable nodes.
 Emits:
 
 ```turtle
-urn:my:walnut-bread#steps a schema:HowTo .
-urn:my:walnut-bread#step-1 a schema:HowToStep ; rdfs:label "Mixing" ; schema:text "Mix ingredients" .
-urn:my:walnut-bread#step-2 a schema:HowToStep ; rdfs:label "Baking" ; schema:text "Bake for 45 minutes" .
+tag:alice@example.com,2026:walnut-bread#steps a schema:HowTo .
+tag:alice@example.com,2026:walnut-bread#step-1 a schema:HowToStep ; rdfs:label "Mixing" ; schema:text "Mix ingredients" .
+tag:alice@example.com,2026:walnut-bread#step-2 a schema:HowToStep ; rdfs:label "Baking" ; schema:text "Bake for 45 minutes" .
 ```
 
 Fragments always attach to the **current subject base**.
@@ -192,11 +202,12 @@ Readable prose → structured data.
 ## 9. Code blocks are first-class values
 
 ````md
-```txt {=urn:my:walnut-bread#formula .Recipe text}
+[alice] <tag:alice@example.com,2026:>
+
+```txt {=alice:walnut-bread#formula .Recipe text}
 500g flour
 300ml water
-````
-
+```
 ````
 
 Code content becomes a literal.  
@@ -207,9 +218,11 @@ Language fences stay intact.
 ## 10. Reverse relations (write from either side)
 
 ```md
+[alice] <tag:alice@example.com,2026:>
+
 Used in: {!hasIngredient}
 
-- Salad {=urn:my:salad}
+- Salad {=alice:salad}
 ````
 
 Same graph. Different narrative flow.
