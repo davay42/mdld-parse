@@ -66,4 +66,3 @@ What is the property of the subject we are describing:
 
 - set by a `{property}` annotation
 - defines a relation between the subject and the object
-- 
