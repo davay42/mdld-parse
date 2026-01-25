@@ -1,0 +1,124 @@
+(* MD-LD EBNF Grammar (W3C/ISO 14977 compliant) *)
+(* Updated with improved list semantics and structural constructs *)
+(* Defines syntax of MD-LD annotations embedded in CommonMark Markdown *)
+
+(* 1. Lexical elements *)
+letter        = "A".."Z" | "a".."z" ;
+digit         = "0".."9" ;
+hex           = digit | "A".."F" | "a".."f" ;
+whitespace    = " " | "\t" ;
+newline       = "\n" | "\r\n" ;
+indent        = whitespace , whitespace+ ;
+vchar         = ? any visible non-whitespace character ? ;
+text          = { vchar | whitespace } ;
+
+(* 2. Context declarations *)
+contextDecl   = "[" , contextKey , "]" , whitespace , "<" , iri , ">" ;
+contextKey    = "@vocab" | prefixName ;
+prefixName    = letter , { letter | digit | "-" | "_" } ;
+
+(* 3. Attribute block *)
+attrsBlock    = "{" , whitespace* , attrsTokens? , whitespace* , "}" ;
+attrsTokens   = attrsToken , { whitespace+ , attrsToken } ;
+
+(* 4. Attribute tokens *)
+attrsToken   = 
+      subjectDecl
+    | objectDecl  
+    | typeDecl
+    | predicate
+    | reversePredicate
+    | datatype
+    | language ;
+
+(* 5. Subject and object declarations *)
+subjectDecl   = "=" , iriRef ;
+objectDecl    = "+" , iriRef ;
+
+(* 6. Predicates *)
+predicate          = "?"? , iriRef ;
+reversePredicate   = "!" , iriRef ;
+
+(* 7. Type declaration *)
+typeDecl      = "." , iriRef ;
+
+(* 8. Literal modifiers *)
+datatype      = "^^" , iriRef ;
+language      = "@" , langTag ;
+langTag       = letter , { letter | digit | "-" } ;
+
+(* 9. CURIEs and IRIs *)
+iriRef        = curie | iri ;
+curie         = prefixName , ":" , reference ;
+reference     = ( letter | digit ) , { letter | digit | "-" | "_" | "." } ;
+iri           = scheme , ":" , hierPart , [ "?" , query ] , [ "#" , fragment ] ;
+scheme        = letter , { letter | digit | "+" | "-" | "." } ;
+hierPart      = { vchar } ;
+query         = { vchar } ;
+fragment      = reference ;
+
+(* 10. Value carriers (Markdown attachment points) *)
+(* Note: Markdown syntax itself is abstracted *)
+
+(* 10.1 Inline carriers *)
+emphasisSpan   = "*" , text , "*" | "_" , text , "_" ;
+strongSpan     = "**" , text , "**" | "__" , text , "__" ;
+codeSpan       = "`" , text , "`" ;
+linkSpan       = "[" , text , "](" , text , ")" ;
+imageSpan      = "!" , "[" , text , "](" , text , ")" ;
+
+inlineSpan =
+      emphasisSpan
+    | strongSpan
+    | codeSpan
+    | linkSpan
+    | imageSpan ;
+
+(* 10.2 Block carriers *)
+heading        = "#" , { "#" } , whitespace , text ;
+paragraph      = vchar , { vchar | whitespace } ;
+blockquote     = ">" , whitespace , text ;
+codeFence      = "```" , [ text ] , newline , { text | newline } , "```" ;
+
+(* 11. Lists (semantic model) *)
+
+(* 11.1 List header (semantic anchor) *)
+(* A list header introduces semantic predicates/types for immediate list items *)
+listHeader =
+    paragraph , whitespace* , attrsBlock ;
+
+(* 11.2 List item *)
+listItem =
+    listMarker , whitespace , text , whitespace* , attrsBlock? ;
+
+listMarker =
+      "-"
+    | "*"
+    | digit , { digit } , "." ;
+
+(* 11.3 List block *)
+listBlock =
+    listHeader , newline ,
+    listItem , { newline , listItem | nestedList } ;
+
+(* 11.4 Nested list (semantic reset) *)
+(* Nested lists do not inherit semantic scope *)
+nestedList =
+    indent , listBlock ;
+
+(* 12. Annotation attachment *)
+annotation =
+      inlineSpan , whitespace* , attrsBlock
+    | heading , whitespace* , attrsBlock
+    | paragraph , whitespace* , attrsBlock
+    | listItem
+    | blockquote , whitespace* , attrsBlock
+    | codeFence , whitespace* , attrsBlock ;
+
+(* 13. Grammar guarantees (normative) *)
+(* Attribute token order is semantically unordered *)
+(* Nested lists establish a new semantic scope *)
+(* No implicit inheritance across list levels *)
+(* Deterministic, streaming-friendly parsing *)
+(* Round-trip safe (MD-LD ↔ RDF ↔ MD-LD) *)
+(* No semantic inference at syntax level *)

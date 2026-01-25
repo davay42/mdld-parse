@@ -1,0 +1,119 @@
+; MD-LD ABNF Grammar (RFC 5234 compliant)
+; Updated with improved list semantics and structural constructs
+; Defines syntax of MD-LD annotations embedded in CommonMark Markdown
+
+; Core RFC 5234 conventions
+ALPHA      = %x41-5A / %x61-7a
+DIGIT      = %x30-39
+HEXDIG     = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+WSP        = SP / HTAB
+SP         = %x20
+HTAB       = %x09
+LF         = %x0A
+CR         = %x0D
+CRLF       = CR LF
+VCHAR      = %x21-7E
+
+; MD-LD Grammar starts here
+
+; 1. Context declarations
+context-decl = "[" context-key "]" WSP "<" iri ">"
+context-key  = "@" "vocab" / prefix-name
+prefix-name  = ALPHA *( ALPHA / DIGIT / "-" / "_" )
+
+; 2. Attribute blocks
+attrs-block = "{" *WSP [ attrs-tokens ] *WSP "}"
+attrs-tokens = attrs-token *( 1*WSP attrs-token )
+
+; 3. Attribute tokens
+attrs-token = 
+      subject-decl
+    / object-decl
+    / type-decl
+    / predicate
+    / reverse-predicate
+    / datatype
+    / language
+
+; 4. Subject declarations
+subject-decl = "=" iri-ref
+object-decl  = "+" iri-ref
+
+; 5. Predicates
+predicate         = [ "?" ] iri-ref
+reverse-predicate = "!" iri-ref
+
+; 6. Type declarations
+type-decl = "." iri-ref
+
+; 7. Literal modifiers
+datatype = "^^" iri-ref
+language = "@" langtag
+langtag  = ALPHA *( ALPHA / DIGIT / "-" )
+
+; 8. IRI references
+iri-ref = curie / iri
+curie   = prefix-name ":" reference
+iri     = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+scheme  = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+hier-part = *( VCHAR )
+query     = *( VCHAR )
+fragment  = reference
+reference = 1*( ALPHA / DIGIT / "-" / "_" / "." )
+
+; 9. Value carriers (attachment points)
+; Note: Markdown parsing itself is out of scope for ABNF
+
+; 9.1 Inline carriers
+emphasis-span   = "*" text "*" / "_" text "_"
+strong-span     = "**" text "**" / "__" text "__"
+code-span       = "`" text "`"
+link-span       = "[" text "](" text ")"
+image-span      = "!" "[" text "](" text ")"
+
+; 9.2 Block carriers  
+heading         = 1*6 "#" WSP text
+paragraph       = 1*VCHAR
+blockquote      = ">" WSP text
+code-fence      = 3"`" [ text ] LF *( text / LF ) 3"`"
+
+; 10. Lists (semantic model)
+
+; 10.1 List header (semantic anchor)
+; A list header introduces semantic predicates/types for immediate list items
+list-header = paragraph *WSP attrs-block
+
+; 10.2 List item
+list-item = list-marker WSP text *WSP [ attrs-block ]
+list-marker = "-" / "*" / 1*DIGIT "."
+
+; 10.3 List block
+list-block = list-header LF list-item *( LF list-item / LF nested-list )
+
+; 10.4 Nested list (semantic reset)
+; Nested lists do not inherit semantic scope
+nested-list = 1*WSP list-block
+
+; 11. Annotation attachment
+annotation =
+      inline-span *WSP attrs-block
+    / heading *WSP attrs-block
+    / paragraph *WSP attrs-block
+    / list-item
+    / blockquote *WSP attrs-block
+    / code-fence *WSP attrs-block
+
+; 12. Grammar guarantees (normative)
+; Attribute token order is semantically unordered
+; Nested lists establish a new semantic scope
+; No implicit inheritance across list levels
+; Deterministic, streaming-friendly parsing
+; Round-trip safe (MD-LD <-> RDF <-> MD-LD)
+; No semantic inference at syntax level
+
+; 13. Forbidden constructs (not expressible in this grammar)
+; - Blank nodes
+; - Key-value pairs  
+; - Nested attribute blocks
+; - Implicit subjects/predicates
+; - Structural inference
