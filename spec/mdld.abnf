@@ -79,16 +79,16 @@ code-fence      = 3"`" [ text ] LF *( text / LF ) 3"`"
 
 ; 10. Lists (semantic model)
 
-; 10.1 List header (semantic anchor)
-; A list header introduces semantic predicates/types for immediate list items
-list-header = paragraph *WSP attrs-block
+; 10.1 List anchor (semantic anchor)
+; A list anchor introduces semantic predicates/types for immediate list items
+list-anchor = paragraph *WSP attrs-block
 
 ; 10.2 List item
 list-item = list-marker WSP text *WSP [ attrs-block ]
 list-marker = "-" / "*" / 1*DIGIT "."
 
 ; 10.3 List block
-list-block = list-header LF list-item *( LF list-item / LF nested-list )
+list-block = list-anchor LF list-item *( LF list-item / LF nested-list )
 
 ; 10.4 Nested list (semantic reset)
 ; Nested lists do not inherit semantic scope

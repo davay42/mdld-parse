@@ -82,8 +82,8 @@ codeFence      = "```" , [ text ] , newline , { text | newline } , "```" ;
 
 (* 11. Lists (semantic model) *)
 
-(* 11.1 List header (semantic anchor) *)
-(* A list header introduces semantic predicates/types for immediate list items *)
+(* 11.1 List anchor (semantic anchor) *)
+(* A list anchor introduces semantic predicates/types for immediate list items *)
 listHeader =
     paragraph , whitespace* , attrsBlock ;
 
