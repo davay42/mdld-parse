@@ -1,288 +1,240 @@
 [mdld] <https://mdld.js.org/>
-[wd] <https://www.wikidata.org/wiki/>
-[w3c] <https://www.w3.org/TR/>
+[xsd] <http://www.w3.org/2001/XMLSchema#>
+[@vocab] <http://www.w3.org/2000/01/rdf-schema#>
 
-# MD-LD Specification {=mdld:Spec .Class label}
+# MD-LD: Complete Syntax Specification {=mdld:dogfood .Class label}
 
-A minimal, streaming-friendly language for embedding RDF semantics in Markdown.
+> MD-LD is a **semantic annotation layer** for CommonMark Markdown that creates RDF knowledge graphs from explicit `{...}` annotations. {mdld:dogfood comment}
 
-> This document is written **in MD-LD itself** and serves as both
-> a language specification and an executable semantic example. {=mdld:Spec comment}
+## Default Context {=mdld:default-context .Class label}
 
----
+MD-LD provides these built-in prefixes and vocabulary:
 
-## Core Concepts {=mdld:CoreConcepts .Class label}
+Default vocabulary and prefixes: {mdld:includes .Class label}
+- `@vocab`: `http://www.w3.org/2000/01/rdf-schema#` {=mdld:vocab}
+- `rdf`: `http://www.w3.org/1999/02/22-rdf-syntax-ns#` {=mdld:rdf-prefix}
+- `rdfs`: `http://www.w3.org/2000/01/rdf-schema#` {=mdld:rdfs-prefix}
+- `xsd`: `http://www.w3.org/2001/XMLSchema#` {=mdld:xsd-prefix}
+- `sh`: `http://www.w3.org/ns/shacl#` {=mdld:sh-prefix}
+- `prov`: `http://www.w3.org/ns/prov#` {=mdld:prov-prefix}
 
-The following concepts define the MD-LD processing model.
+## Core Classes {=mdld:classes .Class label}
 
-Concepts: {?mdld:hasConcept .Class label}
+All classes used in this document: {seeAlso Class label}
 
-- Carrier {=mdld:Carrier}
-- Annotation {=mdld:Annotation}
-- Semantic Scope {=mdld:SemanticScope}
-- Explicit Subject {=mdld:ExplicitSubject}
-- Local Object {=mdld:LocalObject}
+- Document {=mdld:Document}
+- Concept {=mdld:Concept}
+- Resource {=mdld:Resource}
+- Principle {=mdld:Principle}
+- Feature {=mdld:Feature}
+- Layer {=mdld:Layer}
+- Component {=mdld:Component}
+- Software {=mdld:Software}
 
----
+## Parser Architecture {=mdld:parser-arch .Class label}
 
-## Carriers {=mdld:CarrierSection label}
+### Tokenization Phase
+The parser processes documents in a single pass with these token types: {mdld:includes .Class label}
 
-A **carrier** is a Markdown element that can emit RDF triples
-when annotated.
+Token types created during scanning:
+- `prefix` - Context declarations `[name] <IRI>`
+- `heading` - Markdown headings `# text {attrs}`
+- `list` - List items `- text {attrs}` or `1. text {attrs}`
+- `blockquote` - Blockquotes `> text {attrs}`
+- `code` - Code blocks with annotations
+- `para` - Paragraphs with potential inline carriers
 
-Examples include paragraphs, headings, list items, blockquotes,
-and code blocks.
+### Processing Pipeline
+Document processing follows this pipeline: {mdld:includes .Class label}
+1. **Line-by-line scanning** {=#line-by-line} - Sequential token creation
+2. **Context resolution** {=#context-resolution} - Prefix and vocabulary expansion
+3. **Subject tracking** {=#subject-tracking} - Current subject management
+4. **Annotation processing** {=#annotation-processing} - Semantic block evaluation
+5. **Quad emission** {=#quad-emission} - RDF triple generation
 
-> Carriers are the bridge between human-readable Markdown
-> and machine-readable RDF semantics.
-{=mdld:Carrier comment}
+### Semantic Block Processing
+Annotations are parsed using cached semantic blocks: {mdld:includes .Class label}
+- Parse `{...}` blocks into structured semantic objects
+- Cache frequently used patterns for performance
+- Extract subjects, predicates, types, and modifiers
+- Handle all three predicate forms (`p`, `?p`, `!p`)
 
----
+## Context Declarations {=mdld:context .Class label}
 
-## Annotations {=mdld:AnnotationSection label}
+MD-LD supports prefix and vocabulary declarations following JSON-LD patterns:
 
-Annotations are written in `{}` blocks and attach RDF meaning
-to the preceding carrier.
+Prefix declarations: {?mdld:seeAlso .Class label}
+- `[mdld] <https://mdld.js.org/>` {=mdld:prefix}
+- `[xsd] <http://www.w3.org/2001/XMLSchema#>` {=mdld:xsd}
+- `[@vocab] <http://www.w3.org/2000/01/rdf-schema#>` {=mdld:vocab}
 
-Syntax example:
+## Core Principles {=mdld:principles .Class label}
 
-`{=mdld:example ?mdld:predicate .mdld:Type}` {=mdld:AnnotationExample .mdld:Example label}
+MD-LD follows strict rules: 
 
-Annotation components:
-- **Subject declarations** (`=IRI`, `=#fragment`)
-- **Object declarations** (`+IRI`, `+#fragment`) 
-- **Type declarations** (`.Class`)
-- **Predicates** (`p`, `?p`, `!p`)
-- **Literal modifiers** (`^^datatype`, `@lang`)
+**Markdown-preserving** {=#markdown-preserving ?mdld:includes label} - Remove `{...}` → valid Markdown
+**Explicit only** {=#explicit-only ?mdld:includes label} - No implicit semantics or guessing
+**Single-pass** {=#single-pass ?mdld:includes label} - Streaming-friendly processing
+**Deterministic** {=#deterministic ?mdld:includes label} - Same input → same output
+**Traceable** {=#traceable ?mdld:includes label} - Every fact traces to its source
 
----
+## Subject Management {=mdld:subjects .Class label}
 
-## Lists {=mdld:ListSection label}
+### Full IRI Subjects
+[Document with full IRI] {=mdld:doc-full .Class label} demonstrates persistent subjects
 
-A list anchor defines semantics for all immediate list items.
+### Fragment Subjects  
+[Section with fragment] {=#fragment-example .Class label} creates relative identifiers
 
-List semantics do not recurse into nested lists.
+### Subject Reset
+[{=}] {=mdld:reset label} shows subject clearing
 
-List semantics: {?mdld:appliesTo .mdld:ListItem label}
+### Temporary Objects
+[Related concept] {+mdld:temporary mdld:seeAlso label} demonstrates block-scoped objects
 
-- First item {=mdld:item1 }
-- Second item {=mdld:item2}
+## Value Carriers {=mdld:carriers .Class label}
 
-Nested list example:
+### Inline Elements
+**Inline elements:** [*italic*] {+mdld:italic mdld:seeAlso} [**bold**] {+mdld:bold mdld:seeAlso} [`code`] {+mdld:code mdld:seeAlso}
 
-Variants: {?mdld:hasVariant .mdld:Variant label}
-- Variant A {=mdld:variantA}
-  Details: {?mdld:hasDetail .mdld:Detail label}
-  - Detail 1 {=mdld:detail1}
-  - Detail 2 {=mdld:detail2}
+### Block Elements
+**Block elements:** # [Headings] {+mdld:heading mdld:seeAlso} > [Quotes] {+mdld:quote mdld:seeAlso}
 
----
+### Links and Media
+**Links:** [MD-LD Website](https://mdld.js.org) {+mdld:link mdld:seeAlso}
+**Images:** ![Logo](https://mdld.js.org/logo.png) {+mdld:image mdld:seeAlso}
 
-## Blockquotes {=mdld:BlockquoteSection label}
+## Predicate Forms {=mdld:predicates .Class label}
 
-> Blockquotes may also act as carriers.
-> They are often used for normative statements. {=mdld:NormativeStatement .mdld:Rule label}
+Three predicate directions create different relationships:
 
----
+- **Subject→Literal**: [MD-LD] {label} creates `mdld:doc label "MD-LD"`
+- **Subject→Object**: [RDF](https://www.w3.org/RDF) {mdld:seeAlso} creates `mdld:doc rdfs:seeAlso <https://www.w3.org/RDF>`
+- **Object→Subject**: [Example] {mdld:isDefinedBy} creates `mdld:example mdld:isDefinedBy mdld:doc`
 
-## Code Blocks {=mdld:CodeSection label}
+## Type Declarations {=mdld:types .Class label}
 
-Code blocks do not emit semantics by default,
-but may be annotated as semantic objects.
+### Single Types
+[Single type example] {=mdld:single Class label}
 
-```ebnf {=mdld:EBNFGrammar .mdld:GrammarFragment label}
-attrsBlock = "{" , attrsTokens , "}" ;
+### Multiple Types
+[Multiple types example] {=mdld:multiple Class Class1 label}
+
+## Literal Modifiers {=mdld:literals .Class label}
+
+### Typed Literals
+[2024] {+mdld:year mdld:seeAlso ^^xsd:gYear}
+[3.14159] {+mdld:pi mdld:seeAlso ^^xsd:decimal}
+[true] {+mdld:bool mdld:seeAlso ^^xsd:boolean}
+
+### Language-Tagged Literals
+[Hello] {+mdld:english mdld:seeAlso @en}
+[Bonjour] {+mdld:french mdld:seeAlso @fr}
+[Hola] {+mdld:spanish mdld:seeAlso @es}
+
+## Lists and Nesting {=mdld:lists .Class label}
+
+### Simple Lists
+Features demonstrated: {?mdld:includes Class label}
+- Annotations {=#annotations}
+- Predicates {=#predicates} 
+- Lists {=#lists}
+
+### Nested Lists
+Nested structures show hierarchical relationships:
+
+Implementation layers: {?mdld:includes .Class label}
+- Parser {=#parser-layer}
+  Components: {?mdld:includes .Class label}
+  - Lexer {=#lexer }
+  - Token Scanner {=#token-scanner}
+  - Semantic Processor {=#semantic-processor}
+- Serializer {=#serializer-layer}
+
+### List Item Subjects
+List items can declare their own subjects:
+- [First item] {=mdld:item1 .Class label}
+- [Second item] {=mdld:item2 .Class label}
+
+## Code Blocks {=mdld:code-blocks .Class label}
+
+### Annotated Code Blocks
+```javascript {=mdld:example-code Class text}
+console.log("MD-LD creates RDF from Markdown");
 ```
 
----
-
-## Processing Model {=mdld:ProcessingModel label}
-
-MD-LD processing is strictly streaming and deterministic.
-
-Rules: {?mdld:hasRule .mdld:Rule label}
-
-* An annotation applies to the nearest preceding carrier. {=#nearest-carrier}
-* Semantic scope resets at nested list boundaries. {=#scoped-lists}
-* No inference is performed at syntax level. {=#no-inference}
-* Context declarations apply forward from declaration point. {=#forward-context}
-* Subject resolution follows explicit declaration rules. {=#explicit-subject}
-
----
-
-## Subject Resolution {=mdld:SubjectResolution label}
-
-Subject declarations establish the current subject for subsequent annotations:
-
-1. **Full IRI**: `{=ex:entity}` → sets current subject to expanded IRI
-2. **Fragment**: `{=#fragment}` → creates `currentSubjectBase#fragment`
-3. **Reset**: `{=}` → clears current subject
-4. **Local Object**: `{+ex:related}` → temporary object for current annotation
-
----
-
-## Predicate Forms {=mdld:PredicateForms label}
-
-MD-LD supports three predicate forms for different relationship types:
-
-Predicates: {?mdld:hasPredicate .mdld:Predicate label}
-
-- **Literal predicate** (`p`) - Subject → Literal: `{name}`
-- **Object predicate** (`?p`) - Subject → Object: `{?website}`
-- **Reverse predicate** (`!p`) - Object → Subject: `{!hasPart}`
-
----
-
-## Conformance {=mdld:Conformance label}
-
-A conforming MD-LD processor MUST:
-
-* Preserve round-trip stability
-* Track origin positions for serialization
-* Produce RDF/JS compatible quads
-* Process documents in a single pass
-* Recover gracefully from malformed annotations
-* Maintain deterministic subject resolution
-
----
-
-## Implementation Status {=mdld:Implementation label}
-
-This specification is implemented by the `mdld-parse` JavaScript library:
-
-Features: {?mdld:hasFeature .mdld:Feature label}
-
-- **Parser** {=mdld:Parser .mdld:Implementation}
-- **Serializer** {=mdld:Serializer .mdld:Implementation}
-- **Origin Tracking** {=mdld:OriginTracking}
-- **Streaming Support** {=mdld:Streaming}
-
----
-
-## Expected RDF Output
-
-Parsing this document produces the following RDF graph (129 quads):
-
-```turtle
-@prefix mdld: <https://mdld.js.org/>.
-@prefix wd: <https://www.wikidata.org/wiki/>.
-@prefix w3c: <https://www.w3.org/TR/>.
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
-
-mdld:Spec a rdfs:Class;
-    rdfs:label "MD-LD Specification";
-    rdfs:comment "a language specification and an executable semantic example.".
-
-mdld:CoreConcepts a rdfs:Class;
-    rdfs:label "Core Concepts".
-
-mdld:Carrier a rdfs:Class.
-mdld:CoreConcepts mdld:hasConcept mdld:Carrier.
-mdld:Carrier a rdfs:Class;
-    rdfs:label "Carrier".
-
-mdld:Annotation a rdfs:Class.
-mdld:CoreConcepts mdld:hasConcept mdld:Annotation.
-mdld:Annotation a rdfs:Class;
-    rdfs:label "Annotation".
-
-mdld:SemanticScope a rdfs:Class.
-mdld:CoreConcepts mdld:hasConcept mdld:SemanticScope.
-mdld:SemanticScope a rdfs:Class;
-    rdfs:label "Semantic Scope".
-
-mdld:ExplicitSubject a rdfs:Class.
-mdld:CoreConcepts mdld:hasConcept mdld:ExplicitSubject.
-mdld:ExplicitSubject a rdfs:Class;
-    rdfs:label "Explicit Subject".
-
-mdld:LocalObject a rdfs:Class.
-mdld:CoreConcepts mdld:hasConcept mdld:LocalObject.
-mdld:LocalObject a rdfs:Class;
-    rdfs:label "Local Object".
-
-mdld:CarrierSection rdfs:label "Carriers".
-mdld:Carrier rdfs:comment "".
-
-mdld:AnnotationSection rdfs:label "Annotations".
-
-mdld:AnnotationExample a mdld:Example;
-    rdfs:label "{=mdld:example ?mdld:predicate .mdld:Type}".
-
-mdld:ListSection rdfs:label "Lists".
-mdld:item1 a mdld:ListItem.
-mdld:ListSection mdld:appliesTo mdld:item1.
-mdld:item1 rdfs:label "First item".
-
-mdld:item2 a mdld:ListItem.
-mdld:ListSection mdld:appliesTo mdld:item2.
-mdld:item2 rdfs:label "Second item".
-
-mdld:variantA a mdld:Variant.
-mdld:ListSection mdld:hasVariant mdld:variantA.
-mdld:variantA rdfs:label "Variant A".
-
-mdld:detail1 a mdld:Detail.
-mdld:variantA mdld:hasDetail mdld:detail1.
-mdld:detail1 rdfs:label "Detail 1".
-
-mdld:detail2 a mdld:Detail.
-mdld:variantA mdld:hasDetail mdld:detail2.
-mdld:detail2 rdfs:label "Detail 2".
-
-mdld:BlockquoteSection rdfs:label "Blockquotes".
-mdld:NormativeStatement a mdld:Rule;
-    rdfs:label "They are often used for normative statements.".
-
-mdld:CodeSection rdfs:label "Code Blocks".
-mdld:EBNFGrammar a mdld:GrammarFragment;
-    rdfs:label "attrsBlock = \"{\" , attrsTokens , \"}\" ;".
-
-mdld:ProcessingModel rdfs:label "Processing Model".
-mdld:ProcessingModel mdld:hasRule mdld:ProcessingModel#nearest-carrier.
-mdld:ProcessingModel#nearest-carrier rdfs:label "An annotation applies to the nearest preceding carrier.".
-
-mdld:ProcessingModel mdld:hasRule mdld:ProcessingModel#scoped-lists.
-mdld:ProcessingModel#scoped-lists rdfs:label "Semantic scope resets at nested list boundaries.".
-
-mdld:ProcessingModel mdld:hasRule mdld:ProcessingModel#no-inference.
-mdld:ProcessingModel#no-inference rdfs:label "No inference is performed at syntax level.".
-
-mdld:ProcessingModel mdld:hasRule mdld:ProcessingModel#forward-context.
-mdld:ProcessingModel#forward-context rdfs:label "Context declarations apply forward from declaration point.".
-
-mdld:ProcessingModel mdld:hasRule mdld:ProcessingModel#explicit-subject.
-mdld:ProcessingModel#explicit-subject rdfs:label "Subject resolution follows explicit declaration rules.".
-
-mdld:SubjectResolution rdfs:label "Subject Resolution".
-mdld:ProcessingModel mdld:hasRule mdld:SubjectResolution#fragment.
-mdld:SubjectResolution#fragment rdfs:label "**Full IRI**: `{=ex:entity}` → sets current subject to expanded IRI".
-
-mdld:SubjectResolution#fragment a mdld:Rule.
-mdld:ProcessingModel mdld:hasRule mdld:SubjectResolution#fragment.
-mdld:SubjectResolution#fragment rdfs:label "**Fragment**: `{=#fragment}` → creates `currentSubjectBase#fragment`".
-
-mdld:PredicateForms rdfs:label "Predicate Forms".
-mdld:Conformance rdfs:label "Conformance".
-mdld:Implementation rdfs:label "Implementation Status".
-
-mdld:Parser a mdld:Feature.
-mdld:Implementation mdld:hasFeature mdld:Parser.
-mdld:Parser rdfs:label "**Parser**";
-    a mdld:Implementation.
-
-mdld:Serializer a mdld:Feature.
-mdld:Implementation mdld:hasFeature mdld:Serializer.
-mdld:Serializer rdfs:label "**Serializer**";
-    a mdld:Implementation.
-
-mdld:OriginTracking a mdld:Feature.
-mdld:Implementation mdld:hasFeature mdld:OriginTracking.
-mdld:OriginTracking rdfs:label "**Origin Tracking**".
-
-mdld:Streaming a mdld:Feature.
-mdld:Implementation mdld:hasFeature mdld:Streaming.
-mdld:Streaming rdfs:label "**Streaming Support**".
+### Parser Implementation Examples
+```javascript {=mdld:parser-code .Class text}
+// Token scanning implementation
+function scanTokens(text) {
+    const tokens = [];
+    const lines = text.split('\n');
+    // Process each line for tokens...
+}
 ```
+
+### EBNF Grammar Examples
+```ebnf {=mdld:ebnf-grammar .Class text}
+attrsBlock = "{" , whitespace* , attrsTokens? , whitespace* , "}" ;
+attrsTokens = attrsToken , { whitespace+ , attrsToken } ;
+```
+
+This *JavaScript* {=mdld:js label} code shows annotation syntax.
+
+## Blockquotes {=mdld:blockquote .Class label}
+
+> Blockquotes serve as carriers for normative statements and comments. {mdld:blockquote comment}
+
+> **Important**: All semantics must be explicit - no implicit inference. {mdld:normative comment}
+
+> **Parser Note**: The implementation uses token-based scanning, not AST building. {mdld:parser-note comment}
+
+## Advanced Features {=mdld:advanced .Class label}
+
+### Soft Fragments
+[Soft fragment example] {+#soft-fragment mdld:seeAlso label} demonstrates temporary fragments
+
+### Complex Annotations
+[Complex example] {=mdld:complex .Class label comment mdld:seeAlso} shows multiple predicates
+
+### Reverse Relationships
+[Target entity] {!mdld:hasPart label} demonstrates reverse predicate form
+
+## Processing Model {=mdld:processing .Class label}
+
+### Streaming Processing
+MD-LD processes documents in a single pass: {?mdld:includes .Class label}
+- Line-by-line tokenization {=#line-by-line}
+- Subject tracking {=#subject-tracking}
+- Quad emission {=#quad-emission}
+
+### Origin Tracking
+Every quad maintains origin information for round-trip serialization: 
+- Block identification
+- Position tracking
+- Slot indexing
+
+### Semantic Block Caching
+The parser uses caching for performance: {mdld:includes .Class label}
+- Parse semantic blocks once and cache results
+- Avoid repeated parsing of identical annotations
+- Maintain deterministic output while improving speed
+
+## Error Handling {=mdld:errors .Class label}
+
+### Graceful Degradation
+MD-LD recovers from malformed annotations:
+- Unknown prefixes → skip annotation
+- Malformed IRIs → skip annotation  
+- Unbalanced braces → fatal error
+- Invalid carriers → skip annotation
+
+## Connected Knowledge Graph {=mdld:graph .Class label}
+
+This document demonstrates how MD-LD creates a **self-describing knowledge graph** where:
+- The document explains MD-LD using MD-LD
+- Every concept is explicitly typed and related
+- The resulting RDF graph mirrors the document structure
+- All features connect into a coherent semantic model
+
+> The document itself becomes both specification and proof of concept. { comment}

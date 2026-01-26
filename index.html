@@ -378,62 +378,60 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
 
         // Example templates
         const examples = {
-            minimal: `
-## Document {=urn:mdld:doc}
+            minimal: `## Document {=urn:mdld:doc}
 Title: [My Document] {label}
 Author: [Alice] {+urn:mdld:alice .urn:class:Person ?urn:role:author urn:cred:name}
             `,
-            journal: `           
-## 2024-07-18 — A good day {=urn:journal:day-2024-07-18 .Event}
+            journal: `[tag] <tag:alice@example.com,2026:>
 
-[ex] <http://example.org/>
-
+## 2024-07-18 — A good day {=tag:journal-2024-07-18 .tag:Event}
 
 Mood: [Happy] {mood}
-Energy level: [8] {ex:energyLevel ^^xsd:integer}
-Place: [Central Park] {=ex:central-park ?ex:location}
+Energy level: [8] {tag:energyLevel ^^xsd:integer}
+Place: [Central Park] {=tag:central-park ?tag:location}
 Park label: [Central Park] {label @en}
-With: [Sam] {=ex:sam .ex:Person ?ex:attendee}
-Weather: [Sunny] {ex:weather}
+With: [Sam] {=tag:sam .tag:Person ?tag:attendee}
+Weather: [Sunny] {tag:weather}
 
-Activities: {?ex:hasActivity .ex:Action label}
+Activities: {?tag:hasActivity .tag:Activity label}
 
-- Walking {=ex:walking-1}
-- Reading {=ex:reading-1}
+- Walking {=tag:walking-1}
+- Reading {=tag:reading-1}
 
 Reflections:
-I felt [peaceful] {ex:emotionalState} and the park was [beautiful] {ex:description}.
+I felt [peaceful] {tag:emotionalState} and the park was [beautiful] {tag:description}.
 
-Related events: {!ex:relatedEvent  .ex:Event}
-- Morning coffee {=ex:coffee-2024-07-18}
-- Evening dinner {=ex:dinner-2024-07-18}`,
+Related events: {!tag:relatedEvent  .tag:Event}
+- Morning coffee {=tag:coffee-2024-07-18}
+- Evening dinner {=tag:dinner-2024-07-18}`,
 
-            recipe: `
-## Apple Pie {=ex:apple-pie .ex:Recipe label}
+            recipe: `[food] <tag:alice@example.com,2026:food/>
+
+## Apple Pie {=food:apple-pie .tag:Recipe label}
 
 Description: **Classic homemade apple pie** {comment}
-Cooking time: **45** {ex:cookTime ^^xsd:integer} minutes
-Servings: **8** {ex:recipeYield ^^xsd:integer}
-Difficulty: **Medium** {ex:difficulty}
+Cooking time: **45** {food:cookTime ^^xsd:integer} minutes
+Servings: **8** {food:recipeYield ^^xsd:integer}
+Difficulty: **Medium** {food:difficulty}
 
-Ingredients: {?ex:recipeIngredient .ex:ingredient name}
+Ingredients: {?food:recipeIngredient .food:ingredient label}
 
-* Apples {=ex:apples}
-* Sugar {=ex:sugar}
-* Butter {=ex:butter}
-* Flour {=ex:flour}
-* Cinnamon {=ex:cinnamon}
+* Apples {=food:apples}
+* Sugar {=food:sugar}
+* Butter {=food:butter}
+* Flour {=food:flour}
+* Cinnamon {=food:cinnamon}
 
-_Ingredient_ {+ex:ingredient .ex:Class label} - is a class for all ingredients in our **Cookbook** {+ex:cookbook .ex:Collection label ?isPartOf}.
+_Ingredient_ {+food:ingredient .food:Class label} - is a class for all ingredients in our **Cookbook** {+food:cookbook .food:Collection label ?isPartOf}.
 
-Equipment: {?ex:requiresEquipment label}
+Equipment: {?food:requiresEquipment label}
 
-* Oven {=ex:oven .ex:Device }
-* Mixing bowl {=ex:bowl .ex:Utensil }
-* Rolling pin {=urn:ex:pin .ex:Utensil }
+* Oven {=food:oven .food:Device }
+* Mixing bowl {=food:bowl .food:Utensil }
+* Rolling pin {=urn:food:pin .food:Utensil }
 
-Calories:  [1235] {ex:calories ^^xsd:integer} calories
-Sugar: [40.4] {ex:sugarGrams ^^xsd:decimal} grams
+Calories:  [1235] {food:calories ^^xsd:integer} calories
+Sugar: [40.4] {food:sugarGrams ^^xsd:decimal} grams
 
 Related recipes: {!urn:class:variationOf .Recipe name}
 
@@ -441,28 +439,27 @@ Related recipes: {!urn:class:variationOf .Recipe name}
 * Peach Pie {=urn:recipe:peach-pie}
             `,
 
-            project: `
-[ex] <http://example.org/>
+            project: `[proj] <tag:alice@example.com,2026:project/>
 
-## Weekend goals {=ex:weekend-goals .ex:Project}
+## Weekend goals {=proj:weekend-goals .proj:Project}
 
-Tasks: {?ex:hasPart .ex:Action label}
-- Clean kitchen {=ex:task-clean} 
-- Fix bike {=ex:task-bike} 
-- Read book {=ex:task-read}
+Tasks: {?proj:hasPart .proj:Task label}
+- Clean kitchen {=proj:task-clean} 
+- Fix bike {=proj:task-bike} 
+- Read book {=proj:task-read}
 
-Dependencies: {?ex:dependsOn .ex:Store label}
-- Hardware store {=ex:hardware-store }
+Dependencies: {?proj:dependsOn .proj:Store label}
+- Hardware store {=proj:hardware-store }
 
-People involved: {?ex:assignedTo .ex:Person}
-- Myself {=ex:myself}
+People involved: {?proj:assignedTo .proj:Person}
+- Myself {=proj:myself}
 
-Blocked by: {!ex:blocks label}
-- Rain forecast {=ex:weather-forecast}
+Blocked by: {!proj:blocks label}
+- Rain forecast {=proj:weather-forecast}
 
-Progress tracking: {?ex:hasMilestone .ex:Achievement label}
-- Kitchen cleaned {=ex:milestone-kitchen}
-- Bike fixed {=ex:milestone-bike}`,
+Progress tracking: {?proj:hasMilestone .proj:Achievement label}
+- Kitchen cleaned {=proj:milestone-kitchen}
+- Bike fixed {=proj:milestone-bike}`,
 
             apollo: `
 [nasa] <http://nasa.org/>
