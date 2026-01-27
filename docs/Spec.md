@@ -132,12 +132,30 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 | `[label](URL) {...}` | Link text + URL | `[NASA](https://nasa.gov) {?website name}` |
 | `![alt](URL) {...}` | Alt text + URL | `![Photo](photo.jpg) {?image name}` |
 
+### Angle-Bracket URL Behavior
+
+Angle-bracket URLs (`<URL> {...}`) have special **soft subject** behavior:
+
+| Predicate Type | Subject | Object | Example |
+|---------------|---------|--------|---------|
+| `{.Type}` | **URL** | - | `<https://nasa.gov> {.Organization}` |
+| `{?predicate}` | **Current subject** | **URL** | `<https://nasa.gov> {?website}` |
+| `{!predicate}` | **URL** | **Current subject** | `<https://nasa.gov> {!hasPart}` |
+| `{literal}` | - | - | `<https://nasa.gov> {name}` *(ignored)* |
+
+**Key Rules:**
+- Type declarations use URL as subject (soft subject behavior)
+- Object predicates use current subject as subject
+- Reverse predicates use URL as subject
+- Literal predicates are ignored (no text content available)
+
 ### What CAN'T Carry Annotations
 
 - Plain paragraphs without inline formatting
 - Bare URLs without angle brackets and `{...}` (use `<URL> {...}` instead)
 - Text that's not in one of the formats above
 - Multiple elements at once (one `{...}` per carrier)
+- **Angle-bracket URLs in list items** (use subheadings instead)
 
 **Key Rule:** The `{...}` block must come **immediately after** the value carrier.
 
@@ -540,13 +558,8 @@ A `{...}` block immediately before a list applies to **all items** in that list.
 ```md
 - Flour {=ex:flour}
   Properties: {?hasProperty .Property name}
-  - [Organic] {=ex:organic .Organic name}
-  - [Fine ground] {=ex:grind .FineGrind name}
-```
-
-**✅ Use Inline Carriers (Limited)**
-```md
-- [*Important ingredient*] {priority .Important}
+  - Organic {=ex:organic .Organic}
+  - Fine ground {=ex:grind .FineGrind}
 ```
 
 **✅ Use Separate Sections**
@@ -557,10 +570,48 @@ A `{...}` block immediately before a list applies to **all items** in that list.
 [*Important*] {priority .Important}
 ```
 
+**✅ Use Subheadings for External Resources**
+```md
+### Dataset {=ex:dataset}
+Source: <https://github.com/user/repo> {ex:sourceUrl}
+```
+
 **❌ NEVER Use Nested Paragraphs (Invalid)**
 ```md
 - Flour {=ex:flour}
   Description: [additional description] {description}  # ❌ List context lost
+```
+
+**❌ NEVER Use Angle-Bracket URLs in Lists**
+```md
+- <https://example.com> {ex:resource}  # ❌ Wrong syntax
+```
+
+**Correct approach for URLs:**
+```md
+### External Resource {=ex:resource}
+URL: <https://example.com> {ex:url}
+```
+
+### Common Syntax Mistakes
+
+**❌ Inline Carriers in List Items**
+```md
+- [*Important* ingredient] {priority}     # ❌ No subject = excluded
+- Flour {=ex:flour} [extra] {desc}        # ❌ Text after annotation = excluded
+```
+
+**❌ Mixed Content in List Items**
+```md
+- Flour {=ex:flour} - description         # ❌ Text after annotation = excluded
+- Flour {=ex:flour} [*organic*] {certified} # ❌ Mixed content = ambiguous
+```
+
+**✅ Clean List Item Patterns**
+```md
+- Flour {=ex:flour}                       # ✅ Clean subject declaration
+- Organic flour {=ex:flour-organic}        # ✅ Subject with descriptive text
+- Flour {=ex:flour .Food label}           # ✅ Subject with type and label
 ```
 
 ### Nested Lists

@@ -1,6 +1,8 @@
 [mdld] <https://mdld.js.org/>
 [xsd] <http://www.w3.org/2001/XMLSchema#>
 [@vocab] <http://www.w3.org/2000/01/rdf-schema#>
+[my] <tag:mdld@example.com,2026:>
+[ex] <my:example:>
 
 # MD-LD: Complete Syntax Specification {=mdld:dogfood .Class label}
 
@@ -17,6 +19,41 @@ Default vocabulary and prefixes: {mdld:includes .Class label}
 - `xsd`: `http://www.w3.org/2001/XMLSchema#` {=mdld:xsd-prefix}
 - `sh`: `http://www.w3.org/ns/shacl#` {=mdld:sh-prefix}
 - `prov`: `http://www.w3.org/ns/prov#` {=mdld:prov-prefix}
+
+## Prefix Folding {=mdld:prefix-folding .Class label}
+
+MD-LD supports hierarchical namespace building through prefix folding:
+
+Base namespace declaration:
+- `[my] <tag:mdld@example.com,2026:>` {=mdld:base-namespace}
+
+Derived namespaces using CURIE syntax:
+- `[ex] <my:example:>` {=mdld:derived-namespace}
+
+This resolves to: `tag:mdld@example.com,2026:example:`
+
+### Prefix Folding Examples
+Demonstrated namespaces: {?mdld:includes .Class label}
+- Document: [Example doc] {=ex:doc .Class label}
+- Feature: [Example feature] {=ex:feature .Class label}
+- Parser: [Example parser] {=ex:parser .Class label}
+
+## Angle-Bracket URLs {=mdld:angle-urls .Class label}
+
+MD-LD supports angle-bracket URLs as value carriers with soft subject behavior:
+
+### URL Value Carriers
+External resources as soft subjects:
+- <https://www.w3.org/TR/rdf11-concepts/> {.Specification label}
+- <https://github.com/mdld-js/mdld-parse> {?mdld:implementation .Repository label}
+- <https://arxiv.org/abs/2301.07041> {!mdld:cites .Paper label}
+
+### URL Behavior Rules
+Angle-bracket URLs follow these rules:
+- Type declarations use URL as subject: `<URL> {.Type}`
+- Object predicates use current subject: `<URL> {?predicate}`
+- Reverse predicates use URL as subject: `<URL> {!predicate}`
+- Literal predicates are ignored: `<URL> {literal}` (no output)
 
 ## Core Classes {=mdld:classes .Class label}
 
@@ -134,6 +171,10 @@ Three predicate directions create different relationships:
 
 ## Lists and Nesting {=mdld:lists .Class label}
 
+### List Item Policy: Single-Value Block Carriers
+
+**Critical Rule**: All list items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context. Items without subjects are excluded from semantic relationships.
+
 ### Simple Lists
 Features demonstrated: {?mdld:includes Class label}
 - Annotations {=#annotations}
@@ -150,11 +191,6 @@ Implementation layers: {?mdld:includes .Class label}
   - Token Scanner {=#token-scanner}
   - Semantic Processor {=#semantic-processor}
 - Serializer {=#serializer-layer}
-
-### List Item Subjects
-List items can declare their own subjects:
-- [First item] {=mdld:item1 .Class label}
-- [Second item] {=mdld:item2 .Class label}
 
 ## Code Blocks {=mdld:code-blocks .Class label}
 
