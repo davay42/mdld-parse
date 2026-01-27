@@ -1,6 +1,6 @@
 {
 	"name": "mdld-parse",
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"description": "A standards-compliant parser for **MD-LD (Markdown-Linked Data)** — a human-friendly RDF authoring format that extends Markdown with semantic annotations.",
 	"type": "module",
 	"main": "index.js",
@@ -24,7 +24,10 @@
 		"rdfjs",
 		"browser",
 		"web-worker",
-		"parser"
+		"parser",
+		"prefix-folding",
+		"curie",
+		"iri-authoring"
 	],
 	"author": "davay42",
 	"repository": {

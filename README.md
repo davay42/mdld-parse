@@ -1,4 +1,4 @@
-# MD-LD Parse v0.3
+# MD-LD Parse v0.4.1
 
 **Markdown-Linked Data (MD-LD)** — a deterministic, streaming-friendly RDF authoring format that extends Markdown with explicit `{...}` annotations.
 
@@ -34,6 +34,7 @@ ex:armstrong schema:name "Neil Armstrong" .
 
 ## Core Features
 
+- **Prefix folding**: Build hierarchical namespaces with lightweight IRI authoring
 - **Subject declarations**: `{=IRI}` and `{=#fragment}` for context setting
 - **Object IRIs**: `{+IRI}` and `{+#fragment}` for temporary object declarations  
 - **Four predicate forms**: `p` (S→L), `?p` (S→O), `!p` (O→S)
@@ -254,6 +255,38 @@ ex:book schema:hasPart ex:part .
 
 # Person {=ex:alice .foaf:Person}
 ```
+
+### Prefix Folding: Lightweight IRI Authoring
+
+Build hierarchical namespaces by referencing previously defined prefixes:
+
+```markdown
+# Create your domain authority
+[my] <tag:mymail@domain.com,2026:>
+
+# Build namespace hierarchy
+[j] <my:journal:>
+[p] <my:property:>
+[c] <my:class:>
+[person] <my:people:>
+
+# Use in content
+# 2026-01-27 {=j:2026-01-27 .c:Event p:date ^^xsd:date}
+
+## Harry {=person:harry p:name}
+```
+
+**Resolves to absolute IRIs:**
+- `j:2026-01-27` → `tag:mymail@domain.com,2026:journal:2026-01-27`
+- `c:Event` → `tag:mymail@domain.com,2026:class:Event`
+- `p:date` → `tag:mymail@domain.com,2026:property:date`
+- `person:harry` → `tag:mymail@domain.com,2026:people:harry`
+
+**Benefits:**
+- **Lightweight**: No external ontology dependencies
+- **Domain authority**: Use `tag:` URIs for personal namespaces
+- **Hierarchical**: Build deep namespace structures
+- **Streaming-safe**: Forward-reference only, single-pass parsing
 
 ## API Reference
 

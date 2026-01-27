@@ -673,6 +673,40 @@ Now you can use:
 - `alice:person` → `tag:alice@example.com,2026:/person`
 - `wd:Q43653` → `https://www.wikidata.org/entity/Q43653`
 
+### Prefix Folding: Hierarchical IRI Authoring
+
+Build namespace hierarchies by referencing previously declared prefixes:
+
+```md
+# Domain authority
+[my] <tag:mymail@domain.com,2026:>
+
+# Hierarchical prefixes
+[j] <my:journal:>
+[p] <my:property:>
+[c] <my:class:>
+[person] <my:people:>
+
+# Multi-level nesting
+[org] <https://org.example.com/>
+[person] <org:person/>
+[emp] <person:employee/>
+[dev] <emp:developer/>
+```
+
+**Resolution Rules:**
+- Prefixes must be declared before they can be referenced (forward-reference only)
+- References are resolved immediately during declaration
+- Circular references are treated as literal strings
+- Later declarations override earlier ones
+
+**Examples:**
+- `j:2026-01-27` → `tag:mymail@domain.com,2026:journal:2026-01-27`
+- `emp:harry` → `https://org.example.com/person/employee/harry`
+- `dev:john` → `https://org.example.com/person/employee/developer/john`
+
+This enables lightweight IRI authoring without external ontology dependencies, perfect for personal knowledge graphs and domain-specific namespaces.
+
 ### Setting Vocabulary
 
 Change the default vocabulary (http://www.w3.org/2000/01/rdf-schema#):

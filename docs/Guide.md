@@ -60,6 +60,32 @@ tag:alice@example.com,2026:walnut-bread
 
 ---
 
+### 1.1. Prefix Folding: Build Your Namespace
+
+Create hierarchical namespaces by referencing previous prefixes:
+
+```md
+# Your domain authority
+[my] <tag:mymail@domain.com,2026:>
+
+# Build the hierarchy
+[j] <my:journal:>
+[p] <my:property:>
+[c] <my:class:>
+
+# Use in content
+# 2026-01-27 {=j:2026-01-27 .c:Event p:date ^^xsd:date}
+```
+
+**Resolves to:**
+- `j:2026-01-27` → `tag:mymail@domain.com,2026:journal:2026-01-27`
+- `c:Event` → `tag:mymail@domain.com,2026:class:Event`
+- `p:date` → `tag:mymail@domain.com,2026:property:date`
+
+Perfect for personal knowledge graphs without external dependencies.
+
+---
+
 ## 2. Value carriers (what can hold meaning)
 
 Only these Markdown forms can emit values:

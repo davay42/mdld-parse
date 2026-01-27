@@ -11,9 +11,9 @@ Launched in [1969] {launchYear ^^xsd:gYear} with crew {?crew .Person name}.
 
 ## Value Carriers
 
-**Inline**: `[text]` `*text*` `**text**` `` `text` ``
-**Block**: `# Heading` `- item` `> quote`
-**Links**: `[label](url)` `![alt](url)` `http://url`
+**Inline**: `[text]` `*text*` `**text**` `_text_` `__text__` `` `text` ``
+**Block**: `# Heading` `- list item` `> blockquote`
+**Links**: `[label](url)` `![image](url)` `http://url`
 
 ```md
 [*Important*] {emphasis} mission using **Saturn V** {rocket} rocket.
@@ -94,6 +94,24 @@ console.log("hello")
 [ex] <http://example.org/>
 [wd] <https://www.wikidata.org/entity/>
 [@vocab] <http://schema.org/>
+```
+
+## Prefix Folding
+
+```md
+# Domain authority
+[my] <tag:mymail@domain.com,2026:>
+
+# Hierarchical prefixes
+[j] <my:journal:>
+[p] <my:property:>
+[c] <my:class:>
+
+# Multi-level nesting
+[org] <https://org.example.com/>
+[person] <org:person/>
+[emp] <person:employee/>
+[dev] <emp:developer/>
 ```
 
 ## Quick Reference
