@@ -618,8 +618,8 @@ Followed by: {!nasa:followedBy .nasa:SpaceMission label}
                 const ctx = lastParse?.result?.context || {};
                 const sFull = q.subject.value;
                 const pFull = q.predicate.value;
-                const sDisp = short(sFull, ctx);
-                const pDisp = short(pFull, ctx);
+                const sDisp = sFull; // Show raw IRI instead of shortened
+                const pDisp = pFull; // Show raw IRI instead of shortened
 
                 const s = chip('S', sFull, sDisp, 'q-s');
                 const p = chip('P', pFull, pDisp, 'q-p');
@@ -629,7 +629,7 @@ Followed by: {!nasa:followedBy .nasa:SpaceMission label}
                     o = chip('L', formatLiteral(q.object), formatLiteral(q.object), 'q-lit');
                 } else {
                     const oFull = q.object.value;
-                    const oDisp = short(oFull, ctx);
+                    const oDisp = oFull; // Show raw IRI instead of shortened
                     o = chip('O', oFull, oDisp, 'q-o');
                 }
 

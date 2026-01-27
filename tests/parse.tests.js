@@ -384,6 +384,110 @@ Ingredients: {schema:ingredient .schema:Ingredient}
         }
     },
 
+    // Prefix Folding Tests
+    {
+        name: 'Prefix folding - basic functionality',
+        fn: () => {
+            const md = `[base] <https://example.com/>
+[doc] <base:document/>
+[auth] <base:author/>
+
+# Test {=doc:test1 auth:created}`;
+            const { quads, context } = parse(md);
+
+            assert(context.doc === 'https://example.com/document/',
+                'Should fold prefix correctly');
+            assert(context.auth === 'https://example.com/author/',
+                'Should fold prefix correctly');
+            assert(hasQuad(quads, 'https://example.com/document/test1', 'https://example.com/author/created', 'Test'),
+                'Should use folded prefixes in quads');
+        }
+    },
+
+    {
+        name: 'Prefix folding - forward reference should be literal',
+        fn: () => {
+            const md = `[j] <my:journal:>
+[my] <tag:mymail@domain.com,2026:>
+
+# Test {=j:test}`;
+            const { context } = parse(md);
+
+            assert(context.j === 'my:journal:',
+                'Forward reference should be treated as literal');
+            assert(context.my === 'tag:mymail@domain.com,2026:',
+                'Base prefix should be set correctly');
+        }
+    },
+
+    {
+        name: 'Prefix folding - circular reference safety',
+        fn: () => {
+            const md = `[a] <b:test>
+[b] <a:test>
+
+# Test {=a:test}`;
+            const { context } = parse(md);
+
+            // Should not cause infinite loop, both should be treated as literals
+            assert(context.a === 'b:test', 'Should handle circular reference safely');
+            assert(context.b === 'b:testtest', 'Should handle circular reference safely');
+        }
+    },
+
+    {
+        name: 'Prefix folding - redeclaration overrides',
+        fn: () => {
+            const md = `[my] <tag:mymail@domain.com,2026:>
+[my] <https://example.com/new/>
+[j] <my:journal:>
+
+# Test {=j:test}`;
+            const { context } = parse(md);
+
+            assert(context.my === 'https://example.com/new/',
+                'Redeclaration should override previous definition');
+            assert(context.j === 'https://example.com/new/journal:',
+                'Should use new base for folding');
+        }
+    },
+
+    {
+        name: 'Prefix folding - multi-level nesting',
+        fn: () => {
+            const md = `[org] <https://org.example.com/>
+[person] <org:person/>
+[emp] <person:employee/>
+[dev] <emp:developer/>
+
+# Test {=dev:john emp:worksFor}`;
+            const { context, quads } = parse(md);
+
+            assert(context.org === 'https://org.example.com/', 'Base level should work');
+            assert(context.person === 'https://org.example.com/person/', 'First level folding should work');
+            assert(context.emp === 'https://org.example.com/person/employee/', 'Second level folding should work');
+            assert(context.dev === 'https://org.example.com/person/employee/developer/', 'Third level folding should work');
+
+            assert(hasQuad(quads, 'https://org.example.com/person/employee/developer/john',
+                'https://org.example.com/person/employee/worksFor', 'Test'),
+                'Should use all folded prefixes correctly');
+        }
+    },
+
+    {
+        name: 'Prefix folding - invalid CURIE treated as literal',
+        fn: () => {
+            const md = `[my] <tag:me,2026:>
+[invalid] <nonexistent:prefix:>
+
+# Test {=invalid:test}`;
+            const { context } = parse(md);
+
+            assert(context.my === 'tag:me,2026:', 'Valid prefix should work');
+            assert(context.invalid === 'nonexistent:prefix:', 'Invalid CURIE should be treated as literal');
+        }
+    },
+
     // Multiple inline carriers
     {
         name: 'Multiple inline carriers in paragraph',

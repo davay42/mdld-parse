@@ -1,5 +1,13 @@
 # MD-LD evolution
 
+## v.0.4.1 (2026-01-27)
+
++ feat: prefix folding
+
+## v.0.4.0 (2026-01-26)
+
++ feat: many small improvements
+
 ## v.0.3.5 (2026-01-24)
 
 Removed `schema` vocabulary - now it's `rdfs` and pure meta position to custom or imported ontologies.

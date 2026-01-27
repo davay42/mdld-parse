@@ -744,8 +744,20 @@ export function parse(text, options = {}) {
 
     state.tokens = scanTokens(text);
 
-    // Process prefix declarations first
-    state.tokens.filter(t => t.type === 'prefix').forEach(t => state.ctx[t.prefix] = t.iri);
+    // Process prefix declarations first with prefix folding support
+    state.tokens.filter(t => t.type === 'prefix').forEach(t => {
+        // Check if the IRI value contains a CURIE that references a previously defined prefix
+        let resolvedIri = t.iri;
+        if (t.iri.includes(':')) {
+            const [potentialPrefix, ...referenceParts] = t.iri.split(':');
+            const reference = referenceParts.join(':'); // Preserve any additional colons in reference
+            if (state.ctx[potentialPrefix] && potentialPrefix !== '@vocab') {
+                // This is a CURIE referencing an existing prefix - resolve it
+                resolvedIri = state.ctx[potentialPrefix] + reference;
+            }
+        }
+        state.ctx[t.prefix] = resolvedIri;
+    });
 
     // Process all other tokens
     for (let i = 0; i < state.tokens.length; i++) {
