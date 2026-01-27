@@ -28,7 +28,7 @@
 
 **Inline**: `[text]` `*text*` `**text**` `` `text` ``
 **Block**: `# Heading` `- item` `> quote` ````lang````
-**Links**: `http://url` `[label](url)` `![alt](url)`
+**Links**: `http://url` `[label](url)` `![alt](url)` `<url>`
 
 **Rule**: `{...}` immediately follows carrier.
 

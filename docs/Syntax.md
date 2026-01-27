@@ -13,12 +13,13 @@ Launched in [1969] {launchYear ^^xsd:gYear} with crew {?crew .Person name}.
 
 **Inline**: `[text]` `*text*` `**text**` `_text_` `__text__` `` `text` ``
 **Block**: `# Heading` `- list item` `> blockquote`
-**Links**: `[label](url)` `![image](url)` `http://url`
+**Links**: `[label](url)` `![image](url)` `<url>`
 
 ```md
-[*Important*] {emphasis} mission using **Saturn V** {rocket} rocket.
+[*Important*] {mission:status} mission using **Saturn V** {mission:rocket} rocket.
 > Longer text description. {quote}
-[Photo](moon.jpg) {?image .Image name}
+[Photo of the moon](moon.jpg) {?image .Image label}
+<https://nasa.gov> {?website .Organization}
 ```
 
 ## Subject Chaining

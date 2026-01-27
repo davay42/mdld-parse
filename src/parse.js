@@ -182,6 +182,13 @@ function extractInlineCarriers(text, baseOffset = 0) {
             continue;
         }
 
+        const angleBracketCarrier = tryExtractAngleBracketCarrier(text, pos, baseOffset);
+        if (angleBracketCarrier) {
+            carriers.push(angleBracketCarrier);
+            pos = angleBracketCarrier.pos;
+            continue;
+        }
+
         const bracketCarrier = tryExtractBracketCarrier(text, pos, baseOffset);
         if (bracketCarrier) {
             if (bracketCarrier.skip) {
@@ -230,6 +237,31 @@ function tryExtractCodeCarrier(text, pos, baseOffset) {
     const ranges = calcCarrierRanges(match, baseOffset, match.index);
     return createCarrier('code', match[1], `{${match[2]}}`,
         ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
+}
+
+function tryExtractAngleBracketCarrier(text, pos, baseOffset) {
+    const angleStart = text.indexOf('<', pos);
+    if (angleStart === -1 || angleStart !== pos) return null;
+
+    // Look for closing angle bracket
+    const angleEnd = text.indexOf('>', angleStart);
+    if (angleEnd === -1) return null;
+
+    const url = text.substring(angleStart + 1, angleEnd);
+
+    // Basic URL validation - should contain at least a scheme and colon
+    if (!url.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:/)) {
+        return null;
+    }
+
+    const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, angleEnd + 1, baseOffset);
+
+    // For angle-bracket URLs, always provide the URL as text content
+    // The processing logic will handle whether to use it for literals or not
+    return createCarrier('link', url, attrs, attrsRange,
+        [baseOffset + angleStart + 1, baseOffset + angleEnd],
+        [baseOffset + angleStart, baseOffset + finalSpanEnd],
+        finalSpanEnd, { url: url });
 }
 
 function tryExtractBracketCarrier(text, pos, baseOffset) {
@@ -391,11 +423,18 @@ function resolveObject(sem, state) {
     }
 }
 
-function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state) {
+function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier) {
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
         const entryIndex = typeof t === 'string' ? null : t.entryIndex;
-        const typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
+
+        // For angle-bracket URLs, use the URL as the subject for type declarations ONLY when
+        // there's no explicit subject declaration. This implements {+URL} behavior.
+        let typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
+        if (carrier?.type === 'link' && carrier?.url && carrier.text === carrier.url && !newSubject) {
+            typeSubject = carrierO; // Use URL as subject for type declarations only if no explicit subject
+        }
+
         const expandedType = expandIRI(typeIRI, state.ctx);
 
         emitQuad(
@@ -409,9 +448,14 @@ function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block
     });
 }
 
-function processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state) {
+function processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier) {
     sem.predicates.forEach(pred => {
         const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
+
+        // Skip literal predicates for angle-bracket URLs - they only support ? and ! predicates
+        if (pred.form === '' && carrier?.type === 'link' && carrier?.url && carrier.text === carrier.url) {
+            return; // Angle-bracket URLs don't support literal predicates
+        }
 
         // Pre-bind subject/object roles for clarity
         const roles = {
@@ -462,8 +506,8 @@ function processAnnotation(carrier, sem, state, options = {}) {
     const carrierO = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
     const newSubjectOrCarrierO = newSubject || carrierO;
 
-    processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state);
-    processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state);
+    processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier);
+    processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier);
 }
 
 // Helper functions for list item processing

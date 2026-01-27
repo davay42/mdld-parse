@@ -1049,5 +1049,81 @@ Description: [No subject description] {schema:description}`;
             assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/p', 'http://ex.org/object1'),
                 'Should use soft IRI from first annotation only');
         }
+    },
+
+    // Angle-bracket URL tests - comprehensive coverage
+    {
+        name: 'Angle-bracket URL soft subject behavior',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+<https://nasa.gov> {.Organization} <https://arxiv.org/abs/2301.07041> {?cites .Paper}
+<https://doi.org/10.1000/xyz123> {!hasVersion .Article}`;
+
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', '@vocab': 'http://example.org/' } });
+
+            assert(quads.length === 5, `Should emit 5 triples, got ${quads.length}`);
+
+            // Type declarations use URL as soft subject
+            assert(hasQuad(quads, 'https://nasa.gov', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://example.org/Organization'),
+                'Type declaration should use URL as subject');
+            assert(hasQuad(quads, 'https://arxiv.org/abs/2301.07041', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://example.org/Paper'),
+                'Type declaration should use URL as subject');
+            assert(hasQuad(quads, 'https://doi.org/10.1000/xyz123', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://example.org/Article'),
+                'Type declaration should use URL as subject');
+
+            // Object predicates use current subject
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/cites', 'https://arxiv.org/abs/2301.07041'),
+                'Object predicate should use current subject as subject');
+
+            // Reverse predicates use URL as subject
+            assert(hasQuad(quads, 'https://doi.org/10.1000/xyz123', 'http://example.org/hasVersion', 'http://example.org/doc'),
+                'Reverse predicate should use URL as subject');
+        }
+    },
+
+    {
+        name: 'Angle-bracket URL edge cases and integration',
+        fn: () => {
+            const md = `# Research {=tag:research}
+
+[NASA] {publisher} <https://nasa.gov> {?website} *Important* {emphasis}
+<https://github.com/user/repo> {?cloned .Repository}
+<not-a-url> {name}
+<https://example.com> {name title identifier ^^xsd:anyURI}`;
+
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', '@vocab': 'http://example.org/', xsd: 'http://www.w3.org/2001/XMLSchema#' } });
+
+            assert(quads.length === 5, `Should emit 5 triples, got ${quads.length}`);
+
+            // Integration with other carriers
+            assert(hasQuad(quads, 'tag:research', 'http://example.org/publisher', 'NASA'),
+                'Should handle bracketed link');
+            assert(hasQuad(quads, 'tag:research', 'http://example.org/website', 'https://nasa.gov'),
+                'Should handle angle-bracket URL with object predicate');
+            assert(hasQuad(quads, 'tag:research', 'http://example.org/emphasis', 'Important'),
+                'Should handle emphasis');
+            assert(hasQuad(quads, 'tag:research', 'http://example.org/cloned', 'https://github.com/user/repo'),
+                'Should handle repository URL');
+            assert(hasQuad(quads, 'https://github.com/user/repo', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://example.org/Repository'),
+                'Repository URL should get type declaration');
+
+            // Invalid URLs and literal predicates should be ignored
+            // (no additional quads for <not-a-url> or literal predicates)
+        }
+    },
+
+    {
+        name: 'Bracketed link type declaration uses URL as subject',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+[NASA](https://nasa.gov) {.Organization}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', '@vocab': 'http://example.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'https://nasa.gov', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://example.org/Organization'),
+                'Should use URL as subject for type declaration (consistent with <URL> behavior)');
+        }
     }
 ];

@@ -66,13 +66,15 @@ strongSpan     = "**" , text , "**" | "__" , text , "__" ;
 codeSpan       = "`" , text , "`" ;
 linkSpan       = "[" , text , "](" , text , ")" ;
 imageSpan      = "!" , "[" , text , "](" , text , ")" ;
+urlSpan        = "<" , iri , ">" ;
 
 inlineSpan =
       emphasisSpan
     | strongSpan
     | codeSpan
     | linkSpan
-    | imageSpan ;
+    | imageSpan
+    | urlSpan ;
 
 (* 10.2 Block carriers *)
 heading        = "#" , { "#" } , whitespace , text ;
@@ -113,7 +115,8 @@ annotation =
     | paragraph , whitespace* , attrsBlock
     | listItem
     | blockquote , whitespace* , attrsBlock
-    | codeFence , whitespace* , attrsBlock ;
+    | codeFence , whitespace* , attrsBlock
+    | urlSpan , whitespace* , attrsBlock ;
 
 (* 13. Grammar guarantees (normative) *)
 (* Attribute token order is semantically unordered *)

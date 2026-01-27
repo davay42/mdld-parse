@@ -128,14 +128,14 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 
 | Markdown | What it captures | Example |
 |----------|------------------|---------|
-| `http://example.com {...}` | The URL itself | `https://nasa.gov {?website}` |
+| `<URL> {...}` | The URL itself | `<https://nasa.gov> {?website}` |
 | `[label](URL) {...}` | Link text + URL | `[NASA](https://nasa.gov) {?website name}` |
 | `![alt](URL) {...}` | Alt text + URL | `![Photo](photo.jpg) {?image name}` |
 
 ### What CAN'T Carry Annotations
 
 - Plain paragraphs without inline formatting
-- Raw URLs without `{...}`
+- Bare URLs without angle brackets and `{...}` (use `<URL> {...}` instead)
 - Text that's not in one of the formats above
 - Multiple elements at once (one `{...}` per carrier)
 

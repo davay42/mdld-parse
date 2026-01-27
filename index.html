@@ -198,6 +198,25 @@
                     </h4>
                     <p style="font-size: .75rem; color: var(--text-muted);">Complex structure</p>
                 </div>
+                <div onclick="loadExample('angleBracketUrls')" class="example-hover"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🔗 Angle-Bracket
+                        URLs
+                    </h4>
+                    <p style="font-size: .75rem; color: var(--text-muted);">URL value carriers & soft subjects</p>
+                </div>
+                <div onclick="loadExample('prefixFolding')" class="example-hover"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">📁 Prefix Folding
+                    </h4>
+                    <p style="font-size: .75rem; color: var(--text-muted);">Hierarchical namespace building</p>
+                </div>
+                <div onclick="loadExample('nestedLists')" class="example-hover"
+                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
+                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">📋 Nested Lists
+                    </h4>
+                    <p style="font-size: .75rem; color: var(--text-muted);">Complex project structures</p>
+                </div>
             </div>
             <div
                 style="display: flex; flex-flow: wrap; grid-template-columns: minmax(360px, 1.2fr) minmax(360px, 1fr) minmax(360px, 1fr); gap: 1rem; margin-bottom: 1rem; align-items: start;">
@@ -207,7 +226,11 @@
                         style="width: 100%; height: 250px; padding: .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-family: var(--font-mono); font-size: 13px; resize: vertical; background: var(--bg-light); color: var(--text-code);"
                         placeholder="Write your MD-LD here...
 
-Example:
+Examples:
+- Angle-bracket URLs: &lt;https://example.com&gt; {?website .Organization}
+- Prefix folding: [j] &lt;my:journal:&gt; → j:2024-01-27
+- Nested lists: Components → Frontend → Framework: [React] {tech}
+
 ## Document {=ex:doc}
 Title: [My Document] {name}
 Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
@@ -492,7 +515,128 @@ Related missions: {!nasa:precededBy .nasa:SpaceMission label}
 - Apollo 10 {=wd:Q2705}
 
 Followed by: {!nasa:followedBy .nasa:SpaceMission label}
-- Apollo 12 {=wd:Q2707}`
+- Apollo 12 {=wd:Q2707}`,
+
+            angleBracketUrls: `[research] <https://research.example.org/>
+
+# Scientific Paper Analysis {=research:paper-2024 .research:Paper}
+
+## Abstract
+This paper analyzes <https://arxiv.org/abs/2301.07041> {?cites .research:Paper} 
+and references <https://doi.org/10.1000/xyz123> {?hasVersion .research:Article}.
+
+## Methodology
+We used data from <https://github.com/user/repo> {?usesDataset .research:Repository} 
+and consulted <https://nasa.gov> {?references .research:Organization}.
+
+## Results
+- Statistical significance: [p < 0.05] {research:significance}
+- Sample size: [1000] {research:sampleSize ^^xsd:integer}
+- Confidence interval: [95%] {research:confidenceInterval}
+
+## Related Work
+<https://example.com/paper1> {!precedes .research:Paper}
+<https://example.com/paper2> {!precedes .research:Paper}`,
+
+            prefixFolding: `[my] <tag:mymail@domain.com,2026:>
+[j] <my:journal:>
+[p] <my:property:>
+[c] <my:class:>
+[person] <my:people:>
+
+## 2024 Research Journal {=j:2024 .my:Journal}
+
+### Personal Knowledge Management
+[Project Alpha] {=p:alpha .my:Project}
+[Project Beta] {=p:beta .my:Project}
+
+### People Network
+[Dr. Smith] {=person:smith .my:Person ?j:collaborator}
+[Dr. Jones] {=person:jones .my:Person ?j:collaborator}
+
+### Research Topics
+[Machine Learning] {=c:ml .my:Topic ?j:focusArea}
+[Natural Language Processing] {=c:nlp .my:Topic ?j:focusArea}
+
+### Daily Entries
+#### January 15 {=j:2024-01-15 .my:JournalEntry}
+- Worked on [Project Alpha] {j:hasProject}
+- Met with [Dr. Smith] {j:metWith}
+- Read [Paper on ML] {?j:readPaper .my:Paper}
+
+#### January 16 {=j:2024-01-16 .my:JournalEntry}
+- Continued [Project Beta] {j:hasProject}
+- Discussed [NLP research] {?j:discussedTopic}
+- Coffee meeting at [Local Cafe] {?j:location .my:Place}`,
+
+            nestedLists: `[project] <https://project.example.org/>
+
+## Project Structure {=project:main .project:Project}
+
+### Core Components
+Components: {?project:hasComponent .project:Component name}
+
+- Frontend {=project:frontend .project:FrontendComponent}
+  - Framework: [React] {project:usesFramework}
+  - Language: [TypeScript] {project:language}
+  
+- Backend {=project:backend .project:BackendComponent}
+  - Framework: [Node.js] {project:usesFramework}
+  - Database: [PostgreSQL] {project:database}
+
+### Development Phases
+Phases: {?project:hasPhase .project:Phase name}
+
+- Planning {=project:planning .project:Phase}
+  Duration: [2] {project:durationWeeks ^^xsd:integer}
+  Status: [Completed] {project:status}
+  
+  Tasks: {?project:hasTask .project:Task name}
+  - Requirements gathering {=project:req-gathering}
+  - Architecture design {=project:arch-design}
+  - Technology selection {=project:tech-selection}
+
+- Development {=project:development .project:Phase}
+  Duration: [8] {project:durationWeeks ^^xsd:integer}
+  Status: [In Progress] {project:status}
+  
+  Tasks: {?project:hasTask .project:Task name}
+  - Frontend implementation {=project:frontend-impl}
+  - Backend implementation {=project:backend-impl}
+  - Integration testing {=project:integration-test}
+  
+  Subsystems: {?project:hasSubsystem .project:Subsystem name}
+  - Authentication module {=project:auth-module .project:Subsystem}
+    - Technology: [JWT] {project:technology}
+    - Security level: [High] {project:securityLevel}
+  - Data processing {=project:data-processing .project:Subsystem}
+    - Technology: [Python] {project:technology}
+    - Processing type: [Batch] {project:processingType}
+
+- Testing & Deployment {=project:testing .project:Phase}
+  Duration: [3] {project:durationWeeks ^^xsd:integer}
+  Status: [Pending] {project:status}
+  
+  Tasks: {?project:hasTask .project:Task name}
+  - Unit testing {=project:unit-testing}
+  - Integration testing {=project:integration-testing}
+  - User acceptance testing {=project:uat-testing}
+  - Production deployment {=project:deployment}
+
+### Team Structure
+Team: {?project:hasTeamMember .project:Person role}
+
+- [Alice Johnson] {=team:alice .project:Developer ?project:leadDeveloper}
+  - Skills: [React, TypeScript, Node.js] {project:skills}
+  - Experience: [5 years] {project:experienceYears ^^xsd:integer}
+  
+- [Bob Smith] {=team:bob .project:Developer}
+  - Skills: [Python, PostgreSQL, Docker] {project:skills}
+  - Experience: [3 years] {project:experienceYears ^^xsd:integer}
+  
+- [Carol Davis] {=team:carol .project:Manager ?project:projectManager}
+  - Skills: [Agile, Scrum, Project Management] {project:skills}
+  - Experience: [7 years] {project:experienceYears ^^xsd:integer}`
         };
 
         // Load example

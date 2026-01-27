@@ -70,6 +70,15 @@ strong-span     = "**" text "**" / "__" text "__"
 code-span       = "`" text "`"
 link-span       = "[" text "](" text ")"
 image-span      = "!" "[" text "](" text ")"
+url-span        = "<" iri ">"
+
+inline-span = 
+      emphasis-span
+    / strong-span
+    / code-span
+    / link-span
+    / image-span
+    / url-span
 
 ; 9.2 Block carriers  
 heading         = 1*6 "#" WSP text
@@ -102,6 +111,7 @@ annotation =
     / list-item
     / blockquote *WSP attrs-block
     / code-fence *WSP attrs-block
+    / url-span *WSP attrs-block
 
 ; 12. Grammar guarantees (normative)
 ; Attribute token order is semantically unordered

@@ -60,7 +60,7 @@ When parsing `{...}`, MD-LD knows:
 - ````lang {...}`` - Code block content
 
 ### Links/Media
-- `http://example.com {...}` - Bare URL
+- `<URL> {...}` - URL (IRI)
 - `[label](URL) {...}` - Link (text + URL)
 - `![alt](URL) {...}` - Image (alt + URL)
 
