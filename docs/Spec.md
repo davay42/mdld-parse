@@ -491,7 +491,77 @@ A `{...}` block immediately before a list applies to **all items** in that list.
 **Rules:**
 - Must have some text before the list annotation
 - Ordered (`1.`) and unordered (`-`) lists work the same
-- Each list item is a separate value carrier
+- Each list item is a **single-value block carrier** - the entire text before `{...}` becomes the literal value
+- **No inline carriers** are parsed within list items
+- **No additional data** after `{...}` - text after annotations is treated as literal content, not semantic
+
+### List Item Policy: Single-Value Carriers
+
+**✅ CORRECT Patterns**
+
+```md
+# Clean subject declaration (participates in list context)
+- Flour {=ex:flour }
+
+# Subject with aditional local predicates
+- Flour {=ex:flour .c:Food label}
+```
+
+**❌ WRONG Patterns (Common LLM Mistakes)**
+
+```md
+# ❌ No subject declaration (excluded from list context)
+- Whole wheat flour {description}
+
+# ❌ Inline carriers in list items (excluded from list context)
+- [*Important* ingredient] {priority .Important}
+
+# ❌ Multiple annotations in same item (only first works)
+- Flour {=ex:flour} [description] {priority}
+
+# ❌ Text after annotation (excluded from list context)
+- Flour {=ex:flour} - additional description
+
+# ❌ Mixed content (creates ambiguity)
+- Flour {=ex:flour} [*organic*] {certified}
+```
+
+**Critical Rule**: **All list items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context.** Items without subjects are excluded from the list's semantic relationships.
+
+**Why These Rules Exist:**
+- **Streaming safety**: Each list item can be processed independently
+- **Round-trip predictability**: No ambiguity about semantic vs. literal content
+- **Human readability**: Clear separation between structure and description
+- **Explicit intent**: Forces authors to be clear about semantic relationships
+
+### Valid Alternatives for Additional Information
+
+**✅ Use Nested Lists (Semantic)**
+```md
+- Flour {=ex:flour}
+  Properties: {?hasProperty .Property name}
+  - [Organic] {=ex:organic .Organic name}
+  - [Fine ground] {=ex:grind .FineGrind name}
+```
+
+**✅ Use Inline Carriers (Limited)**
+```md
+- [*Important ingredient*] {priority .Important}
+```
+
+**✅ Use Separate Sections**
+```md
+- Flour {=ex:flour}
+
+## Flour Properties
+[*Important*] {priority .Important}
+```
+
+**❌ NEVER Use Nested Paragraphs (Invalid)**
+```md
+- Flour {=ex:flour}
+  Description: [additional description] {description}  # ❌ List context lost
+```
 
 ### Nested Lists
 

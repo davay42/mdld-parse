@@ -183,6 +183,49 @@ Ingredients: {?hasIngredient .Ingredient}
 
 Result: clean, explicit graph. No blank nodes.
 
+### List Item Policy: Single-Value Carriers
+
+**✅ DO - Items with explicit subjects participate in list:**
+```md
+- Flour {=alice:flour}              # Clean subject, gets list context
+- Walnuts {=alice:walnuts}          # Clean subject, gets list context
+```
+
+**❌ DON'T - These items are excluded from list context:**
+```md
+- Whole wheat flour {description}   # No subject = excluded
+- [*Important* ingredient] {priority}     # No subject = excluded
+- Flour {=alice:flour} [extra] {desc}      # Text after annotation = excluded
+- Flour {=alice:flour} - description       # Text after annotation = excluded
+```
+
+**Critical Rule**: **All list items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context.** Items without subjects are excluded from the list's semantic relationships.
+
+**Valid Alternatives for Additional Information:**
+
+**✅ Nested Lists (Semantic)**
+```md
+- Flour {=alice:flour}
+  Properties: {?alice:hasProperty .alice:Property label}
+  - [Organic] {=alice:organic .alice:PesonalValue}
+```
+
+**✅ Separate Sections**
+```md
+- Flour {=alice:flour}
+
+## Flour Description {=alice:flour}
+[*Important*] {priority .Important}
+```
+
+**❌ NEVER Nested Paragraphs (Invalid)**
+```md
+- Flour {=alice:flour}
+  Description: [text] {description}  # ❌ List context lost
+```
+
+**Why?** List items are **single-value block carriers**. This keeps lists predictable and streaming-safe.
+
 ---
 
 ## 7. Fragments = structured documents

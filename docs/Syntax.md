@@ -64,6 +64,24 @@ Crew members: {?crew .Person name}
 - Michael Collins {=ex:michael}
 ```
 
+## List Item Policy: Single-Value Carriers
+
+**✅ CORRECT**
+```md
+- Flour {=ex:flour}              # Subject declaration, participates in list
+- Walnuts {=ex:walnuts}          # Subject declaration, participates in list
+```
+
+**❌ INCORRECT (Excluded from List Context)**
+```md
+- Whole wheat flour {description} # No subject = excluded
+- [*Important* ingredient] {priority}     # No subject = excluded
+- Flour {=ex:flour} [extra] {desc}        # Text after annotation = excluded
+- Flour {=ex:flour} - description         # Text after annotation = excluded
+```
+
+**Rule**: List items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context. Items without subjects are excluded.
+
 ## Temporary Objects
 
 ```md
