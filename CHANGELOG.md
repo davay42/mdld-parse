@@ -3,6 +3,7 @@
 ## v.0.4.1 (2026-01-27)
 
 + feat: prefix folding
++ feat: `<URL> {?prop}` syntax
 
 ## v.0.4.0 (2026-01-26)
 
