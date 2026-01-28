@@ -230,145 +230,145 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
                         style="background: var(--bg-light); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow: auto; color: var(--text-code);">
                         Quads will appear here...</div>
                 </div>
-                <!-- <div style="min-width: 0;">
+                <div style="min-width: 0;">
                     <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Rendered HTML+RDFa
                     </h3>
                     <div id="rendered-output"
                         style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; overflow: auto; color: var(--text-code);">
-                        Rendered HTML will appear here...</div> -->
-            </div>
-    </div>
-    <div class="container" style="display: flex; gap: .5rem; margin-bottom: 1rem; align-items: center;">
-        <button onclick="parseMDLD()" class="btn-hover"
-            style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🔄
-            Parse
-            MD-LD</button>
-        <button onclick="clearPlayground()" class="btn-hover"
-            style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🗑️
-            Clear</button>
-        <button onclick="toggleQuadLab()" class="btn-hover"
-            style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🧩
-            Quad
-            Lab</button>
-        <span id="parse-stats"
-            style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
-    </div>
-
-    <div style="margin-top: .75rem;" class="hidden container" id="quadlab">
-        <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🧩 Quad Lab (CRUD + diff
-            apply)</h3>
-        <p style="color: var(--text-muted); margin-bottom: .5rem;">Edit quads below. Applying changes generates
-            a diff and calls <code>serialize()</code>
-            to patch the MD-LD source.</p>
-        <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
-            <button onclick="quadLabReset()" class="btn-hover"
-                style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">↩
-                Reset
-                from parse()</button>
-            <button onclick="quadLabAddRow()" class="btn-hover"
-                style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">➕
-                Add quad</button>
-            <button onclick="quadLabDeleteSelected()" class="btn-hover"
-                style="background: var(--bg-button-danger); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🗑
-                Delete selected</button>
-            <span id="quadlab-stats"
-                style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div>
-                <table
-                    style="width: 100%; border-collapse: collapse; border: 1px solid var(--border-dark); border-radius: 4px; overflow: hidden;">
-                    <thead>
-                        <tr>
-                            <th
-                                style="width: 2.5rem; background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
-                                Sel</th>
-                            <th
-                                style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
-                                S</th>
-                            <th
-                                style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
-                                P</th>
-                            <th
-                                style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
-                                O</th>
-                        </tr>
-                    </thead>
-                    <tbody id="quadlab-body"></tbody>
-                </table>
-            </div>
-            <div>
-                <div id="quadlab-diff"
-                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow: auto; color: var(--text-code);">
-                    Diff will appear here...</div>
-                <div style="display: flex; gap: .5rem; margin-top: .5rem; margin-bottom: 0;">
-                    <button onclick="quadLabApplyDiff()" class="btn-hover btn-hover-primary"
-                        style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">✅
-                        Apply diff via
-                        serialize()</button>
-                    <button onclick="quadLabCopyDiff()" class="btn-hover btn-hover-secondary"
-                        style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">📋
-                        Copy diff
-                        JSON</button>
+                        Rendered HTML will appear here...</div>
                 </div>
             </div>
-        </div>
-    </div>
-    </section>
+            <div class="container" style="display: flex; gap: .5rem; margin-bottom: 1rem; align-items: center;">
+                <button onclick="parseMDLD()" class="btn-hover"
+                    style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🔄
+                    Parse
+                    MD-LD</button>
+                <button onclick="clearPlayground()" class="btn-hover"
+                    style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🗑️
+                    Clear</button>
+                <button onclick="toggleQuadLab()" class="btn-hover"
+                    style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🧩
+                    Quad
+                    Lab</button>
+                <span id="parse-stats"
+                    style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+            </div>
 
-    <section class="container" id="tests"
-        style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
-        <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🧪 Test Suite</h3>
-        <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
-            <button onclick="runAllTests()" class="btn-hover btn-hover-primary"
-                style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem; transition: all .2s;">▶
-                Run Tests</button>
-            <button onclick="clearTests()" class="btn-hover btn-hover-secondary"
-                style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem; transition: all .2s;">🗑️
-                Clear</button>
-            <span id="test-status"
-                style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
-        </div>
-        <div id="test-progress"
-            style="height: 3px; background: var(--border-dark); border-radius: 2px; overflow: hidden; margin-bottom: .5rem; display: none;">
-            <div id="test-progress-bar"
-                style="height: 100%; background: var(--bg-button-primary); transition: width .3s ease;"></div>
-        </div>
-        <div id="test-stats"
-            style="display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .5rem; display: none;">
-            <div
-                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
-                <div id="passed-count"
-                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-success);">
-                    0</div>
-                <div style="font-size: .75rem; color: var(--text-muted);">Passed</div>
-            </div>
-            <div
-                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
-                <div id="failed-count"
-                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-error);">
-                    0</div>
-                <div style="font-size: .75rem; color: var(--text-muted);">Failed</div>
-            </div>
-            <div
-                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
-                <div id="total-count"
-                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-info);">0
+            <div style="margin-top: .75rem;" class="hidden container" id="quadlab">
+                <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🧩 Quad Lab (CRUD + diff
+                    apply)</h3>
+                <p style="color: var(--text-muted); margin-bottom: .5rem;">Edit quads below. Applying changes generates
+                    a diff and calls <code>serialize()</code>
+                    to patch the MD-LD source.</p>
+                <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
+                    <button onclick="quadLabReset()" class="btn-hover"
+                        style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">↩
+                        Reset
+                        from parse()</button>
+                    <button onclick="quadLabAddRow()" class="btn-hover"
+                        style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">➕
+                        Add quad</button>
+                    <button onclick="quadLabDeleteSelected()" class="btn-hover"
+                        style="background: var(--bg-button-danger); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">🗑
+                        Delete selected</button>
+                    <span id="quadlab-stats"
+                        style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
                 </div>
-                <div style="font-size: .75rem; color: var(--text-muted);">Total</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <table
+                            style="width: 100%; border-collapse: collapse; border: 1px solid var(--border-dark); border-radius: 4px; overflow: hidden;">
+                            <thead>
+                                <tr>
+                                    <th
+                                        style="width: 2.5rem; background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
+                                        Sel</th>
+                                    <th
+                                        style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
+                                        S</th>
+                                    <th
+                                        style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
+                                        P</th>
+                                    <th
+                                        style="background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; border-bottom: 1px solid var(--border-dark); padding: .35rem .5rem; text-align: left; font-size: .8rem;">
+                                        O</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quadlab-body"></tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <div id="quadlab-diff"
+                            style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow: auto; color: var(--text-code);">
+                            Diff will appear here...</div>
+                        <div style="display: flex; gap: .5rem; margin-top: .5rem; margin-bottom: 0;">
+                            <button onclick="quadLabApplyDiff()" class="btn-hover btn-hover-primary"
+                                style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">✅
+                                Apply diff via
+                                serialize()</button>
+                            <button onclick="quadLabCopyDiff()" class="btn-hover btn-hover-secondary"
+                                style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">📋
+                                Copy diff
+                                JSON</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div
-                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
-                <div id="duration" style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem;">0ms</div>
-                <div style="font-size: .75rem; color: var(--text-muted);">Duration</div>
+        </section>
+
+        <section class="container" id="tests"
+            style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+            <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🧪 Test Suite</h3>
+            <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
+                <button onclick="runAllTests()" class="btn-hover btn-hover-primary"
+                    style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem; transition: all .2s;">▶
+                    Run Tests</button>
+                <button onclick="clearTests()" class="btn-hover btn-hover-secondary"
+                    style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem; transition: all .2s;">🗑️
+                    Clear</button>
+                <span id="test-status"
+                    style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
             </div>
-        </div>
-        <div id="test-list" style="max-height: 300px; overflow-y: auto;">
-            <p style="text-align: center; color: var(--text-muted); padding: 1rem;">Tests will run automatically on
-                page
-                load...</p>
-        </div>
-    </section>
+            <div id="test-progress"
+                style="height: 3px; background: var(--border-dark); border-radius: 2px; overflow: hidden; margin-bottom: .5rem; display: none;">
+                <div id="test-progress-bar"
+                    style="height: 100%; background: var(--bg-button-primary); transition: width .3s ease;"></div>
+            </div>
+            <div id="test-stats"
+                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .5rem; display: none;">
+                <div
+                    style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
+                    <div id="passed-count"
+                        style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-success);">
+                        0</div>
+                    <div style="font-size: .75rem; color: var(--text-muted);">Passed</div>
+                </div>
+                <div
+                    style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
+                    <div id="failed-count"
+                        style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-error);">
+                        0</div>
+                    <div style="font-size: .75rem; color: var(--text-muted);">Failed</div>
+                </div>
+                <div
+                    style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
+                    <div id="total-count"
+                        style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-info);">0
+                    </div>
+                    <div style="font-size: .75rem; color: var(--text-muted);">Total</div>
+                </div>
+                <div
+                    style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
+                    <div id="duration" style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem;">0ms</div>
+                    <div style="font-size: .75rem; color: var(--text-muted);">Duration</div>
+                </div>
+            </div>
+            <div id="test-list" style="max-height: 300px; overflow-y: auto;">
+                <p style="text-align: center; color: var(--text-muted); padding: 1rem;">Tests will run automatically on
+                    page
+                    load...</p>
+            </div>
+        </section>
     </div>
 
     <script type="importmap">
@@ -382,7 +382,7 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
 
     <script type="module">
         import { parse, serialize, shortenIRI } from './src/index.js';
-        // import { render } from './render.js';
+        import { render } from './src/render.js';
         import { runTests, tests } from './tests/index.js';
 
         let currentTestResults = [];
@@ -694,12 +694,12 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
         window.parseMDLD = function () {
             const input = document.getElementById('input').value;
             const output = document.getElementById('output');
-            // const rendered = document.getElementById('rendered-output');
+            const rendered = document.getElementById('rendered-output');
             const stats = document.getElementById('parse-stats');
 
             if (!input.trim()) {
                 output.textContent = 'Quads will appear here...';
-                // rendered.textContent = 'Rendered HTML will appear here...';
+                rendered.textContent = 'Rendered HTML will appear here...';
                 stats.textContent = '';
                 return;
             }
@@ -707,13 +707,13 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
             try {
                 const startTime = performance.now();
                 const result = parse(input, { context: { ex: 'http://example.org/' } });
-                // const renderedResult = render(input, { context: { ex: 'http://example.org/' } });
+                const renderedResult = render(input, { context: { ex: 'http://example.org/' } });
                 const duration = Math.round(performance.now() - startTime);
 
                 lastParse = { input, result };
 
                 // Display rendered HTML+RDFa
-                // rendered.innerHTML = `<div style="background: white; padding: 1rem; border-radius: 4px;">${renderedResult.text}</div>`;
+                rendered.innerHTML = `<div style="background: white; padding: 1rem; border-radius: 4px;">${renderedResult.html}</div>`;
 
                 // Convert quads to readable format
                 output.innerHTML = quadsToHtml(result.quads);
@@ -724,6 +724,7 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
                 output.textContent = `Error: ${error.message}`;
                 rendered.textContent = `Error: ${error.message}`;
                 stats.textContent = '';
+                quadLabReset();
             }
         };
 

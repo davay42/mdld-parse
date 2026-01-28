@@ -279,13 +279,13 @@ function extractInlineCarriers(text, baseOffset = 0) {
 function calcCarrierRanges(match, baseOffset, matchStart) {
     const valueStart = baseOffset + matchStart;
     const valueEnd = valueStart + match[1].length;
-    const attrsStart = matchStart + match[0].indexOf('{');
+    const attrsStart = baseOffset + matchStart + match[0].indexOf('{');
     const attrsEnd = attrsStart + match[2].length + 2; // +2 for { and }
     return {
         valueRange: [valueStart, valueEnd],
         attrsRange: [attrsStart + 1, attrsEnd - 1], // Exclude braces
         range: [valueStart, attrsEnd],
-        pos: attrsEnd
+        pos: matchStart + match[0].length // pos should be relative to current text, not document
     };
 }
 
@@ -647,65 +647,70 @@ function processListItem(token, state) {
 
     const listFrame = state.listStack[state.listStack.length - 1];
 
-    // Apply list context if available
+    // Collect all semantic information for this list item
+    let combinedSem = {
+        subject: null,
+        object: null,
+        types: [],
+        predicates: [],
+        datatype: null,
+        language: null,
+        entries: []
+    };
+
+    // Apply list context if available - inherit everything
     if (listFrame?.contextSem) {
-        processContextSem({
+        const inheritedSem = processContextSem({
             sem: listFrame.contextSem,
             itemSubject,
             contextSubject: listFrame.contextSubject,
+            inheritLiterals: true,
             state
         });
 
-        // Inherit literal predicates if item has no own predicates
-        const hasOwnPreds = hasOwnPredicates(token, carriers);
-        if (!hasOwnPreds) {
-            const inheritedSem = processContextSem({
-                sem: listFrame.contextSem,
-                itemSubject,
-                contextSubject: listFrame.contextSubject,
-                inheritLiterals: true,
-                state
-            });
-            if (inheritedSem) {
-                const prevSubject = state.currentSubject;
-                state.currentSubject = itemSubject;
-                processAnnotation({
-                    type: 'list',
-                    text: token.text,
-                    range: token.range,
-                    attrsRange: token.attrsRange || null,
-                    valueRange: token.valueRange || null
-                }, inheritedSem, state, { preserveGlobalSubject: true });
-                state.currentSubject = prevSubject;
-            }
+        if (inheritedSem) {
+            combinedSem.types.push(...inheritedSem.types);
+            combinedSem.predicates.push(...inheritedSem.predicates);
+            combinedSem.entries.push(...inheritedSem.entries);
         }
     }
 
-    // Process item's own annotations using unified function
+    // Add item's own annotations
     if (token.attrs) {
         const sem = parseSemCached(token.attrs);
+        combinedSem.types.push(...sem.types);
+        combinedSem.predicates.push(...sem.predicates);
+        combinedSem.entries.push(...sem.entries);
+    }
+
+    // Add inline carriers' annotations
+    carriers.forEach(carrier => {
+        if (carrier.attrs) {
+            const sem = parseSemCached(carrier.attrs);
+            combinedSem.types.push(...sem.types);
+            combinedSem.predicates.push(...sem.predicates);
+            combinedSem.entries.push(...sem.entries);
+        }
+    });
+
+    // Only create a block if we have semantic information
+    if (combinedSem.entries.length > 0) {
+        const prevSubject = state.currentSubject;
+        state.currentSubject = itemSubject;
+
         processAnnotation({
             type: 'list',
             text: token.text,
             range: token.range,
             attrsRange: token.attrsRange || null,
             valueRange: token.valueRange || null
-        }, sem, state, {
+        }, combinedSem, state, {
             preserveGlobalSubject: !state.listStack.length,
             implicitSubject: itemSubject
         });
-    }
 
-    // Process inline carriers' annotations
-    carriers.forEach(carrier => {
-        if (carrier.attrs) {
-            const sem = parseSemCached(carrier.attrs);
-            processAnnotation(carrier, sem, state, {
-                preserveGlobalSubject: !state.listStack.length,
-                implicitSubject: itemSubject
-            });
-        }
-    });
+        state.currentSubject = prevSubject;
+    }
 }
 
 function processListContextFromParagraph(token, state) {

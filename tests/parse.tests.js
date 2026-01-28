@@ -289,14 +289,14 @@ Part of: {!schema:hasPart}
         fn: () => {
             const md = `# Recipe {=ex:recipe}
 
-Ingredients: {schema:ingredient .schema:Ingredient}
+Ingredients: {schema:ingredient .schema:Ingredient schema:name}
 
 - Flour {=ex:flour label}
 - Water {=ex:water label}`;
             const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
 
-            // Should have type quads from .Ingredient and label quads from list items, but NOT ingredient relationships
-            assert(quads.length === 4, `Should emit 4 triples (2 types + 2 labels), got ${quads.length}`);
+            // Should have type quads from .Ingredient, literal ingredient relationships, name quads, and label quads
+            assert(quads.length === 8, `Should emit 8 triples (2 types + 2 ingredient + 2 names + 2 labels), got ${quads.length}`);
             assert(hasQuad(quads, 'http://ex.org/flour', 'http://www.w3.org/2000/01/rdf-schema#label', 'Flour'),
                 'Flour should have label');
             assert(hasQuad(quads, 'http://ex.org/water', 'http://www.w3.org/2000/01/rdf-schema#label', 'Water'),
@@ -305,11 +305,16 @@ Ingredients: {schema:ingredient .schema:Ingredient}
                 'Flour should have Ingredient type');
             assert(hasQuad(quads, 'http://ex.org/water', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://schema.org/Ingredient'),
                 'Water should have Ingredient type');
-            // Should NOT have ingredient relationships because {ingredient} is literal form
-            assert(!hasQuad(quads, 'http://ex.org/recipe', 'http://schema.org/ingredient', 'http://ex.org/flour'),
-                'Should not have literal ingredient relationship');
-            assert(!hasQuad(quads, 'http://ex.org/recipe', 'http://schema.org/ingredient', 'http://ex.org/water'),
-                'Should not have literal ingredient relationship');
+            // Should have literal ingredient relationships from list context
+            assert(hasQuad(quads, 'http://ex.org/flour', 'http://schema.org/ingredient', 'Flour'),
+                'Flour should have literal ingredient relationship');
+            assert(hasQuad(quads, 'http://ex.org/water', 'http://schema.org/ingredient', 'Water'),
+                'Water should have literal ingredient relationship');
+            // Should have name properties from list context
+            assert(hasQuad(quads, 'http://ex.org/flour', 'http://schema.org/name', 'Flour'),
+                'Flour should have name from list context');
+            assert(hasQuad(quads, 'http://ex.org/water', 'http://schema.org/name', 'Water'),
+                'Water should have name from list context');
         }
     },
     {
