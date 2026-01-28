@@ -94,80 +94,68 @@ function updateAttrsDatatypeLang(tokens, newLit, ctx) {
     return predicatesAndTypes;
 }
 
-// Slot abstraction for cleaner operations
-class Slot {
-    constructor(block, entry, kind = null) {
-        this.block = block;
-        this.entry = entry;
-        this.kind = kind || entry?.kind;
-        this.entryIndex = entry?.entryIndex;
-        this.isVacant = entry?.isVacant || false;
-        this.form = entry?.form;
+// Direct slot operations - no class abstraction needed
+function removeTokenFromSlot(entry, tokens, ctx, quad) {
+    if (!entry) return { tokens, removed: false };
+
+    if (entry.kind === 'object') {
+        const objectIRI = shortenIRI(quad.object.value, ctx);
+        return removeObjectToken(tokens, objectIRI);
+    } else if (entry.kind === 'softFragment') {
+        const fragment = entry.fragment;
+        return removeSoftFragmentToken(tokens, fragment);
+    } else if (entry.kind === 'type' && quad.predicate.value.endsWith('rdf-syntax-ns#type')) {
+        const expectedType = entry.expandedType || quad.object.value;
+        return removeOneToken(tokens, t => {
+            if (!t.startsWith('.')) return false;
+            const raw = t.slice(1);
+            return expandIRI(raw, ctx) === expectedType;
+        });
+    } else {
+        const expectedPred = entry.expandedPredicate || quad.predicate.value;
+        const expectedForm = entry.form;
+        return removeOneToken(tokens, t => {
+            const m = String(t).match(/^(\^\?|\^|\?|)(.+)$/);
+            if (!m) return false;
+            const form = m[1] || '';
+            const raw = m[2];
+            if (expectedForm != null && form !== expectedForm) return false;
+            return expandIRI(raw, ctx) === expectedPred;
+        });
     }
+}
 
-    removeToken(tokens, ctx, quad) {
-        if (!this.entry) return { tokens, removed: false };
+function addTokenToSlot(tokens, ctx, quad) {
+    if (quad.predicate.value.endsWith('rdf-syntax-ns#type') && quad.object?.termType === 'NamedNode') {
+        const typeShort = shortenIRI(quad.object.value, ctx);
+        const typeToken = typeShort.includes(':') || !typeShort.startsWith('http') ? `.${typeShort}` : null;
+        if (typeToken && !tokens.includes(typeToken)) {
+            return [...tokens, typeToken];
+        }
+    } else if (quad.object.termType === 'NamedNode') {
+        const objectShort = shortenIRI(quad.object.value, ctx);
+        const isSoftFragment = quad.object.value.includes('#');
+        const fragment = isSoftFragment ? quad.object.value.split('#')[1] : null;
 
-        if (this.kind === 'object') {
-            const objectIRI = shortenIRI(quad.object.value, ctx);
-            return removeObjectToken(tokens, objectIRI);
-        } else if (this.kind === 'softFragment') {
-            const fragment = this.entry.fragment;
-            return removeSoftFragmentToken(tokens, fragment);
-        } else if (this.kind === 'type' && quad.predicate.value.endsWith('rdf-syntax-ns#type')) {
-            const expectedType = this.entry.expandedType || quad.object.value;
-            return removeOneToken(tokens, t => {
-                if (!t.startsWith('.')) return false;
-                const raw = t.slice(1);
-                return expandIRI(raw, ctx) === expectedType;
-            });
+        if (isSoftFragment) {
+            return addSoftFragmentToken(tokens, fragment);
         } else {
-            const expectedPred = this.entry.expandedPredicate || quad.predicate.value;
-            const expectedForm = this.entry.form;
-            return removeOneToken(tokens, t => {
-                const m = String(t).match(/^(\^\?|\^|\?|)(.+)$/);
-                if (!m) return false;
-                const form = m[1] || '';
-                const raw = m[2];
-                if (expectedForm != null && form !== expectedForm) return false;
-                return expandIRI(raw, ctx) === expectedPred;
-            });
+            return addObjectToken(tokens, objectShort);
+        }
+    } else if (quad.object.termType === 'Literal') {
+        const predShort = shortenIRI(quad.predicate.value, ctx);
+        if (!tokens.includes(predShort)) {
+            return [...tokens, predShort];
         }
     }
+    return tokens;
+}
 
-    addToken(tokens, ctx, quad) {
-        if (quad.predicate.value.endsWith('rdf-syntax-ns#type') && quad.object?.termType === 'NamedNode') {
-            const typeShort = shortenIRI(quad.object.value, ctx);
-            const typeToken = typeShort.includes(':') || !typeShort.startsWith('http') ? `.${typeShort}` : null;
-            if (typeToken && !tokens.includes(typeToken)) {
-                return [...tokens, typeToken];
-            }
-        } else if (quad.object.termType === 'NamedNode') {
-            const objectShort = shortenIRI(quad.object.value, ctx);
-            const isSoftFragment = quad.object.value.includes('#');
-            const fragment = isSoftFragment ? quad.object.value.split('#')[1] : null;
-
-            if (isSoftFragment) {
-                return addSoftFragmentToken(tokens, fragment);
-            } else {
-                return addObjectToken(tokens, objectShort);
-            }
-        } else if (quad.object.termType === 'Literal') {
-            // For literal predicates, we need to add the predicate token
-            const predShort = shortenIRI(quad.predicate.value, ctx);
-            if (!tokens.includes(predShort)) {
-                return [...tokens, predShort];
-            }
-        }
-        return tokens;
+function markEntryAsVacant(entry, quad) {
+    if (entry && entry.slotId) {
+        return markSlotAsVacant(entry, quad.object);
     }
-
-    markVacant(quad) {
-        if (this.entry && this.entry.slotId) {
-            return markSlotAsVacant(this.entry, quad.object);
-        }
-        return null;
-    }
+    return null;
 }
 
 export function serialize({ text, diff, origin, options = {} }) {
@@ -345,10 +333,8 @@ function materializeEdits(plan, text, ctx, base) {
 
     // Materialize deletes
     for (const { quad, entry, block } of plan.deletes) {
-        const slot = new Slot(block, entry);
-
         // Mark slot as vacant
-        const vacantSlot = slot.markVacant(quad);
+        const vacantSlot = markEntryAsVacant(entry, quad);
         if (vacantSlot && block) {
             const blockInfo = {
                 id: entry.blockId,
@@ -378,9 +364,9 @@ function materializeEdits(plan, text, ctx, base) {
             }
         }
 
-        // Handle token-based removals using Slot abstraction
+        // Handle token-based removals using direct functions
         const tokens = normalizeAttrsTokens(span.text);
-        const { tokens: updated, removed } = slot.removeToken(tokens, ctx, quad);
+        const { tokens: updated, removed } = removeTokenFromSlot(entry, tokens, ctx, quad);
 
         if (removed) {
             const newText = updated.length === 0 ? '{}' : writeAttrsTokens(updated);
@@ -428,8 +414,7 @@ function materializeEdits(plan, text, ctx, base) {
 
             // Normal annotation block, add tokens
             const existingTokens = blockTokensFromEntries(targetBlock) || tokens;
-            const slot = new Slot(targetBlock, null);
-            let updated = slot.addToken(existingTokens, ctx, quad);
+            let updated = addTokenToSlot(existingTokens, ctx, quad);
 
             // For literal predicates with datatypes, we need to add datatype token too
             if (quad.object.termType === 'Literal' && quad.object.datatype && quad.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
@@ -460,32 +445,28 @@ function applyEdits(text, edits, ctx, base) {
     // Extract vacant slots before reparsing
     const vacantSlots = new Map();
     base?.quadIndex?.forEach((slot, key) => {
-        if (slot.isVacant) {
-            vacantSlots.set(key, slot);
-        }
+        if (slot.isVacant) vacantSlots.set(key, slot);
     });
 
     const reparsed = parse(result, { context: ctx });
 
     // Merge vacant slots back
     vacantSlots.forEach((vacantSlot, key) => {
-        if (!reparsed.origin.blocks.has(vacantSlot.blockId)) {
-            const blockInfo = vacantSlot.blockInfo;
-            if (blockInfo) {
-                const emptyBlock = {
-                    id: blockInfo.id,
-                    range: blockInfo.range || { start: 0, end: 0 },
-                    attrsRange: blockInfo.attrsRange,
-                    valueRange: blockInfo.valueRange,
-                    carrierType: blockInfo.carrierType || 'span',
-                    subject: blockInfo.subject || '',
-                    types: [],
-                    predicates: [],
-                    entries: [],
-                    context: blockInfo.context || { ...ctx }
-                };
-                reparsed.origin.blocks.set(vacantSlot.blockId, emptyBlock);
-            }
+        if (!reparsed.origin.blocks.has(vacantSlot.blockId) && vacantSlot.blockInfo) {
+            const { blockInfo } = vacantSlot;
+            const emptyBlock = {
+                id: blockInfo.id,
+                range: blockInfo.range || { start: 0, end: 0 },
+                attrsRange: blockInfo.attrsRange,
+                valueRange: blockInfo.valueRange,
+                carrierType: blockInfo.carrierType || 'span',
+                subject: blockInfo.subject || '',
+                types: [],
+                predicates: [],
+                entries: [],
+                context: blockInfo.context || { ...ctx }
+            };
+            reparsed.origin.blocks.set(vacantSlot.blockId, emptyBlock);
         }
         reparsed.origin.quadIndex.set(key, vacantSlot);
     });

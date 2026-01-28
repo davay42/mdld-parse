@@ -1,4 +1,4 @@
-# MD-LD v0.3 — Core Specification (Minimal)
+# MD-LD v0.4 — Core Specification (Minimal)
 
 **Markdown-Linked Data**
 
@@ -126,11 +126,17 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 
 ### Links and Media (with URLs)
 
-| Markdown | What it captures | Example |
-|----------|------------------|---------|
-| `<URL> {...}` | The URL itself | `<https://nasa.gov> {?website}` |
-| `[label](URL) {...}` | Link text + URL | `[NASA](https://nasa.gov) {?website name}` |
-| `![alt](URL) {...}` | Alt text + URL | `![Photo](photo.jpg) {?image name}` |
+| Markdown | What it captures | Literal behavior | Type behavior |
+|----------|------------------|------------------|---------------|
+| `<URL> {...}` | The URL itself | No literals (ignored) | URL becomes subject |
+| `[label](URL) {...}` | Label text + URL | Uses label as literal | URL becomes subject |
+| `![alt](URL) {...}` | Alt text + URL | Uses alt as literal | URL becomes subject |
+
+**Examples:**
+- `<https://nasa.gov> {?website}` → current subject → website → URL
+- `[NASA](https://nasa.gov) {name}` → URL → name → "NASA"  
+- `[NASA](https://nasa.gov) {.Organization}` → URL → type → Organization
+- `![Photo](photo.jpg) {caption}` → URL → caption → "Photo"
 
 ### Angle-Bracket URL Behavior
 
@@ -148,6 +154,32 @@ Angle-bracket URLs (`<URL> {...}`) have special **soft subject** behavior:
 - Object predicates use current subject as subject
 - Reverse predicates use URL as subject
 - Literal predicates are ignored (no text content available)
+
+### Bracketed Link and Image Behavior
+
+Bracketed links `[text](URL)` and images `![alt](URL)` have **dual value** behavior:
+
+| Predicate Type | Subject | Object | Example |
+|---------------|---------|--------|---------|
+| `{.Type}` | **URL** | - | `[NASA](https://nasa.gov) {.Organization}` |
+| `{?predicate}` | **Current subject** | **URL** | `[NASA](https://nasa.gov) {?website}` |
+| `{!predicate}` | **URL** | **Current subject** | `[NASA](https://nasa.gov) {!hasPart}` |
+| `{literal}` | **URL** | **Text** | `[NASA](https://nasa.gov) {name}` |
+
+**Key Rules:**
+- Type declarations use URL as subject (soft subject behavior)
+- Object/reverse predicates use URL as object/subject
+- **Literal predicates use the URL as subject and link text as literal value**
+- Images work the same way but use alt text for literals
+
+**Example:**
+```md
+[Berlin](https://en.wikipedia.org/wiki/Berlin) {.Place name ?mentions}
+```
+Generates:
+- `https://en.wikipedia.org/wiki/Berlinn` → `rdf:type` → `Place`
+- `https://en.wikipedia.org/wiki/Berlin` → `name` → `"Berlin"`
+- `currentSubject` → `mentions` → `https://en.wikipedia.org/wiki/Berlin`
 
 ### What CAN'T Carry Annotations
 

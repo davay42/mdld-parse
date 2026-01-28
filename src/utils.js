@@ -76,14 +76,13 @@ export function parseSemanticBlock(raw) {
             const relEnd = relStart + token.length;
             const entryIndex = result.entries.length;
 
-            // Handle special tokens first
+            // Handle special tokens
             if (token === '=') {
                 result.subject = 'RESET';
                 result.entries.push({ kind: 'subjectReset', relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
             }
 
-            // Handle '=' pattern for subject declarations (not reset)
             if (token.startsWith('=') && !token.startsWith('=#')) {
                 const iri = token.substring(1);
                 result.subject = iri;
@@ -95,41 +94,32 @@ export function parseSemanticBlock(raw) {
             let processed = false;
             for (const [pattern, config] of Object.entries(TOKEN_PATTERNS)) {
                 if (token.startsWith(pattern)) {
-                    const entry = {
-                        kind: config.kind,
-                        relRange: { start: relStart, end: relEnd },
-                        raw: token
-                    };
+                    const entry = { kind: config.kind, relRange: { start: relStart, end: relEnd }, raw: token };
+                    const extracted = config.extract(token);
 
-                    if (config.extract) {
-                        const extracted = config.extract(token);
-                        if (config.kind === 'fragment') {
-                            result.subject = `=#${extracted}`;
-                            entry.fragment = extracted;
-                        } else if (config.kind === 'softFragment') {
-                            result.object = `#${extracted}`;
-                            entry.fragment = extracted;
-                        } else if (config.kind === 'object') {
-                            result.object = extracted;
-                            entry.iri = extracted;
-                        } else if (config.kind === 'datatype') {
-                            if (!result.language) result.datatype = extracted;
-                            entry.datatype = extracted;
-                        } else if (config.kind === 'language') {
-                            result.language = extracted;
-                            result.datatype = null;
-                            entry.language = extracted;
-                        } else if (config.kind === 'type') {
-                            result.types.push({ iri: extracted, entryIndex });
-                            entry.iri = extracted;
-                        } else if (config.kind === 'property') {
-                            result.predicates.push({ iri: extracted, form: config.form, entryIndex });
-                            entry.iri = extracted;
-                            entry.form = config.form;
-                        }
-                    } else {
-                        // For '=' pattern (subjectReset handled above)
-                        if (config.kind === 'subjectReset') continue;
+                    if (config.kind === 'fragment') {
+                        result.subject = `=#${extracted}`;
+                        entry.fragment = extracted;
+                    } else if (config.kind === 'softFragment') {
+                        result.object = `#${extracted}`;
+                        entry.fragment = extracted;
+                    } else if (config.kind === 'object') {
+                        result.object = extracted;
+                        entry.iri = extracted;
+                    } else if (config.kind === 'datatype') {
+                        if (!result.language) result.datatype = extracted;
+                        entry.datatype = extracted;
+                    } else if (config.kind === 'language') {
+                        result.language = extracted;
+                        result.datatype = null;
+                        entry.language = extracted;
+                    } else if (config.kind === 'type') {
+                        result.types.push({ iri: extracted, entryIndex });
+                        entry.iri = extracted;
+                    } else if (config.kind === 'property') {
+                        result.predicates.push({ iri: extracted, form: config.form, entryIndex });
+                        entry.iri = extracted;
+                        entry.form = config.form;
                     }
 
                     result.entries.push(entry);
@@ -138,7 +128,7 @@ export function parseSemanticBlock(raw) {
                 }
             }
 
-            // Handle default case (no pattern match)
+            // Default case (no pattern match)
             if (!processed) {
                 result.predicates.push({ iri: token, form: '', entryIndex });
                 result.entries.push({ kind: 'property', iri: token, form: '', relRange: { start: relStart, end: relEnd }, raw: token });
@@ -192,69 +182,42 @@ export function parseQuadIndexKey(key) {
     }
 }
 
-export function createSemanticSlotId(subject, predicate) {
-    return hash(`${subject.value}|${predicate.value}`);
-}
-
-// Consolidated quad management
-export function createQuadManager() {
+// Direct slot management functions - no factory needed
+export function createSlotInfo(blockId, entryIndex, meta = {}) {
+    const slotId = meta.subject && meta.predicate ? hash(`${meta.subject.value}|${meta.predicate.value}`) : null;
     return {
-        createSlot: (blockId, entryIndex, meta = {}) => {
-            const slotId = meta.subject && meta.predicate ? createSemanticSlotId(meta.subject, meta.predicate) : null;
-            return {
-                blockId,
-                entryIndex,
-                slotId,
-                isVacant: false,
-                lastValue: null,
-                vacantSince: null,
-                ...meta
-            };
-        },
-
-        markVacant: (slotInfo, deletedValue) => {
-            if (!slotInfo) return null;
-            return {
-                ...slotInfo,
-                isVacant: true,
-                lastValue: deletedValue,
-                vacantSince: Date.now()
-            };
-        },
-
-        findVacant: (quadIndex, subject, predicate) => {
-            const targetSlotId = createSemanticSlotId(subject, predicate);
-            return Array.from(quadIndex.values())
-                .find(slot => slot.slotId === targetSlotId && slot.isVacant);
-        },
-
-        occupy: (slotInfo, newValue) => {
-            if (!slotInfo || !slotInfo.isVacant) return null;
-            return {
-                ...slotInfo,
-                isVacant: false,
-                lastValue: newValue,
-                vacantSince: null
-            };
-        }
+        blockId,
+        entryIndex,
+        slotId,
+        isVacant: false,
+        lastValue: null,
+        vacantSince: null,
+        ...meta
     };
 }
 
-// Backward compatibility exports
-export function createSlotInfo(blockId, entryIndex, meta = {}) {
-    return createQuadManager().createSlot(blockId, entryIndex, meta);
-}
-
 export function markSlotAsVacant(slotInfo, deletedValue) {
-    return createQuadManager().markVacant(slotInfo, deletedValue);
+    return slotInfo ? {
+        ...slotInfo,
+        isVacant: true,
+        lastValue: deletedValue,
+        vacantSince: Date.now()
+    } : null;
 }
 
 export function findVacantSlot(quadIndex, subject, predicate) {
-    return createQuadManager().findVacant(quadIndex, subject, predicate);
+    const targetSlotId = hash(`${subject.value}|${predicate.value}`);
+    return Array.from(quadIndex.values())
+        .find(slot => slot.slotId === targetSlotId && slot.isVacant);
 }
 
 export function occupySlot(slotInfo, newValue) {
-    return createQuadManager().occupy(slotInfo, newValue);
+    return slotInfo && slotInfo.isVacant ? {
+        ...slotInfo,
+        isVacant: false,
+        lastValue: newValue,
+        vacantSince: null
+    } : null;
 }
 
 export function normalizeAttrsTokens(attrsText) {
@@ -271,32 +234,23 @@ export function removeOneToken(tokens, matchFn) {
     return i === -1 ? { tokens, removed: false } : { tokens: [...tokens.slice(0, i), ...tokens.slice(i + 1)], removed: true };
 }
 
-// Consolidated token management
-function manageToken(tokens, action, tokenType, value) {
-    const token = tokenType === 'object' ? `+${value}` :
-        tokenType === 'softFragment' ? `+#${value}` : value;
-
-    switch (action) {
-        case 'add': return tokens.includes(token) ? tokens : [...tokens, token];
-        case 'remove': return removeOneToken(tokens, t => t === token);
-        default: return tokens;
-    }
-}
-
+// Direct token management - no wrapper function needed
 export function addObjectToken(tokens, iri) {
-    return manageToken(tokens, 'add', 'object', iri);
+    const token = `+${iri}`;
+    return tokens.includes(token) ? tokens : [...tokens, token];
 }
 
 export function removeObjectToken(tokens, iri) {
-    return manageToken(tokens, 'remove', 'object', iri);
+    return removeOneToken(tokens, t => t === `+${iri}`);
 }
 
 export function addSoftFragmentToken(tokens, fragment) {
-    return manageToken(tokens, 'add', 'softFragment', fragment);
+    const token = `+#${fragment}`;
+    return tokens.includes(token) ? tokens : [...tokens, token];
 }
 
 export function removeSoftFragmentToken(tokens, fragment) {
-    return manageToken(tokens, 'remove', 'softFragment', fragment);
+    return removeOneToken(tokens, t => t === `+#${fragment}`);
 }
 
 export function createLiteral(value, datatype, language, context, dataFactory) {

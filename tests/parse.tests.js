@@ -525,7 +525,7 @@ __double_underline__ {doubleUnderlineName}
             assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/underlineName', 'underline'), 'Should have underline');
             assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/doubleUnderlineName', 'double_underline'), 'Should have double underline');
             assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/codeName', 'code'), 'Should have code');
-            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/linkName', 'link'), 'Should have link');
+            assert(hasQuad(quads, 'http://example.com', 'http://example.org/linkName', 'link'), 'Should have link attached to URL');
         }
     },
 

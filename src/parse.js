@@ -9,6 +9,22 @@ import {
     hash
 } from './utils.js';
 
+// Constants and patterns
+const URL_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const FENCE_REGEX = /^(`{3,})(.*)/;
+const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
+const HEADING_REGEX = /^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
+const LIST_REGEX = /^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
+const BLOCKQUOTE_REGEX = /^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
+const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
+const LIST_CONTEXT_REGEX = /^(.+?)\s*\{([^}]+)\}$/;
+
+// Inline carrier pattern constants
+const INLINE_CARRIER_PATTERNS = {
+    EMPHASIS: /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y,
+    CODE_SPAN: /``(.+?)``\s*\{([^}]+)\}/y
+};
+
 // Semantic block cache to avoid repeated parsing
 const semCache = {};
 const EMPTY_SEM = Object.freeze({ predicates: [], types: [], subject: null });
@@ -57,107 +73,131 @@ function scanTokens(text) {
     let pos = 0;
     let codeBlock = null;
 
+    // Token processors in order of priority
+    const processors = [
+        {
+            test: line => line.startsWith('```'),
+            process: (line, lineStart, pos) => {
+                if (!codeBlock) {
+                    const fenceMatch = line.match(FENCE_REGEX);
+                    const attrsText = fenceMatch[2].match(/\{[^{}]*\}/)?.[0] || null;
+                    const attrsStartInLine = attrsText ? line.indexOf(attrsText) : -1;
+                    const contentStart = lineStart + line.length + 1;
+                    const langAndAttrs = fenceMatch[2];
+                    const langEnd = langAndAttrs.indexOf(' ') > -1 ? langAndAttrs.indexOf(' ') :
+                        langAndAttrs.indexOf('{') > -1 ? langAndAttrs.indexOf('{') : langAndAttrs.length;
+                    codeBlock = {
+                        fence: fenceMatch[1],
+                        start: lineStart,
+                        content: [],
+                        lang: langAndAttrs.substring(0, langEnd),
+                        attrs: attrsText,
+                        attrsRange: attrsText && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrsText.length] : null,
+                        valueRangeStart: contentStart
+                    };
+                } else if (line.startsWith(codeBlock.fence)) {
+                    const valueStart = codeBlock.valueRangeStart;
+                    const valueEnd = Math.max(valueStart, lineStart - 1);
+                    tokens.push({
+                        type: 'code',
+                        range: [codeBlock.start, lineStart],
+                        text: codeBlock.content.join('\n'),
+                        lang: codeBlock.lang,
+                        attrs: codeBlock.attrs,
+                        attrsRange: codeBlock.attrsRange,
+                        valueRange: [valueStart, valueEnd]
+                    });
+                    codeBlock = null;
+                }
+                return true; // handled
+            }
+        },
+        {
+            test: () => codeBlock,
+            process: line => {
+                codeBlock.content.push(line);
+                return true; // handled
+            }
+        },
+        {
+            test: line => PREFIX_REGEX.test(line),
+            process: (line, lineStart, pos) => {
+                const match = PREFIX_REGEX.exec(line);
+                tokens.push({ type: 'prefix', prefix: match[1], iri: match[2].trim() });
+                return true; // handled
+            }
+        },
+        {
+            test: line => HEADING_REGEX.test(line),
+            process: (line, lineStart, pos) => {
+                const match = HEADING_REGEX.exec(line);
+                const attrs = match[3] || null;
+                const afterHashes = match[1].length;
+                const wsLength = afterHashes < line.length && line[afterHashes] === ' ' ? 1 :
+                    line.slice(afterHashes).match(/^\s+/)?.[0]?.length || 0;
+                const valueStartInLine = afterHashes + wsLength;
+                const valueEndInLine = valueStartInLine + match[2].length;
+                tokens.push(createToken('heading', [lineStart, pos - 1], match[2].trim(), attrs,
+                    calcAttrsRange(line, attrs, lineStart),
+                    calcValueRange(lineStart, valueStartInLine, valueEndInLine),
+                    { depth: match[1].length }));
+                return true; // handled
+            }
+        },
+        {
+            test: line => LIST_REGEX.test(line),
+            process: (line, lineStart, pos) => {
+                const match = LIST_REGEX.exec(line);
+                const attrs = match[4] || null;
+                const prefix = match[1].length + match[2].length;
+                const wsLength = prefix < line.length && line[prefix] === ' ' ? 1 :
+                    line.slice(prefix).match(/^\s+/)?.[0]?.length || 0;
+                const valueStartInLine = prefix + wsLength;
+                const valueEndInLine = valueStartInLine + match[3].length;
+                tokens.push(createToken('list', [lineStart, pos - 1], match[3].trim(), attrs,
+                    calcAttrsRange(line, attrs, lineStart),
+                    calcValueRange(lineStart, valueStartInLine, valueEndInLine),
+                    { indent: match[1].length }));
+                return true; // handled
+            }
+        },
+        {
+            test: line => BLOCKQUOTE_REGEX.test(line),
+            process: (line, lineStart, pos) => {
+                const match = BLOCKQUOTE_REGEX.exec(line);
+                const attrs = match[2] || null;
+                const valueStartInLine = line.startsWith('> ') ? 2 : line.indexOf('>') + 1;
+                const valueEndInLine = valueStartInLine + match[1].length;
+                tokens.push(createToken('blockquote', [lineStart, pos - 1], match[1].trim(), attrs,
+                    calcAttrsRange(line, attrs, lineStart),
+                    calcValueRange(lineStart, valueStartInLine, valueEndInLine)));
+                return true; // handled
+            }
+        },
+        {
+            test: line => line.trim(),
+            process: (line, lineStart, pos) => {
+                tokens.push(createToken('para', [lineStart, pos - 1], line.trim()));
+                return true; // handled
+            }
+        }
+    ];
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const lineStart = pos;
         pos += line.length + 1;
 
-        if (line.startsWith('```')) {
-            if (!codeBlock) {
-                const fence = line.match(/^(`{3,})(.*)/);
-                const attrsText = fence[2].match(/\{[^{}]*\}/)?.[0] || null;
-                const attrsStartInLine = attrsText ? line.indexOf(attrsText) : -1;
-                const contentStart = lineStart + line.length + 1;
-                codeBlock = {
-                    fence: fence[1],
-                    start: lineStart,
-                    content: [],
-                    lang: fence[2].trim().split(/[\s{]/)[0],
-                    attrs: attrsText,
-                    attrsRange: attrsText && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrsText.length] : null,
-                    valueRangeStart: contentStart
-                };
-            } else if (line.startsWith(codeBlock.fence)) {
-                const valueStart = codeBlock.valueRangeStart;
-                const valueEnd = Math.max(valueStart, lineStart - 1);
-                tokens.push({
-                    type: 'code',
-                    range: [codeBlock.start, lineStart],
-                    text: codeBlock.content.join('\n'),
-                    lang: codeBlock.lang,
-                    attrs: codeBlock.attrs,
-                    attrsRange: codeBlock.attrsRange,
-                    valueRange: [valueStart, valueEnd]
-                });
-                codeBlock = null;
+        // Try each processor until one handles the line
+        for (const processor of processors) {
+            if (processor.test(line) && processor.process(line, lineStart, pos)) {
+                break; // line handled, move to next line
             }
-            continue;
-        }
-
-        if (codeBlock) {
-            codeBlock.content.push(line);
-            continue;
-        }
-
-        const prefixMatch = line.match(/^\[([^\]]+)\]\s*<([^>]+)>/);
-        if (prefixMatch) {
-            tokens.push({ type: 'prefix', prefix: prefixMatch[1], iri: prefixMatch[2].trim() });
-            continue;
-        }
-
-        const headingMatch = line.match(/^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/);
-        if (headingMatch) {
-            const attrs = headingMatch[3] || null;
-            const afterHashes = headingMatch[1].length;
-            const ws = line.substring(afterHashes).match(/^\s+/)?.[0]?.length || 0;
-            const valueStartInLine = afterHashes + ws;
-            const valueEndInLine = valueStartInLine + headingMatch[2].length;
-            tokens.push(createToken('heading', [lineStart, pos - 1], headingMatch[2].trim(), attrs,
-                calcAttrsRange(line, attrs, lineStart),
-                calcValueRange(lineStart, valueStartInLine, valueEndInLine),
-                { depth: headingMatch[1].length }));
-            continue;
-        }
-
-        const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/);
-        if (listMatch) {
-            const attrs = listMatch[4] || null;
-            const prefix = listMatch[1].length + listMatch[2].length;
-            const ws = line.substring(prefix).match(/^\s+/)?.[0]?.length || 0;
-            const valueStartInLine = prefix + ws;
-            const valueEndInLine = valueStartInLine + listMatch[3].length;
-            tokens.push(createToken('list', [lineStart, pos - 1], listMatch[3].trim(), attrs,
-                calcAttrsRange(line, attrs, lineStart),
-                calcValueRange(lineStart, valueStartInLine, valueEndInLine),
-                { indent: listMatch[1].length }));
-            continue;
-        }
-
-        const blockquoteMatch = line.match(/^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/);
-        if (blockquoteMatch) {
-            const attrs = blockquoteMatch[2] || null;
-            const prefixMatch = line.match(/^>\s+/);
-            const valueStartInLine = prefixMatch ? prefixMatch[0].length : 2;
-            const valueEndInLine = valueStartInLine + blockquoteMatch[1].length;
-            tokens.push(createToken('blockquote', [lineStart, pos - 1], blockquoteMatch[1].trim(), attrs,
-                calcAttrsRange(line, attrs, lineStart),
-                calcValueRange(lineStart, valueStartInLine, valueEndInLine)));
-            continue;
-        }
-
-        if (line.trim()) {
-            tokens.push(createToken('para', [lineStart, pos - 1], line.trim()));
         }
     }
 
     return tokens;
 }
-
-// Inline carrier pattern constants (using sticky regexes for proper positioning)
-const INLINE_CARRIER_PATTERNS = {
-    EMPHASIS: /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y,
-    CODE_SPAN: /``(.+?)``\s*\{([^}]+)\}/y
-};
 
 function createCarrier(type, text, attrs, attrsRange, valueRange, range, pos, extra = {}) {
     return { type, text, attrs, attrsRange, valueRange, range, pos, ...extra };
@@ -167,40 +207,70 @@ function extractInlineCarriers(text, baseOffset = 0) {
     const carriers = [];
     let pos = 0;
 
-    while (pos < text.length) {
-        const emphasisCarrier = tryExtractEmphasisCarrier(text, pos, baseOffset);
-        if (emphasisCarrier) {
-            carriers.push(emphasisCarrier);
-            pos = emphasisCarrier.pos;
-            continue;
-        }
-
-        const codeCarrier = tryExtractCodeCarrier(text, pos, baseOffset);
-        if (codeCarrier) {
-            carriers.push(codeCarrier);
-            pos = codeCarrier.pos;
-            continue;
-        }
-
-        const angleBracketCarrier = tryExtractAngleBracketCarrier(text, pos, baseOffset);
-        if (angleBracketCarrier) {
-            carriers.push(angleBracketCarrier);
-            pos = angleBracketCarrier.pos;
-            continue;
-        }
-
-        const bracketCarrier = tryExtractBracketCarrier(text, pos, baseOffset);
-        if (bracketCarrier) {
-            if (bracketCarrier.skip) {
-                pos = bracketCarrier.pos;
-                continue;
+    // Unified carrier extractor with pattern-based handlers
+    const extractCarrier = (text, pos, baseOffset) => {
+        // Angle-bracket URLs: <URL>{...}
+        if (text[pos] === '<') {
+            const angleEnd = text.indexOf('>', pos);
+            if (angleEnd !== -1) {
+                const url = text.slice(pos + 1, angleEnd);
+                if (URL_REGEX.test(url)) {
+                    const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, angleEnd + 1, baseOffset);
+                    return createCarrier('link', url, attrs, attrsRange,
+                        [baseOffset + pos + 1, baseOffset + angleEnd],
+                        [baseOffset + pos, baseOffset + finalSpanEnd],
+                        finalSpanEnd, { url });
+                }
             }
-            carriers.push(bracketCarrier);
-            pos = bracketCarrier.pos;
-            continue;
+            return null;
         }
 
-        pos++; // Advance to next character if no carrier found
+        // Bracketed links: [text](URL){...} and [text]{...}
+        if (text[pos] === '[') {
+            const bracketEnd = findMatchingBracket(text, pos);
+            if (bracketEnd) {
+                const carrierText = text.slice(pos + 1, bracketEnd - 1);
+                const { url, spanEnd } = extractUrlFromBrackets(text, bracketEnd);
+                const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, spanEnd, baseOffset);
+                const { carrierType, resourceIRI } = determineCarrierType(url);
+
+                if (url?.startsWith('=')) return { skip: true, pos: finalSpanEnd };
+
+                return createCarrier(carrierType, carrierText, attrs, attrsRange,
+                    [baseOffset + pos + 1, baseOffset + bracketEnd - 1],
+                    [baseOffset + pos, baseOffset + finalSpanEnd],
+                    finalSpanEnd, { url: resourceIRI });
+            }
+            return null;
+        }
+
+        // Regex-based carriers: emphasis and code spans
+        for (const [type, pattern] of Object.entries(INLINE_CARRIER_PATTERNS)) {
+            pattern.lastIndex = pos;
+            const match = pattern.exec(text);
+            if (match) {
+                const ranges = calcCarrierRanges(match, baseOffset, match.index);
+                const carrierType = type === 'EMPHASIS' ? 'emphasis' : 'code';
+                return createCarrier(carrierType, match[1], `{${match[2]}}`,
+                    ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
+            }
+        }
+
+        return null;
+    };
+
+    while (pos < text.length) {
+        const carrier = extractCarrier(text, pos, baseOffset);
+        if (carrier) {
+            if (carrier.skip) {
+                pos = carrier.pos;
+            } else {
+                carriers.push(carrier);
+                pos = carrier.pos;
+            }
+        } else {
+            pos++;
+        }
     }
 
     return carriers;
@@ -219,83 +289,13 @@ function calcCarrierRanges(match, baseOffset, matchStart) {
     };
 }
 
-function tryExtractEmphasisCarrier(text, pos, baseOffset) {
-    INLINE_CARRIER_PATTERNS.EMPHASIS.lastIndex = pos;
-    const match = INLINE_CARRIER_PATTERNS.EMPHASIS.exec(text);
-    if (!match) return null;
-
-    const ranges = calcCarrierRanges(match, baseOffset, match.index);
-    return createCarrier('emphasis', match[1], `{${match[2]}}`,
-        ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
-}
-
-function tryExtractCodeCarrier(text, pos, baseOffset) {
-    INLINE_CARRIER_PATTERNS.CODE_SPAN.lastIndex = pos;
-    const match = INLINE_CARRIER_PATTERNS.CODE_SPAN.exec(text);
-    if (!match) return null;
-
-    const ranges = calcCarrierRanges(match, baseOffset, match.index);
-    return createCarrier('code', match[1], `{${match[2]}}`,
-        ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
-}
-
-function tryExtractAngleBracketCarrier(text, pos, baseOffset) {
-    const angleStart = text.indexOf('<', pos);
-    if (angleStart === -1 || angleStart !== pos) return null;
-
-    // Look for closing angle bracket
-    const angleEnd = text.indexOf('>', angleStart);
-    if (angleEnd === -1) return null;
-
-    const url = text.substring(angleStart + 1, angleEnd);
-
-    // Basic URL validation - should contain at least a scheme and colon
-    if (!url.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:/)) {
-        return null;
-    }
-
-    const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, angleEnd + 1, baseOffset);
-
-    // For angle-bracket URLs, always provide the URL as text content
-    // The processing logic will handle whether to use it for literals or not
-    return createCarrier('link', url, attrs, attrsRange,
-        [baseOffset + angleStart + 1, baseOffset + angleEnd],
-        [baseOffset + angleStart, baseOffset + finalSpanEnd],
-        finalSpanEnd, { url: url });
-}
-
-function tryExtractBracketCarrier(text, pos, baseOffset) {
-    const bracketStart = text.indexOf('[', pos);
-    if (bracketStart === -1 || bracketStart !== pos) return null;
-
-    const bracketEnd = findMatchingBracket(text, bracketStart);
-    if (!bracketEnd) return null;
-
-    const carrierText = text.substring(bracketStart + 1, bracketEnd - 1);
-    const { url, spanEnd } = extractUrlFromBrackets(text, bracketEnd);
-    const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, spanEnd, baseOffset);
-    const { carrierType, resourceIRI } = determineCarrierType(url);
-
-    if (url && url.startsWith('=')) {
-        return { skip: true, pos: finalSpanEnd };
-    }
-
-    return createCarrier(carrierType, carrierText, attrs, attrsRange,
-        [baseOffset + bracketStart + 1, baseOffset + bracketEnd - 1],
-        [baseOffset + bracketStart, baseOffset + finalSpanEnd],
-        finalSpanEnd, { url: resourceIRI });
-}
-
 function findMatchingBracket(text, bracketStart) {
     let bracketDepth = 1;
     let bracketEnd = bracketStart + 1;
 
     while (bracketEnd < text.length && bracketDepth > 0) {
-        if (text[bracketEnd] === '[') {
-            bracketDepth++;
-        } else if (text[bracketEnd] === ']') {
-            bracketDepth--;
-        }
+        if (text[bracketEnd] === '[') bracketDepth++;
+        else if (text[bracketEnd] === ']') bracketDepth--;
         bracketEnd++;
     }
 
@@ -320,29 +320,29 @@ function extractUrlFromBrackets(text, bracketEnd) {
 function extractAttributesFromText(text, spanEnd, baseOffset) {
     let attrs = null;
     let attrsRange = null;
+    const remaining = text.substring(spanEnd);
 
-    const attrsMatch = text.substring(spanEnd).match(/^\s*\{([^}]+)\}/);
-    if (attrsMatch) {
-        attrs = `{${attrsMatch[1]}}`;
-        const braceIndex = attrsMatch[0].indexOf('{');
-        const absStart = baseOffset + spanEnd + (braceIndex >= 0 ? braceIndex : 0);
-        attrsRange = [absStart, absStart + attrs.length];
-        spanEnd += attrsMatch[0].length;
+    const wsMatch = remaining.match(/^\s+/);
+    const attrsStart = wsMatch ? wsMatch[0].length : 0;
+
+    if (remaining[attrsStart] === '{') {
+        const braceEnd = remaining.indexOf('}', attrsStart);
+        if (braceEnd !== -1) {
+            attrs = remaining.substring(attrsStart, braceEnd + 1);
+            const absStart = baseOffset + spanEnd + attrsStart;
+            attrsRange = [absStart, absStart + attrs.length];
+            spanEnd += braceEnd + 1;
+        }
     }
 
     return { attrs, attrsRange, finalSpanEnd: spanEnd };
 }
 
 function determineCarrierType(url) {
-    let carrierType = 'span';
-    let resourceIRI = null;
-
     if (url && !url.startsWith('=')) {
-        carrierType = 'link';
-        resourceIRI = url;
+        return { carrierType: 'link', resourceIRI: url };
     }
-
-    return { carrierType, resourceIRI };
+    return { carrierType: 'span', resourceIRI: null };
 }
 
 function createBlock(subject, types, predicates, entries, range, attrsRange, valueRange, carrierType, ctx) {
@@ -352,10 +352,9 @@ function createBlock(subject, types, predicates, entries, range, attrsRange, val
         predicates: predicates.map(p => ({ iri: expandIRI(p.iri, ctx), form: p.form }))
     };
 
-    // Use semantic signature for stable block identity
     const signature = [
         subject,
-        carrierType || 'unknown', // Include carrier type in signature
+        carrierType || 'unknown',
         expanded.types.join(','),
         expanded.predicates.map(p => `${p.form}${p.iri}`).join(',')
     ].join('|');
@@ -380,12 +379,9 @@ function emitQuad(quads, quadIndex, blockId, subject, predicate, object, dataFac
     const quad = dataFactory.quad(subject, predicate, object);
     quads.push(quad);
 
-    // Create enhanced slot info with semantic slot tracking
     const slotInfo = createSlotInfo(blockId, meta?.entryIndex, {
         ...meta,
-        subject,
-        predicate,
-        object
+        subject, predicate, object
     });
 
     quadIndex.set(quadIndexKey(quad.subject, quad.predicate, quad.object), slotInfo);
@@ -403,9 +399,8 @@ function resolveSubject(sem, state) {
             return state.df.namedNode(`${baseIRI}#${fragment}`);
         }
         return null;
-    } else {
-        return state.df.namedNode(expandIRI(sem.subject, state.ctx));
     }
+    return state.df.namedNode(expandIRI(sem.subject, state.ctx));
 }
 
 function resolveObject(sem, state) {
@@ -417,10 +412,8 @@ function resolveObject(sem, state) {
             return state.df.namedNode(`${baseIRI}#${fragment}`);
         }
         return null;
-    } else {
-        // Regular soft IRI
-        return state.df.namedNode(expandIRI(sem.object, state.ctx));
     }
+    return state.df.namedNode(expandIRI(sem.object, state.ctx));
 }
 
 function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier) {
@@ -428,11 +421,12 @@ function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block
         const typeIRI = typeof t === 'string' ? t : t.iri;
         const entryIndex = typeof t === 'string' ? null : t.entryIndex;
 
-        // For angle-bracket URLs, use the URL as the subject for type declarations ONLY when
-        // there's no explicit subject declaration. This implements {+URL} behavior.
+        // For angle-bracket URLs and bracketed links [text](URL), use the URL as the subject 
+        // for type declarations when there's no explicit subject declaration.
+        // This implements {+URL} soft subject behavior.
         let typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
-        if (carrier?.type === 'link' && carrier?.url && carrier.text === carrier.url && !newSubject) {
-            typeSubject = carrierO; // Use URL as subject for type declarations only if no explicit subject
+        if (carrier?.type === 'link' && carrier?.url && !newSubject) {
+            typeSubject = carrierO; // Use URL as subject for type declarations
         }
 
         const expandedType = expandIRI(typeIRI, state.ctx);
@@ -452,22 +446,34 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
     sem.predicates.forEach(pred => {
         const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
 
-        // Skip literal predicates for angle-bracket URLs - they only support ? and ! predicates
+        // Skip literal predicates for angle-bracket URLs only
         if (pred.form === '' && carrier?.type === 'link' && carrier?.url && carrier.text === carrier.url) {
-            return; // Angle-bracket URLs don't support literal predicates
+            return;
         }
 
-        // Pre-bind subject/object roles for clarity
-        const roles = {
-            '': { subject: localObject || S, object: L },
-            '?': { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO },
-            '!': { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S }
-        };
+        // Determine subject/object roles based on predicate form
+        let role;
+        switch (pred.form) {
+            case '':
+                // For bracketed links with literal predicates and no explicit subject, use URL as subject
+                if (carrier?.type === 'link' && carrier?.url && carrier.text !== carrier.url && !newSubject) {
+                    role = { subject: newSubjectOrCarrierO, object: L };
+                } else {
+                    role = { subject: localObject || S, object: L };
+                }
+                break;
+            case '?':
+                role = { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO };
+                break;
+            case '!':
+                role = { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S };
+                break;
+            default:
+                role = null;
+        }
 
-        const role = roles[pred.form];
-        if (role && role.subject && role.object) {
-            emitQuad(
-                state.quads, state.origin.quadIndex, block.id,
+        if (role) {
+            emitQuad(state.quads, state.origin.quadIndex, block.id,
                 role.subject, P, role.object, state.df,
                 { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
             );
@@ -510,27 +516,26 @@ function processAnnotation(carrier, sem, state, options = {}) {
     processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier);
 }
 
-// Helper functions for list item processing
-function findSubjectInAttrs(attrs, state, carrierInfo = null) {
-    const sem = parseSemCached(attrs);
+export function findItemSubject(listToken, carriers, state) {
+    const sem = parseSemCached(listToken.attrs);
     if (sem.subject && sem.subject !== 'RESET') {
         const subject = resolveSubject(sem, state);
         if (subject) {
-            return { subject, carrier: carrierInfo || { type: 'unknown', text: '', attrs } };
+            return {
+                subject,
+                carrier: { type: 'list', text: listToken.text, attrs: listToken.attrs, range: listToken.range }
+            };
         }
     }
-    return null;
-}
-
-export function findItemSubject(listToken, carriers, state) {
-    const subjectFromAttrs = findSubjectInAttrs(listToken.attrs, state, {
-        type: 'list', text: listToken.text, attrs: listToken.attrs, range: listToken.range
-    });
-    if (subjectFromAttrs) return subjectFromAttrs;
 
     for (const carrier of carriers) {
-        const subjectFromCarrier = findSubjectInAttrs(carrier.attrs, state, carrier);
-        if (subjectFromCarrier) return subjectFromCarrier;
+        const carrierSem = parseSemCached(carrier.attrs);
+        if (carrierSem.subject && carrierSem.subject !== 'RESET') {
+            const subject = resolveSubject(carrierSem, state);
+            if (subject) {
+                return { subject, carrier };
+            }
+        }
     }
 
     return null;
@@ -578,25 +583,18 @@ function processContextSem({ sem, itemSubject, contextSubject, inheritLiterals =
     if (inheritLiterals) {
         const literalPredicates = sem.predicates.filter(p => p.form === '');
         if (literalPredicates.length > 0) {
-            const inheritedSem = createInheritedSem(literalPredicates);
-            // Note: caller must handle subject switching for literal inheritance
-            return inheritedSem;
+            return {
+                subject: null,
+                object: null,
+                types: [],
+                predicates: literalPredicates.map(p => ({ iri: p.iri, form: p.form, entryIndex: p.entryIndex })),
+                datatype: null,
+                language: null,
+                entries: []
+            };
         }
     }
     return null;
-}
-
-// Lightweight semantic object constructor for inherited predicates
-function createInheritedSem(predicates) {
-    return {
-        subject: null,
-        object: null,
-        types: [],
-        predicates: predicates.map(p => ({ iri: p.iri, form: p.form, entryIndex: p.entryIndex })),
-        datatype: null,
-        language: null,
-        entries: []
-    };
 }
 
 // List stack management functions
@@ -671,7 +669,13 @@ function processListItem(token, state) {
             if (inheritedSem) {
                 const prevSubject = state.currentSubject;
                 state.currentSubject = itemSubject;
-                processAnnotation(createCarrierFromToken(token, 'list'), inheritedSem, state, { preserveGlobalSubject: true });
+                processAnnotation({
+                    type: 'list',
+                    text: token.text,
+                    range: token.range,
+                    attrsRange: token.attrsRange || null,
+                    valueRange: token.valueRange || null
+                }, inheritedSem, state, { preserveGlobalSubject: true });
                 state.currentSubject = prevSubject;
             }
         }
@@ -680,7 +684,13 @@ function processListItem(token, state) {
     // Process item's own annotations using unified function
     if (token.attrs) {
         const sem = parseSemCached(token.attrs);
-        processAnnotation(createCarrierFromToken(token, 'list'), sem, state, {
+        processAnnotation({
+            type: 'list',
+            text: token.text,
+            range: token.range,
+            attrsRange: token.attrsRange || null,
+            valueRange: token.valueRange || null
+        }, sem, state, {
             preserveGlobalSubject: !state.listStack.length,
             implicitSubject: itemSubject
         });
@@ -699,7 +709,7 @@ function processListItem(token, state) {
 }
 
 function processListContextFromParagraph(token, state) {
-    const contextMatch = token.text.match(/^(.+?)\s*\{([^}]+)\}$/);
+    const contextMatch = LIST_CONTEXT_REGEX.exec(token.text);
 
     if (contextMatch) {
         const contextSem = parseSemCached(`{${contextMatch[2]}}`);
@@ -728,21 +738,17 @@ function processListContextFromParagraph(token, state) {
 }
 
 // Helper functions for token processing
-function createCarrierFromToken(token, tokenType) {
-    return {
-        type: tokenType,
-        text: token.text,
-        range: token.range,
-        attrsRange: token.attrsRange || null,
-        valueRange: token.valueRange || null
-    };
-}
-
 function processTokenAnnotations(token, state, tokenType) {
     // Process token's own attributes
     if (token.attrs) {
         const sem = parseSemCached(token.attrs);
-        processAnnotation(createCarrierFromToken(token, tokenType), sem, state);
+        processAnnotation({
+            type: tokenType,
+            text: token.text,
+            range: token.range,
+            attrsRange: token.attrsRange || null,
+            valueRange: token.valueRange || null
+        }, sem, state);
     }
 
     // Process inline carriers
@@ -756,7 +762,7 @@ function processTokenAnnotations(token, state, tokenType) {
 }
 
 function processStandaloneSubject(token, state) {
-    const match = token.text.match(/^\s*\{=(.*?)\}\s*$/);
+    const match = STANDALONE_SUBJECT_REGEX.exec(token.text);
     if (!match) return;
 
     const sem = parseSemCached(`{=${match[1]}}`);
