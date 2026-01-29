@@ -230,7 +230,7 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
                         style="background: var(--bg-light); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow: auto; color: var(--text-code);">
                         Quads will appear here...</div>
                 </div>
-                <div style="min-width: 0;">
+                <div style="min-width: 0;" id="rendered-section" style="display: none;">
                     <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Rendered HTML+RDFa
                     </h3>
                     <div id="rendered-output"
@@ -386,6 +386,18 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
         import { runTests, tests } from './tests/index.js';
 
         let currentTestResults = [];
+
+        // Development flag to enable/disable RDFa rendering
+        // Set to false for production, true for development
+        const ENABLE_RDFA_RENDER = false;
+
+        // Show/hide rendered HTML section based on flag
+        document.addEventListener('DOMContentLoaded', function () {
+            const renderedSection = document.getElementById('rendered-section');
+            if (renderedSection) {
+                renderedSection.style.display = ENABLE_RDFA_RENDER ? 'block' : 'none';
+            }
+        });
 
         // Example templates
         const examples = {
@@ -699,7 +711,9 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
 
             if (!input.trim()) {
                 output.textContent = 'Quads will appear here...';
-                rendered.textContent = 'Rendered HTML will appear here...';
+                if (ENABLE_RDFA_RENDER) {
+                    rendered.textContent = 'Rendered HTML will appear here...';
+                }
                 stats.textContent = '';
                 return;
             }
@@ -707,13 +721,15 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
             try {
                 const startTime = performance.now();
                 const result = parse(input, { context: { ex: 'http://example.org/' } });
-                const renderedResult = render(input, { context: { ex: 'http://example.org/' } });
                 const duration = Math.round(performance.now() - startTime);
 
                 lastParse = { input, result };
 
-                // Display rendered HTML+RDFa
-                rendered.innerHTML = `<div style="background: white; padding: 1rem; border-radius: 4px;">${renderedResult.html}</div>`;
+                // Display rendered HTML+RDFa (only if enabled)
+                if (ENABLE_RDFA_RENDER) {
+                    const renderedResult = render(input, { context: { ex: 'http://example.org/' } });
+                    rendered.innerHTML = `<div style="background: white; padding: 1rem; border-radius: 4px;">${renderedResult.html}</div>`;
+                }
 
                 // Convert quads to readable format
                 output.innerHTML = quadsToHtml(result.quads);
@@ -722,7 +738,9 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
                 quadLabReset();
             } catch (error) {
                 output.textContent = `Error: ${error.message}`;
-                rendered.textContent = `Error: ${error.message}`;
+                if (ENABLE_RDFA_RENDER) {
+                    rendered.textContent = `Error: ${error.message}`;
+                }
                 stats.textContent = '';
                 quadLabReset();
             }
@@ -771,7 +789,9 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
         window.clearPlayground = function () {
             document.getElementById('input').value = '';
             document.getElementById('output').textContent = 'Quads will appear here...';
-            document.getElementById('rendered-output').textContent = 'Rendered HTML will appear here...';
+            if (ENABLE_RDFA_RENDER) {
+                document.getElementById('rendered-output').textContent = 'Rendered HTML will appear here...';
+            }
             document.getElementById('parse-stats').textContent = '';
             document.getElementById('quadlab-body').innerHTML = '';
             document.getElementById('quadlab-diff').textContent = 'Diff will appear here...';
