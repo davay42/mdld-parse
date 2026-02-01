@@ -687,6 +687,32 @@ tag:alice@example.com,2026:water a schema:Ingredient ;
 - Nested lists don't inherit semantic context
 - Each level needs its own annotation if you want semantics
 
+### Ordered lists
+
+Ordered lists don't have specific annotation in MDLD, but they are technically feasible with explicit first-rest chained graph structure.
+
+In order to get this Turtle semantics:
+
+```turtle
+@prefix ex: <http://ex.com/> .
+
+ex:listTest sh:in (ex:A ex:B) .
+```
+
+We have to write this in MDLD as:
+
+```md
+[ex] <http://ex.com/>
+
+# Ordered list {=ex:listTest .ex:List label}
+
+First we need a list node: [head] {=ex:l1 ?sh:in .rdf:List}
+Then we can add first item: [a] {+ex:A ?rdf:first}
+Then we add a rest node (another list): [list2] {=ex:l2 ?rdf:rest}
+And we can add another item: [b] {+ex:B ?rdf:first}
+And finally we add a nil node (end of list): [nil] {=rdf:nil ?rdf:rest}
+```
+
 ---
 
 ## 12. Reverse Relationships
