@@ -787,6 +787,116 @@ Ingredients: {?schema:hasPart .schema:Ingredient label}
         }
     },
 
+    // Fenced Code Block Tests
+    {
+        name: 'Fenced code blocks should skip annotation processing',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+\`\`\`mdld
+[This should be ignored] {label schema:description}
+\`\`\`
+
+[This should be processed] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'This should be processed'),
+                'Only content outside code blocks should be processed');
+        }
+    },
+
+    {
+        name: 'Fenced code blocks should process fence annotations but skip content',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+\`\`\`mdld {label schema:description}
+[This should be ignored] {label schema:description}
+\`\`\`
+
+[This should be processed] {label}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 3, `Should emit 3 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', '[This should be ignored] {label schema:description}'),
+                'Should use content as label value');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/description', '[This should be ignored] {label schema:description}'),
+                'Should use content as description value');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'This should be processed'),
+                'Should process content outside code block');
+        }
+    },
+
+    {
+        name: 'Multiple fenced code blocks should all be skipped',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+\`\`\`mdld
+[First ignored] {label}
+\`\`\`
+
+[Processed] {label}
+
+\`\`\`mdld {schema:description}
+[Second ignored] {schema:description}
+\`\`\`
+
+[Also processed] {schema:description}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 3, `Should emit 3 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should process first content');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/description', '[Second ignored] {schema:description}'),
+                'Should use second code block content as description value');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/description', 'Also processed'),
+                'Should process second content');
+        }
+    },
+
+    {
+        name: 'Fenced code blocks with language info and attributes should be processed',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+\`\`\`javascript {ex:attribute}
+[Code example] {label schema:description}
+console.log("hello");
+\`\`\``;
+
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/attribute', '[Code example] {label schema:description}\nconsole.log("hello");'),
+                'Should use code block content as attribute value');
+        }
+    },
+
+    {
+        name: 'Mixed content with fenced code blocks should work correctly',
+        fn: () => {
+            const md = `# Document {=ex:doc}
+
+Regular content [before] {label}
+
+\`\`\`mdld
+[Ignored content] {schema:description}
+More ignored [content] {label}
+\`\`\`
+
+Regular content [after] {schema:description}`;
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'before'),
+                'Should process content before code block');
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://schema.org/description', 'after'),
+                'Should process content after code block');
+        }
+    },
+
     // §11 Datatype Validation
     {
         name: 'Boolean datatype handling',

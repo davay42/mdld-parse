@@ -61,6 +61,11 @@ function createToken(type, range, text, attrs = null, attrsRange = null, valueRa
 }
 
 function getCarriers(token) {
+    // Skip inline carrier extraction for code blocks to allow safe self-documentation
+    if (token.type === 'code') {
+        return [];
+    }
+
     if (!token._carriers) {
         token._carriers = extractInlineCarriers(token.text, token.range[0]);
     }
@@ -834,6 +839,10 @@ export function parse(text, options = {}) {
                 processTokenAnnotations(token, state, token.type);
                 break;
             case 'code':
+                // Process annotations on the opening fence, but skip content processing
+                // This allows safe self-explaining of the format in documentation
+                processTokenAnnotations(token, state, token.type);
+                break;
             case 'blockquote':
                 processTokenAnnotations(token, state, token.type);
                 break;

@@ -793,11 +793,13 @@ The code block content becomes the literal value.
 ### Example
 
 ```md
+[@vocab] <http://schema.org/>
+
 ```js {=ex:code .SoftwareSourceCode text}
 console.log("hi")
 ```
 
-Run this *JavaScript* {language} code in your browser console to say 'hi'.
+We can add a language after the block as regular property annotations - *JavaScript* {language}.
 ```
 
 ### What It Creates
