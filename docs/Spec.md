@@ -11,7 +11,7 @@ A deterministic, streaming-friendly semantic annotation layer for CommonMark Mar
 MD-LD follows these strict rules to make it predictable and reliable:
 
 1. **Markdown stays valid** - If you remove all `{...}` blocks, you get perfectly normal Markdown
-2. **No hidden meanings** - MD-LD never guesses what you meant. Everything must be explicit
+2. **No hidden meanings** - MD-LD never guesses what you meant. Everything must be explicit. RDFS vocabulary is used by default.
 3. **Every fact comes from `{...}`** - All RDF data comes directly from your annotations
 4. **One-pass processing** - MD-LD can read your document from start to finish just once
 5. **No blank nodes** - Every entity has a proper identifier
@@ -41,6 +41,7 @@ MD-LD uses two types of things:
    - `http://schema.org/Person` - the concept of "Person"
    - `https://www.wikidata.org/entity/Q43653` - Apollo 11 mission
    - `urn:isbn:0060831014` - A book global identifier
+   - `tag:alice@example.com,2026:doc` - A local tag
 
 2. **Literals** - Actual data values (text, numbers, dates)
    - "Apollo 11" (text)
@@ -64,25 +65,29 @@ When you add a `{...}` annotation, MD-LD knows about three things:
 ### **S - The Current Subject** (What we're talking about)
 - This is the main entity we're describing
 - Set by `{=IRI}` or `{=#fragment}` 
-- Stays current until you change it
+- Stays current until you change it or reset with `{=}`
 
 **Example:**
 ```md
-# Apollo 11 {=wd:Q43653}  ← Sets S to Apollo 11
-[1969] {launchYear}       ← S is still Apollo 11
+[nasa] <https://nasa.gov/>
+# Apollo 11 {=wd:Q43653 .nasa:Mission label}  ← Sets S to Apollo 11
+[1969] {nasa:launchYear}       ← S is still Apollo 11
 ```
 
 ### **O - The Object Resource** (What we're linking to)
-- Comes from links, images, or `{=IRI}` inside the annotation
+- Comes from links, images, or `{=IRI}`/`{+IRI}` inside the annotation
 - Only available when you explicitly provide it
 
-**Example:**
+**Examples:**
 ```md
-# NASA {=urn:org:nasa .Organization name}
+[nasa] <https://nasa.gov>
 
-<https://nasa.gov> {?sameAs}
-[NASA website](https://nasa.gov) {?website .Website name}
-![NASA Logo](https://nasa.gov/logo.png) {?logo .Image name}
+# NASA {=nasa:orgranization .nasa:class:Organization label}
+
+Is operating in **USA** {+nasa:usa ?nasa:countryOfOrigin}
+<https://nasa.gov> {?seeAlso}
+[NASA website](https://nasa.gov) {?website .Website label}
+![NASA Logo](https://nasa.gov/logo.png) {?logo .Image label}
 
 ```
 
@@ -92,7 +97,8 @@ When you add a `{...}` annotation, MD-LD knows about three things:
 
 **Example:**
 ```md
-[1969] {launchYear}      ← L = "1969"
+[Successful] {status} ← L = "Successful"
+[1969] {launchYear ^^xsd:gYear}      ← L = "1969"^^xsg:gYear
 [July 20] {launchDate @en} ← L = "July 20"@en
 ```
 
@@ -108,7 +114,7 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 
 | Markdown | What it captures | Example |
 |----------|------------------|---------|
-| `[text] {...}` | Link text | `[Apollo 11] {name}` |
+| `[text] {...}` | Link text | `[Apollo 11] {label}` |
 | `*text* {...}` | Italic text | `*important* {emphasis}` |
 | `_text_ {...}` | Italic text | `_important_ {emphasis}` |
 | `**text** {...}` | Bold text | `**warning** {alert}` |
@@ -121,8 +127,8 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 |----------|------------------|---------|
 | `# Heading {...}` | Heading text | `# Apollo 11 {=ex:mission .Mission name}` |
 | `- item {...}` | List item text | `- Neil Armstrong {=ex:person .Person name}` |
-| `> quote {...}` | Quote text | `> "One small step" {quote}` |
-| ````lang {...}`` | Code block content | ````js {=ex:code .SoftwareSourceCode}` |
+| `> quote {...}` | Quote text | `> "One small step" {comment}` |
+| ````lang {...}`` | Code block content | ````js {=ex:code .schema:SoftwareSourceCode}` |
 
 ### Links and Media (with URLs)
 
@@ -134,51 +140,26 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 
 **Examples:**
 - `<https://nasa.gov> {?website}` → current subject → website → URL
-- `[NASA](https://nasa.gov) {name}` → URL → name → "NASA"  
-- `[NASA](https://nasa.gov) {.Organization}` → URL → type → Organization
+- `[NASA](https://nasa.gov) {label}` → URL → rdfs:label → "NASA"  
+- `[NASA](https://nasa.gov) {.schema:Organization}` → URL → rdf:type → schema:Organization
 - `![Photo](photo.jpg) {caption}` → URL → caption → "Photo"
 
-### Angle-Bracket URL Behavior
-
-Angle-bracket URLs (`<URL> {...}`) have special **soft subject** behavior:
-
-| Predicate Type | Subject | Object | Example |
-|---------------|---------|--------|---------|
-| `{.Type}` | **URL** | - | `<https://nasa.gov> {.Organization}` |
-| `{?predicate}` | **Current subject** | **URL** | `<https://nasa.gov> {?website}` |
-| `{!predicate}` | **URL** | **Current subject** | `<https://nasa.gov> {!hasPart}` |
-| `{literal}` | - | - | `<https://nasa.gov> {name}` *(ignored)* |
+URLs when used as IRIs have `{+IRI}` **soft subject** behavior - properties in the annotation are applied to the URL, but current subject is not changed.
 
 **Key Rules:**
 - Type declarations use URL as subject (soft subject behavior)
 - Object predicates use current subject as subject
 - Reverse predicates use URL as subject
-- Literal predicates are ignored (no text content available)
-
-### Bracketed Link and Image Behavior
-
-Bracketed links `[text](URL)` and images `![alt](URL)` have **dual value** behavior:
-
-| Predicate Type | Subject | Object | Example |
-|---------------|---------|--------|---------|
-| `{.Type}` | **URL** | - | `[NASA](https://nasa.gov) {.Organization}` |
-| `{?predicate}` | **Current subject** | **URL** | `[NASA](https://nasa.gov) {?website}` |
-| `{!predicate}` | **URL** | **Current subject** | `[NASA](https://nasa.gov) {!hasPart}` |
-| `{literal}` | **URL** | **Text** | `[NASA](https://nasa.gov) {name}` |
-
-**Key Rules:**
-- Type declarations use URL as subject (soft subject behavior)
-- Object/reverse predicates use URL as object/subject
-- **Literal predicates use the URL as subject and link text as literal value**
+- Link text is treated as a valute carrier for the literal value
 - Images work the same way but use alt text for literals
 
 **Example:**
 ```md
-[Berlin](https://en.wikipedia.org/wiki/Berlin) {.Place name ?mentions}
+[Berlin](https://en.wikipedia.org/wiki/Berlin) {.Place label ?mentions}
 ```
 Generates:
-- `https://en.wikipedia.org/wiki/Berlinn` → `rdf:type` → `Place`
-- `https://en.wikipedia.org/wiki/Berlin` → `name` → `"Berlin"`
+- `https://en.wikipedia.org/wiki/Berlin` → `rdf:type` → `Place`
+- `https://en.wikipedia.org/wiki/Berlin` → `rdfs:label` → `"Berlin"`
 - `currentSubject` → `mentions` → `https://en.wikipedia.org/wiki/Berlin`
 
 ### What CAN'T Carry Annotations
@@ -187,7 +168,6 @@ Generates:
 - Bare URLs without angle brackets and `{...}` (use `<URL> {...}` instead)
 - Text that's not in one of the formats above
 - Multiple elements at once (one `{...}` per carrier)
-- **Angle-bracket URLs in list items** (use subheadings instead)
 
 **Key Rule:** The `{...}` block must come **immediately after** the value carrier.
 
@@ -200,24 +180,27 @@ A `{...}` block needs to know what it's describing. MD-LD follows simple rules t
 ### The Attachment Rules
 
 1. **Attach to the nearest value carrier** - The `{...}` grabs the closest thing that can carry it
-2. **Or stand alone** - If on its own line, it applies to the current subject or the next list
+2. **Or stand alone** - If on its own line, it applies to the current subject or the next list.
 
-### Rule 1: Attach to Nearest Carrier
-
-```md
-[Apollo 11] {name} was launched in [1969] {launchYear}.
-```
-- `{name}` attaches to `[Apollo 11]` → L = "Apollo 11"
-- `{launchYear}` attaches to `[1969]` → L = "1969"
-
-### Rule 2: Stand Alone for Subjects
+### Rule 1: Attach to Nearest Inline Carrier
 
 ```md
-# Apollo 11 Mission {=ex:apollo11 .Mission}
+[Apollo 11] {label} was launched in [1969] {nasa:launchYear}.
 ```
-- `{=ex:apollo11 .Mission}` stands alone
+
+- `{label}` attaches to `[Apollo 11]` → L = "Apollo 11"
+- `{nasa:launchYear}` attaches to `[1969]` → L = "1969"
+
+### Rule 2: Attach to block-level Value Carrier
+
+```md
+# Apollo 11 Mission {=ex:apollo11 .Mission label}
+```
+
+- `{=ex:apollo11 .Mission label}` is attached to the heading block
 - Sets the current subject to `ex:apollo11`
 - Declares it's a `.Mission`
+- Gets its `rdfs:label` as `Apollo 11 Mission`
 
 ### Rule 3: Stand Alone for Lists
 
@@ -226,7 +209,8 @@ Crew members: {?crew .Person name}
 - Neil Armstrong {=ex:neil}
 - Buzz Aldrin {=ex:buzz}
 ```
-- `{?crew .Person name}` stands alone before the list
+
+- `{?crew .Person name}` stands alone before the list, must have non-empty text before it on the same line.
 - Applies to ALL list items that follow
 
 ### What Happens When It's Ambiguous?
@@ -264,12 +248,12 @@ Sets the current subject to a complete identifier.
 **Example:**
 ```md
 # Apollo 11 {=wd:Q43653}
-[1969] {launchYear}
+[1969] {nasa:launchYear}
 ```
 
 **Result:**
 ```turtle
-wd:Q43653 schema:launchYear "1969" .
+wd:Q43653 nasa:launchYear "1969" .
 ```
 
 ### Fragment Subject
@@ -287,27 +271,29 @@ Creates a local identifier relative to the current subject base.
 
 **Example:**
 ```md
+[schema] {http://schema.org/}
+
 # Document {=tag:alice@example.com,2026:doc}
 ## Section 1 {=#section1}
-[Section content] {name}
+[Section content] {schema:text}
 
 ## Section 2 {=#section2}
-[More content] {name}
+[More content] {schema:text}
 ```
 
 **Result:**
 ```turtle
-tag:alice@example.com,2026:doc#section1 schema:name "Section content" .
-tag:alice@example.com,2026:doc#section2 schema:name "More content" .
+tag:alice@example.com,2026:doc#section1 schema:text "Section content" .
+tag:alice@example.com,2026:doc#section2 schema:text "More content" .
 ```
 
-### Object IRI (Temporary)
+### Soft Object IRI (Temporary)
 
 ```
 {+iri}
 ```
 
-Declares a temporary object for use with `?` and `!` predicates, without changing the current subject.
+Declares a temporary object for use with `?` and `!` predicates, without changing the current subject. 
 
 ### Soft Fragment (Temporary)
 
@@ -324,7 +310,6 @@ Creates a temporary fragment relative to the current subject base.
 
 The soft IRI only exists within the current annotation block.
 
-
 ---
 
 ## 7. Declaring Types
@@ -337,27 +322,27 @@ Types tell us **what something is**. Use the dot notation.
 
 **What it creates:**
 ```
-S rdf:type schema:Class
+S rdf:type rdfs:Class
 ```
 
 **Example:**
 ```md
-# Apollo 11 {=wd:Q43653 .SpaceMission}
+# Apollo 11 {=wd:Q43653 .nasa:SpaceMission}
 ```
 
 **Result:**
 ```turtle
-wd:Q43653 a schema:SpaceMission .
+wd:Q43653 a nasa:SpaceMission .
 ```
 
-**Multiple types:**
+**Multiple types are allowed:**
 ```md
-# Neil Armstrong {=ex:neil .Person .Astronaut}
+# Neil Armstrong {=nasa:neil .schema:Person .nasa:Astronaut}
 ```
 
 **Result:**
 ```turtle
-ex:neil a schema:Person, schema:Astronaut .
+nasa:neil a schema:Person, nasa:Astronaut .
 ```
 
 **Key points:**
@@ -373,31 +358,31 @@ Predicates create the actual **facts** by connecting subjects to objects. The sy
 
 ### The Three Predicate Forms
 
-| Syntax | Direction | What it means | Example use case |
-|--------|-----------|---------------|------------------|
-| `p` | Subject → Literal | "Has property" | `[Apollo 11] {name}` |
-| `?p` | Subject → Object | "Points to" | `[NASA] {?operator}` |
-| `!p` | Object → Subject | "Is pointed at by" | `[Mission] {!hasPart}` |
+| Syntax | Direction         | What it means      | Example use case       |
+|--------|-------------------|--------------------|------------------------|
+| `p`    | Subject → Literal | "Has property"     | `[Apollo 11] {name}`   |
+| `?p`   | Subject → Object  | "Points to"        | `[NASA] {?operator}`   |
+| `!p`   | Object → Subject  | "Is pointed at by" | `[Mission] {!hasPart}` |
 
 ### How They Work
 
 **`p` - Subject to Literal**
 ```md
-[Apollo 11] {name}
+[Apollo 11] {label}
 ```
-Creates: `S → name → "Apollo 11"`
+Creates: `S → rdfs:label → "Apollo 11"`
 
 **`?p` - Subject to Object**  
 ```md
-[NASA](https://nasa.gov) {?operator}
+[NASA](https://nasa.gov) {?nasa:operator}
 ```
-Creates: `S → operator → https://nasa.gov`
+Creates: `S → nasa:operator → https://nasa.gov`
 
 **`!p` - Object to Subject**
 ```md
-[Mission] {=ex:mission !hasPart}
+[Mission] {=ex:mission !member}
 ```
-Creates: `ex:mission → hasPart → S`
+Creates: `ex:mission → rdfs:member → S`
 
 ### When Facts Are Created
 
@@ -423,12 +408,12 @@ The literal value `L` comes **only** from the value carrier you're annotating.
 
 **Good:**
 ```md
-[Apollo 11] {name}  ← L = "Apollo 11"
+[Apollo 11] {label}  ← L = "Apollo 11"
 ```
 
 **Bad:**
 ```md
-Apollo 11 {name}  ← "Apollo 11" is not in a value carrier
+Apollo 11 {label}  ← "Apollo 11" is not in a value carrier
 ```
 Result: No data is created
 
@@ -445,16 +430,16 @@ Result: No data is created
 
 **Examples:**
 ```md
-[1969] {launchYear ^^xsd:gYear}
-[July] {month @en}
-[Juillet] {month @fr}
+[1969] {nasa:launchYear ^^xsd:gYear}
+[July] {ex:month @en}
+[Juillet] {ex:month @fr}
 ```
 
 **Results:**
 ```turtle
-S schema:launchYear "1969"^^xsd:gYear .
-S schema:month "July"@en .
-S schema:month "Juillet"@fr .
+S nasa:launchYear "1969"^^xsd:gYear .
+S ex:month "July"@en .
+S ex:month "Juillet"@fr .
 ```
 
 ### Common Datatypes
@@ -476,29 +461,29 @@ Object resources are the **things** you link to, not the text about them.
 The object `O` is available only from:
 - Link URLs: `[text](URL)`
 - Image URLs: `![alt](URL)`
-- Explicit IRIs: `{=IRI}` inside the annotation
+- Explicit IRIs: `{=IRI}`/`{+IRI}` inside the annotation
 
 ### Examples
 
 ```md
 ## References {=tag:alice@example.com,2026:refs}
 
-[Example image](https://www.example.com/image.jpg) {?image name}
-[W3C RDF](https://www.w3.org/RDF) {?dct:references name}
-[Alice] {=tag:alice@example.com,2026:alice ?author name}
+[Alice] {=tag:alice@example.com,2026:alice ?schema:author schema:name}
+[W3C RDF](https://www.w3.org/RDF) {?dct:references label}
+![Example image](https://www.example.com/image.jpg) {?schema:image label}
 ```
 
 ### What This Creates
 
 ```turtle
-tag:alice@example.com,2026:refs schema:image <https://www.example.com/image.jpg> .
-<https://www.example.com/image.jpg> schema:name "Example image" .
-
-tag:alice@example.com,2026:refs dct:references <https://www.w3.org/RDF> .
-<https://www.w3.org/RDF> schema:name "W3C RDF" .
-
 tag:alice@example.com,2026:refs schema:author <tag:alice@example.com,2026:alice> .
 <tag:alice@example.com,2026:alice> schema:name "Alice" .
+
+tag:alice@example.com,2026:refs dct:references <https://www.w3.org/RDF> .
+<https://www.w3.org/RDF> rdfs:label "W3C RDF" .
+
+tag:alice@example.com,2026:refs schema:image <https://www.example.com/image.jpg> .
+<https://www.example.com/image.jpg> rdfs:label "Example image" .
 ```
 
 ### How It Works
@@ -517,7 +502,7 @@ tag:alice@example.com,2026:refs schema:author <tag:alice@example.com,2026:alice>
 
 ## 11. Working with Lists
 
-Lists are for **repeating values** of the same relationship. Paragraphs are for describing one entity.
+Lists are for **repeating values** of the same relationship, with optional bulk class and value assignment.
 
 ### When to Use Lists
 
@@ -539,11 +524,11 @@ Crew: {?crew .Person name}
 A `{...}` block immediately before a list applies to **all items** in that list.
 
 **Rules:**
-- Must have some text before the list annotation
+- Must have non-empty text before the list annotation
 - Ordered (`1.`) and unordered (`-`) lists work the same
-- Each list item is a **single-value block carrier** - the entire text before `{...}` becomes the literal value
+- Each list item is a **single-value block carrier** - the entire text after the marker and before `{...}` becomes the literal value
 - **No inline carriers** are parsed within list items
-- **No additional data** after `{...}` - text after annotations is treated as literal content, not semantic
+- **No additional data** after `{...}` - text after annotations is treated as literal content, such list items are ignored
 
 ### List Item Policy: Single-Value Carriers
 
@@ -551,7 +536,7 @@ A `{...}` block immediately before a list applies to **all items** in that list.
 
 ```md
 # Clean subject declaration (participates in list context)
-- Flour {=ex:flour }
+- Flour {=ex:flour}
 
 # Subject with aditional local predicates
 - Flour {=ex:flour .c:Food label}
@@ -589,23 +574,17 @@ A `{...}` block immediately before a list applies to **all items** in that list.
 **✅ Use Nested Lists (Semantic)**
 ```md
 - Flour {=ex:flour}
-  Properties: {?hasProperty .Property name}
-  - Organic {=ex:organic .Organic}
-  - Fine ground {=ex:grind .FineGrind}
+  Properties: {?hasProperty .rdf:Property label}
+  - Organic {=ex:organic}
+  - Fine ground {=ex:grind}
 ```
 
 **✅ Use Separate Sections**
 ```md
 - Flour {=ex:flour}
 
-## Flour Properties
-[*Important*] {priority .Important}
-```
-
-**✅ Use Subheadings for External Resources**
-```md
-### Dataset {=ex:dataset}
-Source: <https://github.com/user/repo> {ex:sourceUrl}
+## Flour Properties {=ex:flour .Important}
+[*Important*] {ex:priority}
 ```
 
 **❌ NEVER Use Nested Paragraphs (Invalid)**
@@ -614,7 +593,7 @@ Source: <https://github.com/user/repo> {ex:sourceUrl}
   Description: [additional description] {description}  # ❌ List context lost
 ```
 
-**❌ NEVER Use Angle-Bracket URLs in Lists**
+**❌ NEVER Use URLs in Lists**
 ```md
 - <https://example.com> {ex:resource}  # ❌ Wrong syntax
 ```
@@ -635,15 +614,15 @@ URL: <https://example.com> {ex:url}
 
 **❌ Mixed Content in List Items**
 ```md
-- Flour {=ex:flour} - description         # ❌ Text after annotation = excluded
+- Flour {=ex:flour} - description           # ❌ Text after annotation = excluded
 - Flour {=ex:flour} [*organic*] {certified} # ❌ Mixed content = ambiguous
 ```
 
 **✅ Clean List Item Patterns**
 ```md
-- Flour {=ex:flour}                       # ✅ Clean subject declaration
-- Organic flour {=ex:flour-organic}        # ✅ Subject with descriptive text
-- Flour {=ex:flour .Food label}           # ✅ Subject with type and label
+- Flour {=ex:flour}                        # ✅ Clean subject declaration
+- Organic flour {=ex:flour-organic label}  # ✅ Subject with descriptive text
+- Flour {=ex:flour .Food label}            # ✅ Subject with type and label
 ```
 
 ### Nested Lists
@@ -651,6 +630,8 @@ URL: <https://example.com> {ex:url}
 Each indentation level creates a new semantic scope:
 
 ```md
+[#vocab] <http://schema.org/>
+
 ## Recipe {=tag:alice@example.com,2026:recipe .Recipe name}
 
 Ingredients: {?hasPart .Ingredient name}
@@ -704,13 +685,15 @@ We have to write this in MDLD as:
 ```md
 [ex] <http://ex.com/>
 
-# Ordered list {=ex:listTest .ex:List label}
+# Ordered list {=ex:listTest}
 
 First we need a list node: [head] {=ex:l1 ?sh:in .rdf:List}
-Then we can add first item: [a] {+ex:A ?rdf:first}
-Then we add a rest node (another list): [list2] {=ex:l2 ?rdf:rest}
-And we can add another item: [b] {+ex:B ?rdf:first}
-And finally we add a nil node (end of list): [nil] {=rdf:nil ?rdf:rest}
+Then we can add first item with a soft object IRI: [a] {+ex:A ?rdf:first}
+Then we add a rest node (another list) with `=iri` so it is now current subject: [list2] {=ex:l2 ?rdf:rest}
+Now we can add another item to this node: [b] {+ex:B ?rdf:first}
+Finally we add a nil node (end of list): [nil] {+rdf:nil ?rdf:rest}
+And reset current subject to avoid accidental assignments to `ex:l2` which is still the current subject.
+{=}
 ```
 
 ---
@@ -722,27 +705,34 @@ Reverse predicates flip the direction of a relationship without changing its mea
 ### How It Works
 
 **Normal predicate (`p`):** Subject → Object
+
 ```md
-[The Mission] {hasPart Crew}
+# The Mission {ex:mission}
+Includes parts: [Crew] {=ex:crew member}
 ```
-Creates: `Mission → hasPart → Crew`
+
+Creates: `Mission → mamber → Crew`
 
 **Reverse predicate (`!p`):** Object → Subject  
+
 ```mdn
-[The Mission] {!hasPart Crew}
+# The Crew {=ex:crew}
+Is included in [The Mission] {=ex:mission !member}
 ```
-Creates: `Crew → hasPart → Mission`
+
+Creates the same triple: `Mission → member → Crew`
 
 ### Practical Example
 
 ```md
-Used in: {!hasPart}
+# Flour {=ex:flour}
+Used in: {!ex:hasPart}
 - Bread {=ex:bread}
 ```
 
 **Result:**
 ```turtle
-ex:bread schema:hasPart S .
+ex:bread ex:hasPart ex:flour .
 ```
 
 ### When to Use Reverse Relationships
@@ -754,24 +744,27 @@ Use `!` when you want to:
 
 **Example:**
 ```md
-# Chapter 1 {=tag:alice@example.com,2026:chapter1 .Chapter name}
-[Book] {!hasPart .Book title}
+[book] <tag:alice@example.com,2026:book:>
+
+# Chapter 1 {=book:chapter1 .book:Chapter label}
+Is part of the [Book] {=book:book !book:hasPart ?book:partOf .book:Book book:title}
 ```
 
 **Creates:**
 ```turtle
-tag:alice@example.com,2026:chapter1 a schema:Chapter ;
-             schema:name "Chapter 1" .
+book:chapter1 a book:Chapter ;
+             rdfs:label "Chapter 1";
+             book:partOf book:Book .
              
-tag:alice@example.com,2026:book a schema:Book ;
-         schema:title "Book" ;
-         schema:hasPart tag:alice@example.com,2026:chapter1 .
+book:book a book:Book ;
+         book:title "Book" ;
+         book:hasPart book:chapter1 .
 ```
 
 ### Key Points
 
 - `!` only flips direction, not meaning
-- Useful for creating inverse relationships
+- Useful for creating inverse and mutual relationships
 - The object becomes the subject in the resulting fact
 
 ---
@@ -783,23 +776,25 @@ Code blocks can carry annotations when you put `{...}` on the opening fence.
 ### How It Works
 
 ```md
-```js {=ex:code .SoftwareSourceCode text}
+[@vocab] <http://schema.org/>
+
+``js {=ex:code .SoftwareSourceCode text}
 console.log("hi")
-```
+``
 ```
 
-The code block content becomes the literal value.
+The code block content is not parsed as MDLD and is available as the literal value.
 
 ### Example
 
 ```md
 [@vocab] <http://schema.org/>
 
-```js {=ex:code .SoftwareSourceCode text}
+``js {=ex:code .SoftwareSourceCode text}
 console.log("hi")
-```
+``
 
-We can add a language after the block as regular property annotations - *JavaScript* {language}.
+We can add a programming language or any additional info after the block as regular property annotations - *JavaScript* {language}.
 ```
 
 ### What It Creates
@@ -838,20 +833,21 @@ MD-LD always provides this context by default:
 ```
 
 This means:
+- `label` expands to `http://www.w3.org/2000/01/rdf-schema#label`
 - `rdf:type` expands to `http://www.w3.org/1999/02/22-rdf-syntax-ns#type`
-- `rdfs:label` expands to `http://www.w3.org/2000/01/rdf-schema#label`
+
 
 ### Adding Prefixes
 
 Declare prefixes for your own identifiers:
 
 ```md
-[alice] <tag:alice@example.com,2026:/>
+[alice] <tag:alice@example.com,2026:>
 [wd] <https://www.wikidata.org/entity/>
 ```
 
 Now you can use:
-- `alice:person` → `tag:alice@example.com,2026:/person`
+- `alice:person` → `tag:alice@example.com,2026:person`
 - `wd:Q43653` → `https://www.wikidata.org/entity/Q43653`
 
 ### Prefix Folding: Hierarchical IRI Authoring
