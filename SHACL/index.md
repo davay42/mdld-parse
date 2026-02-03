@@ -10,23 +10,24 @@ This catalog [includes] {+cat:includes .rdf:Property label} all constraints avai
 
 This catalog includes these constraints: {?cat:includes}
 
+- [Has Value](./constraints/hasvalue.md) {=sh:hasValue}
 - [Data Type](./constraints/datatype.md) {=sh:datatype}
 - [Node Kind](./constraints/nodekind.md) {=sh:nodeKind}
 - [Min Count](./constraints/count.md) {=sh:minCount}
 - [Max Count](./constraints/count.md) {=sh:maxCount}
 - [Class](./constraints/class.md) {=sh:class}
+- [Minimum Length](./constraints/length.md) {=sh:minLength}
+- [Maximum Length](./constraints/length.md) {=sh:maxLength}
 
 - Pattern {=sh:pattern}
 - Pattern Flags  {=sh:flags}
 - Language In {=sh:languageIn}
 - Unique Languages {=sh:uniqueLang}
-- Has Value {=sh:hasValue}
+
 - Minimum Inclusive {=sh:minInclusive}
 - Maximum Inclusive {=sh:maxInclusive}
 - Minimum Exclusive {=sh:minExclusive}
 - Maximum Exclusive {=sh:maxExclusive}
-- Minimum Length {=sh:minLength}
-- Maximum Length {=sh:maxLength}
 - Entity type {=sh:node}
 - Target Class {=sh:targetClass}
 - Target Node {=sh:targetNode}
@@ -101,13 +102,5 @@ Each constraint includes:
 
 ---
 
-## 🛡️ Self-Validation Rules
 
-> **Single source of truth:** See [definitions.md](./definitions.md) for all validation rules and property definitions
 
-The catalog validates against comprehensive rules defined in `definitions.md` to ensure:
-- ✅ **Catalog completeness** (52 constraints)
-- ✅ **Constraint metadata** (labels, full IRIs, comments)
-- ✅ **Structural integrity** (proper relationships)
-
-Use `ig-cli validate SHACL/index.md --shapes SHACL/definitions.md` to run full validation.
