@@ -6,7 +6,18 @@
 
 > A comprehensive guide to SHACL validation in MDLD (Markdown Linked Data) - self-validating documentation for semantic authors. {?comment}
 
-This catalog [includes] {+cat:includes .rdf:Property label} all constraints available in SHACL.
+This catalog [includes] {+cat:includes .rdf:Property label} all constraints and targeting mechanisms available in SHACL.
+
+## Targeting Mechanisms 
+
+These are targeting predicates that determine which nodes get validated (not constraints themselves): {?cat:includes}
+
+- [Target Class](./targeting/targetClass.md) {=sh:targetClass}
+- [Target Node](./targeting/targetNode.md) {=sh:targetNode}
+- [Target Subjects](./targeting/targetSubjectsOf.md) {=sh:targetSubjectsOf}
+- [Target Objects](./targeting/targetObjectsOf.md) {=sh:targetObjectsOf}
+
+## Constraints 
 
 This catalog includes these constraints: {?cat:includes}
 
@@ -22,16 +33,15 @@ This catalog includes these constraints: {?cat:includes}
 - [Value Range](./constraints/range.md) {=sh:maxInclusive}
 - [Value Range](./constraints/range.md) {=sh:minExclusive}
 - [Value Range](./constraints/range.md) {=sh:maxExclusive}
-
+- Qualified Min Count {=sh:qualifiedMinCount}
+- Qualified Max Count {=sh:qualifiedMaxCount}
+- Qualified Value Shape {=sh:qualifiedValueShape}
+- Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint}
 - Pattern {=sh:pattern}
 - Pattern Flags  {=sh:flags}
 - Language In {=sh:languageIn}
 - Unique Languages {=sh:uniqueLang}
 - Entity type {=sh:node}
-- Target Class {=sh:targetClass}
-- Target Node {=sh:targetNode}
-- Target Subjects {=sh:targetSubjectsOf}
-- Target Objects {=sh:targetObjectsOf}
 - Equals {=sh:equals}
 - Disjoint {=sh:disjoint}  
 - Less Than {=sh:lessThan}
@@ -46,10 +56,7 @@ This catalog includes these constraints: {?cat:includes}
 - Deactivation flag {=sh:deactivated}
 - Severity levels {=sh:severity}
 - Violation message {=sh:message}
-- Qualified Min Count {=sh:qualifiedMinCount}
-- Qualified Max Count {=sh:qualifiedMaxCount}
-- Qualified Value Shape {=sh:qualifiedValueShape}
-- Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint}
+
 - Inverse Path {=sh:inversePath}
 - Alternative Path {=sh:alternativePath}
 - Zero or More Path {=sh:zeroOrMorePath}
