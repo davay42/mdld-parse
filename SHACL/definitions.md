@@ -14,11 +14,7 @@
 
 Ensures the catalog maintains its structural integrity.
 
-##### Constraint Count Validation {=cat:shapes/catalog/count .sh:PropertyShape ?sh:property}
-
-[Catalog] {+cat:index ?sh:targetNode} must [include] {+cat:includes ?sh:path} exactly [52] {sh:minCount sh:maxCount ^^xsd:integer} constraints.
-
-> Catalog must include exactly 52 constraints for complete SHACL coverage {sh:message}
+**Constraint Count Validation** {=cat:shapes/catalog/count .sh:PropertyShape ?sh:property} ensures the [includes] {+cat:includes ?sh:path} property has exactly [52] {sh:minCount sh:maxCount ^^xsd:integer} constraints for complete SHACL coverage: **Catalog must include exactly 52 constraints** {sh:message}
 
 ### Constraint Metadata Validation
 
@@ -26,23 +22,17 @@ Ensures the catalog maintains its structural integrity.
 
 Validates that all SHACL constraints have proper metadata: labels, full IRIs, and comments.
 
-##### Label Validation {=meta:label .sh:PropertyShape ?sh:property}
+**Label Validation** {=meta:label .sh:PropertyShape ?sh:property} ensures each constraint [included] {+cat:includes ?sh:targetObjectsOf} in this catalog has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} short human readable [label] {+label ?sh:path} for proper catalog organization: **Each SHACL constraint must have an label** {sh:message}
 
-Each constraint [included] {+cat:includes ?sh:targetObjectsOf} in this catalog must have [1] {sh:minCount sh:maxCount ^^xsd:integer} short human readable [label] {+label ?sh:path}.
+**Full IRI Validation** {=meta:fulliri .sh:PropertyShape ?sh:property} ensures each constraint that our catalog [includes] {+cat:includes ?sh:targetObjectsOf} has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} full IRI documentation [fullIRI] {+cat:fullIRI ?sh:path} for completeness: **Each SHACL constraint must document its full IRI** {sh:message}
 
-> Each SHACL constraint must have an label for proper catalog organization {sh:message}
+**Comment Validation** {=meta:comment .sh:PropertyShape ?sh:property} ensures each constraint [included] {+cat:includes ?sh:targetObjectsOf} has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [comment] {+comment ?sh:path} for discoverability: **Each SHACL constraint must have an comment** {sh:message}
 
-##### Full IRI Validation {=meta:fulliri .sh:PropertyShape ?sh:property}
+### 📋 **Constraint Categories**
 
-Each constraint that our catalog [includes] {+cat:includes ?sh:targetObjectsOf} must have [1] {sh:minCount sh:maxCount ^^xsd:integer} full IRI documentation [fullIRI] {+cat:fullIRI ?sh:path}.
+### Constraint Class {=class:Constraint .rdfs:Class label}
 
-> Each SHACL constraint must document its full IRI for completeness {sh:message}
-
-##### Comment Validation {=meta:comment .sh:PropertyShape ?sh:property}
-
-Each constraint must [include] {+cat:includes ?sh:targetObjectsOf} exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [comment] {+comment ?sh:path}.
-
-> Each SHACL constraint must have an comment for discoverability {sh:message}
+> A SHACL constraint is a rule that defines a validation condition for a specific shape and target node. {?rdfs:comment}
 
 ---
 

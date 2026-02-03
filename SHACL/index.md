@@ -12,8 +12,8 @@ This catalog includes these constraints: {?cat:includes}
 
 - [Data Type](./constraints/datatype.md) {=sh:datatype}
 - [Node Kind](./constraints/nodekind.md) {=sh:nodeKind}
-- [Min Count](./constraints/mincount.md) {=sh:minCount}
-- [Max Count](./constraints/maxcount.md) {=sh:maxCount}
+- [Min Count](./constraints/count.md) {=sh:minCount}
+- [Max Count](./constraints/count.md) {=sh:maxCount}
 - [Pattern](./constraints/pattern.md) {=sh:pattern}
 - [Class](./constraints/class.md) {=sh:class}
 - Language In {=sh:languageIn}
