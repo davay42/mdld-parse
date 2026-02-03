@@ -27,12 +27,7 @@ This property defines rules for the [status] {+ex:status ?sh:path} property.
 
 Status values must be in the allowed list using verbose RDF list syntax.
 
-First we need a list node: [head] {=ex:l1 ?sh:in .rdf:List}
-Then we can add first item: [Active] {+ex:Active ?rdf:first}
-Then we add a rest node (another list): [list2] {=ex:l2 ?rdf:rest}
-Now we can add another item to this node: [Inactive] {+ex:Inactive ?rdf:first}
-Finally we add a nil node (end of list): [nil] {+rdf:nil ?rdf:rest}
-And reset current subject to avoid accidental assignments: {=}
+First we need a [List] {=ex:l1 ?sh:in .rdf:List} node with the first item assigned to it [Active] {+ex:Active ?rdf:first}, then followed by another [list] {=ex:l2 ?rdf:rest} node with the second item [Inactive] {+ex:Inactive ?rdf:first} followed by a nil node (end of list) [nil] {+rdf:nil ?rdf:rest} And reset current subject to avoid accidental assignments: {=}
 
 ---
 
@@ -56,7 +51,7 @@ An employee with no status (not validated by sh:in).
 
 ---
 
-{=ex:demo} must produce exactly **1** {cat:expectsViolations ^^xsd:integer} violation.
+[This demo] {=ex:demo} must produce exactly **1** {cat:expectsViolations ^^xsd:integer} violation.
 
 ### Expected Validation Results {=ex:results ?cat:hasResults}
 

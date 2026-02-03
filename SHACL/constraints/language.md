@@ -27,12 +27,7 @@ This property defines rules for the [title] {+ex:title ?sh:path} property.
 
 Title language tags must be in the allowed list using verbose RDF list syntax.
 
-First we need a language list node: [head] {=ex:l1 ?sh:languageIn .rdf:List}
-Then we can add first language: [en] {rdf:first}
-Then we add a rest node: [list2] {=ex:l2 ?rdf:rest}
-Now we add another language: [fr] {rdf:first}
-Finally we add a nil node: [nil] {+rdf:nil ?rdf:rest}
-And reset current subject to avoid accidental assignments: {=}
+We start from the [head] {=ex:l1 ?sh:languageIn .rdf:List} of the list, followed by first literal value [en] {rdf:first}, then goes the next list [node] {=ex:l2 ?rdf:rest} with another language as literal in an inline value carrier [fr] {rdf:first} followed by a closing [nil] {+rdf:nil ?rdf:rest} and as subject reset. {=}
 
 ---
 
@@ -78,7 +73,7 @@ Note: `sh:languageIn` only validates language tags if they exist. Use `sh:minCou
 ### 🔍 Test Validation
 
 ```bash
-# This should show 1 violation - German title not in allowed list
+# This should show 2 violation - German title not in allowed list
 ig-cli validate ./constraints/language.md
 ```
 
