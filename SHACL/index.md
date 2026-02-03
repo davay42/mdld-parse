@@ -14,8 +14,10 @@ This catalog includes these constraints: {?cat:includes}
 - [Node Kind](./constraints/nodekind.md) {=sh:nodeKind}
 - [Min Count](./constraints/count.md) {=sh:minCount}
 - [Max Count](./constraints/count.md) {=sh:maxCount}
-- [Pattern](./constraints/pattern.md) {=sh:pattern}
 - [Class](./constraints/class.md) {=sh:class}
+
+- Pattern {=sh:pattern}
+- Pattern Flags  {=sh:flags}
 - Language In {=sh:languageIn}
 - Unique Languages {=sh:uniqueLang}
 - Has Value {=sh:hasValue}
@@ -25,7 +27,6 @@ This catalog includes these constraints: {?cat:includes}
 - Maximum Exclusive {=sh:maxExclusive}
 - Minimum Length {=sh:minLength}
 - Maximum Length {=sh:maxLength}
-- Pattern Flags {=sh:flags}
 - Entity type {=sh:node}
 - Target Class {=sh:targetClass}
 - Target Node {=sh:targetNode}

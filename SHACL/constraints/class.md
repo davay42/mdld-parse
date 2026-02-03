@@ -1,6 +1,8 @@
 [mdld] <https://mdld.js.org/>
 [cat] <mdld:shacl/>
 [class] <cat:class/>
+[ex] <cat:example/class/>
+[xsd] <http://www.w3.org/2001/XMLSchema#>
 
 # Class {=sh:class .class:Constraint label}
 
@@ -10,76 +12,85 @@
 
 ---
 
-## 🎯 **What it does**
+## Demo {=ex:demo ?cat:hasDemo}
 
-Ensures property values are **instances of** a specified RDF class:
-- **Type checking:** Validates `rdf:type` relationships
-- **Object validation:** Ensures values are proper instances
-- **Schema enforcement:** Links to ontology classes
+The **Employee Test Shape** {=ex:EmployeeTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate class constraints.
 
----
+**Manager Class Rule** {=ex:#managerClass .sh:PropertyShape ?sh:property} requires the [manager] {+ex:manager ?sh:path} property to be an instance of [Person] {+ex:Person ?sh:class}: **Employee manager must be a Person instance** {sh:message}
 
-## ✅ **Valid Example**
-
-```md
-### Person Shape {=ex:PersonShape .sh:NodeShape label}
-Target all [Person] {+ex:Person ?sh:targetClass} entities.
-
-#### Manager must be Person {=ex:PersonShape-managerClass .sh:PropertyShape ?sh:property}
-Path: [manager] {+ex:manager ?sh:path}
-Must be instance of [Person] {+ex:Person ?sh:class}.
-```
+**Department Class Rule** {=ex:#departmentClass .sh:PropertyShape ?sh:property} requires the [department] {+ex:department ?sh:path} property to be an instance of [Department] {+ex:Department ?sh:class}: **Employee department must be a Department instance** {sh:message}
 
 ---
 
-## ❌ **Invalid Example**
+### 📋 Test Data {=ex:data .Container ?cat:hasData}
 
-```md
-### Invalid Person Shape {=ex:InvalidPersonShape .sh:NodeShape label}
-Target all [Person] {+ex:Person ?sh:targetClass} entities.
+#### Valid Employee {=ex:ValidEmployee ?member}
 
-#### Manager must be Person {=ex:InvalidPersonShape-managerClass .sh:PropertyShape ?sh:property}
-Path: [manager] {+ex:manager ?sh:path}
-Must be instance of [Person] {+ex:Person ?sh:class}.
+Manager: [john-manager] {=ex:john ?ex:manager .ex:Person}
+Department: [engineering] {=ex:engineering ?ex:department .ex:Department}
 
-# This will fail if manager is not typed as ex:Person
-```
+#### Invalid Employee {=ex:InvalidEmployee ?member}
+
+Manager: [robot-ai] {=ex:ai ?ex:manager ex:Role}
+Department: [engineering] {=ex:engineering ?ex:department}
 
 ---
 
-## 🔍 **Validation**
+[Demo] {=ex:demo} must produce exactly **1** {cat:expectsViolations ^^xsd:integer} violation.
+
+### Expected Validation Results {=ex:results ?cat:hasResults}
+
+1. **Valid Employee** - passes (manager is Person, department is Department)
+2. **Invalid Employee** - fails (manager is not Person instance)
+
+### 🔍 Test Validation
 
 ```bash
-ig-cli validate person-data.ttl --shapes person-shape.md
+# This should show 1 violation for class constraint violation
+ig-cli validate ./constraints/class.md
 ```
 
 ---
 
-## 📝 **MDLD Syntax Pattern**
+## 📝 MDLD Syntax Patterns
 
-```md
-Must be instance of [ClassName] {+ex:ClassName ?sh:class}.
-```
+**Recommended pattern for class constraints:**
 
----
+1. Use `sh:class` to validate RDF type relationships
+2. Combine with container targeting for scalable test data
+3. Provide clear validation messages specifying the expected class
+4. Test both valid and invalid class instances
 
-## 🤝 **Often Used With**
-
-- **`sh:nodeKind`** - to ensure values are IRIs first
-- **`sh:minCount`** - to require at least one instance
-- **`sh:maxCount`** - to limit number of instances
+This approach ensures proper type checking while maintaining clear validation semantics.
 
 ---
 
-## 🎯 **Common Patterns**
+## 🏗️ **Supporting Infrastructure**
 
-```md
-# Required single instance
-Must be instance of [Address] {+ex:Address ?sh:class} with at least [1] {sh:minCount ^^xsd:integer} value.
+### Person Class {=ex:Person .rdfs:Class label}
 
-# Optional multiple instances
-Must be instance of [Skill] {+ex:Skill ?sh:class} with at most [10] {sh:maxCount ^^xsd:integer} values.
+> Represents a person in the organization {?rdfs:comment}
 
-# Combined with node kind
-Must be an [IRI] {+sh:IRI ?sh:nodeKind} and instance of [Organization] {+ex:Organization ?sh:class}.
-```
+### Department Class {=ex:Department .rdfs:Class label}
+
+> Represents an organizational department {?rdfs:comment}
+
+### Robot Class {=ex:Robot .rdfs:Class label}
+
+> Represents an AI robot system {?rdfs:comment}
+
+---
+
+### Test Instances
+
+#### john-manager {=ex:john-manager}
+
+A [Person] {+ex:Person ?rdf:type} instance representing John the manager.
+
+#### robot-ai {=ex:robot-ai}
+
+A [Robot] {+ex:Robot ?rdf:type} instance representing an AI system.
+
+#### engineering {=ex:engineering}
+
+A [Department] {+ex:Department ?rdf:type} instance representing the engineering department.

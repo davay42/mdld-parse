@@ -22,7 +22,7 @@
 
 The **Person Test Shape** {=ex:PersonTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate count constraints.
 
-**Exact Email Rule** {=ex:#emailExact .sh:PropertyShape ?sh:property} requires the [email] {+ex:email ?sh:path} property to have at least [1] {sh:minCount ^^xsd:integer} and at most [1] {sh:maxCount ^^xsd:integer} value: **Person must have exactly one email address** {sh:message}
+**Required Email Rule** {=ex:#emailExact .sh:PropertyShape ?sh:property} requires the [email] {+ex:email ?sh:path} property to have at least [1] {sh:minCount ^^xsd:integer} and at most [1] {sh:maxCount ^^xsd:integer} value: **Person must have exactly one email address** {sh:message}
 
 **Optional Phone Rule** {=ex:#phoneOptional .sh:PropertyShape ?sh:property} allows the [phone] {+ex:phone ?sh:path} property to have at most [2] {sh:maxCount ^^xsd:integer} values: **Person can have at most two phone numbers** {sh:message}
 
