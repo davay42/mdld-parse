@@ -33,30 +33,26 @@ This catalog includes these constraints: {?cat:includes}
 - [Value Range](./constraints/range.md) {=sh:maxInclusive}
 - [Value Range](./constraints/range.md) {=sh:minExclusive}
 - [Value Range](./constraints/range.md) {=sh:maxExclusive}
-- Qualified Min Count {=sh:qualifiedMinCount}
-- Qualified Max Count {=sh:qualifiedMaxCount}
-- Qualified Value Shape {=sh:qualifiedValueShape}
-- Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint}
+- [Value enumeration](./constraints/in.md) {=sh:in}
+- [Language In](./constraints/language.md) {=sh:languageIn}
+- Unique Languages {=sh:uniqueLang}
 - Pattern {=sh:pattern}
 - Pattern Flags  {=sh:flags}
-- Language In {=sh:languageIn}
-- Unique Languages {=sh:uniqueLang}
 - Entity type {=sh:node}
 - Equals {=sh:equals}
 - Disjoint {=sh:disjoint}  
 - Less Than {=sh:lessThan}
 - Less Than or Equals {=sh:lessThanOrEquals}
 - Negation {=sh:not}
-- Value enumeration {=sh:in}
 - All must pass {=sh:and}
 - At least one must pass {=sh:or}
 - Exactly one must pass {=sh:xone}
-- Closed world {=sh:closed}
-- Ignored Properties {=sh:ignoredProperties}
-- Deactivation flag {=sh:deactivated}
-- Severity levels {=sh:severity}
-- Violation message {=sh:message}
 
+- Ignored Properties {=sh:ignoredProperties}
+- Qualified Min Count {=sh:qualifiedMinCount}
+- Qualified Max Count {=sh:qualifiedMaxCount}
+- Qualified Value Shape {=sh:qualifiedValueShape}
+- Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint}
 - Inverse Path {=sh:inversePath}
 - Alternative Path {=sh:alternativePath}
 - Zero or More Path {=sh:zeroOrMorePath}
@@ -70,6 +66,11 @@ This catalog includes these constraints: {?cat:includes}
 - SPARQL SELECT Query {=sh:select}
 - SPARQL CONSTRUCT Query {=sh:construct}
 - SPARQL UPDATE Query {=sh:update}
+
+- Closed world {=sh:closed}
+- Deactivation flag {=sh:deactivated}
+- Severity levels {=sh:severity}
+- Violation message {=sh:message}
 
 ---
 

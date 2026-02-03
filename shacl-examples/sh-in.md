@@ -38,6 +38,8 @@ This shape demonstrates **sh:in** constraint using verbose ordered list syntax a
 
 ### Allowed Status Values {=ex:StatusValuesShape-allowedStatus .sh:PropertyShape ?sh:property}
 
+> Status must be either Active or Inactive (using verbose list syntax). {sh:message}
+
 This property defines rules for the [status] {+ex:status ?sh:path} property.
 
 Status values must be in the allowed list using verbose RDF list syntax.
@@ -48,7 +50,6 @@ Then we add a rest node (another list): [list2] {=ex:l2 ?rdf:rest}
 And we add another item: [Inactive] {+ex:Inactive ?rdf:first}
 And finally we add a nil node (end of list): [nil] {+rdf:nil ?rdf:rest}
 
-> Status must be either Active or Inactive (using verbose list syntax). {sh:message}
 
 # ===================
 # 📊 Test Data
