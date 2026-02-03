@@ -21,6 +21,8 @@ We can broadly divide them into these type groups: {!subClassOf .class:Constrain
     Two Constraints of this type: {!rdf:type label}
     - Data Type {=sh:datatype}
     - Node Kind {=sh:nodeKind}  
+    - Language In {=sh:languageIn}
+    - Unique Languages {=sh:uniqueLang}
 
 - Value presence Constraint {=class:PresenceConstraint}
 
@@ -42,7 +44,8 @@ We can broadly divide them into these type groups: {!subClassOf .class:Constrain
     Core Literal Constraints {!rdf:type label}
     - Minimum Length {=sh:minLength}
     - Maximum Length {=sh:maxLength}
-    - Pattern {=sh:pattern}
+    - Pattern Validation {=sh:pattern}
+    - Pattern Flags {=sh:flags}
 
 - IRI Constraints {=class:IRIConstraint}
 
@@ -58,9 +61,18 @@ We can broadly divide them into these type groups: {!subClassOf .class:Constrain
     - Target Subjects {=sh:targetSubjectsOf}
     - Target Objects {=sh:targetObjectsOf}
 
+- Property Pair Constraint {=class:PropertyPairConstraint}
+
+    Compare values between different properties {!rdf:type label}
+    - Equals {=sh:equals}
+    - Disjoint {=sh:disjoint}  
+    - Less Than {=sh:lessThan}
+    - Less Than or Equals {=sh:lessThanOrEquals}
+
 - Logical Combinations {=class:LogicalConstraint}
 
     Boolean logics built on top of ordered lists: {!rdf:type label}
+    - Negation {=sh:not}
     - Value enumeration {=sh:in}
     - All must pass {=sh:and}
     - At least one must pass {=sh:or}
@@ -70,9 +82,48 @@ We can broadly divide them into these type groups: {!subClassOf .class:Constrain
 
     Providing additional data for rules: {!rdf:type label}
     - Closed world {=sh:closed}
+    - Ignored Properties {=sh:ignoredProperties}
     - Deactivation flag {=sh:deactivated}
     - Severity levels {=sh:severity}
     - Violation message {=sh:message}
+
+- Qualified Constraint {=class:QualifiedConstraint}
+
+    Advanced counting with shape conformance {!rdf:type label}
+    - Qualified Min Count {=sh:qualifiedMinCount}
+    - Qualified Max Count {=sh:qualifiedMaxCount}
+    - Qualified Value Shape {=sh:qualifiedValueShape}
+    - Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint}
+
+- Path Constraint {=class:PathConstraint}  
+
+    Property path expressions and navigation {!rdf:type label}
+    - Inverse Path {=sh:inversePath}
+    - Alternative Path {=sh:alternativePath}
+    - Zero or More Path {=sh:zeroOrMorePath}
+    - One or More Path {=sh:oneOrMorePath}
+    - Zero or One Path {=sh:zeroOrOnePath}
+
+- Advanced Expression Constraint {=class:ExpressionConstraint}
+
+    SPARQL expression evaluation for complex validation {!rdf:type label}
+    - Expression {=sh:expression}
+
+- JavaScript Constraint {=class:JSConstraint}
+
+    JavaScript-based custom validation logic {!rdf:type label}
+    - JavaScript Function {=sh:js}
+    - JS Function Name {=sh:jsFunctionName}
+    - JS Library {=sh:jsLibrary}
+    - JS Library URL {=sh:jsLibraryURL}
+
+- SPARQL Constraint {=class:SPARQLConstraint}
+
+    Direct SPARQL query-based validation {!rdf:type label}
+    - SPARQL ASK Query {=sh:ask}
+    - SPARQL SELECT Query {=sh:select}
+    - SPARQL CONSTRUCT Query {=sh:construct}
+    - SPARQL UPDATE Query {=sh:update}
 
 ---
 
