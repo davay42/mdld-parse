@@ -8,14 +8,6 @@
 
 ---
 
-## Catalog Completeness Validation
-
-### Catalog Completeness Shape {=cat:shapes/catalog .sh:NodeShape label}
-
-Ensures the catalog maintains its structural integrity.
-
-**Constraint Count Validation** {=cat:shapes/catalog/count .sh:PropertyShape ?sh:property} ensures the [includes] {+cat:includes ?sh:path} property has exactly [52] {sh:minCount sh:maxCount ^^xsd:integer} constraints for complete SHACL coverage: **Catalog must include exactly 52 constraints** {sh:message}
-
 ### Constraint Metadata Validation
 
 #### Constraint Metadata Shape {=meta:Constraint .sh:NodeShape label}

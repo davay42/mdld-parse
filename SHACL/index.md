@@ -18,16 +18,15 @@ This catalog includes these constraints: {?cat:includes}
 - [Class](./constraints/class.md) {=sh:class}
 - [Minimum Length](./constraints/length.md) {=sh:minLength}
 - [Maximum Length](./constraints/length.md) {=sh:maxLength}
+- [Value Range](./constraints/range.md) {=sh:minInclusive}
+- [Value Range](./constraints/range.md) {=sh:maxInclusive}
+- [Value Range](./constraints/range.md) {=sh:minExclusive}
+- [Value Range](./constraints/range.md) {=sh:maxExclusive}
 
 - Pattern {=sh:pattern}
 - Pattern Flags  {=sh:flags}
 - Language In {=sh:languageIn}
 - Unique Languages {=sh:uniqueLang}
-
-- Minimum Inclusive {=sh:minInclusive}
-- Maximum Inclusive {=sh:maxInclusive}
-- Minimum Exclusive {=sh:minExclusive}
-- Maximum Exclusive {=sh:maxExclusive}
 - Entity type {=sh:node}
 - Target Class {=sh:targetClass}
 - Target Node {=sh:targetNode}
@@ -102,5 +101,8 @@ Each constraint includes:
 
 ---
 
+### Catalog Completeness Shape {=cat:shapes/catalog .sh:NodeShape label}
 
+Ensures the catalog maintains its structural integrity by targeting the [catalog index] {+cat:index ?sh:targetNode}. 
 
+**Constraint Count Rule** {=cat:shapes/catalog/count .sh:PropertyShape ?sh:property} ensures the [includes] {+cat:includes ?sh:path} property has exactly [52] {sh:minCount sh:maxCount ^^xsd:integer} constraints for complete SHACL coverage: **Catalog must include exactly 52 constraints** {sh:message}
