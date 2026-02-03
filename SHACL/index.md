@@ -11,11 +11,13 @@ This catalog [includes] {+cat:includes .rdf:Property label} all constraints avai
 This catalog includes these constraints: {?cat:includes}
 
 - [Data Type](./constraints/datatype.md) {=sh:datatype}
-- Node Kind {=sh:nodeKind}  
+- [Node Kind](./constraints/nodekind.md) {=sh:nodeKind}
+- [Min Count](./constraints/mincount.md) {=sh:minCount}
+- [Max Count](./constraints/maxcount.md) {=sh:maxCount}
+- [Pattern](./constraints/pattern.md) {=sh:pattern}
+- [Class](./constraints/class.md) {=sh:class}
 - Language In {=sh:languageIn}
 - Unique Languages {=sh:uniqueLang}
-- Min Count {=sh:minCount}
-- Max Count {=sh:maxCount}
 - Has Value {=sh:hasValue}
 - Minimum Inclusive {=sh:minInclusive}
 - Maximum Inclusive {=sh:maxInclusive}
@@ -23,10 +25,8 @@ This catalog includes these constraints: {?cat:includes}
 - Maximum Exclusive {=sh:maxExclusive}
 - Minimum Length {=sh:minLength}
 - Maximum Length {=sh:maxLength}
-- Pattern Validation {=sh:pattern}
 - Pattern Flags {=sh:flags}
-- Entity type {=sh:class}
-- Node Shape {=sh:node}
+- Entity type {=sh:node}
 - Target Class {=sh:targetClass}
 - Target Node {=sh:targetNode}
 - Target Subjects {=sh:targetSubjectsOf}
@@ -102,14 +102,11 @@ Each constraint includes:
 
 ## 🛡️ Self-Validation Rules
 
-### Catalog Completeness Shape {=cat:shapes/catalog .sh:NodeShape label}
+> **Single source of truth:** See [definitions.md](./definitions.md) for all validation rules and property definitions
 
-Ensures the catalog maintains its structural integrity.
+The catalog validates against comprehensive rules defined in `definitions.md` to ensure:
+- ✅ **Catalog completeness** (52 constraints)
+- ✅ **Constraint metadata** (labels, full IRIs, comments)
+- ✅ **Structural integrity** (proper relationships)
 
-#### Constraint Count Validation {=cat:cat:shapes/catalog/count .sh:PropertyShape ?sh:property}
-
-Catalog must include not less than [52] {sh:minCount ^^xsd:integer} and not less than [52] {sh:maxCount ^^xsd:integer} constraints.
-
-We add constraints with [includes] {+cat:includes ?sh:path} relation on the [Catalog Index] {+cat:index ?sh:targetNode}
-
-> Catalog must include exactly 52 constraints for complete SHACL coverage {sh:message}
+Use `ig-cli validate SHACL/index.md --shapes SHACL/definitions.md` to run full validation.
