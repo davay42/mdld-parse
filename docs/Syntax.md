@@ -46,30 +46,27 @@ Creates: `ex:doc#section1`, `ex:doc#section2`
 ## Nested Lists
 
 ```md
-## Recipe {=ex:recipe .Recipe name}
-Ingredients: {?hasPart .Ingredient name}
-- Flour {=ex:flour}
-  Types: {?hasPart .FlourType name}
-  - Whole wheat {=ex:flour-whole .WholeGrain name}
-  - White {=ex:flour-white .White name}
-- Water {=ex:water}
+[@vocab] <http://www.w3.org/2000/01/rdf-schema#>
+
+## Analysis Project {=prj:project .Project label}
+Analysis steps: {?member .prj:Task label}
+- Sample preparation {=prj:step1}
+  Sub-tasks: {?member .prj.Task label}
+  - Weigh sample {=prj:step1-1}
+  - Mix reagents {=prj:step1-2}
+- Data collection {=prj:step2}
+  Sub-tasks: {?member .Task label}
+  - Run analysis {=prj:step2-1}
+  - Record results {=prj:step2-2}
 ```
 
-## List Context
-
-```md
-Crew members: {?crew .Person name}
-- Neil Armstrong {=ex:neil}
-- Buzz Aldrin {=ex:buzz}
-- Michael Collins {=ex:michael}
-```
 
 ## List Item Policy: Single-Value Carriers
 
 **✅ CORRECT**
 ```md
 - Flour {=ex:flour}              # Subject declaration, participates in list
-- Walnuts {=ex:walnuts}          # Subject declaration, participates in list
+- Walnuts {+ex:walnuts}          # Subject declaration, participates in list
 ```
 
 **❌ INCORRECT (Excluded from List Context)**
@@ -89,6 +86,12 @@ Crew members: {?crew .Person name}
 [Parent] {+ex:parent !schema:hasPart .Organization name}
 [Section] {+#subsection name ?hasPart}
 ```
+
+**Soft Object IRI (`{+iri}`)** - Temporary object for `?` and `!` predicates without changing current subject
+
+**Soft Fragment (`{+#fragment}`)** - Temporary fragment relative to current subject base
+
+The soft IRI only exists within the current annotation block.
 
 ## Literals
 
@@ -117,6 +120,8 @@ console.log("hello")
 
 ## Prefix Folding
 
+Build namespace hierarchies by referencing previously declared prefixes:
+
 ```md
 # Domain authority
 [my] <tag:mymail@domain.com,2026:>
@@ -125,6 +130,7 @@ console.log("hello")
 [j] <my:journal:>
 [p] <my:property:>
 [c] <my:class:>
+[person] <my:people:>
 
 # Multi-level nesting
 [org] <https://org.example.com/>
@@ -132,6 +138,16 @@ console.log("hello")
 [emp] <person:employee/>
 [dev] <emp:developer/>
 ```
+
+**Resolution Rules:**
+- Prefixes must be declared before they can be referenced (forward-reference only)
+- Circular references are treated as literal strings
+- Later declarations override earlier ones
+
+**Examples:**
+- `j:2026-01-27` → `tag:mymail@domain.com,2026:journal:2026-01-27`
+- `emp:harry` → `https://org.example.com/person/employee/harry`
+- `dev:john` → `https://org.example.com/person/employee/developer/john`
 
 ## Quick Reference
 

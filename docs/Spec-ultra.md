@@ -1,6 +1,8 @@
-# MD-LD v0.3 — Core Specification
+# MD-LD v0.4 — Core Specification (Minimal)
 
-**Markdown-Linked Data**: Semantic annotations for CommonMark using `{...}` blocks only.
+**Markdown-Linked Data**
+
+A deterministic, streaming-friendly semantic annotation layer for CommonMark Markdown that emits RDF quads **only** from explicit `{...}` annotations.
 
 ## 1. Core Rules
 
@@ -44,7 +46,7 @@ Ambiguous = no output.
 ```
 {=IRI}        # Full IRI, persists
 {=#fragment}  # Relative to current subject
-{+iri}        # Temporary object for ?/! predicates
+{+iri}        # Temporary object for local  ?/! predicates
 {+#fragment}  # Temporary soft fragment
 ```
 
@@ -83,9 +85,9 @@ From: `[text](url)`, `![alt](url)`, `{=IRI}`
 **Example**:
 ```md
 ## References {=ex:references}
-[Image](https://example.com/img.jpg) {?image name}
-[W3C](https://www.w3.org/RDF) {?dct:references name}
-[Alice] {=urn:person:alice ?author name}
+[Image](https://example.com/img.jpg) {?image label}
+[W3C](https://www.w3.org/RDF) {?dct:references label}
+[Alice] {=tag:alice@example.com,2026:me ? label}
 ```
 
 ## 11. Lists
@@ -93,9 +95,19 @@ From: `[text](url)`, `![alt](url)`, `{=IRI}`
 `{...}` before list applies to all items at same indentation.
 
 ```md
-Crew: {?crew .Person name}
-- Neil {=ex:neil}
-- Buzz {=ex:buzz}
+[prj] <tag:project@example.com,2026-02-03:>
+[foaf] <http://xmlns.com/foaf/0.1/>
+
+## Local Projects Team {=prj:team .foaf:Group label}
+
+Team members: {?foaf:member .foaf:Person foaf:name}
+
+- Alice Cooper {=prj:alice}
+- Bruce Miles {=prj:bruce}
+  And his helpful family: {?foaf:knows .foaf:Person foaf:name}
+  - Cecile Miles {prj:cecile}
+  - Roger Miles {prj:roger}
+- Eva Clark {=prj:eva}
 ```
 
 Nested lists = new scope, no inheritance.
@@ -105,7 +117,7 @@ Nested lists = new scope, no inheritance.
 `!p` flips direction only.
 
 ```md
-Used in: {!hasPart}
+Used in: {!schema:hasPart}
 - Bread {=ex:bread}
 # Creates: ex:bread schema:hasPart S
 ```
@@ -115,25 +127,58 @@ Used in: {!hasPart}
 `{...}` on opening fence:
 
 ```md
-```js {=ex:code .SoftwareSourceCode text}
+```js {=ex:code .SoftwareSourceCode schema:text }
 console.log("hi")
 ```
 ```
 
 ## 14. Context
 
-**Default**:
+### Default Context
+
 ```json
-{"@vocab": "http://www.w3.org/2000/01/rdf-schema#", "rdf": "...", "rdfs": "...", "xsd": "...", "schema": "..."}
+{
+    "@vocab": "http://www.w3.org/2000/01/rdf-schema#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "sh": "http://www.w3.org/ns/shacl#",
+    "prov": "http://www.w3.org/ns/prov#"
+}
 ```
 
-**Declarations**:
-```
-[prefix] <IRI>      # Prefix
-[@vocab] <IRI>       # Vocabulary
+### Adding Prefixes
+
+```md
+[alice] <tag:alice@example.com,2026:>
+[wd] <https://www.wikidata.org/entity/>
 ```
 
-Forward-apply, later overrides earlier.
+### Prefix Folding: Hierarchical IRI Authoring
+
+Build namespace hierarchies by referencing previously declared prefixes:
+
+```md
+[my] <tag:mymail@domain.com,2026:>
+[j] <my:journal:>
+[p] <my:property:>
+[org] <https://org.example.com/>
+[person] <org:person/>
+[emp] <person:employee/>
+```
+
+**Resolution Rules:**
+- Prefixes must be declared before they can be referenced (forward-reference only)
+- Circular references are treated as literal strings
+- Later declarations override earlier ones
+
+### Setting Vocabulary
+
+```md
+[@vocab] <http://schema.org/>
+```
+
+**Rules:** Apply forward, later overrides earlier, single-pass resolution.
 
 ## 15. Forbidden
 

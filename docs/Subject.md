@@ -134,9 +134,9 @@ This changes **nothing semantically**, but makes refactoring safe.
 After checking Wikipedia, she cleans heights and adds types.
 
 ```md
-**Burj Khalifa** {=#burj-khalifa .Skyscraper name} is the highest building at [828] {height ^^xsd:integer} meters is located in [Dubai] {location}
+**Burj Khalifa** {=#burj-khalifa .alice:hb/Skyscraper label} is the highest building at [828] {alice:hb/height ^^xsd:integer} meters is located in [Dubai] {alice:hb/location}
 
-**Shanghai Tower** {=#shanghai-tower .Skyscraper name} - [632] {height ^^xsd:integer} is located in [Shanghai] {location}
+**Shanghai Tower** {=#shanghai-tower .alice:hb/Skyscraper label} - [632] {alice:hb/height ^^xsd:integer} is located in [Shanghai] {alice:hb/location}
 ```
 
 ---
@@ -148,6 +148,10 @@ She changes **one line**.
 
 ```md
 [alice] <tag:alice@example.com,2026:>
+```
+Becomes:
+```md
+[alice] <https://alice-blog.example.com/hb/>
 ```
 
 Nothing else changes.
@@ -165,15 +169,15 @@ She wants to validate Burj Khalifa against Wikidata.
 She chooses to **align**, not replace.
 
 ```md
-### Burj Khalifa  {=wd:Q134164 .Skyscraper name !sameAs}
+### Burj Khalifa  {=wd:Q134164 .alice:hb/Skyscraper label !seeAlso}
 ```
 
 This emits:
 
 ```turtle
-wd:Q134164 a schema:Skyscraper ;
-  schema:name "Burj Khalifa" ;
-  owl:sameAs tag:alice@example.com,2026:hb#burj-khalifa .
+wd:Q134164 a alice:hb/Skyscraper ;
+  rdfs:label "Burj Khalifa" ;
+  rdfs:seeAlso tag:alice@example.com,2026:hb#burj-khalifa .
 ```
 
 Now agents can:

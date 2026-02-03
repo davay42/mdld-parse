@@ -1,4 +1,4 @@
-# MD-LD v0.3 — Core Specification
+# MD-LD v0.4 — Core Specification (Minimal)
 
 **Markdown-Linked Data**
 
@@ -93,11 +93,28 @@ Sets current subject. Persists until changed.
 ```
 Creates `currentSubjectBase#fragment`. Requires existing subject.
 
-### Temporary Objects
+### Soft Object IRI (Temporary)
+
 ```
-{+iri}       # Object IRI for ?/! predicates
-{+#fragment} # Soft fragment
+{+iri}
 ```
+
+Declares a temporary object for use with `?` and `!` predicates, without changing the current subject.
+
+### Soft Fragment (Temporary)
+
+```
+{+#fragment}
+```
+
+Creates a temporary fragment relative to the current subject base.
+
+**Use cases:**
+- `[Related Item] {+ex:related ?schema:isRelatedTo}` - Links to a local fragment
+- `[Parent] {+ex:parent !schema:hasPart}` - Reverse relationship
+- `[Section] {+#section1 name ?hasPart}` - Object property with fragment
+
+The soft IRI only exists within the current annotation block.
 
 ---
 
@@ -172,9 +189,13 @@ ex:references schema:author <urn:person:alice> .
 
 **Example:**
 ```md
-Crew: {?crew .Person name}
-- Neil Armstrong {=ex:neil}
-- Buzz Aldrin {=ex:buzz}
+[@vocab] <http://www.w3.org/2000/01/rdf-schema#>
+
+## Research Team {=prj:team .Container label}
+Team members: {?member .Person label}
+- Lead researcher {=prj:lead}
+- Data analyst {=prj:analyst}
+- Lab technician {=prj:tech}
 ```
 
 ### Nested Lists
@@ -182,13 +203,18 @@ Each indentation level = new semantic scope. No inheritance across levels.
 
 **Example:**
 ```md
-## Recipe {=ex:recipe .Recipe name}
-Ingredients: {?hasPart .Ingredient name}
-- Flour {=ex:flour}
-  Variants: {?hasPart .FlourType name}
-  - Whole wheat {=ex:flour-whole-wheat .WholeGrainFlour}
-  - White {=ex:flour-white .FlourType title}
-- Water {=ex:water}
+[@vocab] <http://www.w3.org/2000/01/rdf-schema#>
+
+## Analysis Project {=prj:project .Project label}
+Analysis steps: {?member .Container label}
+- Sample preparation {=prj:step1 .Task label}
+  Sub-tasks: {?member .Container label}
+  - Weigh sample {=prj:step1-1 .Task label}
+  - Mix reagents {=prj:step1-2 .Task label}
+- Data collection {=prj:step2 .Task label}
+  Sub-tasks: {?member .Container label}
+  - Run analysis {=prj:step2-1 .Task label}
+  - Record results {=prj:step2-2 .Task label}
 ```
 
 ---
@@ -230,6 +256,7 @@ ex:code a schema:SoftwareSourceCode ;
 ### Default Context
 ```json
 {
+    "@vocab": "http://www.w3.org/2000/01/rdf-schema#",
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
@@ -242,6 +269,25 @@ ex:code a schema:SoftwareSourceCode ;
 ```
 [prefix] <IRI>
 ```
+
+### Prefix Folding: Hierarchical IRI Authoring
+
+Build namespace hierarchies by referencing previously declared prefixes:
+
+```
+[my] <tag:mymail@domain.com,2026:>
+[j] <my:journal:>
+[p] <my:property:>
+[org] <https://org.example.com/>
+[person] <org:person/>
+[emp] <person:employee/>
+```
+
+**Resolution Rules:**
+- Prefixes must be declared before they can be referenced (forward-reference only)
+- References are resolved immediately during declaration
+- Circular references are treated as literal strings
+- Later declarations override earlier ones
 
 ### Vocabulary Setting
 ```

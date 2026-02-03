@@ -32,6 +32,15 @@ Derived namespaces using CURIE syntax:
 
 This resolves to: `tag:mdld@example.com,2026:example:`
 
+**Resolution Rules:**
+- Prefixes must be declared before they can be referenced (forward-reference only)
+- Circular references are treated as literal strings
+- Later declarations override earlier ones
+
+**Examples:**
+- `ex:doc` → `tag:mdld@example.com,2026:example:doc`
+- `my:journal:2026-01-27` → `tag:mdld@example.com,2026:journal:2026-01-27`
+
 ### Prefix Folding Examples
 Demonstrated namespaces: {?mdld:includes .Class label}
 - Document: [Example doc] {=ex:doc .Class label}
@@ -129,6 +138,16 @@ MD-LD follows strict rules:
 ### Temporary Objects
 [Related concept] {+mdld:temporary mdld:seeAlso label} demonstrates block-scoped objects
 
+### Soft Fragments
+[Soft fragment example] {+#soft-fragment ?seeAlso label} demonstrates temporary fragments
+
+**Use cases:**
+- `[Related Item] {+ex:related ?schema:isRelatedTo}` - Links to a local fragment
+- `[Parent] {+ex:parent !schema:hasPart}` - Reverse relationship  
+- `[Section] {+#section1 name ?hasPart}` - Object property with fragment
+
+The soft IRI only exists within the current annotation block.
+
 ## Value Carriers {=mdld:carriers .Class label}
 
 ### Inline Elements
@@ -176,21 +195,22 @@ Three predicate directions create different relationships:
 **Critical Rule**: All list items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context. Items without subjects are excluded from semantic relationships.
 
 ### Simple Lists
-Features demonstrated: {?mdld:includes Class label}
-- Annotations {=#annotations}
-- Predicates {=#predicates} 
-- Lists {=#lists}
+Research team members: {?mdld:includes .mdld:Role label}
+- Principal investigator {=#pi}
+- Research assistant {=#assistant} 
+- Lab technician {=#techl}
 
-### Nested Lists
-Nested structures show hierarchical relationships:
+### Nested Lists {=#nested .Class label}
 
-Implementation layers: {?mdld:includes .Class label}
-- Parser {=#parser-layer}
-  Components: {?mdld:includes .Class label}
-  - Lexer {=#lexer }
-  - Token Scanner {=#token-scanner}
-  - Semantic Processor {=#semantic-processor}
-- Serializer {=#serializer-layer}
+Analysis project: {?mdld:includes .mdld:Task label}
+- Sample preparation {=#prep}
+  Preparation steps: {?mdld:includes .mdld:Task label}
+  - Weigh materials {=#weigh}
+  - Mix reagents {=#mix}
+- Data collection {=#collection}
+  Collection steps: {?mdld:includes .mdld:Task label}
+  - Run instrument {=#instrument}
+  - Record measurements {=#record}
 
 ## Code Blocks {=mdld:code-blocks .Class label}
 
