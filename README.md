@@ -40,7 +40,7 @@ ex:armstrong schema:name "Neil Armstrong" .
 - **Four predicate forms**: `p` (S→L), `?p` (S→O), `!p` (O→S)
 - **Type declarations**: `.Class` for rdf:type triples
 - **Datatypes & language**: `^^xsd:date` and `@en` support
-- **Lists**: Explicit subject declarations for structured data
+- **Lists**: Explicit subject declarations and numbered ordered lists with `rdf:List` support
 - **Fragments**: Built-in document structuring with `{=#fragment}`
 - **Round-trip serialization**: Markdown ↔ RDF ↔ Markdown preserves structure
 
@@ -184,7 +184,7 @@ ex:armstrong a schema:Person .
 
 ### Lists
 
-Lists require explicit subjects per item:
+Lists require explicit subjects per item.  Use numbered ordered lists for `rdf:List` structures:
 
 ```markdown
 # Recipe {=ex:recipe}
@@ -193,12 +193,24 @@ Ingredients: {?ingredient .Ingredient}
 
 - Flour {=ex:flour name}
 - Water {=ex:water name}
+
+## Status Values {=ex:statusValues}
+Status values: {?ex:in .ex:StatusType label}
+1. Active {=ex:Active}
+2. Pending {=ex:Pending}
+3. Inactive {=ex:Inactive}
 ```
 
 ```turtle
 ex:recipe schema:ingredient ex:flour, ex:water .
 ex:flour a schema:Ingredient ; schema:name "Flour" .
 ex:water a schema:Ingredient ; schema:name "Water" .
+
+# Ordered list generates W3C RDF Collections
+ex:statusValues ex:in ex:statusValues#list-1-1 .
+ex:statusValues#list-1-1 rdf:first ex:Active ; rdf:rest ex:statusValues#list-1-2 .
+ex:statusValues#list-1-2 rdf:first ex:Pending ; rdf:rest ex:statusValues#list-1-3 .
+ex:statusValues#list-1-3 rdf:first ex:Inactive ; rdf:rest rdf:nil .
 ```
 
 ### Code Blocks

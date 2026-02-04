@@ -1,5 +1,5 @@
 ; MD-LD ABNF Grammar (RFC 5234 compliant)
-; Updated with improved list semantics and structural constructs
+; Updated to match actual parser implementation
 ; Defines syntax of MD-LD annotations embedded in CommonMark Markdown
 
 ; Core RFC 5234 conventions
@@ -28,7 +28,9 @@ attrs-tokens = attrs-token *( 1*WSP attrs-token )
 ; 3. Attribute tokens
 attrs-token = 
       subject-decl
+    / fragment-decl
     / object-decl
+    / object-fragment-decl
     / type-decl
     / predicate
     / reverse-predicate
@@ -37,7 +39,9 @@ attrs-token =
 
 ; 4. Subject declarations
 subject-decl = "=" iri-ref
+fragment-decl = "=#" fragment
 object-decl  = "+" iri-ref
+object-fragment-decl = "+#" fragment
 
 ; 5. Predicates
 predicate         = [ "?" ] iri-ref
@@ -52,7 +56,7 @@ language = "@" langtag
 langtag  = ALPHA *( ALPHA / DIGIT / "-" )
 
 ; 8. IRI references
-iri-ref = curie / iri
+iri-ref = curie / iri / fragment
 curie   = prefix-name ":" reference
 iri     = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
 scheme  = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
@@ -67,8 +71,8 @@ reference = 1*( ALPHA / DIGIT / "-" / "_" / "." )
 ; 9.1 Inline carriers
 emphasis-span   = "*" text "*" / "_" text "_"
 strong-span     = "**" text "**" / "__" text "__"
-code-span       = "`" text "`"
-link-span       = "[" text "](" text ")"
+code-span       = "`" text "`" / "``" text "``"
+link-span       = "[" text "](" text ")" / "[" text "]"
 image-span      = "!" "[" text "](" text ")"
 url-span        = "<" iri ">"
 
@@ -94,7 +98,7 @@ list-anchor = paragraph *WSP attrs-block
 
 ; 10.2 List item
 list-item = list-marker WSP text *WSP [ attrs-block ]
-list-marker = "-" / "*" / 1*DIGIT "."
+list-marker = "-" / "*" / "+" / 1*DIGIT "."
 
 ; 10.3 List block
 list-block = list-anchor LF list-item *( LF list-item / LF nested-list )
@@ -103,7 +107,10 @@ list-block = list-anchor LF list-item *( LF list-item / LF nested-list )
 ; Nested lists do not inherit semantic scope
 nested-list = 1*WSP list-block
 
-; 11. Annotation attachment
+; 11. Standalone subject declarations
+standalone-subject = *WSP "{=" ( iri-ref / "#" fragment ) "}" *WSP
+
+; 12. Annotation attachment
 annotation =
       inline-span *WSP attrs-block
     / heading *WSP attrs-block
@@ -112,8 +119,9 @@ annotation =
     / blockquote *WSP attrs-block
     / code-fence *WSP attrs-block
     / url-span *WSP attrs-block
+    / standalone-subject
 
-; 12. Grammar guarantees (normative)
+; 13. Grammar guarantees (normative)
 ; Attribute token order is semantically unordered
 ; Nested lists establish a new semantic scope
 ; No implicit inheritance across list levels
@@ -121,7 +129,7 @@ annotation =
 ; Round-trip safe (MD-LD <-> RDF <-> MD-LD)
 ; No semantic inference at syntax level
 
-; 13. Forbidden constructs (not expressible in this grammar)
+; 14. Forbidden constructs (not expressible in this grammar)
 ; - Blank nodes
 ; - Key-value pairs  
 ; - Nested attribute blocks

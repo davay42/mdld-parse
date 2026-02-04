@@ -178,6 +178,25 @@ export function serialize({ text, diff, origin, options = {} }) {
 }
 
 function determineListOperation(listData, normAdds, normDeletes, base) {
+    // Check if this is list modification (has both adds and deletes for list structure)
+    const hasListAdds = normAdds.some(quad =>
+        quad.subject.value.includes('#list-') ||
+        quad.predicate.value.endsWith('#first') ||
+        quad.predicate.value.endsWith('#rest') ||
+        quad.predicate.value.endsWith('#type') && quad.object.value.endsWith('#List')
+    );
+
+    const hasListDeletes = normDeletes.some(quad =>
+        quad.subject.value.includes('#list-') ||
+        quad.predicate.value.endsWith('#first') ||
+        quad.predicate.value.endsWith('#rest') ||
+        quad.predicate.value.endsWith('#type') && quad.object.value.endsWith('#List')
+    );
+
+    if (hasListAdds || hasListDeletes) {
+        return { type: 'modify' };
+    }
+
     // Check if this is a list creation (all list structure quads are in adds)
     const allListQuads = [];
     listData.items.forEach(item => {
@@ -212,7 +231,7 @@ function determineListOperation(listData, normAdds, normDeletes, base) {
         return { type: 'delete' };
     }
 
-    // Otherwise, it's a modification
+    // Default to modify for any list changes
     return { type: 'modify' };
 }
 
@@ -225,60 +244,66 @@ function detectRdfLists(quads, base, ctx) {
         q.object.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#List'
     );
 
-    // Group list nodes by potential parent (find list chains)
-    const listChains = new Map();
+    // Find parent subjects that point to list nodes
+    const parentToListNodes = new Map();
 
     for (const listNode of listNodes) {
         const listSubject = listNode.subject.value;
 
-        // Find all quads for this list node
-        const listNodeQuads = quads.filter(q => q.subject.value === listSubject);
-
-        const firstQuad = listNodeQuads.find(q =>
-            q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first'
+        // Find the parent subject that points to this list node
+        const parentQuad = quads.find(q =>
+            q.object.value === listSubject &&
+            q.subject.value !== listSubject // Don't match self-references
         );
 
-        const restQuad = listNodeQuads.find(q =>
-            q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
-        );
-
-        if (firstQuad) {
-            // Try to find the parent subject (look for any predicate pointing to this list)
-            const parentQuad = quads.find(q =>
-                q.object.value === listSubject &&
-                q.subject.value !== listSubject // Don't match self-references
-            );
-
-            const parentSubject = parentQuad?.subject.value || `unknown-list-${listSubject}`;
-
-            if (!listChains.has(parentSubject)) {
-                listChains.set(parentSubject, []);
+        if (parentQuad) {
+            const parentSubject = parentQuad.subject.value;
+            if (!parentToListNodes.has(parentSubject)) {
+                parentToListNodes.set(parentSubject, []);
             }
-
-            listChains.get(parentSubject).push({
-                listNode: listSubject,
-                item: firstQuad.object,
-                typeQuad: listNode,
-                firstQuad,
-                restQuad
-            });
+            parentToListNodes.get(parentSubject).push(listSubject);
         }
     }
 
-    // Sort each chain to maintain order (try to infer from rdf:rest structure)
-    for (const [parentSubject, items] of listChains) {
-        // Try to order by following rdf:rest chains
+    // For each parent, build the complete list
+    for (const [parentSubject, listNodeSubjects] of parentToListNodes) {
+        const allListItems = [];
+
+        for (const listNodeSubject of listNodeSubjects) {
+            // Find all quads for this list node
+            const listNodeQuads = quads.filter(q => q.subject.value === listNodeSubject);
+
+            const firstQuad = listNodeQuads.find(q =>
+                q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first'
+            );
+
+            const restQuad = listNodeQuads.find(q =>
+                q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
+            );
+
+            if (firstQuad) {
+                allListItems.push({
+                    listNode: listNodeSubject,
+                    item: firstQuad.object,
+                    typeQuad: listNode,
+                    firstQuad,
+                    restQuad
+                });
+            }
+        }
+
+        // Sort items by following rdf:rest chains to maintain order
         const orderedItems = [];
         const processed = new Set();
 
-        // Find the head of the list (item that is not referenced as a rest)
+        // Find the head (item not referenced as a rest)
         const restTargets = new Set(
-            items
+            allListItems
                 .filter(item => item.restQuad?.object?.value !== 'http://www.w3.org/1999/02/22-rdf-syntax-ns#nil')
                 .map(item => item.restQuad.object.value)
         );
 
-        const headItems = items.filter(item => !restTargets.has(item.listNode));
+        const headItems = allListItems.filter(item => !restTargets.has(item.listNode));
 
         if (headItems.length > 0) {
             // Start from head and follow rest chain
@@ -292,22 +317,29 @@ function detectRdfLists(quads, base, ctx) {
 
                 // Find next item in chain
                 const nextListNode = currentItem.restQuad?.object?.value;
-                currentItem = items.find(item => item.listNode === nextListNode);
+                currentItem = allListItems.find(item => item.listNode === nextListNode);
             }
         } else {
-            // Fallback: use original order
-            items.forEach((item, index) => {
+            // Fallback: sort by list node number
+            allListItems.sort((a, b) => {
+                const aNum = parseInt(a.listNode.split('-').pop()) || 0;
+                const bNum = parseInt(b.listNode.split('-').pop()) || 0;
+                return aNum - bNum;
+            });
+
+            allListItems.forEach((item, index) => {
                 item.itemIndex = index;
                 orderedItems.push(item);
             });
         }
 
+        // Store the unified list under the parent subject
         lists.set(parentSubject, {
             subject: parentSubject,
             items: orderedItems,
             headQuad: quads.find(q =>
                 q.subject.value === parentSubject &&
-                q.object.value === orderedItems[0]?.listNode
+                listNodeSubjects.includes(q.object.value)
             )
         });
     }
@@ -425,7 +457,9 @@ function planOperations(diff, base, ctx) {
                 subject: listSubject,
                 items: listData.items,
                 operation,
-                headQuad: listData.headQuad
+                headQuad: listData.headQuad,
+                normAdds, // Pass through for reconstruction
+                normDeletes // Pass through for reconstruction
             });
 
             // Mark all list-related quads as consumed to prevent double processing
@@ -657,9 +691,118 @@ function findInsertionPointForSubject(subject, text, base) {
     return text.length;
 }
 
+function findExistingListRange(subject, text, base) {
+    // Try to find existing list items under this subject in the origin data
+    for (const [blockId, block] of base.blocks.entries()) {
+        if (block.subject === subject && block.range) {
+            // Look for ordered list items that come after this subject
+            const linesAfter = text.substring(block.range.end).split('\n');
+            let listStart = -1;
+            let listEnd = -1;
+
+            for (let i = 0; i < linesAfter.length; i++) {
+                const line = linesAfter[i].trim();
+
+                // Check if this line starts a numbered list
+                if (/^\d+\./.test(line)) {
+                    if (listStart === -1) {
+                        listStart = block.range.end + linesAfter.slice(0, i).join('\n').length + i;
+                    }
+                    listEnd = block.range.end + linesAfter.slice(0, i + 1).join('\n').length + i + 1;
+                } else if (listStart !== -1 && !line.startsWith(' ') && line !== '') {
+                    // End of list
+                    break;
+                }
+            }
+
+            if (listStart !== -1 && listEnd !== -1) {
+                return { start: listStart, end: listEnd };
+            }
+        }
+    }
+
+    return null;
+}
+
+function reconstructListFromDiff(listData, normAdds, normDeletes, base) {
+    // Start with the existing list items
+    let currentItems = [...listData.items];
+
+    // Apply deletes first - remove items that are being deleted
+    const deletedItems = new Set();
+    normDeletes.forEach(quad => {
+        // Find list items that match the delete quad
+        currentItems.forEach(item => {
+            if ((item.firstQuad && quadMatches(item.firstQuad, quad)) ||
+                (item.typeQuad && quadMatches(item.typeQuad, quad)) ||
+                (item.restQuad && quadMatches(item.restQuad, quad))) {
+                deletedItems.add(item.listNode);
+            }
+        });
+    });
+
+    // Remove deleted items
+    currentItems = currentItems.filter(item => !deletedItems.has(item.listNode));
+
+    // Apply adds - add new list items
+    normAdds.forEach(quad => {
+        if (quad.predicate.value.endsWith('#type') &&
+            quad.object.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#List') {
+            // This is a new list node
+            const listNodeQuads = normAdds.filter(q => q.subject.value === quad.subject.value);
+            const firstQuad = listNodeQuads.find(q => q.predicate.value.endsWith('#first'));
+
+            if (firstQuad) {
+                currentItems.push({
+                    listNode: quad.subject.value,
+                    item: firstQuad.object,
+                    typeQuad: quad,
+                    firstQuad,
+                    restQuad: listNodeQuads.find(q => q.predicate.value.endsWith('#rest'))
+                });
+            }
+        }
+    });
+
+    // Apply modifications to existing items
+    normAdds.forEach(quad => {
+        currentItems.forEach(item => {
+            if (quadMatches(item.firstQuad, quad)) {
+                item.firstQuad = quad;
+                item.item = quad.object;
+            }
+        });
+    });
+
+    // Reorder by list node name to maintain some order
+    currentItems.sort((a, b) => {
+        const aNum = parseInt(a.listNode.split('-').pop()) || 0;
+        const bNum = parseInt(b.listNode.split('-').pop()) || 0;
+        return aNum - bNum;
+    });
+
+    // Reassign indices
+    currentItems.forEach((item, index) => {
+        item.itemIndex = index;
+    });
+
+    return {
+        subject: listData.subject,
+        items: currentItems,
+        headQuad: listData.headQuad
+    };
+}
+
+function quadMatches(quad1, quad2) {
+    if (!quad1 || !quad2) return false;
+    return quad1.subject.value === quad2.subject.value &&
+        quad1.predicate.value === quad2.predicate.value &&
+        quad1.object.value === quad2.object.value;
+}
+
 function materializeListOperation(listOp, text, ctx, base) {
     const edits = [];
-    const { subject, items, operation } = listOp;
+    const { subject, items, operation, normAdds, normDeletes } = listOp;
 
     switch (operation.type) {
         case 'create':
@@ -684,23 +827,35 @@ function materializeListOperation(listOp, text, ctx, base) {
             break;
 
         case 'modify':
-            // For now, handle modify as recreate
-            // TODO: Implement more sophisticated modification handling
-            const modifyListText = serializeListItems(items, ctx, base);
-            const modifyContextText = serializeListContext(subject, ctx, base);
+            // For modifications, find and replace the existing list entirely
+            const listData = { subject, items, headQuad: listOp.headQuad };
+            const reconstructedList = reconstructListFromDiff(listData, normAdds, normDeletes, base);
+            const modifyListText = serializeListItems(reconstructedList.items, ctx, base);
 
-            const modifyInsertPoint = findInsertionPointForSubject(subject, text, base);
-            let modifyFullListText = '';
-            if (modifyContextText) {
-                modifyFullListText += '\n' + modifyContextText;
+            // Use the parent subject for finding the existing list
+            const parentSubject = listOp.headQuad?.subject?.value || subject;
+
+            // Find existing list range to replace
+            const existingListRange = findExistingListRange(parentSubject, text, base);
+
+            let modifyFullListText = '\n' + modifyListText.map(item => item.text).join('\n');
+
+            if (existingListRange) {
+                // Replace existing list
+                edits.push({
+                    start: existingListRange.start,
+                    end: existingListRange.end,
+                    text: modifyFullListText
+                });
+            } else {
+                // Insert after subject (fallback)
+                const modifyInsertPoint = findInsertionPointForSubject(parentSubject, text, base);
+                edits.push({
+                    start: modifyInsertPoint,
+                    end: modifyInsertPoint,
+                    text: modifyFullListText
+                });
             }
-            modifyFullListText += '\n' + modifyListText.map(item => item.text).join('\n');
-
-            edits.push({
-                start: modifyInsertPoint,
-                end: modifyInsertPoint,
-                text: modifyFullListText
-            });
             break;
 
         case 'delete':

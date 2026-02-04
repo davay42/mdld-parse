@@ -18,16 +18,33 @@ The processing model guarantees:
 
 ## 2. Tokenization Phase
 
-### 2.1 Line-by-Line Scanning
+### 2.1 Line-by-Line Scanning with Processors
 
-The document is processed sequentially by lines:
+The document is processed sequentially using a processor pipeline:
 
 ```javascript
+const processors = [
+    { test: line => line.startsWith('```'), process: handleCodeBlock },
+    { test: () => codeBlock, process: accumulateCodeContent },
+    { test: line => PREFIX_REGEX.test(line), process: handlePrefix },
+    { test: line => HEADING_REGEX.test(line), process: handleHeading },
+    { test: line => UNORDERED_LIST_REGEX.test(line), process: handleUnorderedList },
+    { test: line => ORDERED_LIST_REGEX.test(line), process: handleOrderedList },
+    { test: line => BLOCKQUOTE_REGEX.test(line), process: handleBlockquote },
+    { test: line => line.trim(), process: handleParagraph }
+];
+
 for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const lineStart = pos;
     pos += line.length + 1;
-    // Process line...
+    
+    // Try each processor until one handles the line
+    for (const processor of processors) {
+        if (processor.test(line) && processor.process(line, lineStart, pos)) {
+            break;
+        }
+    }
 }
 ```
 
@@ -38,11 +55,12 @@ Each line is classified into one of these token types:
 | Token Type | Pattern | Semantic Role |
 |------------|---------|---------------|
 | `prefix` | `[name] <IRI>` | Context declaration |
-| `heading` | `#{1,6} text {attrs?}` | Block carrier |
-| `list` | `[-*+] text {attrs?}` or `\d+. text {attrs?}` | Block carrier |
+| `heading` | `#{1,6} text {attrs?}` | Block carrier + potential subject |
+| `unordered-list` | `[-*+] text {attrs?}` | Block carrier |
+| `ordered-list` | `\d+. text {attrs?}` | Block carrier + RDF List generation |
 | `blockquote` | `> text {attrs?}` | Block carrier |
 | `code` | ```lang {attrs?}` | Block carrier |
-| `para` | any other text | Potential inline carriers |
+| `para` | any other text | Potential inline carriers + list context |
 
 ### 2.3 Code Block Handling
 
@@ -51,6 +69,22 @@ Code blocks are handled specially due to their multi-line nature:
 1. **Opening fence detected** - Extract language and attributes
 2. **Content accumulation** - Store all lines until closing fence
 3. **Closing fence detected** - Emit single `code` token with full content
+
+### 2.4 Inline Carrier Extraction
+
+Each token is scanned for inline carriers using sticky regex patterns:
+
+```javascript
+const INLINE_CARRIER_PATTERNS = {
+    EMPHASIS: /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y,
+    CODE_SPAN: /``(.+?)``\s*\{([^}]+)\}/y
+};
+
+const CARRIER_EXTRACTORS = {
+    '<': extractAngleBracketURL,    // <URL>
+    '[': extractBracketedLink       // [text](URL) or [text]
+};
+```
 
 ---
 
@@ -61,8 +95,18 @@ Code blocks are handled specially due to their multi-line nature:
 Context declarations are processed **before** any other tokens:
 
 ```javascript
-// Process prefix declarations first
-state.tokens.filter(t => t.type === 'prefix').forEach(t => state.ctx[t.prefix] = t.iri);
+state.tokens.filter(t => t.type === 'prefix').forEach(t => {
+    let resolvedIri = t.iri;
+    if (t.iri.includes(':')) {
+        const colonIndex = t.iri.indexOf(':');
+        const potentialPrefix = t.iri.substring(0, colonIndex);
+        const reference = t.iri.substring(colonIndex + 1);
+        if (state.ctx[potentialPrefix] && potentialPrefix !== '@vocab') {
+            resolvedIri = state.ctx[potentialPrefix] + reference;
+        }
+    }
+    state.ctx[t.prefix] = resolvedIri;
+});
 ```
 
 ### 3.2 Context Resolution
@@ -92,6 +136,7 @@ The processor maintains a `currentSubject` state:
 
 ```javascript
 state.currentSubject = null; // Initially no subject
+state.documentSubject = null; // Document-level subject
 ```
 
 ### 4.2 Subject Declaration Rules
@@ -143,39 +188,59 @@ function resolveSubject(sem, state) {
 
 ---
 
-## 5. Annotation Attachment
+## 5. Annotation Processing
 
-### 5.1 Carrier Detection
+### 5.1 Semantic Block Parsing
 
-Each token is scanned for **inline carriers** using sticky regex patterns:
+Annotations are parsed into semantic blocks:
 
 ```javascript
-const INLINE_CARRIER_PATTERNS = {
-    EMPHASIS: /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y,
-    CODE_SPAN: /``(.+?)``\s*\{([^}]+)\}/y
-};
+function parseSemCached(attrs) {
+    if (!attrs) return EMPTY_SEM;
+    let sem = semCache[attrs];
+    if (!sem) {
+        sem = Object.freeze(parseSemanticBlock(attrs));
+        semCache[attrs] = sem;
+    }
+    return sem;
+}
 ```
 
-### 5.2 Attachment Rules
+### 5.2 Annotation Processing Flow
 
-An `{...}` block attaches to the **nearest valid value carrier**:
+```javascript
+function processAnnotation(carrier, sem, state, options = {}) {
+    const { preserveGlobalSubject = false, implicitSubject = null } = options;
 
-1. **Inline carriers** have priority over block carriers
-2. **Immediate attachment** - `{...}` must follow carrier directly
-3. **Ambiguous cases** emit no quads (error recovery)
+    if (sem.subject === 'RESET') {
+        state.currentSubject = null;
+        return;
+    }
 
-### 5.3 Carrier Types
+    const previousSubject = state.currentSubject;
+    const newSubject = resolveSubject(sem, state);
+    const localObject = resolveObject(sem, state);
 
-| Carrier | Text Source | Object Source |
-|---------|-------------|---------------|
-| `emphasis` | Emphasized text | None |
-| `link` | Link text | URL from `href` |
-| `image` | Alt text | URL from `src` |
-| `code` | Code content | None |
-| `heading` | Heading text | None |
-| `list` | Item text | None |
-| `blockquote` | Quote text | None |
-| `code-fence` | Full content | None |
+    const effectiveSubject = implicitSubject || (newSubject && !preserveGlobalSubject ? newSubject : previousSubject);
+    if (newSubject && !preserveGlobalSubject && !implicitSubject) {
+        state.currentSubject = newSubject;
+    }
+    const S = preserveGlobalSubject ? (newSubject || previousSubject) : (implicitSubject || state.currentSubject);
+    if (!S) return;
+
+    // Create block for origin tracking
+    const block = createBlock(
+        S.value, sem.types, sem.predicates, sem.entries,
+        carrier.range, carrier.attrsRange || null, carrier.valueRange || null,
+        carrier.type || null, state.ctx
+    );
+    state.origin.blocks.set(block.id, block);
+
+    // Process types and predicates
+    processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier);
+    processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier);
+}
+```
 
 ---
 
@@ -186,63 +251,178 @@ An `{...}` block attaches to the **nearest valid value carrier**:
 Nested lists are managed with a stack to track semantic scope:
 
 ```javascript
-function manageListStack(token, state) {
+const manageListStack = (token, state) => {
     // Pop stack frames for lists that have ended
-    while (state.listStack.length && 
-           token.indent < state.listStack[state.listStack.length - 1].indent) {
+    while (state.listStack.length && token.indent < state.listStack[state.listStack.length - 1].indent) {
         state.listStack.pop();
     }
-    
-    // Push new frame for nested lists
+
     if (state.pendingListContext) {
         state.listStack.push({
             indent: token.indent,
             anchorSubject: state.pendingListContext.subject,
             contextSubject: state.pendingListContext.subject,
-            contextSem: state.pendingListContext.sem
+            contextSem: state.pendingListContext.sem,
+            contextText: state.pendingListContext.contextText,
+            contextToken: state.pendingListContext.contextToken
         });
         state.pendingListContext = null;
+    }
+};
+```
+
+### 6.2 List Context Detection
+
+List contexts are detected from preceding paragraphs:
+
+```javascript
+function processListContextFromParagraph(token, state) {
+    const contextMatch = LIST_CONTEXT_REGEX.exec(token.text);
+    if (!contextMatch) return;
+
+    const contextSem = parseSemCached(`{${contextMatch[2]}}`);
+    let contextSubject = state.currentSubject || state.documentSubject;
+
+    // Search backwards for subject if needed
+    if (!contextSubject && state.tokens) {
+        for (let i = state.currentTokenIndex - 1; i >= 0; i--) {
+            const prevToken = state.tokens[i];
+            if (prevToken.type === 'heading' && prevToken.attrs) {
+                const prevSem = parseSemCached(prevToken.attrs);
+                if (prevSem.subject) {
+                    const resolvedSubject = resolveSubject(prevSem, state);
+                    if (resolvedSubject) {
+                        contextSubject = resolvedSubject.value;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    state.pendingListContext = {
+        sem: contextSem,
+        subject: contextSubject,
+        contextText: contextMatch[1].replace(':', '').trim(),
+        contextToken: token
+    };
+}
+```
+
+### 6.3 Ordered List Processing
+
+Ordered lists generate W3C RDF Collections (`rdf:List`):
+
+```javascript
+function processOrderedListItem(token, state) {
+    if (!state.isProcessingOrderedList) {
+        state.listCounter = (state.listCounter || 0) + 1;
+        state.rdfListIndex = 0;
+        state.firstListNode = null;
+        state.previousListNode = null;
+        state.contextConnected = false;
+        state.isProcessingOrderedList = true;
+    }
+
+    generateRdfListTriples(token, state);
+
+    // Apply list anchor annotations
+    const listFrame = state.listStack[state.listStack.length - 1];
+    if (listFrame?.contextSem) {
+        const carriers = getCarriers(token);
+        const itemInfo = findItemSubject(token, carriers, state);
+        if (itemInfo?.subject) {
+            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, token.text, listFrame.contextToken);
+        }
+    }
+
+    // Connect context to list head
+    if (listFrame?.contextSem && listFrame?.contextSubject && !state.contextConnected) {
+        listFrame.contextSem.predicates.forEach(pred => {
+            if (pred.form === '?') {
+                const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
+                const firstListNode = state.firstListNode;
+                if (firstListNode) {
+                    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-context',
+                        listFrame.contextSubject, P, state.df.namedNode(firstListNode), state.df);
+                    state.contextConnected = true;
+                }
+            }
+        });
     }
 }
 ```
 
-### 6.2 List Context Application
+### 6.4 RDF List Generation
 
-A list anchor applies to **all items at the same indentation level**:
-
-```md
-Ingredients: {?hasIngredient .Ingredient name}
-- Flour {=ex:flour}
-- Water {=ex:water}
-```
-
-Processing steps:
-1. Detect list anchor in preceding paragraph
-2. Store context in `pendingListContext`
-3. Apply to each list item at same level
-4. **Nested lists do not inherit** parent context
-
-### 6.3 List Item Processing
-
-Each list item can declare its own subject:
+Each ordered list item generates proper `rdf:List` triples:
 
 ```javascript
-function processListItem(token, state) {
-    const carriers = getCarriers(token);
+function generateRdfListTriples(token, state) {
+    const listIndex = (state.rdfListIndex || 0) + 1;
+    state.rdfListIndex = listIndex;
+    const listNodeName = `list-${state.listCounter}-${listIndex}`;
+
+    const listFrame = state.listStack[state.listStack.length - 1];
+    const contextSubject = listFrame?.contextSubject || state.currentSubject || state.documentSubject;
+    const baseIRI = contextSubject ? contextSubject.value : (state.ctx[''] || '');
+
+    const listNodeIri = baseIRI.includes('#')
+        ? `${baseIRI.split('#')[0]}#${listNodeName}`
+        : `${baseIRI}#${listNodeName}`;
+
+    if (!state.firstListNode) state.firstListNode = listNodeIri;
+
+    // Emit rdf:type triple
+    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-type',
+        DataFactory.namedNode(listNodeIri),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#List'),
+        DataFactory,
+        { type: 'ordered-list', range: token.valueRange || token.range, listNodeName }
+    );
+
+    // Emit rdf:first triple
+    const itemInfo = findItemSubject(token, getCarriers(token), state);
+    let firstObject = itemInfo?.subject || DataFactory.literal(token.text);
     
-    // Find subject from list token or inline carriers
-    const itemInfo = findItemSubject(token, carriers, state);
-    if (!itemInfo) return;
-    
-    // Apply list context if available
-    if (listFrame?.contextSem) {
-        processContextSem({
-            sem: listFrame.contextSem,
-            itemSubject,
-            contextSubject: listFrame.contextSubject,
-            state
-        });
+    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-first',
+        DataFactory.namedNode(listNodeIri),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
+        firstObject,
+        DataFactory,
+        { type: 'ordered-list', range: originRange, listNodeName }
+    );
+
+    // Update previous rdf:rest
+    if (state.previousListNode) {
+        // Remove old rdf:rest -> rdf:nil and add new rdf:rest -> current node
+        const prevRestQuadIndex = state.quads.findIndex(q =>
+            q.subject.value === state.previousListNode &&
+            q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
+        );
+        if (prevRestQuadIndex !== -1) {
+            state.quads.splice(prevRestQuadIndex, 1);
+            emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-rest-update',
+                DataFactory.namedNode(state.previousListNode),
+                DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'),
+                DataFactory.namedNode(listNodeIri),
+                DataFactory,
+                { type: 'ordered-list', range: token.valueRange || token.range, listNodeName: state.previousListNode }
+            );
+        }
     }
+
+    // Emit rdf:rest -> rdf:nil
+    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-rest',
+        DataFactory.namedNode(listNodeIri),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#nil'),
+        DataFactory,
+        { type: 'ordered-list', range: token.valueRange || token.range, listNodeName }
+    );
+
+    state.previousListNode = listNodeIri;
 }
 ```
 
@@ -263,32 +443,37 @@ Each predicate is routed based on its prefix:
 ### 7.2 Predicate Resolution Algorithm
 
 ```javascript
-function processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state) {
+const determinePredicateRole = (pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L) => {
+    if (pred.form === '' && carrier?.type === 'link' && carrier?.url && carrier.text === carrier.url) {
+        return null; // Skip plain URLs without predicates
+    }
+    switch (pred.form) {
+        case '':
+            return carrier?.type === 'link' && carrier?.url && carrier.text !== carrier.url && !newSubject
+                ? { subject: newSubjectOrCarrierO, object: L }
+                : { subject: localObject || S, object: L };
+        case '?':
+            return { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO };
+        case '!':
+            return { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S };
+        default:
+            return null;
+    }
+};
+
+function processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier) {
     sem.predicates.forEach(pred => {
-        const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-        
-        const roles = {
-            '': { subject: localObject || S, object: L },
-            '?': { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO },
-            '!': { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S }
-        };
-        
-        const role = roles[pred.form];
-        if (role && role.subject && role.object) {
+        const role = determinePredicateRole(pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L);
+        if (role) {
+            const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
             emitQuad(state.quads, state.origin.quadIndex, block.id,
-                     role.subject, P, role.object, state.df, meta);
+                role.subject, P, role.object, state.df,
+                { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+            );
         }
     });
 }
 ```
-
-### 7.3 Object Resolution
-
-Objects come from:
-- **Link URLs**: `[text](url)` → `url`
-- **Image URLs**: `![alt](url)` → `url`  
-- **Explicit IRIs**: `{+iri}` → expanded IRI
-- **Soft fragments**: `{+#fragment}` → `currentSubjectBase#fragment`
 
 ---
 
@@ -388,8 +573,9 @@ Conformant MD-LD processors MUST:
 3. **Apply list context only to same indentation level**
 4. **Handle all three predicate forms correctly**
 5. **Provide origin tracking for round-trip serialization**
-6. **Recover gracefully from malformed annotations**
-7. **Expand IRIs using the current context**
+6. **Generate proper W3C RDF Collections for ordered lists**
+7. **Recover gracefully from malformed annotations**
+8. **Expand IRIs using the current context**
 
 Processors MAY:
 - Cache parsed semantic blocks for performance

@@ -187,7 +187,7 @@ ex:references schema:author <urn:person:alice> .
 ### List Context
 `{...}` immediately before list applies to **all items** at same indentation level.
 
-**Example:**
+**Unordered lists** (explicit subjects):
 ```md
 [@vocab] <http://www.w3.org/2000/01/rdf-schema#>
 
@@ -195,7 +195,15 @@ ex:references schema:author <urn:person:alice> .
 Team members: {?member .Person label}
 - Lead researcher {=prj:lead}
 - Data analyst {=prj:analyst}
-- Lab technician {=prj:tech}
+```
+
+**Ordered lists** (auto-generated `rdf:List`):
+```md
+## Status Values {=ex:statusValues}
+Status values: {?ex:in .ex:StatusType label}
+1. Active {=ex:Active}
+2. Pending {=ex:Pending}
+3. Inactive {=ex:Inactive}
 ```
 
 ### Nested Lists

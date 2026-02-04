@@ -94,6 +94,7 @@ From: `[text](url)`, `![alt](url)`, `{=IRI}`
 
 `{...}` before list applies to all items at same indentation.
 
+**Unordered lists** (explicit subjects):
 ```md
 [prj] <tag:project@example.com,2026-02-03:>
 [foaf] <http://xmlns.com/foaf/0.1/>
@@ -111,6 +112,15 @@ Team members: {?foaf:member .foaf:Person foaf:name}
 ```
 
 Nested lists = new scope, no inheritance.
+
+**Ordered lists** (auto-generated `rdf:List`):
+```md
+## Status Values {=ex:statusValues}
+Status values: {?ex:in .ex:StatusType label}
+1. Active {=ex:Active}
+2. Pending {=ex:Pending}
+3. Inactive {=ex:Inactive}
+```
 
 ## 12. Reverse Relations
 

@@ -1,5 +1,5 @@
 (* MD-LD EBNF Grammar (W3C/ISO 14977 compliant) *)
-(* Updated with improved list semantics and structural constructs *)
+(* Updated to match actual parser implementation *)
 (* Defines syntax of MD-LD annotations embedded in CommonMark Markdown *)
 
 (* 1. Lexical elements *)
@@ -24,7 +24,9 @@ attrsTokens   = attrsToken , { whitespace+ , attrsToken } ;
 (* 4. Attribute tokens *)
 attrsToken   = 
       subjectDecl
-    | objectDecl  
+    | fragmentDecl
+    | objectDecl
+    | objectFragmentDecl
     | typeDecl
     | predicate
     | reversePredicate
@@ -33,7 +35,9 @@ attrsToken   =
 
 (* 5. Subject and object declarations *)
 subjectDecl   = "=" , iriRef ;
+fragmentDecl  = "=#" , fragment ;
 objectDecl    = "+" , iriRef ;
+objectFragmentDecl = "+#" , fragment ;
 
 (* 6. Predicates *)
 predicate          = "?"? , iriRef ;
@@ -48,7 +52,7 @@ language      = "@" , langTag ;
 langTag       = letter , { letter | digit | "-" } ;
 
 (* 9. CURIEs and IRIs *)
-iriRef        = curie | iri ;
+iriRef        = curie | iri | fragment ;
 curie         = prefixName , ":" , reference ;
 reference     = ( letter | digit ) , { letter | digit | "-" | "_" | "." } ;
 iri           = scheme , ":" , hierPart , [ "?" , query ] , [ "#" , fragment ] ;
@@ -63,8 +67,8 @@ fragment      = reference ;
 (* 10.1 Inline carriers *)
 emphasisSpan   = "*" , text , "*" | "_" , text , "_" ;
 strongSpan     = "**" , text , "**" | "__" , text , "__" ;
-codeSpan       = "`" , text , "`" ;
-linkSpan       = "[" , text , "](" , text , ")" ;
+codeSpan       = "`" , text , "`" | "``" , text , "``" ;
+linkSpan       = "[" , text , "](" , text , ")" | "[" , text , "]" ;
 imageSpan      = "!" , "[" , text , "](" , text , ")" ;
 urlSpan        = "<" , iri , ">" ;
 
@@ -96,6 +100,7 @@ listItem =
 listMarker =
       "-"
     | "*"
+    | "+"
     | digit , { digit } , "." ;
 
 (* 11.3 List block *)
@@ -108,7 +113,11 @@ listBlock =
 nestedList =
     indent , listBlock ;
 
-(* 12. Annotation attachment *)
+(* 12. Standalone subject declarations *)
+standaloneSubject =
+    whitespace* , "{=" , ( iriRef | "#" , fragment ) , "}" , whitespace* ;
+
+(* 13. Annotation attachment *)
 annotation =
       inlineSpan , whitespace* , attrsBlock
     | heading , whitespace* , attrsBlock
@@ -116,9 +125,10 @@ annotation =
     | listItem
     | blockquote , whitespace* , attrsBlock
     | codeFence , whitespace* , attrsBlock
-    | urlSpan , whitespace* , attrsBlock ;
+    | urlSpan , whitespace* , attrsBlock
+    | standaloneSubject ;
 
-(* 13. Grammar guarantees (normative) *)
+(* 14. Grammar guarantees (normative) *)
 (* Attribute token order is semantically unordered *)
 (* Nested lists establish a new semantic scope *)
 (* No implicit inheritance across list levels *)

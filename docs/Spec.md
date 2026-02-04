@@ -670,31 +670,77 @@ tag:alice@example.com,2026:water a schema:Ingredient ;
 
 ### Ordered lists
 
-Ordered lists don't have specific annotation in MDLD, but they are technically feasible with explicit first-rest chained graph structure.
+MDLD provides convenient numbered list syntax that automatically generates W3C RDF Collections (`rdf:List`) with proper `rdf:first`/`rdf:rest` chains.
 
-In order to get this Turtle semantics:
-
-```turtle
-@prefix ex: <http://ex.com/> .
-
-ex:listTest sh:in (ex:A ex:B) .
-```
-
-We have to write this in MDLD as:
+#### Basic Syntax
 
 ```md
-[ex] <http://ex.com/>
+[ex] <http://example.org/>
 
-# Ordered list {=ex:listTest}
+## Status Values {=ex:statusValues}
+Status values: {?sh:in .ex:StatusType label}
+1. Active {=ex:Active}
+2. Pending {=ex:Pending}
+3. Inactive {=ex:Inactive}
+```
 
-First we need a list node: [head] {=ex:l1 ?sh:in .rdf:List}
-Then we can add first item with a soft object IRI: [a] {+ex:A ?rdf:first}
-Then we add a rest node (another list) with `=iri` so it is now current subject: [list2] {=ex:l2 ?rdf:rest}
-Now we can add another item to this node: [b] {+ex:B ?rdf:first}
-Finally we add a nil node (end of list): [nil] {+rdf:nil ?rdf:rest}
-And reset current subject to avoid accidental assignments to `ex:l2` which is still the current subject.
+#### Generated RDF Structure
+
+This generates the following RDF triples:
+
+```turtle
+# Subject declaration
+ex:statusValues rdf:type ex:StatusListType .
+ex:statusValues sh:in ex:statusValues#list-1-1 .
+
+# List structure (W3C RDF Collections)
+ex:statusValues#list-1-1 rdf:type rdf:List ;
+                         rdf:first ex:Active ;
+                         rdf:rest ex:statusValues#list-1-2 .
+
+ex:statusValues#list-1-2 rdf:type rdf:List ;
+                         rdf:first ex:Pending ;
+                         rdf:rest ex:statusValues#list-1-3 .
+
+ex:statusValues#list-1-3 rdf:type rdf:List ;
+                         rdf:first ex:Inactive ;
+                         rdf:rest rdf:nil .
+
+# List item annotations
+ex:Active rdf:type ex:StatusType ;
+          rdfs:label "Active" .
+
+ex:Pending rdf:type ex:StatusType ;
+           rdfs:label "Pending" .
+
+ex:Inactive rdf:type ex:StatusType ;
+            rdfs:label "Inactive" .
+```
+
+#### Key Features
+
+- **Automatic List Generation**: Numbered items (`1.`, `2.`, `3.`) create `rdf:List` structures
+- **List Anchor Annotations**: List items inherit context annotations (`.ex:StatusType`)
+- **W3C Compliant**: Follows RDF Collections specification exactly
+- **Context Preservation**: Maintains semantic relationships between list items
+
+#### Advanced Usage (Verbose Syntax)
+
+For complex scenarios, you can manually construct list structures using the verbose syntax:
+
+```md
+[ex] <http://example.org/>
+
+# Manual list construction
+[head] {=ex:l1 ?sh:in .rdf:List}
+[a] {+ex:A ?rdf:first}
+[list2] {=ex:l2 ?rdf:rest}
+[b] {+ex:B ?rdf:first}
+[nil] {+rdf:nil ?rdf:rest}
 {=}
 ```
+
+Use the numbered list syntax for convenience, and the verbose syntax for advanced use cases requiring manual control over list construction.
 
 ---
 
