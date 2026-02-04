@@ -14,7 +14,8 @@ const URL_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const FENCE_REGEX = /^(`{3,})(.*)/;
 const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
 const HEADING_REGEX = /^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
-const LIST_REGEX = /^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
+const UNORDERED_LIST_REGEX = /^(\s*)([-*+])\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
+const ORDERED_LIST_REGEX = /^(\s*)(\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
 const BLOCKQUOTE_REGEX = /^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
 const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
 const LIST_CONTEXT_REGEX = /^(.+?)\s*\{([^}]+)\}$/;
@@ -150,19 +151,36 @@ function scanTokens(text) {
             }
         },
         {
-            test: line => LIST_REGEX.test(line),
+            test: line => UNORDERED_LIST_REGEX.test(line),
             process: (line, lineStart, pos) => {
-                const match = LIST_REGEX.exec(line);
+                const match = UNORDERED_LIST_REGEX.exec(line);
                 const attrs = match[4] || null;
                 const prefix = match[1].length + match[2].length;
                 const wsLength = prefix < line.length && line[prefix] === ' ' ? 1 :
                     line.slice(prefix).match(/^\s+/)?.[0]?.length || 0;
                 const valueStartInLine = prefix + wsLength;
                 const valueEndInLine = valueStartInLine + match[3].length;
-                tokens.push(createToken('list', [lineStart, pos - 1], match[3].trim(), attrs,
+                tokens.push(createToken('unordered-list', [lineStart, pos - 1], match[3].trim(), attrs,
                     calcAttrsRange(line, attrs, lineStart),
                     calcValueRange(lineStart, valueStartInLine, valueEndInLine),
                     { indent: match[1].length }));
+                return true; // handled
+            }
+        },
+        {
+            test: line => ORDERED_LIST_REGEX.test(line),
+            process: (line, lineStart, pos) => {
+                const match = ORDERED_LIST_REGEX.exec(line);
+                const attrs = match[4] || null;
+                const prefix = match[1].length + match[2].length;
+                const wsLength = prefix < line.length && line[prefix] === ' ' ? 1 :
+                    line.slice(prefix).match(/^\s+/)?.[0]?.length || 0;
+                const valueStartInLine = prefix + wsLength;
+                const valueEndInLine = valueStartInLine + match[3].length;
+                tokens.push(createToken('ordered-list', [lineStart, pos - 1], match[3].trim(), attrs,
+                    calcAttrsRange(line, attrs, lineStart),
+                    calcValueRange(lineStart, valueStartInLine, valueEndInLine),
+                    { indent: match[1].length, number: parseInt(match[2]) }));
                 return true; // handled
             }
         },
@@ -718,6 +736,142 @@ function processListItem(token, state) {
     }
 }
 
+function processOrderedListItem(token, state) {
+    // Reset list-specific state for new ordered lists
+    if (!state.isProcessingOrderedList) {
+        state.listCounter = (state.listCounter || 0) + 1;
+        state.rdfListIndex = 0;
+        state.firstListNode = null;
+        state.previousListNode = null;
+        state.contextConnected = false;
+        state.isProcessingOrderedList = true;
+    }
+
+    // First, generate the RDF list triples
+    generateRdfListTriples(token, state);
+
+    // Then, connect context to the first list node (override processListItem behavior)
+    const listFrame = state.listStack[state.listStack.length - 1];
+
+    // Only connect context for the first ordered list item
+    if (listFrame?.contextSem && listFrame?.contextSubject && !state.contextConnected) {
+        // Use predicates directly from contextSem
+        listFrame.contextSem.predicates.forEach(pred => {
+            const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
+            if (pred.form === '?') {
+                // For the first ordered list item, connect context to the list node
+                const firstListNode = state.firstListNode;
+                if (firstListNode) {
+                    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-context',
+                        listFrame.contextSubject, // Use the NamedNode directly
+                        P,
+                        state.df.namedNode(firstListNode),
+                        state.df
+                    );
+                    // Mark that context has been connected to avoid duplicate connections
+                    state.contextConnected = true;
+                }
+            }
+        });
+    }
+}
+
+function generateRdfListTriples(token, state) {
+    const carriers = getCarriers(token);
+
+    // Initialize list counter if not exists
+    if (!state.listCounter) {
+        state.listCounter = 0;
+    }
+
+    // Generate list node name (list-N-M where N=list counter, M=item index)
+    const listIndex = (state.rdfListIndex || 0) + 1;
+    state.rdfListIndex = listIndex;
+    const listNodeName = `list-${state.listCounter}-${listIndex}`;
+
+    // Create the list node IRI using proper fragment-based IRI generation
+    // For ordered lists, use the list frame context subject, not global current subject
+    const listFrame = state.listStack[state.listStack.length - 1];
+    const contextSubject = listFrame?.contextSubject || state.currentSubject || state.documentSubject;
+    const baseIRI = contextSubject ? contextSubject.value : (state.ctx[''] || '');
+
+    // Handle existing fragments properly (avoid double fragments)
+    let listNodeIri;
+    if (baseIRI.includes('#')) {
+        // Remove existing fragment and add new one
+        const baseWithoutFragment = baseIRI.split('#')[0];
+        listNodeIri = `${baseWithoutFragment}#${listNodeName}`;
+    } else {
+        // Add fragment to base IRI
+        listNodeIri = `${baseIRI}#${listNodeName}`;
+    }
+
+    // Store the first list node for context connection
+    if (!state.firstListNode) {
+        state.firstListNode = listNodeIri;
+    }
+
+    // Add rdf:type rdf:List for the list node
+    state.quads.push(DataFactory.quad(
+        DataFactory.namedNode(listNodeIri),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#List')
+    ));
+
+    // Process the list item to get its value
+    const itemInfo = findItemSubject(token, carriers, state);
+    if (!itemInfo) {
+        // Fallback: use the text content as a literal
+        const literalValue = DataFactory.literal(token.text);
+        state.quads.push(DataFactory.quad(
+            DataFactory.namedNode(listNodeIri),
+            DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
+            literalValue
+        ));
+    } else {
+        const { subject: itemSubject, value: itemValue } = itemInfo;
+
+        // Add rdf:first for this list item
+        let firstObject;
+        if (itemValue) {
+            firstObject = itemValue;
+        } else if (itemSubject) {
+            firstObject = itemSubject;
+        } else {
+            // Fallback: use the text content as a literal
+            firstObject = DataFactory.literal(token.text);
+        }
+
+        state.quads.push(DataFactory.quad(
+            DataFactory.namedNode(listNodeIri),
+            DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
+            firstObject
+        ));
+    }
+
+    // Chain with previous list node if exists
+    if (state.previousListNode) {
+        // Update previous list node's rdf:rest to point to this node
+        const prevRestQuad = state.quads.find(q =>
+            q.subject.value === state.previousListNode &&
+            q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
+        );
+        if (prevRestQuad) {
+            prevRestQuad.object = DataFactory.namedNode(listNodeIri);
+        }
+    }
+
+    // Add rdf:rest pointing to nil (will be updated if more items follow)
+    state.quads.push(DataFactory.quad(
+        DataFactory.namedNode(listNodeIri),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#nil')
+    ));
+
+    // Store for potential chaining with next item
+    state.previousListNode = listNodeIri;
+}
+
 function processListContextFromParagraph(token, state) {
     const contextMatch = LIST_CONTEXT_REGEX.exec(token.text);
 
@@ -729,11 +883,29 @@ function processListContextFromParagraph(token, state) {
         // 2. For nested lists: use parent list item's subject
         let contextSubject = state.currentSubject || state.documentSubject;
 
+        // If no current subject, try to find it from previous tokens
+        if (!contextSubject && state.tokens) {
+            // Look backwards through tokens to find the most recent subject
+            for (let i = state.currentTokenIndex - 1; i >= 0; i--) {
+                const prevToken = state.tokens[i];
+                if (prevToken.type === 'heading' && prevToken.attrs) {
+                    const prevSem = parseSemCached(prevToken.attrs);
+                    if (prevSem.subject) {
+                        const resolvedSubject = resolveSubject(prevSem, state);
+                        if (resolvedSubject) {
+                            contextSubject = resolvedSubject.value;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         // Check if this is a nested list context by looking ahead
         const nextTokenIndex = state.currentTokenIndex + 1;
         const nextToken = state.tokens && state.tokens[nextTokenIndex];
 
-        if (state.listStack.length > 0 && nextToken && nextToken.type === 'list') {
+        if (state.listStack.length > 0 && nextToken && (nextToken.type === 'unordered-list' || nextToken.type === 'ordered-list')) {
             const currentFrame = state.listStack[state.listStack.length - 1];
             if (currentFrame.anchorSubject && nextToken.indent > currentFrame.indent) {
                 contextSubject = currentFrame.anchorSubject;
@@ -799,7 +971,14 @@ export function parse(text, options = {}) {
         listStack: [],
         pendingListContext: null,
         tokens: null, // Store tokens for lookahead
-        currentTokenIndex: -1 // Track current token index
+        currentTokenIndex: -1, // Track current token index
+        // Reset list-related state for fresh parsing
+        listCounter: 0,
+        rdfListIndex: 0,
+        firstListNode: null,
+        previousListNode: null,
+        contextConnected: false,
+        isProcessingOrderedList: false
     };
 
     state.tokens = scanTokens(text);
@@ -826,6 +1005,8 @@ export function parse(text, options = {}) {
 
         switch (token.type) {
             case 'heading':
+                // Reset ordered list processing when encountering new heading
+                state.isProcessingOrderedList = false;
                 // Update document subject when processing headings
                 if (token.attrs) {
                     const headingSem = parseSemCached(token.attrs);
@@ -839,23 +1020,38 @@ export function parse(text, options = {}) {
                 processTokenAnnotations(token, state, token.type);
                 break;
             case 'code':
+                // Reset ordered list processing when encountering code block
+                state.isProcessingOrderedList = false;
                 // Process annotations on the opening fence, but skip content processing
                 // This allows safe self-explaining of the format in documentation
                 processTokenAnnotations(token, state, token.type);
                 break;
             case 'blockquote':
+                // Reset ordered list processing when encountering blockquote
+                state.isProcessingOrderedList = false;
                 processTokenAnnotations(token, state, token.type);
                 break;
 
             case 'para':
+                // Reset ordered list processing when encountering paragraph (unless it's list context)
+                if (!token.text.includes('{?') && !token.text.includes('{!')) {
+                    state.isProcessingOrderedList = false;
+                }
                 processStandaloneSubject(token, state);
                 processListContextFromParagraph(token, state);
                 processTokenAnnotations(token, state, token.type);
                 break;
 
-            case 'list':
+            case 'unordered-list':
+                // Reset ordered list processing when encountering unordered list
+                state.isProcessingOrderedList = false;
                 manageListStack(token, state);
                 processListItem(token, state);
+                break;
+
+            case 'ordered-list':
+                manageListStack(token, state);
+                processOrderedListItem(token, state);
                 break;
         }
     }
