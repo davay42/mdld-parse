@@ -737,11 +737,11 @@ function processListItem(token, state) {
     }
 }
 
-function applyListAnchorAnnotations(itemSubject, contextSem, state, contextText) {
+function applyListAnchorAnnotations(itemSubject, contextSem, state, listItemText) {
     // Create a synthetic token for the list item to apply annotations
     const syntheticToken = {
         type: 'list-item',
-        text: contextText || '', // Use the context text for predicate values
+        text: listItemText || '', // Use the list item's own text for predicate values
         range: [0, 0],
         attrsRange: null,
         valueRange: null
@@ -786,11 +786,11 @@ function processOrderedListItem(token, state) {
         const itemInfo = findItemSubject(token, carriers, state);
 
         if (itemInfo?.subject) {
-            // Extract the context text from the list frame (text before the colon)
-            const contextText = listFrame.contextText || '';
+            // Use the list item's own text for predicate values (aligned with normal list behavior)
+            const listItemText = token.text;
 
             // Apply list anchor types and predicates to the actual list item
-            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, contextText);
+            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, listItemText);
         }
     }
 
