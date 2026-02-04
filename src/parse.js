@@ -620,9 +620,6 @@ const applyListAnchorAnnotations = (itemSubject, contextSem, state, listItemText
     // Use the context token's ranges for proper origin tracking
     const baseToken = contextToken || { range: [0, 0], attrsRange: [0, 0] };
 
-    // Find the annotation within the paragraph text
-    // The paragraph text is something like "Status values: {?sh:in .ex:Status label}"
-    // We need to find where "{?sh:in .ex:Status label}" starts
     const paragraphText = baseToken.text || '';
     const annotationMatch = paragraphText.match(/\{[^}]+\}/);
 
