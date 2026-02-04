@@ -636,7 +636,8 @@ function manageListStack(token, state) {
             indent: token.indent,
             anchorSubject: state.pendingListContext.subject,
             contextSubject: state.pendingListContext.subject,
-            contextSem: state.pendingListContext.sem
+            contextSem: state.pendingListContext.sem,
+            contextText: state.pendingListContext.contextText
         });
         state.pendingListContext = null;
     } else if (state.listStack.length === 0 || token.indent > state.listStack[state.listStack.length - 1].indent) {
@@ -736,6 +737,31 @@ function processListItem(token, state) {
     }
 }
 
+function applyListAnchorAnnotations(itemSubject, contextSem, state, contextText) {
+    // Create a synthetic token for the list item to apply annotations
+    const syntheticToken = {
+        type: 'list-item',
+        text: contextText || '', // Use the context text for predicate values
+        range: [0, 0],
+        attrsRange: null,
+        valueRange: null
+    };
+
+    // Apply list anchor types and predicates to the list item
+    // Filter out context predicates (? and ! forms) as they're used for list connection
+    const filteredSem = {
+        ...contextSem,
+        predicates: contextSem.predicates.filter(pred => pred.form !== '?' && pred.form !== '!'),
+        subject: null // Don't override the list item subject
+    };
+
+    // Use the existing processAnnotation function to apply the annotations
+    processAnnotation(syntheticToken, filteredSem, state, {
+        preserveGlobalSubject: false,
+        implicitSubject: itemSubject
+    });
+}
+
 function processOrderedListItem(token, state) {
     // Reset list-specific state for new ordered lists
     if (!state.isProcessingOrderedList) {
@@ -750,10 +776,25 @@ function processOrderedListItem(token, state) {
     // First, generate the RDF list triples
     generateRdfListTriples(token, state);
 
-    // Then, connect context to the first list node (override processListItem behavior)
+    // Get the current list frame and context
     const listFrame = state.listStack[state.listStack.length - 1];
 
-    // Only connect context for the first ordered list item
+    // Apply list anchor annotations to the rdf:first node (the actual list item)
+    if (listFrame?.contextSem) {
+        // Find the rdf:first node for this list item
+        const carriers = getCarriers(token);
+        const itemInfo = findItemSubject(token, carriers, state);
+
+        if (itemInfo?.subject) {
+            // Extract the context text from the list frame (text before the colon)
+            const contextText = listFrame.contextText || '';
+
+            // Apply list anchor types and predicates to the actual list item
+            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, contextText);
+        }
+    }
+
+    // Then, connect context to the first list node (override processListItem behavior)
     if (listFrame?.contextSem && listFrame?.contextSubject && !state.contextConnected) {
         // Use predicates directly from contextSem
         listFrame.contextSem.predicates.forEach(pred => {
@@ -914,7 +955,8 @@ function processListContextFromParagraph(token, state) {
 
         state.pendingListContext = {
             sem: contextSem,
-            subject: contextSubject
+            subject: contextSubject,
+            contextText: contextMatch[1].replace(':', '').trim() // Store the text before the annotation, remove colon
         };
     }
 }
