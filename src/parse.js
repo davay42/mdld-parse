@@ -9,7 +9,6 @@ import {
     hash
 } from './utils.js';
 
-// Constants and patterns
 const URL_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const FENCE_REGEX = /^(`{3,})(.*)/;
 const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
@@ -19,14 +18,11 @@ const ORDERED_LIST_REGEX = /^(\s*)(\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
 const BLOCKQUOTE_REGEX = /^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
 const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
 const LIST_CONTEXT_REGEX = /^(.+?)\s*\{([^}]+)\}$/;
-
-// Inline carrier pattern constants
 const INLINE_CARRIER_PATTERNS = {
     EMPHASIS: /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y,
     CODE_SPAN: /``(.+?)``\s*\{([^}]+)\}/y
 };
 
-// Semantic block cache to avoid repeated parsing
 const semCache = {};
 const EMPTY_SEM = Object.freeze({ predicates: [], types: [], subject: null });
 
@@ -40,38 +36,43 @@ function parseSemCached(attrs) {
     return sem;
 }
 
+function calcRangeInfo(line, attrs, lineStart, prefixLength, valueLength) {
+    const wsLength = prefixLength < line.length && line[prefixLength] === ' ' ? 1 :
+        line.slice(prefixLength).match(/^\s+/)?.[0]?.length || 0;
+    const valueStartInLine = prefixLength + wsLength;
+    return {
+        valueRange: [lineStart + valueStartInLine, lineStart + valueStartInLine + valueLength],
+        attrsRange: calcAttrsRange(line, attrs, lineStart)
+    };
+}
+
 function calcAttrsRange(line, attrs, lineStart) {
     if (!attrs) return null;
     const attrsStartInLine = line.lastIndexOf(attrs);
     return attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrs.length] : null;
 }
 
-function calcValueRange(lineStart, valueStartInLine, valueEndInLine) {
-    return [lineStart + valueStartInLine, lineStart + valueEndInLine];
-}
-
 function createToken(type, range, text, attrs = null, attrsRange = null, valueRange = null, extra = {}) {
     const token = { type, range, text, attrs, attrsRange, valueRange, ...extra };
-    // Add lazy carrier caching
     Object.defineProperty(token, '_carriers', {
-        enumerable: false,
-        writable: true,
-        value: null
+        enumerable: false, writable: true, value: null
     });
     return token;
 }
 
 function getCarriers(token) {
-    // Skip inline carrier extraction for code blocks to allow safe self-documentation
-    if (token.type === 'code') {
-        return [];
-    }
-
-    if (!token._carriers) {
-        token._carriers = extractInlineCarriers(token.text, token.range[0]);
-    }
-    return token._carriers;
+    if (token.type === 'code') return [];
+    return token._carriers || (token._carriers = extractInlineCarriers(token.text, token.range[0]));
 }
+
+const createListToken = (type, line, lineStart, pos, match, indent = null) => {
+    const attrs = match[4] || null;
+    const prefix = match[1].length + (match[2] ? match[2].length : 0);
+    const rangeInfo = calcRangeInfo(line, attrs, lineStart, prefix, match[3].length);
+    const extra = indent !== null ? { indent } : { indent: match[1].length, number: parseInt(match[2]) };
+    return createToken(type, [lineStart, pos - 1], match[3].trim(), attrs,
+        rangeInfo.attrsRange, rangeInfo.valueRange, extra);
+};
 
 function scanTokens(text) {
     const tokens = [];
@@ -79,7 +80,6 @@ function scanTokens(text) {
     let pos = 0;
     let codeBlock = null;
 
-    // Token processors in order of priority
     const processors = [
         {
             test: line => line.startsWith('```'),
@@ -115,14 +115,14 @@ function scanTokens(text) {
                     });
                     codeBlock = null;
                 }
-                return true; // handled
+                return true;
             }
         },
         {
             test: () => codeBlock,
             process: line => {
                 codeBlock.content.push(line);
-                return true; // handled
+                return true;
             }
         },
         {
@@ -130,7 +130,7 @@ function scanTokens(text) {
             process: (line, lineStart, pos) => {
                 const match = PREFIX_REGEX.exec(line);
                 tokens.push({ type: 'prefix', prefix: match[1], iri: match[2].trim() });
-                return true; // handled
+                return true;
             }
         },
         {
@@ -139,49 +139,26 @@ function scanTokens(text) {
                 const match = HEADING_REGEX.exec(line);
                 const attrs = match[3] || null;
                 const afterHashes = match[1].length;
-                const wsLength = afterHashes < line.length && line[afterHashes] === ' ' ? 1 :
-                    line.slice(afterHashes).match(/^\s+/)?.[0]?.length || 0;
-                const valueStartInLine = afterHashes + wsLength;
-                const valueEndInLine = valueStartInLine + match[2].length;
+                const rangeInfo = calcRangeInfo(line, attrs, lineStart, afterHashes, match[2].length);
                 tokens.push(createToken('heading', [lineStart, pos - 1], match[2].trim(), attrs,
-                    calcAttrsRange(line, attrs, lineStart),
-                    calcValueRange(lineStart, valueStartInLine, valueEndInLine),
-                    { depth: match[1].length }));
-                return true; // handled
+                    rangeInfo.attrsRange, rangeInfo.valueRange, { depth: match[1].length }));
+                return true;
             }
         },
         {
             test: line => UNORDERED_LIST_REGEX.test(line),
             process: (line, lineStart, pos) => {
                 const match = UNORDERED_LIST_REGEX.exec(line);
-                const attrs = match[4] || null;
-                const prefix = match[1].length + match[2].length;
-                const wsLength = prefix < line.length && line[prefix] === ' ' ? 1 :
-                    line.slice(prefix).match(/^\s+/)?.[0]?.length || 0;
-                const valueStartInLine = prefix + wsLength;
-                const valueEndInLine = valueStartInLine + match[3].length;
-                tokens.push(createToken('unordered-list', [lineStart, pos - 1], match[3].trim(), attrs,
-                    calcAttrsRange(line, attrs, lineStart),
-                    calcValueRange(lineStart, valueStartInLine, valueEndInLine),
-                    { indent: match[1].length }));
-                return true; // handled
+                tokens.push(createListToken('unordered-list', line, lineStart, pos, match, match[1].length));
+                return true;
             }
         },
         {
             test: line => ORDERED_LIST_REGEX.test(line),
             process: (line, lineStart, pos) => {
                 const match = ORDERED_LIST_REGEX.exec(line);
-                const attrs = match[4] || null;
-                const prefix = match[1].length + match[2].length;
-                const wsLength = prefix < line.length && line[prefix] === ' ' ? 1 :
-                    line.slice(prefix).match(/^\s+/)?.[0]?.length || 0;
-                const valueStartInLine = prefix + wsLength;
-                const valueEndInLine = valueStartInLine + match[3].length;
-                tokens.push(createToken('ordered-list', [lineStart, pos - 1], match[3].trim(), attrs,
-                    calcAttrsRange(line, attrs, lineStart),
-                    calcValueRange(lineStart, valueStartInLine, valueEndInLine),
-                    { indent: match[1].length, number: parseInt(match[2]) }));
-                return true; // handled
+                tokens.push(createListToken('ordered-list', line, lineStart, pos, match));
+                return true;
             }
         },
         {
@@ -193,15 +170,15 @@ function scanTokens(text) {
                 const valueEndInLine = valueStartInLine + match[1].length;
                 tokens.push(createToken('blockquote', [lineStart, pos - 1], match[1].trim(), attrs,
                     calcAttrsRange(line, attrs, lineStart),
-                    calcValueRange(lineStart, valueStartInLine, valueEndInLine)));
-                return true; // handled
+                    [lineStart + valueStartInLine, lineStart + valueEndInLine]));
+                return true;
             }
         },
         {
             test: line => line.trim(),
             process: (line, lineStart, pos) => {
                 tokens.push(createToken('para', [lineStart, pos - 1], line.trim()));
-                return true; // handled
+                return true;
             }
         }
     ];
@@ -214,7 +191,7 @@ function scanTokens(text) {
         // Try each processor until one handles the line
         for (const processor of processors) {
             if (processor.test(line) && processor.process(line, lineStart, pos)) {
-                break; // line handled, move to next line
+                break;
             }
         }
     }
@@ -230,44 +207,35 @@ function extractInlineCarriers(text, baseOffset = 0) {
     const carriers = [];
     let pos = 0;
 
-    // Unified carrier extractor with pattern-based handlers
-    const extractCarrier = (text, pos, baseOffset) => {
-        // Angle-bracket URLs: <URL>{...}
-        if (text[pos] === '<') {
+    const CARRIER_EXTRACTORS = {
+        '<': (text, pos, baseOffset) => {
             const angleEnd = text.indexOf('>', pos);
-            if (angleEnd !== -1) {
-                const url = text.slice(pos + 1, angleEnd);
-                if (URL_REGEX.test(url)) {
-                    const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, angleEnd + 1, baseOffset);
-                    return createCarrier('link', url, attrs, attrsRange,
-                        [baseOffset + pos + 1, baseOffset + angleEnd],
-                        [baseOffset + pos, baseOffset + finalSpanEnd],
-                        finalSpanEnd, { url });
-                }
-            }
-            return null;
-        }
-
-        // Bracketed links: [text](URL){...} and [text]{...}
-        if (text[pos] === '[') {
+            if (angleEnd === -1) return null;
+            const url = text.slice(pos + 1, angleEnd);
+            if (!URL_REGEX.test(url)) return null;
+            const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, angleEnd + 1, baseOffset);
+            return createCarrier('link', url, attrs, attrsRange,
+                [baseOffset + pos + 1, baseOffset + angleEnd],
+                [baseOffset + pos, baseOffset + finalSpanEnd], finalSpanEnd, { url });
+        },
+        '[': (text, pos, baseOffset) => {
             const bracketEnd = findMatchingBracket(text, pos);
-            if (bracketEnd) {
-                const carrierText = text.slice(pos + 1, bracketEnd - 1);
-                const { url, spanEnd } = extractUrlFromBrackets(text, bracketEnd);
-                const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, spanEnd, baseOffset);
-                const { carrierType, resourceIRI } = determineCarrierType(url);
-
-                if (url?.startsWith('=')) return { skip: true, pos: finalSpanEnd };
-
-                return createCarrier(carrierType, carrierText, attrs, attrsRange,
-                    [baseOffset + pos + 1, baseOffset + bracketEnd - 1],
-                    [baseOffset + pos, baseOffset + finalSpanEnd],
-                    finalSpanEnd, { url: resourceIRI });
-            }
-            return null;
+            if (!bracketEnd) return null;
+            const carrierText = text.slice(pos + 1, bracketEnd - 1);
+            const { url, spanEnd } = extractUrlFromBrackets(text, bracketEnd);
+            const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, spanEnd, baseOffset);
+            const { carrierType, resourceIRI } = determineCarrierType(url);
+            if (url?.startsWith('=')) return { skip: true, pos: finalSpanEnd };
+            return createCarrier(carrierType, carrierText, attrs, attrsRange,
+                [baseOffset + pos + 1, baseOffset + bracketEnd - 1],
+                [baseOffset + pos, baseOffset + finalSpanEnd], finalSpanEnd, { url: resourceIRI });
         }
+    };
 
-        // Regex-based carriers: emphasis and code spans
+    const extractCarrier = (text, pos, baseOffset) => {
+        const extractor = CARRIER_EXTRACTORS[text[pos]];
+        if (extractor) return extractor(text, pos, baseOffset);
+
         for (const [type, pattern] of Object.entries(INLINE_CARRIER_PATTERNS)) {
             pattern.lastIndex = pos;
             const match = pattern.exec(text);
@@ -278,7 +246,6 @@ function extractInlineCarriers(text, baseOffset = 0) {
                     ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
             }
         }
-
         return null;
     };
 
@@ -375,14 +342,9 @@ function createBlock(subject, types, predicates, entries, range, attrsRange, val
         predicates: predicates.map(p => ({ iri: expandIRI(p.iri, ctx), form: p.form }))
     };
 
-    const signature = [
-        subject,
-        carrierType || 'unknown',
-        expanded.types.join(','),
-        expanded.predicates.map(p => `${p.form}${p.iri}`).join(',')
-    ].join('|');
-
+    const signature = [subject, carrierType || 'unknown', expanded.types.join(','), expanded.predicates.map(p => `${p.form}${p.iri}`).join(',')].join('|');
     const blockId = hash(signature);
+
     return {
         id: blockId,
         range: { start: range[0], end: range[1] },
@@ -409,93 +371,75 @@ function emitQuad(quads, quadIndex, blockId, subject, predicate, object, dataFac
 
     quadIndex.set(quadIndexKey(quad.subject, quad.predicate, quad.object), slotInfo);
 }
+const resolveFragment = (fragment, state) => {
+    if (!state.currentSubject) return null;
+    const baseIRI = state.currentSubject.value.split('#')[0];
+    return state.df.namedNode(`${baseIRI}#${fragment}`);
+};
+
 function resolveSubject(sem, state) {
     if (!sem.subject) return null;
     if (sem.subject === 'RESET') {
         state.currentSubject = null;
         return null;
     }
-    if (sem.subject.startsWith('=#')) {
-        const fragment = sem.subject.substring(2);
-        if (state.currentSubject) {
-            const baseIRI = state.currentSubject.value.split('#')[0];
-            return state.df.namedNode(`${baseIRI}#${fragment}`);
-        }
-        return null;
-    }
+    if (sem.subject.startsWith('=#')) return resolveFragment(sem.subject.substring(2), state);
     return state.df.namedNode(expandIRI(sem.subject, state.ctx));
 }
 
 function resolveObject(sem, state) {
     if (!sem.object) return null;
-    if (sem.object.startsWith('#')) {
-        const fragment = sem.object.substring(1);
-        if (state.currentSubject) {
-            const baseIRI = state.currentSubject.value.split('#')[0];
-            return state.df.namedNode(`${baseIRI}#${fragment}`);
-        }
-        return null;
-    }
+    if (sem.object.startsWith('#')) return resolveFragment(sem.object.substring(1), state);
     return state.df.namedNode(expandIRI(sem.object, state.ctx));
 }
+
+const createTypeQuad = (typeIRI, subject, state, blockId, entryIndex = null) => {
+    const expandedType = expandIRI(typeIRI, state.ctx);
+    emitQuad(
+        state.quads, state.origin.quadIndex, blockId,
+        subject,
+        state.df.namedNode(expandIRI('rdf:type', state.ctx)),
+        state.df.namedNode(expandedType),
+        state.df,
+        { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex }
+    );
+};
 
 function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier) {
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
         const entryIndex = typeof t === 'string' ? null : t.entryIndex;
-
-        // For angle-bracket URLs and bracketed links [text](URL), use the URL as the subject 
-        // for type declarations when there's no explicit subject declaration.
-        // This implements {+URL} soft subject behavior.
         let typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
         if (carrier?.type === 'link' && carrier?.url && !newSubject) {
-            typeSubject = carrierO; // Use URL as subject for type declarations
+            typeSubject = carrierO;
         }
-
-        const expandedType = expandIRI(typeIRI, state.ctx);
-
-        emitQuad(
-            state.quads, state.origin.quadIndex, block.id,
-            typeSubject,
-            state.df.namedNode(expandIRI('rdf:type', state.ctx)),
-            state.df.namedNode(expandedType),
-            state.df,
-            { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex }
-        );
+        createTypeQuad(typeIRI, typeSubject, state, block.id, entryIndex);
     });
 }
 
+const determinePredicateRole = (pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L) => {
+    if (pred.form === '' && carrier?.type === 'link' && carrier?.url && carrier.text === carrier.url) {
+        return null;
+    }
+    switch (pred.form) {
+        case '':
+            return carrier?.type === 'link' && carrier?.url && carrier.text !== carrier.url && !newSubject
+                ? { subject: newSubjectOrCarrierO, object: L }
+                : { subject: localObject || S, object: L };
+        case '?':
+            return { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO };
+        case '!':
+            return { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S };
+        default:
+            return null;
+    }
+};
+
 function processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier) {
     sem.predicates.forEach(pred => {
-        const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-
-        // Skip literal predicates for angle-bracket URLs only
-        if (pred.form === '' && carrier?.type === 'link' && carrier?.url && carrier.text === carrier.url) {
-            return;
-        }
-
-        // Determine subject/object roles based on predicate form
-        let role;
-        switch (pred.form) {
-            case '':
-                // For bracketed links with literal predicates and no explicit subject, use URL as subject
-                if (carrier?.type === 'link' && carrier?.url && carrier.text !== carrier.url && !newSubject) {
-                    role = { subject: newSubjectOrCarrierO, object: L };
-                } else {
-                    role = { subject: localObject || S, object: L };
-                }
-                break;
-            case '?':
-                role = { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO };
-                break;
-            case '!':
-                role = { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S };
-                break;
-            default:
-                role = null;
-        }
-
+        const role = determinePredicateRole(pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L);
         if (role) {
+            const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
             emitQuad(state.quads, state.origin.quadIndex, block.id,
                 role.subject, P, role.object, state.df,
                 { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
@@ -516,7 +460,6 @@ function processAnnotation(carrier, sem, state, options = {}) {
     const newSubject = resolveSubject(sem, state);
     const localObject = resolveObject(sem, state);
 
-    // Use implicit subject if provided (for list items)
     const effectiveSubject = implicitSubject || (newSubject && !preserveGlobalSubject ? newSubject : previousSubject);
     if (newSubject && !preserveGlobalSubject && !implicitSubject) {
         state.currentSubject = newSubject;
@@ -565,7 +508,6 @@ export function findItemSubject(listToken, carriers, state) {
 }
 
 function hasOwnPredicates(listToken, carriers) {
-    // Check for explicit predicates (excluding subject declarations)
     if (listToken.attrs) {
         const attrs = parseSemCached(listToken.attrs);
         if (attrs.predicates.some(p => !p.subject && p.iri !== 'RESET')) {
@@ -578,9 +520,7 @@ function hasOwnPredicates(listToken, carriers) {
     });
 }
 
-// Unified list context processing
-function processContextSem({ sem, itemSubject, contextSubject, inheritLiterals = false, state, blockId = 'list-context' }) {
-    // Emit types
+const processContextSem = ({ sem, itemSubject, contextSubject, inheritLiterals = false, state, blockId = 'list-context' }) => {
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
         emitQuad(
@@ -592,7 +532,6 @@ function processContextSem({ sem, itemSubject, contextSubject, inheritLiterals =
         );
     });
 
-    // Emit directional predicates
     sem.predicates.forEach(pred => {
         const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
         if (pred.form === '!') {
@@ -602,35 +541,24 @@ function processContextSem({ sem, itemSubject, contextSubject, inheritLiterals =
         }
     });
 
-    // Optionally inherit literal predicates
     if (inheritLiterals) {
         const literalPredicates = sem.predicates.filter(p => p.form === '');
         if (literalPredicates.length > 0) {
             return {
-                subject: null,
-                object: null,
-                types: [],
+                subject: null, object: null, types: [],
                 predicates: literalPredicates.map(p => ({ iri: p.iri, form: p.form, entryIndex: p.entryIndex })),
-                datatype: null,
-                language: null,
-                entries: []
+                datatype: null, language: null, entries: []
             };
         }
     }
     return null;
-}
+};
 
-// List stack management functions
-function manageListStack(token, state) {
-    // Pop stack frames for lists that have ended (strictly less indent)
-    while (
-        state.listStack.length &&
-        token.indent < state.listStack[state.listStack.length - 1].indent
-    ) {
+const manageListStack = (token, state) => {
+    while (state.listStack.length && token.indent < state.listStack[state.listStack.length - 1].indent) {
         state.listStack.pop();
     }
 
-    // If we have pending context, always create a new frame for it
     if (state.pendingListContext) {
         state.listStack.push({
             indent: token.indent,
@@ -641,8 +569,6 @@ function manageListStack(token, state) {
         });
         state.pendingListContext = null;
     } else if (state.listStack.length === 0 || token.indent > state.listStack[state.listStack.length - 1].indent) {
-        // Push empty frame for nested lists without explicit context
-        // Inherit anchorSubject from parent frame if available
         const parentFrame = state.listStack.length > 0 ? state.listStack[state.listStack.length - 1] : null;
         state.listStack.push({
             indent: token.indent,
@@ -651,100 +577,55 @@ function manageListStack(token, state) {
             contextSem: null
         });
     }
-    // If token.indent == current frame indent and no pending context, we're at same level - do nothing
-}
+};
 
-function processListItem(token, state) {
+const combineSemanticInfo = (token, carriers, listFrame, state, itemSubject) => {
+    const combinedSem = { subject: null, object: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
+    const addSem = (sem) => { combinedSem.types.push(...sem.types); combinedSem.predicates.push(...sem.predicates); combinedSem.entries.push(...sem.entries); };
+
+    if (listFrame?.contextSem) {
+        const inheritedSem = processContextSem({ sem: listFrame.contextSem, itemSubject, contextSubject: listFrame.contextSubject, inheritLiterals: true, state });
+        if (inheritedSem) addSem(inheritedSem);
+    }
+
+    if (token.attrs) addSem(parseSemCached(token.attrs));
+    carriers.forEach(carrier => { if (carrier.attrs) addSem(parseSemCached(carrier.attrs)); });
+
+    return combinedSem;
+};
+
+const processListItem = (token, state) => {
     const carriers = getCarriers(token);
-
-    // Find item subject from list token or inline carriers
     const itemInfo = findItemSubject(token, carriers, state);
     if (!itemInfo) return;
 
     const { subject: itemSubject } = itemInfo;
-
-    // Update the current list frame to track this item's subject for nested contexts
-    if (state.listStack.length > 0) {
-        const currentFrame = state.listStack[state.listStack.length - 1];
-        currentFrame.anchorSubject = itemSubject;
-    }
+    if (state.listStack.length > 0) state.listStack[state.listStack.length - 1].anchorSubject = itemSubject;
 
     const listFrame = state.listStack[state.listStack.length - 1];
+    const combinedSem = combineSemanticInfo(token, carriers, listFrame, state, itemSubject);
 
-    // Collect all semantic information for this list item
-    let combinedSem = {
-        subject: null,
-        object: null,
-        types: [],
-        predicates: [],
-        datatype: null,
-        language: null,
-        entries: []
-    };
-
-    // Apply list context if available - inherit everything
-    if (listFrame?.contextSem) {
-        const inheritedSem = processContextSem({
-            sem: listFrame.contextSem,
-            itemSubject,
-            contextSubject: listFrame.contextSubject,
-            inheritLiterals: true,
-            state
-        });
-
-        if (inheritedSem) {
-            combinedSem.types.push(...inheritedSem.types);
-            combinedSem.predicates.push(...inheritedSem.predicates);
-            combinedSem.entries.push(...inheritedSem.entries);
-        }
-    }
-
-    // Add item's own annotations
-    if (token.attrs) {
-        const sem = parseSemCached(token.attrs);
-        combinedSem.types.push(...sem.types);
-        combinedSem.predicates.push(...sem.predicates);
-        combinedSem.entries.push(...sem.entries);
-    }
-
-    // Add inline carriers' annotations
-    carriers.forEach(carrier => {
-        if (carrier.attrs) {
-            const sem = parseSemCached(carrier.attrs);
-            combinedSem.types.push(...sem.types);
-            combinedSem.predicates.push(...sem.predicates);
-            combinedSem.entries.push(...sem.entries);
-        }
-    });
-
-    // Only create a block if we have semantic information
     if (combinedSem.entries.length > 0) {
         const prevSubject = state.currentSubject;
         state.currentSubject = itemSubject;
 
-        processAnnotation({
-            type: 'list',
-            text: token.text,
-            range: token.range,
-            attrsRange: token.attrsRange || null,
-            valueRange: token.valueRange || null
-        }, combinedSem, state, {
-            preserveGlobalSubject: !state.listStack.length,
-            implicitSubject: itemSubject
-        });
+        processAnnotation({ type: 'list', text: token.text, range: token.range, attrsRange: token.attrsRange || null, valueRange: token.valueRange || null }, combinedSem, state, { preserveGlobalSubject: !state.listStack.length, implicitSubject: itemSubject });
 
         state.currentSubject = prevSubject;
     }
-}
+};
 
-function applyListAnchorAnnotations(itemSubject, contextSem, state, listItemText) {
+const applyListAnchorAnnotations = (itemSubject, contextSem, state, listItemText, contextToken) => {
+    // Use the context token's ranges for proper origin tracking
+    const baseToken = contextToken || { range: [0, 0], attrsRange: [0, 0] };
+
     // Create a synthetic token for the list item to apply annotations
     const syntheticToken = {
         type: 'list-item',
         text: listItemText || '', // Use the list item's own text for predicate values
-        range: [0, 0],
-        attrsRange: null,
-        valueRange: null
+        range: baseToken.range,
+        attrsRange: baseToken.attrsRange,
+        valueRange: baseToken.valueRange
     };
 
     // Apply list anchor types and predicates to the list item
@@ -763,7 +644,6 @@ function applyListAnchorAnnotations(itemSubject, contextSem, state, listItemText
 }
 
 function processOrderedListItem(token, state) {
-    // Reset list-specific state for new ordered lists
     if (!state.isProcessingOrderedList) {
         state.listCounter = (state.listCounter || 0) + 1;
         state.rdfListIndex = 0;
@@ -773,43 +653,25 @@ function processOrderedListItem(token, state) {
         state.isProcessingOrderedList = true;
     }
 
-    // First, generate the RDF list triples
     generateRdfListTriples(token, state);
 
-    // Get the current list frame and context
     const listFrame = state.listStack[state.listStack.length - 1];
-
-    // Apply list anchor annotations to the rdf:first node (the actual list item)
     if (listFrame?.contextSem) {
-        // Find the rdf:first node for this list item
         const carriers = getCarriers(token);
         const itemInfo = findItemSubject(token, carriers, state);
-
         if (itemInfo?.subject) {
-            // Use the list item's own text for predicate values (aligned with normal list behavior)
-            const listItemText = token.text;
-
-            // Apply list anchor types and predicates to the actual list item
-            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, listItemText);
+            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, token.text);
         }
     }
 
-    // Then, connect context to the first list node (override processListItem behavior)
     if (listFrame?.contextSem && listFrame?.contextSubject && !state.contextConnected) {
-        // Use predicates directly from contextSem
         listFrame.contextSem.predicates.forEach(pred => {
-            const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
             if (pred.form === '?') {
-                // For the first ordered list item, connect context to the list node
+                const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
                 const firstListNode = state.firstListNode;
                 if (firstListNode) {
                     emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-context',
-                        listFrame.contextSubject, // Use the NamedNode directly
-                        P,
-                        state.df.namedNode(firstListNode),
-                        state.df
-                    );
-                    // Mark that context has been connected to avoid duplicate connections
+                        listFrame.contextSubject, P, state.df.namedNode(firstListNode), state.df);
                     state.contextConnected = true;
                 }
             }
@@ -819,165 +681,139 @@ function processOrderedListItem(token, state) {
 
 function generateRdfListTriples(token, state) {
     const carriers = getCarriers(token);
-
-    // Initialize list counter if not exists
-    if (!state.listCounter) {
-        state.listCounter = 0;
-    }
-
-    // Generate list node name (list-N-M where N=list counter, M=item index)
     const listIndex = (state.rdfListIndex || 0) + 1;
     state.rdfListIndex = listIndex;
     const listNodeName = `list-${state.listCounter}-${listIndex}`;
 
-    // Create the list node IRI using proper fragment-based IRI generation
-    // For ordered lists, use the list frame context subject, not global current subject
     const listFrame = state.listStack[state.listStack.length - 1];
     const contextSubject = listFrame?.contextSubject || state.currentSubject || state.documentSubject;
     const baseIRI = contextSubject ? contextSubject.value : (state.ctx[''] || '');
 
-    // Handle existing fragments properly (avoid double fragments)
-    let listNodeIri;
-    if (baseIRI.includes('#')) {
-        // Remove existing fragment and add new one
-        const baseWithoutFragment = baseIRI.split('#')[0];
-        listNodeIri = `${baseWithoutFragment}#${listNodeName}`;
-    } else {
-        // Add fragment to base IRI
-        listNodeIri = `${baseIRI}#${listNodeName}`;
-    }
+    const listNodeIri = baseIRI.includes('#')
+        ? `${baseIRI.split('#')[0]}#${listNodeName}`
+        : `${baseIRI}#${listNodeName}`;
 
-    // Store the first list node for context connection
-    if (!state.firstListNode) {
-        state.firstListNode = listNodeIri;
-    }
+    if (!state.firstListNode) state.firstListNode = listNodeIri;
 
-    // Add rdf:type rdf:List for the list node
-    state.quads.push(DataFactory.quad(
+    // Emit rdf:type triple with origin tracking
+    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-type',
         DataFactory.namedNode(listNodeIri),
         DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#List')
-    ));
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#List'),
+        DataFactory,
+        { type: 'ordered-list', range: token.valueRange || token.range, listNodeName }
+    );
 
-    // Process the list item to get its value
     const itemInfo = findItemSubject(token, carriers, state);
-    if (!itemInfo) {
-        // Fallback: use the text content as a literal
-        const literalValue = DataFactory.literal(token.text);
-        state.quads.push(DataFactory.quad(
-            DataFactory.namedNode(listNodeIri),
-            DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
-            literalValue
-        ));
+    let firstObject;
+    if (itemInfo?.value) {
+        firstObject = itemInfo.value;
+    } else if (itemInfo?.subject) {
+        firstObject = itemInfo.subject;
     } else {
-        const { subject: itemSubject, value: itemValue } = itemInfo;
-
-        // Add rdf:first for this list item
-        let firstObject;
-        if (itemValue) {
-            firstObject = itemValue;
-        } else if (itemSubject) {
-            firstObject = itemSubject;
-        } else {
-            // Fallback: use the text content as a literal
-            firstObject = DataFactory.literal(token.text);
-        }
-
-        state.quads.push(DataFactory.quad(
-            DataFactory.namedNode(listNodeIri),
-            DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
-            firstObject
-        ));
+        firstObject = DataFactory.literal(token.text);
     }
 
-    // Chain with previous list node if exists
+    // Determine the appropriate range based on object type
+    let originRange;
+    if (itemInfo?.subject) {
+        // For IRIs, target the annotation range
+        originRange = token.attrsRange || token.valueRange || token.range;
+    } else {
+        // For literals, target the value range
+        originRange = token.valueRange || token.range;
+    }
+
+    // Emit rdf:first triple with origin tracking
+    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-first',
+        DataFactory.namedNode(listNodeIri),
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
+        firstObject,
+        DataFactory,
+        { type: 'ordered-list', range: originRange, listNodeName }
+    );
+
     if (state.previousListNode) {
-        // Update previous list node's rdf:rest to point to this node
-        const prevRestQuad = state.quads.find(q =>
+        // Find and remove the previous rdf:rest -> rdf:nil quad, then emit a new one
+        const prevRestQuadIndex = state.quads.findIndex(q =>
             q.subject.value === state.previousListNode &&
             q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
         );
-        if (prevRestQuad) {
-            prevRestQuad.object = DataFactory.namedNode(listNodeIri);
+        if (prevRestQuadIndex !== -1) {
+            // Remove the old quad
+            state.quads.splice(prevRestQuadIndex, 1);
+
+            // Emit new rdf:rest quad with proper origin tracking
+            emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-rest-update',
+                DataFactory.namedNode(state.previousListNode),
+                DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'),
+                DataFactory.namedNode(listNodeIri),
+                DataFactory,
+                { type: 'ordered-list', range: token.valueRange || token.range, listNodeName: state.previousListNode }
+            );
         }
     }
 
-    // Add rdf:rest pointing to nil (will be updated if more items follow)
-    state.quads.push(DataFactory.quad(
+    // Emit rdf:rest triple with origin tracking
+    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-rest',
         DataFactory.namedNode(listNodeIri),
         DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'),
-        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#nil')
-    ));
+        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#nil'),
+        DataFactory,
+        { type: 'ordered-list', range: token.valueRange || token.range, listNodeName }
+    );
 
-    // Store for potential chaining with next item
     state.previousListNode = listNodeIri;
 }
 
 function processListContextFromParagraph(token, state) {
     const contextMatch = LIST_CONTEXT_REGEX.exec(token.text);
+    if (!contextMatch) return;
 
-    if (contextMatch) {
-        const contextSem = parseSemCached(`{${contextMatch[2]}}`);
+    const contextSem = parseSemCached(`{${contextMatch[2]}}`);
+    let contextSubject = state.currentSubject || state.documentSubject;
 
-        // Context subject resolution:
-        // 1. For top-level lists: use current subject or document subject
-        // 2. For nested lists: use parent list item's subject
-        let contextSubject = state.currentSubject || state.documentSubject;
-
-        // If no current subject, try to find it from previous tokens
-        if (!contextSubject && state.tokens) {
-            // Look backwards through tokens to find the most recent subject
-            for (let i = state.currentTokenIndex - 1; i >= 0; i--) {
-                const prevToken = state.tokens[i];
-                if (prevToken.type === 'heading' && prevToken.attrs) {
-                    const prevSem = parseSemCached(prevToken.attrs);
-                    if (prevSem.subject) {
-                        const resolvedSubject = resolveSubject(prevSem, state);
-                        if (resolvedSubject) {
-                            contextSubject = resolvedSubject.value;
-                            break;
-                        }
+    if (!contextSubject && state.tokens) {
+        for (let i = state.currentTokenIndex - 1; i >= 0; i--) {
+            const prevToken = state.tokens[i];
+            if (prevToken.type === 'heading' && prevToken.attrs) {
+                const prevSem = parseSemCached(prevToken.attrs);
+                if (prevSem.subject) {
+                    const resolvedSubject = resolveSubject(prevSem, state);
+                    if (resolvedSubject) {
+                        contextSubject = resolvedSubject.value;
+                        break;
                     }
                 }
             }
         }
-
-        // Check if this is a nested list context by looking ahead
-        const nextTokenIndex = state.currentTokenIndex + 1;
-        const nextToken = state.tokens && state.tokens[nextTokenIndex];
-
-        if (state.listStack.length > 0 && nextToken && (nextToken.type === 'unordered-list' || nextToken.type === 'ordered-list')) {
-            const currentFrame = state.listStack[state.listStack.length - 1];
-            if (currentFrame.anchorSubject && nextToken.indent > currentFrame.indent) {
-                contextSubject = currentFrame.anchorSubject;
-            }
-        }
-
-        state.pendingListContext = {
-            sem: contextSem,
-            subject: contextSubject,
-            contextText: contextMatch[1].replace(':', '').trim() // Store the text before the annotation, remove colon
-        };
     }
+
+    const nextToken = state.tokens?.[state.currentTokenIndex + 1];
+    if (state.listStack.length > 0 && nextToken && (nextToken.type === 'unordered-list' || nextToken.type === 'ordered-list')) {
+        const currentFrame = state.listStack[state.listStack.length - 1];
+        if (currentFrame.anchorSubject && nextToken.indent > currentFrame.indent) {
+            contextSubject = currentFrame.anchorSubject;
+        }
+    }
+
+    state.pendingListContext = {
+        sem: contextSem,
+        subject: contextSubject,
+        contextText: contextMatch[1].replace(':', '').trim()
+    };
 }
 
-// Helper functions for token processing
 function processTokenAnnotations(token, state, tokenType) {
-    // Process token's own attributes
     if (token.attrs) {
         const sem = parseSemCached(token.attrs);
         processAnnotation({
-            type: tokenType,
-            text: token.text,
-            range: token.range,
-            attrsRange: token.attrsRange || null,
-            valueRange: token.valueRange || null
+            type: tokenType, text: token.text, range: token.range,
+            attrsRange: token.attrsRange || null, valueRange: token.valueRange || null
         }, sem, state);
     }
 
-    // Process inline carriers
-    const carriers = getCarriers(token);
-    carriers.forEach(carrier => {
+    getCarriers(token).forEach(carrier => {
         if (carrier.attrs) {
             const sem = parseSemCached(carrier.attrs);
             processAnnotation(carrier, sem, state);
@@ -991,16 +827,51 @@ function processStandaloneSubject(token, state) {
 
     const sem = parseSemCached(`{=${match[1]}}`);
     const attrsStart = token.range[0] + token.text.indexOf('{=');
-    const attrsEnd = attrsStart + (match[1] ? match[1].length : 0);
-
     processAnnotation({
-        type: 'standalone',
-        text: '',
-        range: token.range,
-        attrsRange: [attrsStart, attrsEnd],
+        type: 'standalone', text: '', range: token.range,
+        attrsRange: [attrsStart, attrsStart + (match[1] ? match[1].length : 0)],
         valueRange: null
     }, sem, state);
 }
+
+const TOKEN_PROCESSORS = {
+    heading: (token, state) => {
+        state.isProcessingOrderedList = false;
+        if (token.attrs) {
+            const headingSem = parseSemCached(token.attrs);
+            if (headingSem.subject) {
+                const subject = resolveSubject(headingSem, state);
+                if (subject) state.documentSubject = subject;
+            }
+        }
+        processTokenAnnotations(token, state, token.type);
+    },
+    code: (token, state) => {
+        state.isProcessingOrderedList = false;
+        processTokenAnnotations(token, state, token.type);
+    },
+    blockquote: (token, state) => {
+        state.isProcessingOrderedList = false;
+        processTokenAnnotations(token, state, token.type);
+    },
+    para: (token, state) => {
+        if (!token.text.includes('{?') && !token.text.includes('{!')) {
+            state.isProcessingOrderedList = false;
+        }
+        processStandaloneSubject(token, state);
+        processListContextFromParagraph(token, state);
+        processTokenAnnotations(token, state, token.type);
+    },
+    'unordered-list': (token, state) => {
+        state.isProcessingOrderedList = false;
+        manageListStack(token, state);
+        processListItem(token, state);
+    },
+    'ordered-list': (token, state) => {
+        manageListStack(token, state);
+        processOrderedListItem(token, state);
+    }
+};
 
 export function parse(text, options = {}) {
     const state = {
@@ -1009,12 +880,11 @@ export function parse(text, options = {}) {
         quads: [],
         origin: { blocks: new Map(), quadIndex: new Map() },
         currentSubject: null,
-        documentSubject: null, // Track main document subject from headings
+        documentSubject: null,
         listStack: [],
         pendingListContext: null,
-        tokens: null, // Store tokens for lookahead
-        currentTokenIndex: -1, // Track current token index
-        // Reset list-related state for fresh parsing
+        tokens: null,
+        currentTokenIndex: -1,
         listCounter: 0,
         rdfListIndex: 0,
         firstListNode: null,
@@ -1025,77 +895,23 @@ export function parse(text, options = {}) {
 
     state.tokens = scanTokens(text);
 
-    // Process prefix declarations first with prefix folding support
     state.tokens.filter(t => t.type === 'prefix').forEach(t => {
-        // Check if the IRI value contains a CURIE that references a previously defined prefix
         let resolvedIri = t.iri;
         if (t.iri.includes(':')) {
-            const [potentialPrefix, ...referenceParts] = t.iri.split(':');
-            const reference = referenceParts.join(':'); // Preserve any additional colons in reference
+            const colonIndex = t.iri.indexOf(':');
+            const potentialPrefix = t.iri.substring(0, colonIndex);
+            const reference = t.iri.substring(colonIndex + 1);
             if (state.ctx[potentialPrefix] && potentialPrefix !== '@vocab') {
-                // This is a CURIE referencing an existing prefix - resolve it
                 resolvedIri = state.ctx[potentialPrefix] + reference;
             }
         }
         state.ctx[t.prefix] = resolvedIri;
     });
 
-    // Process all other tokens
     for (let i = 0; i < state.tokens.length; i++) {
         const token = state.tokens[i];
         state.currentTokenIndex = i;
-
-        switch (token.type) {
-            case 'heading':
-                // Reset ordered list processing when encountering new heading
-                state.isProcessingOrderedList = false;
-                // Update document subject when processing headings
-                if (token.attrs) {
-                    const headingSem = parseSemCached(token.attrs);
-                    if (headingSem.subject) {
-                        const subject = resolveSubject(headingSem, state);
-                        if (subject) {
-                            state.documentSubject = subject;
-                        }
-                    }
-                }
-                processTokenAnnotations(token, state, token.type);
-                break;
-            case 'code':
-                // Reset ordered list processing when encountering code block
-                state.isProcessingOrderedList = false;
-                // Process annotations on the opening fence, but skip content processing
-                // This allows safe self-explaining of the format in documentation
-                processTokenAnnotations(token, state, token.type);
-                break;
-            case 'blockquote':
-                // Reset ordered list processing when encountering blockquote
-                state.isProcessingOrderedList = false;
-                processTokenAnnotations(token, state, token.type);
-                break;
-
-            case 'para':
-                // Reset ordered list processing when encountering paragraph (unless it's list context)
-                if (!token.text.includes('{?') && !token.text.includes('{!')) {
-                    state.isProcessingOrderedList = false;
-                }
-                processStandaloneSubject(token, state);
-                processListContextFromParagraph(token, state);
-                processTokenAnnotations(token, state, token.type);
-                break;
-
-            case 'unordered-list':
-                // Reset ordered list processing when encountering unordered list
-                state.isProcessingOrderedList = false;
-                manageListStack(token, state);
-                processListItem(token, state);
-                break;
-
-            case 'ordered-list':
-                manageListStack(token, state);
-                processOrderedListItem(token, state);
-                break;
-        }
+        TOKEN_PROCESSORS[token.type]?.(token, state);
     }
 
     return { quads: state.quads, origin: state.origin, context: state.ctx };

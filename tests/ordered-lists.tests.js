@@ -24,7 +24,7 @@ export const orderedListsTests = [
         fn: () => {
             const md = `[ex] <http://example.org/>
 ## Status values {=ex:statusValues}
-Status values: {?sh:in}
+Status values: {?sh:in .ex:Status label}
 1. Active {=ex:Active}
 2. Inactive {=ex:Inactive}`;
 
@@ -51,7 +51,7 @@ Status values: {?sh:in}
         fn: () => {
             const md = `[ex] <http://example.org/>
 ## Language tags {=ex:languageTags}
-Is one of these: {?sh:languageIn}
+Is one of these: {?sh:languageIn .ex:lang label}
 1. English {=ex:en}
 2. French {=ex:fr}
 3. Deutch {=ex:de}`;
@@ -86,7 +86,7 @@ Is one of these: {?sh:languageIn}
             const md = `[ex] <http://example.org/>
 ## Single item {=ex:singleItem}
 
-There's only one {?sh:in}
+There's only one {?sh:in .ex:Single label}
 1. Only {=ex:Only}`;
 
             const { quads } = parse(md);
