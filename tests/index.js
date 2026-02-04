@@ -18,7 +18,7 @@ let passed = 0;
 let failed = 0;
 
 async function runTests() {
-    console.log('# MD-LD v0.4 Specification Test Suite\n');
+    console.log('# MD-LD Specification Test Suite\n');
 
     const results = [];
 

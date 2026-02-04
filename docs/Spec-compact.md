@@ -1,4 +1,4 @@
-# MD-LD v0.4 — Core Specification (Minimal)
+# MD-LD — Core Specification (Minimal)
 
 **Markdown-Linked Data**
 

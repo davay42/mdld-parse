@@ -1,4 +1,4 @@
-# MD-LD Parse v0.4.1
+# MD-LD
 
 **Markdown-Linked Data (MD-LD)** — a deterministic, streaming-friendly RDF authoring format that extends Markdown with explicit `{...}` annotations.
 
