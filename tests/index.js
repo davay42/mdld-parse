@@ -2,13 +2,15 @@ import { parseTests } from './parse.tests.js';
 import { serializeTests } from './serialize.tests.js';
 import { tagIriTests } from './tag-iri.tests.js';
 import { orderedListsTests } from './ordered-lists.tests.js';
+import { comprehensiveOriginTests } from './comprehensive-origin.tests.js';
 
 // Combine all test suites
 const tests = [
     ...parseTests,
     ...serializeTests,
     ...tagIriTests,
-    ...orderedListsTests
+    ...orderedListsTests,
+    ...comprehensiveOriginTests
 ];
 
 // Run tests

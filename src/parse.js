@@ -565,7 +565,8 @@ const manageListStack = (token, state) => {
             anchorSubject: state.pendingListContext.subject,
             contextSubject: state.pendingListContext.subject,
             contextSem: state.pendingListContext.sem,
-            contextText: state.pendingListContext.contextText
+            contextText: state.pendingListContext.contextText,
+            contextToken: state.pendingListContext.contextToken // Store context token for origins
         });
         state.pendingListContext = null;
     } else if (state.listStack.length === 0 || token.indent > state.listStack[state.listStack.length - 1].indent) {
@@ -619,27 +620,64 @@ const applyListAnchorAnnotations = (itemSubject, contextSem, state, listItemText
     // Use the context token's ranges for proper origin tracking
     const baseToken = contextToken || { range: [0, 0], attrsRange: [0, 0] };
 
-    // Create a synthetic token for the list item to apply annotations
-    const syntheticToken = {
-        type: 'list-item',
-        text: listItemText || '', // Use the list item's own text for predicate values
-        range: baseToken.range,
-        attrsRange: baseToken.attrsRange,
-        valueRange: baseToken.valueRange
-    };
+    // Find the annotation within the paragraph text
+    // The paragraph text is something like "Status values: {?sh:in .ex:Status label}"
+    // We need to find where "{?sh:in .ex:Status label}" starts
+    const paragraphText = baseToken.text || '';
+    const annotationMatch = paragraphText.match(/\{[^}]+\}/);
 
-    // Apply list anchor types and predicates to the list item
-    // Filter out context predicates (? and ! forms) as they're used for list connection
-    const filteredSem = {
-        ...contextSem,
-        predicates: contextSem.predicates.filter(pred => pred.form !== '?' && pred.form !== '!'),
-        subject: null // Don't override the list item subject
-    };
+    let annotationStart;
+    if (annotationMatch && baseToken.range) {
+        // Found annotation in paragraph, calculate its absolute position
+        const relativeStart = paragraphText.indexOf(annotationMatch[0]);
+        annotationStart = baseToken.range[0] + relativeStart;
+    } else {
+        // Fallback to start of token
+        annotationStart = baseToken.range ? baseToken.range[0] : 0;
+    }
 
-    // Use the existing processAnnotation function to apply the annotations
-    processAnnotation(syntheticToken, filteredSem, state, {
-        preserveGlobalSubject: false,
-        implicitSubject: itemSubject
+    // Apply types with proper ranges
+    contextSem.types.forEach(type => {
+        const entry = contextSem.entries.find(e => e.kind === 'type' && e.iri === type.iri);
+        if (entry && entry.relRange) {
+            // Calculate absolute range: annotation start + relative range within annotation
+            const typeRange = [annotationStart + entry.relRange.start, annotationStart + entry.relRange.end];
+
+            emitQuad(state.quads, state.origin.quadIndex, 'list-anchor-type',
+                itemSubject,
+                state.df.namedNode(expandIRI('rdf:type', state.ctx)),
+                state.df.namedNode(expandIRI(type.iri, state.ctx)),
+                state.df,
+                { type: 'list-anchor', range: typeRange, entryIndex: type.entryIndex }
+            );
+        }
+    });
+
+    // Apply predicates with proper ranges
+    contextSem.predicates.forEach(pred => {
+        if (pred.form !== '?' && pred.form !== '!') { // Skip context predicates
+            const entry = contextSem.entries.find(e => e.kind === 'property' && e.iri === pred.iri);
+            if (entry && entry.relRange) {
+                // Calculate absolute range: annotation start + relative range within annotation
+                const predRange = [annotationStart + entry.relRange.start, annotationStart + entry.relRange.end];
+
+                const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
+
+                // For literal predicates, the value comes from the list item text
+                let objectValue;
+                if (pred.form === '') {
+                    objectValue = state.df.literal(listItemText || '');
+                } else {
+                    // For other forms, this would need more complex handling
+                    objectValue = state.df.literal(listItemText || '');
+                }
+
+                emitQuad(state.quads, state.origin.quadIndex, 'list-anchor-predicate',
+                    itemSubject, P, objectValue, state.df,
+                    { type: 'list-anchor', range: predRange, entryIndex: pred.entryIndex }
+                );
+            }
+        }
     });
 }
 
@@ -660,7 +698,7 @@ function processOrderedListItem(token, state) {
         const carriers = getCarriers(token);
         const itemInfo = findItemSubject(token, carriers, state);
         if (itemInfo?.subject) {
-            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, token.text);
+            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, token.text, listFrame.contextToken);
         }
     }
 
@@ -800,7 +838,8 @@ function processListContextFromParagraph(token, state) {
     state.pendingListContext = {
         sem: contextSem,
         subject: contextSubject,
-        contextText: contextMatch[1].replace(':', '').trim()
+        contextText: contextMatch[1].replace(':', '').trim(),
+        contextToken: token // Store the context token for origin ranges
     };
 }
 
