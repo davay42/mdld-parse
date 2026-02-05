@@ -46,16 +46,14 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - Unique Languages {=sh:uniqueLang}
 - Pattern {=sh:pattern}
 - Pattern Flags  {=sh:flags}
-- Entity type {=sh:node}
+
+- [Entity type](./constraints/node.md) {=sh:node}
 - Equals {=sh:equals}
 - Disjoint {=sh:disjoint}  
 - Less Than {=sh:lessThan}
 - Less Than or Equals {=sh:lessThanOrEquals}
 
 - Ignored Properties {=sh:ignoredProperties}
-
-- Qualified Value Shape {=sh:qualifiedValueShape}
-- Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint}
 
 - JavaScript Function {=sh:js}
 - JS Function Name {=sh:jsFunctionName}
@@ -71,6 +69,8 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - Severity levels {=sh:severity}
 - Violation message {=sh:message}
 
+- Qualified Value Shape - ENGINE FAILS {=sh:qualifiedValueShape}
+- Qualified Value Shapes Disjoint - ENGINE FAILS {=sh:qualifiedValueShapesDisjoint}
 - Inverse Path - ENGINE FAILS {=sh:inversePath}
 - Alternative Path - ENGINE FAILS {=sh:alternativePath}
 - Zero or More Path - ENGINE FAILS {=sh:zeroOrMorePath}
