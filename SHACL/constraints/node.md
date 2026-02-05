@@ -25,6 +25,8 @@ The **Employee Validation Shape** {=ex:EmployeeValidationShape .sh:NodeShape ?ca
 
 **Street Property** {=ex:#streetProperty .sh:PropertyShape ?sh:property} validates the [street] {+ex:street ?sh:path} property with at least [5] {sh:minLength ^^xsd:integer} characters.
 
+{=ex:AddressShape}
+
 **City Property** {=ex:#cityProperty .sh:PropertyShape ?sh:property} validates the [city] {+ex:city ?sh:path} property with at least [2] {sh:minLength ^^xsd:integer} characters.
 
 {=ex:demo}

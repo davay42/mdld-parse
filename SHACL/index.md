@@ -27,8 +27,10 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - [Min Count](./constraints/count.md) {=sh:minCount}
 - [Max Count](./constraints/count.md) {=sh:maxCount}
 - [Class](./constraints/class.md) {=sh:class}
+- [Entity type](./constraints/node.md) {=sh:node}
 - [Minimum Length](./constraints/length.md) {=sh:minLength}
 - [Maximum Length](./constraints/length.md) {=sh:maxLength}
+- [Comparison Constraints](./constraints/comparison.md) {=sh:lessThan}
 - [Value Range](./constraints/range.md) {=sh:minInclusive}
 - [Value Range](./constraints/range.md) {=sh:maxInclusive}
 - [Value Range](./constraints/range.md) {=sh:minExclusive}
@@ -42,16 +44,14 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - [NOT Constraint](./constraints/not.md) {=sh:not}
 - [Qualified Min Count](./constraints/qualifiedCount.md) {=sh:qualifiedMinCount}
 - [Qualified Max Count](./constraints/qualifiedCount.md) {=sh:qualifiedMaxCount}
+- [Equals](./constraints/comparison.md) {=sh:equals}
+- [Less Than](./constraints/comparison.md) {=sh:lessThan}
+- [Less Than or Equals](./constraints/comparison.md) {=sh:lessThanOrEquals}
 
 - Unique Languages {=sh:uniqueLang}
 - Pattern {=sh:pattern}
-- Pattern Flags  {=sh:flags}
-
-- [Entity type](./constraints/node.md) {=sh:node}
-- Equals {=sh:equals}
+- Pattern Flags {=sh:flags}
 - Disjoint {=sh:disjoint}  
-- Less Than {=sh:lessThan}
-- Less Than or Equals {=sh:lessThanOrEquals}
 
 - Ignored Properties {=sh:ignoredProperties}
 
