@@ -45,7 +45,6 @@ Creates: `ex:doc#section1`, `ex:doc#section2`
 
 ## Lists
 
-### Unordered Lists
 ```md
 [@vocab] <http://www.w3.org/2000/01/rdf-schema#>
 
@@ -59,15 +58,6 @@ Analysis steps: {?member .prj:Task label}
   Sub-tasks: {?member .Task label}
   - Run analysis {=prj:step2-1}
   - Record results {=prj:step2-2}
-```
-
-### Ordered Lists (Auto-generated `rdf:List`)
-```md
-## Status Values {=ex:statusValues}
-Status values: {?sh:in .ex:StatusType label}
-1. Active {=ex:Active .ex:StatusType}
-2. Pending {=ex:Pending .ex:StatusType}
-3. Inactive {=ex:Inactive .ex:StatusType}
 ```
 
 

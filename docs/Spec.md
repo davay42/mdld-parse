@@ -670,63 +670,7 @@ tag:alice@example.com,2026:water a schema:Ingredient ;
 
 ### Ordered lists
 
-MDLD provides convenient numbered list syntax that automatically generates W3C RDF Collections (`rdf:List`) with proper `rdf:first`/`rdf:rest` chains.
-
-#### Basic Syntax
-
-```md
-[ex] <http://example.org/>
-
-## Status Values {=ex:statusValues}
-Status values: {?sh:in .ex:StatusType label}
-1. Active {=ex:Active}
-2. Pending {=ex:Pending}
-3. Inactive {=ex:Inactive}
-```
-
-#### Generated RDF Structure
-
-This generates the following RDF triples:
-
-```turtle
-# Subject declaration
-ex:statusValues rdf:type ex:StatusListType .
-ex:statusValues sh:in ex:statusValues#list-1-1 .
-
-# List structure (W3C RDF Collections)
-ex:statusValues#list-1-1 rdf:type rdf:List ;
-                         rdf:first ex:Active ;
-                         rdf:rest ex:statusValues#list-1-2 .
-
-ex:statusValues#list-1-2 rdf:type rdf:List ;
-                         rdf:first ex:Pending ;
-                         rdf:rest ex:statusValues#list-1-3 .
-
-ex:statusValues#list-1-3 rdf:type rdf:List ;
-                         rdf:first ex:Inactive ;
-                         rdf:rest rdf:nil .
-
-# List item annotations
-ex:Active rdf:type ex:StatusType ;
-          rdfs:label "Active" .
-
-ex:Pending rdf:type ex:StatusType ;
-           rdfs:label "Pending" .
-
-ex:Inactive rdf:type ex:StatusType ;
-            rdfs:label "Inactive" .
-```
-
-#### Key Features
-
-- **Automatic List Generation**: Numbered items (`1.`, `2.`, `3.`) create `rdf:List` structures
-- **List Anchor Annotations**: List items inherit context annotations (`.ex:StatusType`)
-- **W3C Compliant**: Follows RDF Collections specification exactly
-- **Context Preservation**: Maintains semantic relationships between list items
-
-#### Advanced Usage (Verbose Syntax)
-
-For complex scenarios, you can manually construct list structures using the verbose syntax:
+For legacy scenarios like SHACL `sh:in`, `sh:or`, you can manually construct `.rdf:List` structures using the verbose syntax:
 
 ```md
 [ex] <http://example.org/>
@@ -739,8 +683,6 @@ For complex scenarios, you can manually construct list structures using the verb
 [nil] {+rdf:nil ?rdf:rest}
 {=}
 ```
-
-Use the numbered list syntax for convenience, and the verbose syntax for advanced use cases requiring manual control over list construction.
 
 ---
 
@@ -859,7 +801,17 @@ ex:code a schema:SoftwareSourceCode ;
 
 ---
 
-## 14. Context and Vocabulary
+## 14. Semantic Reset (normative)
+
+An empty subject declaration `{=}` establishes a semantic reset boundary.
+
+Upon encountering `{=}`, an MD-LD processor MUST:
+- Reset the current subject
+- Reset all active predicates
+- Reset list scopes and reverse predicates
+- Clear any pending annotation context
+
+## 15. Context and Vocabulary
 
 Context tells MD-LD how to expand short names into full identifiers.
 
@@ -950,7 +902,7 @@ Now unprefixed terms use your namespace:
 - Works in a single pass - no look-ahead needed
 
 
-## 15. What MD-LD Doesn't Do
+## 16. What MD-LD Doesn't Do
 
 To keep things simple and predictable, MD-LD explicitly avoids these features:
 
@@ -978,7 +930,7 @@ If you need these features, use them in your application logic, not in the MD-LD
 
 ---
 
-## 16. Conformance
+## 17. Conformance
 
 An MD-LD processor is conformant if it follows these rules:
 

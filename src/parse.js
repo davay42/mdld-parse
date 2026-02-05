@@ -13,8 +13,7 @@ const URL_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const FENCE_REGEX = /^(`{3,})(.*)/;
 const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
 const HEADING_REGEX = /^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
-const UNORDERED_LIST_REGEX = /^(\s*)([-*+])\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
-const ORDERED_LIST_REGEX = /^(\s*)(\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
+const UNORDERED_LIST_REGEX = /^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
 const BLOCKQUOTE_REGEX = /^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
 const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
 const LIST_CONTEXT_REGEX = /^(.+?)\s*\{([^}]+)\}$/;
@@ -69,7 +68,7 @@ const createListToken = (type, line, lineStart, pos, match, indent = null) => {
     const attrs = match[4] || null;
     const prefix = match[1].length + (match[2] ? match[2].length : 0);
     const rangeInfo = calcRangeInfo(line, attrs, lineStart, prefix, match[3].length);
-    const extra = indent !== null ? { indent } : { indent: match[1].length, number: parseInt(match[2]) };
+    const extra = indent !== null ? { indent } : { indent: match[1].length };
     return createToken(type, [lineStart, pos - 1], match[3].trim(), attrs,
         rangeInfo.attrsRange, rangeInfo.valueRange, extra);
 };
@@ -149,15 +148,7 @@ function scanTokens(text) {
             test: line => UNORDERED_LIST_REGEX.test(line),
             process: (line, lineStart, pos) => {
                 const match = UNORDERED_LIST_REGEX.exec(line);
-                tokens.push(createListToken('unordered-list', line, lineStart, pos, match, match[1].length));
-                return true;
-            }
-        },
-        {
-            test: line => ORDERED_LIST_REGEX.test(line),
-            process: (line, lineStart, pos) => {
-                const match = ORDERED_LIST_REGEX.exec(line);
-                tokens.push(createListToken('ordered-list', line, lineStart, pos, match));
+                tokens.push(createListToken('list', line, lineStart, pos, match, match[1].length));
                 return true;
             }
         },
@@ -507,19 +498,6 @@ export function findItemSubject(listToken, carriers, state) {
     return null;
 }
 
-function hasOwnPredicates(listToken, carriers) {
-    if (listToken.attrs) {
-        const attrs = parseSemCached(listToken.attrs);
-        if (attrs.predicates.some(p => !p.subject && p.iri !== 'RESET')) {
-            return true;
-        }
-    }
-    return carriers.some(carrier => {
-        const carrierAttrs = parseSemCached(carrier.attrs);
-        return carrierAttrs.predicates.some(p => !p.subject && p.iri !== 'RESET');
-    });
-}
-
 const processContextSem = ({ sem, itemSubject, contextSubject, inheritLiterals = false, state, blockId = 'list-context' }) => {
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
@@ -616,190 +594,6 @@ const processListItem = (token, state) => {
     }
 };
 
-const applyListAnchorAnnotations = (itemSubject, contextSem, state, listItemText, contextToken) => {
-    // Use the context token's ranges for proper origin tracking
-    const baseToken = contextToken || { range: [0, 0], attrsRange: [0, 0] };
-
-    const paragraphText = baseToken.text || '';
-    const annotationMatch = paragraphText.match(/\{[^}]+\}/);
-
-    let annotationStart;
-    if (annotationMatch && baseToken.range) {
-        // Found annotation in paragraph, calculate its absolute position
-        const relativeStart = paragraphText.indexOf(annotationMatch[0]);
-        annotationStart = baseToken.range[0] + relativeStart;
-    } else {
-        // Fallback to start of token
-        annotationStart = baseToken.range ? baseToken.range[0] : 0;
-    }
-
-    // Apply types with proper ranges
-    contextSem.types.forEach(type => {
-        const entry = contextSem.entries.find(e => e.kind === 'type' && e.iri === type.iri);
-        if (entry && entry.relRange) {
-            // Calculate absolute range: annotation start + relative range within annotation
-            const typeRange = [annotationStart + entry.relRange.start, annotationStart + entry.relRange.end];
-
-            emitQuad(state.quads, state.origin.quadIndex, 'list-anchor-type',
-                itemSubject,
-                state.df.namedNode(expandIRI('rdf:type', state.ctx)),
-                state.df.namedNode(expandIRI(type.iri, state.ctx)),
-                state.df,
-                { type: 'list-anchor', range: typeRange, entryIndex: type.entryIndex }
-            );
-        }
-    });
-
-    // Apply predicates with proper ranges
-    contextSem.predicates.forEach(pred => {
-        if (pred.form !== '?' && pred.form !== '!') { // Skip context predicates
-            const entry = contextSem.entries.find(e => e.kind === 'property' && e.iri === pred.iri);
-            if (entry && entry.relRange) {
-                // Calculate absolute range: annotation start + relative range within annotation
-                const predRange = [annotationStart + entry.relRange.start, annotationStart + entry.relRange.end];
-
-                const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-
-                // For literal predicates, the value comes from the list item text
-                let objectValue;
-                if (pred.form === '') {
-                    objectValue = state.df.literal(listItemText || '');
-                } else {
-                    // For other forms, this would need more complex handling
-                    objectValue = state.df.literal(listItemText || '');
-                }
-
-                emitQuad(state.quads, state.origin.quadIndex, 'list-anchor-predicate',
-                    itemSubject, P, objectValue, state.df,
-                    { type: 'list-anchor', range: predRange, entryIndex: pred.entryIndex }
-                );
-            }
-        }
-    });
-}
-
-function processOrderedListItem(token, state) {
-    if (!state.isProcessingOrderedList) {
-        state.listCounter = (state.listCounter || 0) + 1;
-        state.rdfListIndex = 0;
-        state.firstListNode = null;
-        state.previousListNode = null;
-        state.contextConnected = false;
-        state.isProcessingOrderedList = true;
-    }
-
-    generateRdfListTriples(token, state);
-
-    const listFrame = state.listStack[state.listStack.length - 1];
-    if (listFrame?.contextSem) {
-        const carriers = getCarriers(token);
-        const itemInfo = findItemSubject(token, carriers, state);
-        if (itemInfo?.subject) {
-            applyListAnchorAnnotations(itemInfo.subject, listFrame.contextSem, state, token.text, listFrame.contextToken);
-        }
-    }
-
-    if (listFrame?.contextSem && listFrame?.contextSubject && !state.contextConnected) {
-        listFrame.contextSem.predicates.forEach(pred => {
-            if (pred.form === '?') {
-                const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-                const firstListNode = state.firstListNode;
-                if (firstListNode) {
-                    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-context',
-                        listFrame.contextSubject, P, state.df.namedNode(firstListNode), state.df);
-                    state.contextConnected = true;
-                }
-            }
-        });
-    }
-}
-
-function generateRdfListTriples(token, state) {
-    const carriers = getCarriers(token);
-    const listIndex = (state.rdfListIndex || 0) + 1;
-    state.rdfListIndex = listIndex;
-    const listNodeName = `list-${state.listCounter}-${listIndex}`;
-
-    const listFrame = state.listStack[state.listStack.length - 1];
-    const contextSubject = listFrame?.contextSubject || state.currentSubject || state.documentSubject;
-    const baseIRI = contextSubject ? contextSubject.value : (state.ctx[''] || '');
-
-    const listNodeIri = baseIRI.includes('#')
-        ? `${baseIRI.split('#')[0]}#${listNodeName}`
-        : `${baseIRI}#${listNodeName}`;
-
-    if (!state.firstListNode) state.firstListNode = listNodeIri;
-
-    // Emit rdf:type triple with origin tracking
-    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-type',
-        DataFactory.namedNode(listNodeIri),
-        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#List'),
-        DataFactory,
-        { type: 'ordered-list', range: token.valueRange || token.range, listNodeName }
-    );
-
-    const itemInfo = findItemSubject(token, carriers, state);
-    let firstObject;
-    if (itemInfo?.value) {
-        firstObject = itemInfo.value;
-    } else if (itemInfo?.subject) {
-        firstObject = itemInfo.subject;
-    } else {
-        firstObject = DataFactory.literal(token.text);
-    }
-
-    // Determine the appropriate range based on object type
-    let originRange;
-    if (itemInfo?.subject) {
-        // For IRIs, target the annotation range
-        originRange = token.attrsRange || token.valueRange || token.range;
-    } else {
-        // For literals, target the value range
-        originRange = token.valueRange || token.range;
-    }
-
-    // Emit rdf:first triple with origin tracking
-    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-first',
-        DataFactory.namedNode(listNodeIri),
-        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
-        firstObject,
-        DataFactory,
-        { type: 'ordered-list', range: originRange, listNodeName }
-    );
-
-    if (state.previousListNode) {
-        // Find and remove the previous rdf:rest -> rdf:nil quad, then emit a new one
-        const prevRestQuadIndex = state.quads.findIndex(q =>
-            q.subject.value === state.previousListNode &&
-            q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
-        );
-        if (prevRestQuadIndex !== -1) {
-            // Remove the old quad
-            state.quads.splice(prevRestQuadIndex, 1);
-
-            // Emit new rdf:rest quad with proper origin tracking
-            emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-rest-update',
-                DataFactory.namedNode(state.previousListNode),
-                DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'),
-                DataFactory.namedNode(listNodeIri),
-                DataFactory,
-                { type: 'ordered-list', range: token.valueRange || token.range, listNodeName: state.previousListNode }
-            );
-        }
-    }
-
-    // Emit rdf:rest triple with origin tracking
-    emitQuad(state.quads, state.origin.quadIndex, 'ordered-list-rdf-rest',
-        DataFactory.namedNode(listNodeIri),
-        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'),
-        DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#nil'),
-        DataFactory,
-        { type: 'ordered-list', range: token.valueRange || token.range, listNodeName }
-    );
-
-    state.previousListNode = listNodeIri;
-}
 
 function processListContextFromParagraph(token, state) {
     const contextMatch = LIST_CONTEXT_REGEX.exec(token.text);
@@ -825,7 +619,7 @@ function processListContextFromParagraph(token, state) {
     }
 
     const nextToken = state.tokens?.[state.currentTokenIndex + 1];
-    if (state.listStack.length > 0 && nextToken && (nextToken.type === 'unordered-list' || nextToken.type === 'ordered-list')) {
+    if (state.listStack.length > 0 && nextToken && nextToken.type === 'list') {
         const currentFrame = state.listStack[state.listStack.length - 1];
         if (currentFrame.anchorSubject && nextToken.indent > currentFrame.indent) {
             contextSubject = currentFrame.anchorSubject;
@@ -872,7 +666,6 @@ function processStandaloneSubject(token, state) {
 
 const TOKEN_PROCESSORS = {
     heading: (token, state) => {
-        state.isProcessingOrderedList = false;
         if (token.attrs) {
             const headingSem = parseSemCached(token.attrs);
             if (headingSem.subject) {
@@ -883,30 +676,20 @@ const TOKEN_PROCESSORS = {
         processTokenAnnotations(token, state, token.type);
     },
     code: (token, state) => {
-        state.isProcessingOrderedList = false;
         processTokenAnnotations(token, state, token.type);
     },
     blockquote: (token, state) => {
-        state.isProcessingOrderedList = false;
         processTokenAnnotations(token, state, token.type);
     },
     para: (token, state) => {
-        if (!token.text.includes('{?') && !token.text.includes('{!')) {
-            state.isProcessingOrderedList = false;
-        }
         processStandaloneSubject(token, state);
         processListContextFromParagraph(token, state);
         processTokenAnnotations(token, state, token.type);
     },
-    'unordered-list': (token, state) => {
-        state.isProcessingOrderedList = false;
+    list: (token, state) => {
         manageListStack(token, state);
         processListItem(token, state);
     },
-    'ordered-list': (token, state) => {
-        manageListStack(token, state);
-        processOrderedListItem(token, state);
-    }
 };
 
 export function parse(text, options = {}) {
@@ -920,13 +703,7 @@ export function parse(text, options = {}) {
         listStack: [],
         pendingListContext: null,
         tokens: null,
-        currentTokenIndex: -1,
-        listCounter: 0,
-        rdfListIndex: 0,
-        firstListNode: null,
-        previousListNode: null,
-        contextConnected: false,
-        isProcessingOrderedList: false
+        currentTokenIndex: -1
     };
 
     state.tokens = scanTokens(text);

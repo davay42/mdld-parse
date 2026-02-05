@@ -185,9 +185,8 @@ ex:references schema:author <urn:person:alice> .
 ## 11. Lists
 
 ### List Context
-`{...}` immediately before list applies to **all items** at same indentation level.
+`{...}` immediately before list applies to **all items** at same indentation level. Each list item must have a subject.
 
-**Unordered lists** (explicit subjects):
 ```md
 [@vocab] <http://www.w3.org/2000/01/rdf-schema#>
 

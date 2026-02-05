@@ -92,9 +92,8 @@ From: `[text](url)`, `![alt](url)`, `{=IRI}`
 
 ## 11. Lists
 
-`{...}` before list applies to all items at same indentation.
+`Anything {...}` before list applies to all items at same indentation.
 
-**Unordered lists** (explicit subjects):
 ```md
 [prj] <tag:project@example.com,2026-02-03:>
 [foaf] <http://xmlns.com/foaf/0.1/>
@@ -113,13 +112,17 @@ Team members: {?foaf:member .foaf:Person foaf:name}
 
 Nested lists = new scope, no inheritance.
 
-**Ordered lists** (auto-generated `rdf:List`):
+**Ordered lists**  are possible with explicit rdf:List construction:
 ```md
-## Status Values {=ex:statusValues}
-Status values: {?ex:in .ex:StatusType label}
-1. Active {=ex:Active}
-2. Pending {=ex:Pending}
-3. Inactive {=ex:Inactive}
+[ex] <http://example.org/>
+
+# Manual list construction {=ex:manualList label}
+[head] {=ex:l1 ?sh:in .rdf:List}
+[a] {+ex:A ?rdf:first}
+[list2] {=ex:l2 ?rdf:rest}
+[b] {+ex:B ?rdf:first}
+[nil] {+rdf:nil ?rdf:rest}
+{=}
 ```
 
 ## 12. Reverse Relations
