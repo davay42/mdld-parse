@@ -30,13 +30,14 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - [Entity type](./constraints/node.md) {=sh:node}
 - [Minimum Length](./constraints/length.md) {=sh:minLength}
 - [Maximum Length](./constraints/length.md) {=sh:maxLength}
-- [Comparison Constraints](./constraints/comparison.md) {=sh:lessThan}
-- [Value Range](./constraints/range.md) {=sh:minInclusive}
-- [Value Range](./constraints/range.md) {=sh:maxInclusive}
-- [Value Range](./constraints/range.md) {=sh:minExclusive}
-- [Value Range](./constraints/range.md) {=sh:maxExclusive}
+- [Min Inclusive](./constraints/range.md) {=sh:minInclusive}
+- [Max Inclusive](./constraints/range.md) {=sh:maxInclusive}
+- [Min Exclusive](./constraints/range.md) {=sh:minExclusive}
+- [Max Exclusive](./constraints/range.md) {=sh:maxExclusive}
 
 - [Language In](./constraints/language.md) {=sh:languageIn}
+- Unique Languages {=sh:uniqueLang}
+
 - [Value enumeration](./constraints/in.md) {=sh:in}
 - [AND Constraint](./constraints/and.md) {=sh:and}
 - [OR Constraint](./constraints/or.md) {=sh:or}
@@ -47,13 +48,17 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - [Equals](./constraints/comparison.md) {=sh:equals}
 - [Less Than](./constraints/comparison.md) {=sh:lessThan}
 - [Less Than or Equals](./constraints/comparison.md) {=sh:lessThanOrEquals}
+- [Disjoint](./constraints/disjoint.md) {=sh:disjoint}  
+- [Closed world](./constraints/closed.md) {=sh:closed}
+- [Pattern](./constraints/pattern.md) {=sh:pattern}
+- [Pattern Flags](./constraints/pattern.md) {=sh:flags}
 
-- Unique Languages {=sh:uniqueLang}
-- Pattern {=sh:pattern}
-- Pattern Flags {=sh:flags}
-- Disjoint {=sh:disjoint}  
+
 
 - Ignored Properties {=sh:ignoredProperties}
+- Deactivation flag {=sh:deactivated}
+- Severity levels {=sh:severity}
+- Violation message {=sh:message}
 
 - JavaScript Function {=sh:js}
 - JS Function Name {=sh:jsFunctionName}
@@ -63,11 +68,6 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - SPARQL SELECT Query {=sh:select}
 - SPARQL CONSTRUCT Query {=sh:construct}
 - SPARQL UPDATE Query {=sh:update}
-
-- Closed world {=sh:closed}
-- Deactivation flag {=sh:deactivated}
-- Severity levels {=sh:severity}
-- Violation message {=sh:message}
 
 - Qualified Value Shape - ENGINE FAILS {=sh:qualifiedValueShape}
 - Qualified Value Shapes Disjoint - ENGINE FAILS {=sh:qualifiedValueShapesDisjoint}
