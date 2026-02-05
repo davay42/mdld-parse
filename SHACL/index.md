@@ -8,18 +8,18 @@
 
 This catalog [includes] {+cat:includes .rdf:Property label} all constraints and targeting mechanisms available in SHACL.
 
-## Targeting Mechanisms 
+## Targeting Mechanism {+cat:Targeting .Class label}
 
-These are targeting predicates that determine which nodes get validated (not constraints themselves): {?cat:includes}
+These are targeting predicates that determine which nodes get validated (not constraints themselves): {?cat:includes .cat:Targeting}
 
 - [Target Class](./targeting/targetClass.md) {=sh:targetClass}
 - [Target Node](./targeting/targetNode.md) {=sh:targetNode}
 - [Target Subjects](./targeting/targetSubjectsOf.md) {=sh:targetSubjectsOf}
 - [Target Objects](./targeting/targetObjectsOf.md) {=sh:targetObjectsOf}
 
-## Constraints 
+## Constraint {+cat:Constraint .Class label}
 
-This catalog includes these constraints: {?cat:includes}
+This catalog includes these constraints: {?cat:includes .cat:Constraint}
 
 - [Has Value](./constraints/hasvalue.md) {=sh:hasValue}
 - [Data Type](./constraints/datatype.md) {=sh:datatype}
@@ -33,11 +33,15 @@ This catalog includes these constraints: {?cat:includes}
 - [Value Range](./constraints/range.md) {=sh:maxInclusive}
 - [Value Range](./constraints/range.md) {=sh:minExclusive}
 - [Value Range](./constraints/range.md) {=sh:maxExclusive}
-- [Value enumeration](./constraints/in.md) {=sh:in}
+
 - [Language In](./constraints/language.md) {=sh:languageIn}
+- [Value enumeration](./constraints/in.md) {=sh:in}
 - [AND Constraint](./constraints/and.md) {=sh:and}
 - [OR Constraint](./constraints/or.md) {=sh:or}
 - [XONE Constraint](./constraints/xone.md) {=sh:xone}
+- [NOT Constraint](./constraints/not.md) {=sh:not}
+- [Qualified Min Count](./constraints/qualifiedCount.md) {=sh:qualifiedMinCount}
+- [Qualified Max Count](./constraints/qualifiedCount.md) {=sh:qualifiedMaxCount}
 
 - Unique Languages {=sh:uniqueLang}
 - Pattern {=sh:pattern}
@@ -47,17 +51,12 @@ This catalog includes these constraints: {?cat:includes}
 - Disjoint {=sh:disjoint}  
 - Less Than {=sh:lessThan}
 - Less Than or Equals {=sh:lessThanOrEquals}
-- [NOT Constraint](./constraints/not.md) {=sh:not}
+
 - Ignored Properties {=sh:ignoredProperties}
-- Qualified Min Count {=sh:qualifiedMinCount}
-- Qualified Max Count {=sh:qualifiedMaxCount}
+
 - Qualified Value Shape {=sh:qualifiedValueShape}
 - Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint}
-- Inverse Path {=sh:inversePath}
-- Alternative Path {=sh:alternativePath}
-- Zero or More Path {=sh:zeroOrMorePath}
-- One or More Path {=sh:oneOrMorePath}
-- Zero or One Path {=sh:zeroOrOnePath}
+
 - JavaScript Function {=sh:js}
 - JS Function Name {=sh:jsFunctionName}
 - JS Library {=sh:jsLibrary}
@@ -71,6 +70,12 @@ This catalog includes these constraints: {?cat:includes}
 - Deactivation flag {=sh:deactivated}
 - Severity levels {=sh:severity}
 - Violation message {=sh:message}
+
+- Inverse Path - ENGINE FAILS {=sh:inversePath}
+- Alternative Path - ENGINE FAILS {=sh:alternativePath}
+- Zero or More Path - ENGINE FAILS {=sh:zeroOrMorePath}
+- One or More Path - ENGINE FAILS {=sh:oneOrMorePath}
+- Zero or One Path - ENGINE FAILS {=sh:zeroOrOnePath}
 
 ---
 
