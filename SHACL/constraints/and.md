@@ -3,14 +3,11 @@
 [ex] <mdld:shacl/example/logical/>
 [xsd] <http://www.w3.org/2001/XMLSchema#>
 
-# Logical Constraints {=sh:and .class:LogicalConstraint label}
+# AND Constraint {=sh:and .class:LogicalConstraint label}
 
-> Combines multiple constraints using logical operators (AND, OR, NOT, XONE) for complex validation scenarios. Essential for conditional validation and multi-rule business logic. {comment}
+> Requires all constraints in the list to be satisfied. Essential when multiple conditions must all pass for validation to succeed. {comment}
 
 <http://www.w3.org/ns/shacl#and> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#or> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#not> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#xone> {?cat:fullIRI}
 
 ---
 
@@ -106,9 +103,6 @@ ig-cli validate ./constraints/logical.md
 
 ### **Logical Operators:**
 - `sh:and` - all constraints must pass
-- `sh:or` - at least one constraint must pass  
-- `sh:not` - constraint must not pass
-- `sh:xone` - exactly one constraint must pass
 
 ### **SHACL Behavior:**
 - Logical constraints create nested validation contexts

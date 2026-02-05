@@ -35,6 +35,10 @@ This catalog includes these constraints: {?cat:includes}
 - [Value Range](./constraints/range.md) {=sh:maxExclusive}
 - [Value enumeration](./constraints/in.md) {=sh:in}
 - [Language In](./constraints/language.md) {=sh:languageIn}
+- [AND Constraint](./constraints/and.md) {=sh:and}
+- [OR Constraint](./constraints/or.md) {=sh:or}
+- [XONE Constraint](./constraints/xone.md) {=sh:xone}
+
 - Unique Languages {=sh:uniqueLang}
 - Pattern {=sh:pattern}
 - Pattern Flags  {=sh:flags}
@@ -43,11 +47,7 @@ This catalog includes these constraints: {?cat:includes}
 - Disjoint {=sh:disjoint}  
 - Less Than {=sh:lessThan}
 - Less Than or Equals {=sh:lessThanOrEquals}
-- Negation {=sh:not}
-- All must pass {=sh:and}
-- At least one must pass {=sh:or}
-- Exactly one must pass {=sh:xone}
-
+- [NOT Constraint](./constraints/not.md) {=sh:not}
 - Ignored Properties {=sh:ignoredProperties}
 - Qualified Min Count {=sh:qualifiedMinCount}
 - Qualified Max Count {=sh:qualifiedMaxCount}
