@@ -35,9 +35,6 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - [Min Exclusive](./constraints/range.md) {=sh:minExclusive}
 - [Max Exclusive](./constraints/range.md) {=sh:maxExclusive}
 
-- [Language In](./constraints/language.md) {=sh:languageIn}
-- Unique Languages {=sh:uniqueLang}
-
 - [Value enumeration](./constraints/in.md) {=sh:in}
 - [AND Constraint](./constraints/and.md) {=sh:and}
 - [OR Constraint](./constraints/or.md) {=sh:or}
@@ -51,6 +48,9 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - [Disjoint](./constraints/disjoint.md) {=sh:disjoint}  
 - [Pattern](./constraints/pattern.md) {=sh:pattern}
 - [Pattern Flags](./constraints/pattern.md) {=sh:flags}
+
+- [Language In](./constraints/language.md) {=sh:languageIn}
+- [Unique Languages](./constraints/uniqueLang.md) {=sh:uniqueLang}
 
 - [Closed world](./constraints/closed.md) {=sh:closed}
 - [Deactivation flag](./constraints/deactivated.md) {=sh:deactivated}
