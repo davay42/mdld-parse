@@ -64,27 +64,27 @@ This catalog includes these constraints: {?cat:includes .class:Constraint}
 - [Severity levels](./constraints/severity.md) {=sh:severity .class:MetadataPredicate}
 - [Violation message](./constraints/message.md) {=sh:message .class:MetadataPredicate}
 
-- JavaScript Function {=sh:js .class:JSConstraint}
-- JS Function Name {=sh:jsFunctionName .class:JSConstraint}
-- JS Library {=sh:jsLibrary .class:JSConstraint}
-- JS Library URL {=sh:jsLibraryURL .class:JSConstraint}
+- JavaScript Function {=sh:js .class:JSConstraint .cat:notCovered}
+- JS Function Name {=sh:jsFunctionName .class:JSConstraint .cat:notCovered}
+- JS Library {=sh:jsLibrary .class:JSConstraint .cat:notCovered}
+- JS Library URL {=sh:jsLibraryURL .class:JSConstraint .cat:notCovered}
 
-- SPARQL ASK Query {=sh:ask .class:SPARQLConstraint}
-- SPARQL SELECT Query {=sh:select .class:SPARQLConstraint}
-- SPARQL CONSTRUCT Query {=sh:construct .class:SPARQLConstraint}
-- SPARQL UPDATE Query {=sh:update .class:SPARQLConstraint}
+- SPARQL ASK Query {=sh:ask .class:SPARQLConstraint .cat:notCovered}
+- SPARQL SELECT Query {=sh:select .class:SPARQLConstraint .cat:notCovered}
+- SPARQL CONSTRUCT Query {=sh:construct .class:SPARQLConstraint .cat:notCovered}
+- SPARQL UPDATE Query {=sh:update .class:SPARQLConstraint .cat:notCovered}
 
-- Ignored Properties - ENGINE FAILS {=sh:ignoredProperties .class:MetadataPredicate}
+- Ignored Properties {=sh:ignoredProperties .class:MetadataPredicate .cat:notCovered}
 
-- Qualified Value Shape - ENGINE FAILS {=sh:qualifiedValueShape .class:ShapeConstraint}
-- Qualified Value Shapes Disjoint - ENGINE FAILS {=sh:qualifiedValueShapesDisjoint .class:ShapeConstraint
-}
+- Qualified Value Shape {=sh:qualifiedValueShape .class:ShapeConstraint .cat:notCovered}
+- Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint .class:ShapeConstraint .cat:notCovered}
+- Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint .class:ShapeConstraint .cat:notCovered}
 
-- Inverse Path - ENGINE FAILS {=sh:inversePath .class:PropertyPath}
-- Alternative Path - ENGINE FAILS {=sh:alternativePath .class:PropertyPath}
-- Zero or More Path - ENGINE FAILS {=sh:zeroOrMorePath .class:PropertyPath}
-- One or More Path - ENGINE FAILS {=sh:oneOrMorePath .class:PropertyPath}
-- Zero or One Path - ENGINE FAILS {=sh:zeroOrOnePath .class:PropertyPath}
+- Inverse Path {=sh:inversePath .class:PropertyPath .cat:notCovered}
+- Alternative Path {=sh:alternativePath .class:PropertyPath .cat:notCovered}
+- Zero or More Path {=sh:zeroOrMorePath .class:PropertyPath .cat:notCovered}
+- One or More Path {=sh:oneOrMorePath .class:PropertyPath .cat:notCovered}
+- Zero or One Path {=sh:zeroOrOnePath .class:PropertyPath .cat:notCovered}
 
 ---
 
@@ -108,6 +108,8 @@ We can broadly divide them into these type groups: {!subClassOf label}
 - JavaScript Constraint {=class:JSConstraint}
 - SPARQL Constraint {=class:SPARQLConstraint}
 
+
+Some constraints are environment dependent, are not tested to be working and are [Not covered] {=cat:notCovered .Class label} by this calalog.
 ---
 
 ## 🚀 Getting Started
