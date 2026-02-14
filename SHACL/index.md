@@ -49,16 +49,13 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - [Less Than](./constraints/comparison.md) {=sh:lessThan}
 - [Less Than or Equals](./constraints/comparison.md) {=sh:lessThanOrEquals}
 - [Disjoint](./constraints/disjoint.md) {=sh:disjoint}  
-- [Closed world](./constraints/closed.md) {=sh:closed}
 - [Pattern](./constraints/pattern.md) {=sh:pattern}
 - [Pattern Flags](./constraints/pattern.md) {=sh:flags}
 
-
-
-- Ignored Properties {=sh:ignoredProperties}
-- Deactivation flag {=sh:deactivated}
-- Severity levels {=sh:severity}
-- Violation message {=sh:message}
+- [Closed world](./constraints/closed.md) {=sh:closed}
+- [Deactivation flag](./constraints/deactivated.md) {=sh:deactivated}
+- [Severity levels](./constraints/severity.md) {=sh:severity}
+- [Violation message](./constraints/message.md) {=sh:message}
 
 - JavaScript Function {=sh:js}
 - JS Function Name {=sh:jsFunctionName}
@@ -69,6 +66,7 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 - SPARQL CONSTRUCT Query {=sh:construct}
 - SPARQL UPDATE Query {=sh:update}
 
+- Ignored Properties - ENGINE FAILS {=sh:ignoredProperties}
 - Qualified Value Shape - ENGINE FAILS {=sh:qualifiedValueShape}
 - Qualified Value Shapes Disjoint - ENGINE FAILS {=sh:qualifiedValueShapesDisjoint}
 - Inverse Path - ENGINE FAILS {=sh:inversePath}
