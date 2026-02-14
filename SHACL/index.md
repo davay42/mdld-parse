@@ -8,76 +8,87 @@
 
 This catalog [includes] {+cat:includes .rdf:Property label} all constraints and targeting mechanisms available in SHACL.
 
-## Targeting Mechanism {+cat:Targeting .Class label}
+## Targeting Mechanism {+class:Targeting .Class label}
 
-These are targeting predicates that determine which nodes get validated (not constraints themselves): {?cat:includes .cat:Targeting}
+**Catalog** {=cat:index} includes 4 Targeting mechanisms.
+
+These are targeting predicates that determine which nodes get validated (not constraints themselves): {?cat:includes .class:TargetingPredicate}
 
 - [Target Class](./targeting/targetClass.md) {=sh:targetClass}
 - [Target Node](./targeting/targetNode.md) {=sh:targetNode}
 - [Target Subjects](./targeting/targetSubjectsOf.md) {=sh:targetSubjectsOf}
 - [Target Objects](./targeting/targetObjectsOf.md) {=sh:targetObjectsOf}
 
-## Constraint {+cat:Constraint .Class label}
+## Constraint {+class:Constraint .Class label}
 
-This catalog includes these constraints: {?cat:includes .cat:Constraint}
+This catalog includes these constraints: {?cat:includes .class:Constraint}
+
+- [Class](./constraints/class.md) {=sh:class .class:ValueTypeConstraint}
+- [Data Type](./constraints/datatype.md) {=sh:datatype .class:ValueTypeConstraint}
+- [Node Kind](./constraints/nodekind.md) {=sh:nodeKind class:ValueTypeConstraint}
+
+- [Min Count](./constraints/count.md) {=sh:minCount .class:CardinalityConstraint}
+- [Max Count](./constraints/count.md) {=sh:maxCount .class:CardinalityConstraint}
+
+- [Min Inclusive](./constraints/range.md) {=sh:minInclusive .class:ValueRangeConstraint}
+- [Max Inclusive](./constraints/range.md) {=sh:maxInclusive .class:ValueRangeConstraint}
+- [Min Exclusive](./constraints/range.md) {=sh:minExclusive .class:ValueRangeConstraint}
+- [Max Exclusive](./constraints/range.md) {=sh:maxExclusive .class:ValueRangeConstraint}
+
+- [Equals](./constraints/comparison.md) {=sh:equals .class:PropertyPairConstraint}
+- [Disjoint](./constraints/disjoint.md) {=sh:disjoint .class:PropertyPairConstraint}  
+- [Less Than](./constraints/comparison.md) {=sh:lessThan .class:PropertyPairConstraint}
+- [Less Than or Equals](./constraints/comparison.md) {=sh:lessThanOrEquals .class:PropertyPairConstraint}
+
+- [NOT](./constraints/not.md) {=sh:not .class:LogicalConstraint}
+- [AND](./constraints/and.md) {=sh:and .class:LogicalConstraint}
+- [OR](./constraints/or.md) {=sh:or .class:LogicalConstraint}
+- [XONE](./constraints/xone.md) {=sh:xone .class:LogicalConstraint}
+
+- [Minimum Length](./constraints/length.md) {=sh:minLength .class:StringConstraint}
+- [Maximum Length](./constraints/length.md) {=sh:maxLength .class:StringConstraint}
+- [Pattern](./constraints/pattern.md) {=sh:pattern .class:StringConstraint}
+- [Pattern Flags](./constraints/pattern.md) {=sh:flags .class:StringConstraint}
+- [Language In](./constraints/language.md) {=sh:languageIn .class:StringConstraint}
+- [Unique Languages](./constraints/uniqueLang.md) {=sh:uniqueLang .class:StringConstraint}
+
 
 - [Has Value](./constraints/hasvalue.md) {=sh:hasValue}
-- [Data Type](./constraints/datatype.md) {=sh:datatype}
-- [Node Kind](./constraints/nodekind.md) {=sh:nodeKind}
-- [Min Count](./constraints/count.md) {=sh:minCount}
-- [Max Count](./constraints/count.md) {=sh:maxCount}
-- [Class](./constraints/class.md) {=sh:class}
-- [Entity type](./constraints/node.md) {=sh:node}
-- [Minimum Length](./constraints/length.md) {=sh:minLength}
-- [Maximum Length](./constraints/length.md) {=sh:maxLength}
-- [Min Inclusive](./constraints/range.md) {=sh:minInclusive}
-- [Max Inclusive](./constraints/range.md) {=sh:maxInclusive}
-- [Min Exclusive](./constraints/range.md) {=sh:minExclusive}
-- [Max Exclusive](./constraints/range.md) {=sh:maxExclusive}
-
+- [Entity type](./constraints/node.md) {=sh:node .class:ShapeConstraint}
 - [Value enumeration](./constraints/in.md) {=sh:in}
-- [AND Constraint](./constraints/and.md) {=sh:and}
-- [OR Constraint](./constraints/or.md) {=sh:or}
-- [XONE Constraint](./constraints/xone.md) {=sh:xone}
-- [NOT Constraint](./constraints/not.md) {=sh:not}
 - [Qualified Min Count](./constraints/qualifiedCount.md) {=sh:qualifiedMinCount}
 - [Qualified Max Count](./constraints/qualifiedCount.md) {=sh:qualifiedMaxCount}
-- [Equals](./constraints/comparison.md) {=sh:equals}
-- [Less Than](./constraints/comparison.md) {=sh:lessThan}
-- [Less Than or Equals](./constraints/comparison.md) {=sh:lessThanOrEquals}
-- [Disjoint](./constraints/disjoint.md) {=sh:disjoint}  
-- [Pattern](./constraints/pattern.md) {=sh:pattern}
-- [Pattern Flags](./constraints/pattern.md) {=sh:flags}
 
-- [Language In](./constraints/language.md) {=sh:languageIn}
-- [Unique Languages](./constraints/uniqueLang.md) {=sh:uniqueLang}
+- [Closed world](./constraints/closed.md) {=sh:closed .class:MetadataPredicate}
+- [Deactivation flag](./constraints/deactivated.md) {=sh:deactivated .class:MetadataPredicate}
+- [Severity levels](./constraints/severity.md) {=sh:severity .class:MetadataPredicate}
+- [Violation message](./constraints/message.md) {=sh:message .class:MetadataPredicate}
 
-- [Closed world](./constraints/closed.md) {=sh:closed}
-- [Deactivation flag](./constraints/deactivated.md) {=sh:deactivated}
-- [Severity levels](./constraints/severity.md) {=sh:severity}
-- [Violation message](./constraints/message.md) {=sh:message}
+- JavaScript Function {=sh:js .class:JSConstraint}
+- JS Function Name {=sh:jsFunctionName .class:JSConstraint}
+- JS Library {=sh:jsLibrary .class:JSConstraint}
+- JS Library URL {=sh:jsLibraryURL .class:JSConstraint}
 
-- JavaScript Function {=sh:js}
-- JS Function Name {=sh:jsFunctionName}
-- JS Library {=sh:jsLibrary}
-- JS Library URL {=sh:jsLibraryURL}
-- SPARQL ASK Query {=sh:ask}
-- SPARQL SELECT Query {=sh:select}
-- SPARQL CONSTRUCT Query {=sh:construct}
-- SPARQL UPDATE Query {=sh:update}
+- SPARQL ASK Query {=sh:ask .class:SPARQLConstraint}
+- SPARQL SELECT Query {=sh:select .class:SPARQLConstraint}
+- SPARQL CONSTRUCT Query {=sh:construct .class:SPARQLConstraint}
+- SPARQL UPDATE Query {=sh:update .class:SPARQLConstraint}
 
-- Ignored Properties - ENGINE FAILS {=sh:ignoredProperties}
-- Qualified Value Shape - ENGINE FAILS {=sh:qualifiedValueShape}
-- Qualified Value Shapes Disjoint - ENGINE FAILS {=sh:qualifiedValueShapesDisjoint}
-- Inverse Path - ENGINE FAILS {=sh:inversePath}
-- Alternative Path - ENGINE FAILS {=sh:alternativePath}
-- Zero or More Path - ENGINE FAILS {=sh:zeroOrMorePath}
-- One or More Path - ENGINE FAILS {=sh:oneOrMorePath}
-- Zero or One Path - ENGINE FAILS {=sh:zeroOrOnePath}
+- Ignored Properties - ENGINE FAILS {=sh:ignoredProperties .class:MetadataPredicate}
+
+- Qualified Value Shape - ENGINE FAILS {=sh:qualifiedValueShape .class:ShapeConstraint}
+- Qualified Value Shapes Disjoint - ENGINE FAILS {=sh:qualifiedValueShapesDisjoint .class:ShapeConstraint
+}
+
+- Inverse Path - ENGINE FAILS {=sh:inversePath .class:PropertyPath}
+- Alternative Path - ENGINE FAILS {=sh:alternativePath .class:PropertyPath}
+- Zero or More Path - ENGINE FAILS {=sh:zeroOrMorePath .class:PropertyPath}
+- One or More Path - ENGINE FAILS {=sh:oneOrMorePath .class:PropertyPath}
+- Zero or One Path - ENGINE FAILS {=sh:zeroOrOnePath .class:PropertyPath}
 
 ---
 
-## Ontology {=cat:Ontology .Container label}
+## Ontology {=cat:Ontology .Container label ?member}
 
 ### 📋 Constraint {=class:Constraint ?member label}
 
@@ -85,18 +96,15 @@ This catalog includes these constraints: {?cat:includes .cat:Constraint}
 
 We can broadly divide them into these type groups: {!subClassOf label}
 
-- Type and Kind Constraint {=class:TypeConstraint}
-- Value presence Constraint {=class:PresenceConstraint}
-- Number Literal Constraint {=class:NumberConstraint}
-- String Literal Constraint {=class:StringConstraint}
-- IRI Constraints {=class:IRIConstraint}
-- Property Based Targeting {=class:PropertyConstraint}
+- Metadata Predicate {=class:MetadataPredicate}
+- Targeting Predicate {=class:TargetingPredicate}
+- Value Type Constraint {=class:ValueTypeConstraint}
+- Cardinality Constraint {=class:CardinalityConstraint}
+- String-based Constraint {=class:StringConstraint}
 - Property Pair Constraint {=class:PropertyPairConstraint}
-- Logical Combinations {=class:LogicalConstraint}
-- Assumptions Control {=class:AssumptionConstraint}
-- Qualified Constraint {=class:QualifiedConstraint}
-- Path Constraint {=class:PathConstraint}  
-- Advanced Expression Constraint {=class:ExpressionConstraint}
+- Logical Constraint {=class:LogicalConstraint}
+- Shape-based Constraint {=class:ShapeConstraint}
+- Property Path {=class:PropertyPath}
 - JavaScript Constraint {=class:JSConstraint}
 - SPARQL Constraint {=class:SPARQLConstraint}
 
