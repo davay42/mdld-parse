@@ -40,10 +40,8 @@ This catalog includes these constraints: {?cat:includes .class:Constraint}
 - [Less Than](./constraints/comparison.md) {=sh:lessThan .class:PropertyPairConstraint}
 - [Less Than or Equals](./constraints/comparison.md) {=sh:lessThanOrEquals .class:PropertyPairConstraint}
 
-- [NOT](./constraints/not.md) {=sh:not .class:LogicalConstraint}
-- [AND](./constraints/and.md) {=sh:and .class:LogicalConstraint}
-- [OR](./constraints/or.md) {=sh:or .class:LogicalConstraint}
-- [XONE](./constraints/xone.md) {=sh:xone .class:LogicalConstraint}
+- [NOT](./logical/not.md) {=sh:not .class:LogicalConstraint}
+- [AND](./logical/and.md) {=sh:and .class:LogicalConstraint}
 
 - [Minimum Length](./constraints/length.md) {=sh:minLength .class:StringConstraint}
 - [Maximum Length](./constraints/length.md) {=sh:maxLength .class:StringConstraint}
@@ -51,7 +49,6 @@ This catalog includes these constraints: {?cat:includes .class:Constraint}
 - [Pattern Flags](./constraints/pattern.md) {=sh:flags .class:StringConstraint}
 - [Language In](./constraints/language.md) {=sh:languageIn .class:StringConstraint}
 - [Unique Languages](./constraints/uniqueLang.md) {=sh:uniqueLang .class:StringConstraint}
-
 
 - [Has Value](./constraints/hasvalue.md) {=sh:hasValue}
 - [Entity type](./constraints/node.md) {=sh:node .class:ShapeConstraint}
@@ -64,7 +61,7 @@ This catalog includes these constraints: {?cat:includes .class:Constraint}
 - [Severity levels](./constraints/severity.md) {=sh:severity .class:MetadataPredicate}
 - [Violation message](./constraints/message.md) {=sh:message .class:MetadataPredicate}
 
-- JavaScript Function {=sh:js .class:JSConstraint .cat:notCovered}
+- [JavaScript Function](./constraints/js.md) {=sh:js .class:JSConstraint}
 - JS Function Name {=sh:jsFunctionName .class:JSConstraint .cat:notCovered}
 - JS Library {=sh:jsLibrary .class:JSConstraint .cat:notCovered}
 - JS Library URL {=sh:jsLibraryURL .class:JSConstraint .cat:notCovered}
@@ -75,6 +72,9 @@ This catalog includes these constraints: {?cat:includes .class:Constraint}
 - SPARQL UPDATE Query {=sh:update .class:SPARQLConstraint .cat:notCovered}
 
 - Ignored Properties {=sh:ignoredProperties .class:MetadataPredicate .cat:notCovered}
+
+- OR {=sh:or .class:LogicalConstraint .cat:notCovered}
+- XONE {=sh:xone .class:LogicalConstraint .cat:notCovered}
 
 - Qualified Value Shape {=sh:qualifiedValueShape .class:ShapeConstraint .cat:notCovered}
 - Qualified Value Shapes Disjoint {=sh:qualifiedValueShapesDisjoint .class:ShapeConstraint .cat:notCovered}

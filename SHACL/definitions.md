@@ -14,11 +14,11 @@
 
 Validates that all SHACL constraints have proper metadata: labels, full IRIs, and comments.
 
-**Label Validation** {=meta:label .sh:PropertyShape ?sh:property} ensures each constraint [included] {+cat:includes ?sh:targetObjectsOf} in this catalog has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} short human readable [label] {+label ?sh:path} for proper catalog organization: **Each SHACL constraint must have an label** {sh:message}
+**Label Validation** {=meta:label .sh:PropertyShape ?sh:property} ensures each [constraint] {+class:Constraint ?sh:targetClass} has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} short human readable [label] {+label ?sh:path} for proper catalog organization: **Each SHACL constraint must have an label** {sh:message}
 
-**Full IRI Validation** {=meta:fulliri .sh:PropertyShape ?sh:property} ensures each constraint that our catalog [includes] {+cat:includes ?sh:targetObjectsOf} has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} full IRI documentation [fullIRI] {+cat:fullIRI ?sh:path} for completeness: **Each SHACL constraint must document its full IRI** {sh:message}
+**Full IRI Validation** {=meta:fulliri .sh:PropertyShape ?sh:property} ensures each [constraint] {+class:Constraint ?sh:targetClass} has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} full IRI documentation [fullIRI] {+cat:fullIRI ?sh:path} for completeness: **Each SHACL constraint must document its full IRI** {sh:message}
 
-**Comment Validation** {=meta:comment .sh:PropertyShape ?sh:property} ensures each constraint [included] {+cat:includes ?sh:targetObjectsOf} has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [comment] {+comment ?sh:path} for discoverability: **Each SHACL constraint must have an comment** {sh:message}
+**Comment Validation** {=meta:comment .sh:PropertyShape ?sh:property} ensures each [constraint] {+class:Constraint ?sh:targetClass} has exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [comment] {+comment ?sh:path} for discoverability: **Each SHACL constraint must have an comment** {sh:message}
 
 ### 📋 **Constraint Categories**
 
