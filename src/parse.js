@@ -400,10 +400,8 @@ function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
         const entryIndex = typeof t === 'string' ? null : t.entryIndex;
-        let typeSubject = newSubject ? newSubject : (localObject || carrierO || S);
-        if (carrier?.type === 'link' && carrier?.url && !newSubject) {
-            typeSubject = carrierO;
-        }
+        // Type subject priority: explicit subject > soft object > URL > current subject
+        let typeSubject = newSubject || localObject || carrierO || S;
         createTypeQuad(typeIRI, typeSubject, state, block.id, entryIndex);
     });
 }
@@ -414,12 +412,16 @@ const determinePredicateRole = (pred, carrier, newSubject, previousSubject, loca
     }
     switch (pred.form) {
         case '':
-            return carrier?.type === 'link' && carrier?.url && carrier.text !== carrier.url && !newSubject
-                ? { subject: newSubjectOrCarrierO, object: L }
-                : { subject: localObject || S, object: L };
+            // Literal predicates: explicit subject > current subject, URL only when no explicit subject
+            return newSubject ? { subject: localObject || S, object: L }
+                : (carrier?.type === 'link' && carrier?.url && carrier.text !== carrier.url)
+                    ? { subject: newSubjectOrCarrierO, object: L }
+                    : { subject: localObject || S, object: L };
         case '?':
+            // Object predicates: use current subject → explicit object or URL
             return { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO };
         case '!':
+            // Reverse predicates: explicit object or URL → current subject
             return { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S };
         default:
             return null;

@@ -146,11 +146,47 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 
 URLs when used as IRIs have `{+IRI}` **soft subject** behavior - properties in the annotation are applied to the URL, but current subject is not changed.
 
+### URL vs IRI Priority
+
+When both a markdown link URL and an explicit IRI (`{=IRI}` or `{+IRI}`) are present in the same annotation, explicit IRIs take priority according to these rules:
+
+**Priority Rules:**
+1. **Type declarations**: Explicit subject (`{=IRI}`) > Soft object (`{+IRI}`) > URL > Current subject
+2. **Literal predicates** (`p`): Explicit subject (`{=IRI}`) > Current subject, URL only when no explicit subject
+3. **Object predicates** (`?p`): Current subject → Explicit object (`{+IRI}`) or URL
+4. **Reverse predicates** (`!p`): Explicit object (`{+IRI}`) or URL → Current subject
+
+**Examples:**
+```md
+# Case 1: Explicit subject overrides URL
+[Link](https://example.com) {=ex:subject .Type label}
+# Results: ex:subject → rdf:type → Type, ex:subject → rdfs:label → "Link"
+
+# Case 2: Soft object with URL present  
+[Link](https://example.com) {+ex:object ?predicate}
+# Results: currentSubject → predicate → ex:object (URL ignored)
+
+# Case 3: Mixed predicates
+[Link](https://example.com) {=ex:subject label ?object}
+# Results: ex:subject → label → "Link", currentSubject → object → ex:subject
+
+# Case 4: No explicit subject (backward compatibility)
+[Link](https://example.com) {.Type label}
+# Results: URL → rdf:type → Type, URL → rdfs:label → "Link"
+```
+
+**Key Principles:**
+- Explicit IRIs (`{=IRI}`, `{+IRI}`) override URL-based subjects when present
+- URLs become purely navigational when explicit IRIs are present
+- Link text remains available as literal value for predicates
+- Backward compatibility maintained for existing documents
+- Round-trip safety through predictable priority rules
+
 **Key Rules:**
-- Type declarations use URL as subject (soft subject behavior)
+- Type declarations use URL as subject (soft subject behavior) when no explicit IRI is present
 - Object predicates use current subject as subject
 - Reverse predicates use URL as subject
-- Link text is treated as a valute carrier for the literal value
+- Link text is treated as a value carrier for the literal value
 - Images work the same way but use alt text for literals
 
 **Example:**
