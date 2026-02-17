@@ -1,5 +1,9 @@
 # MD-LD evolution
 
+## v.0.5.2 (2026-02-17)
+
++ feat: IRI>URL in [link](url) {=iri}
+
 ## v.0.4.1 (2026-01-27)
 
 + feat: prefix folding
