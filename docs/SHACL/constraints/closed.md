@@ -1,6 +1,6 @@
 [mdld] <https://mdld.js.org/vocab/>
 [cat] <https://mdld.js.org/shacl/catalog/>
-[ex] <http://example.org/>
+[schema] [http://schema.org/](http://example.org/)
 [xsd] <http://www.w3.org/2001/XMLSchema#>
 
 # Closed World Constraint {=sh:closed .class:ClosedWorldConstraint label}
@@ -9,7 +9,7 @@
 
 <http://www.w3.org/ns/shacl#closed> {?cat:fullIRI}
 
----
+***
 
 ## Demo {=ex:demo ?cat:hasDemo}
 
@@ -19,7 +19,7 @@ This demo demonstrates closed world validation using person data.
 
 The **Closed Example Shape** {=ex:ClosedExampleShape .sh:NodeShape ?cat:hasShape label} targets [ValidPerson] {+ex:ValidPerson ?sh:targetNode} and [InvalidPerson] {+ex:InvalidPerson ?sh:targetNode} with [closed world] {sh:closed}: **Only declared properties allowed** {sh:message}.
 
-**Name Property** {=ex:NameProperty .sh:PropertyShape ?sh:property} ensures [name] {+ex:name ?sh:path} is [string] {+xsd:string ?sh:datatype} and [1] {sh:minCount}: **Person must have a name** {sh:message}.
+**Name Property** {=ex:NameProperty .sh:PropertyShape ?sh:property} ensures [name] {+schema:name ?sh:path} is [string] {+xsd:string ?sh:datatype} and [1] {sh:minCount}: **Person must have a name** {sh:message}.
 
 {=ex:ClosedExampleShape}
 
@@ -31,18 +31,18 @@ The **Closed Example Shape** {=ex:ClosedExampleShape .sh:NodeShape ?cat:hasShape
 
 Person with only declared properties.
 
-Name: [John Doe] {ex:name ^^xsd:string}
+Name: [John Doe] {schema:name ^^xsd:string}
 Age: [30] {ex:age ^^xsd:integer}
 
 #### Invalid Person {=ex:InvalidPerson}
 
 Person with undeclared property (violates closed world constraint).
 
-Name: [Jane Smith] {ex:name ^^xsd:string}
+Name: [Jane Smith] {schema:name ^^xsd:string}
 Age: [25] {ex:age ^^xsd:integer}
-Email: [jane@example.com] {ex:email}  # Undeclared property
+Email: [<jane@example.com>] {ex:email}  # Undeclared property
 
----
+***
 
 [This demo] {=ex:demo} must produce exactly **1** {cat:expectsViolations ^^xsd:integer} violation.
 
@@ -58,18 +58,26 @@ Email: [jane@example.com] {ex:email}  # Undeclared property
 ig-cli validate ./constraints/closed.md
 ```
 
----
+***
 
 ## 📝 MDLD Syntax Patterns
 
 **Use cases:**
-- **Schema enforcement** - ensure data follows strict property definitions
-- **Data quality** - prevent accidental property introduction
-- **API validation** - enforce contract-based property sets
-- **Migration safety** - prevent property drift during data migration
+
+* **Schema enforcement** - ensure data follows strict property definitions
+
+* **Data quality** - prevent accidental property introduction
+
+* **API validation** - enforce contract-based property sets
+
+* **Migration safety** - prevent property drift during data migration
 
 **Key behavior:**
-- **Property whitelist** - only explicitly declared properties are valid
-- **Violation per undeclared property** - each unknown property generates a violation
-- **Shape-level constraint** - applies to all properties of the target node
-- **Strict validation** - more restrictive than open world RDF semantics
+
+* **Property whitelist** - only explicitly declared properties are valid
+
+* **Violation per undeclared property** - each unknown property generates a violation
+
+* **Shape-level constraint** - applies to all properties of the target node
+
+* **Strict validation** - more restrictive than open world RDF semantics

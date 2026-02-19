@@ -230,7 +230,7 @@ function scanTokens(text) {
 ```
 
 ### EBNF Grammar Examples
-```ebnf {=mdld:ebnf-grammar .Class text}
+```txt {=mdld:ebnf-grammar .Class text}
 attrsBlock = "{" , whitespace* , attrsTokens? , whitespace* , "}" ;
 attrsTokens = attrsToken , { whitespace+ , attrsToken } ;
 ```

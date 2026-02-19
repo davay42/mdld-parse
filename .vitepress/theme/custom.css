@@ -1,0 +1,30 @@
+/* https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/vars.css */
+:root {
+    --vp-c-brand-1: #be520e;
+    --vp-c-brand-2: #b4734b;
+    --vp-button-brand-bg: #e8600b;
+    --vp-button-brand-hover-bg: #e8762f;
+    --vp-c-bg: oklab(0.953 0.00298934 0.00905438);
+    --vp-c-bg-alt: oklab(0.803 0.00298934 0.00905438);
+    --vp-c-bg-elv: oklab(0.993 0.00298934 0.00905438);
+    --vp-c-bg-soft: oklab(0.993 0.00298934 0.00905438);
+}
+
+.DocSearch-Button {
+    background-color: var(--vp-c-bg-soft);
+}
+
+.dark {
+    --vp-c-brand-1: #f59656;
+    --vp-c-brand-2: #b4734b;
+    --vp-button-brand-bg: #e8600b;
+    --vp-button-brand-hover-bg: #e8762f;
+    --vp-c-bg: oklab(0.283 0.00197934 0.00225438);
+    --vp-c-bg-alt: oklab(0.283 0.00197934 0.00225438);
+    --vp-c-bg-elv: oklab(0.303 0.00197934 0.00225438);
+    --vp-c-bg-soft: oklab(0.233 0.00197934 0.00225438);
+}
+
+.dark .VPFeature .VPImage {
+    filter: brightness(0) invert(1) opacity(0.9);
+}

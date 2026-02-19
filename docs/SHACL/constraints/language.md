@@ -9,7 +9,7 @@
 
 <http://www.w3.org/ns/shacl#languageIn> {?cat:fullIRI}
 
----
+***
 
 ## Demo {=ex:demo ?cat:hasDemo}
 
@@ -29,7 +29,7 @@ Title language tags must be in the allowed list using verbose RDF list syntax.
 
 We start from the [head] {=ex:l1 ?sh:languageIn .rdf:List} of the list, followed by first literal value [en] {rdf:first}, then goes the next list [node] {=ex:l2 ?rdf:rest} with another language as literal in an inline value carrier [fr] {rdf:first} followed by a closing [nil] {+rdf:nil ?rdf:rest} and as subject reset. {=}
 
----
+***
 
 ### 📋 Test Data {=ex:data .Container ?cat:hasData}
 
@@ -53,11 +53,11 @@ Title: [Hallo Welt] {ex:title @de}
 
 #### No Language Document {=ex:NoLanguageDocument .ex:Document}
 
-A document without language tag (not validated by sh:languageIn).
+A document without language tag.
 
 Title: [Untitled] {ex:title}
 
----
+***
 
 {=ex:demo} must produce exactly **2** {cat:expectsViolations ^^xsd:integer} violation.
 
@@ -77,20 +77,30 @@ Note: `sh:languageIn` only validates language tags if they exist. Use `sh:minCou
 ig-cli validate ./constraints/language.md
 ```
 
----
+***
 
 **Use cases:**
-- **Multilingual content** - restrict documents to specific languages
-- **Regional compliance** - ensure content meets language requirements
-- **Content localization** - validate language-specific versions
-- **International standards** - enforce language tag standards
-- **Translation workflows** - control which languages are allowed
+
+* **Multilingual content** - restrict documents to specific languages
+
+* **Regional compliance** - ensure content meets language requirements
+
+* **Content localization** - validate language-specific versions
+
+* **International standards** - enforce language tag standards
+
+* **Translation workflows** - control which languages are allowed
 
 **Key advantages:**
-- ✅ **Language validation** - ensures content uses approved languages
-- ✅ **Internationalization support** - essential for global applications
-- ✅ **Compliance enforcement** - meets regional language requirements
-- ✅ **Content quality** - maintains language consistency
-- ✅ **Workflow control** - manages translation processes
 
----
+* ✅ **Language validation** - ensures content uses approved languages
+
+* ✅ **Internationalization support** - essential for global applications
+
+* ✅ **Compliance enforcement** - meets regional language requirements
+
+* ✅ **Content quality** - maintains language consistency
+
+* ✅ **Workflow control** - manages translation processes
+
+***

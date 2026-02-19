@@ -739,7 +739,7 @@ Creates: `Mission → mamber → Crew`
 
 **Reverse predicate (`!p`):** Object → Subject  
 
-```mdn
+```md
 # The Crew {=ex:crew}
 Is included in [The Mission] {=ex:mission !member}
 ```
