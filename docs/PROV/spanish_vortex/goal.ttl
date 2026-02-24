@@ -18,7 +18,8 @@ ex:goal_spanish_countries a prov:Entity, prov:Plan ;
     prov:wasAttributedTo ex:agent_user ;
     prov:wasDerivedFrom ex:goal_language_research ;
     prov:wasGeneratedBy ex:agent_user ;
-    prov:wasInformedBy ex:activity_external_validation .
+    prov:wasInformedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> .
 
 # Higher-level goal reference
 ex:goal_language_research a prov:Entity, prov:Plan ;
@@ -26,4 +27,6 @@ ex:goal_language_research a prov:Entity, prov:Plan ;
     prov:generatedAtTime "2026-01-01T00:00:00Z"^^xsd:dateTime ;
     prov:wasAttributedTo ex:agent_user ;
     prov:wasGeneratedBy ex:agent_user ;
-    prov:wasDerivedFrom ex:goal_knowledge_management .
+    prov:wasDerivedFrom ex:goal_knowledge_management ;
+    prov:wasInformedBy ex:activity_goal_completion ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> .

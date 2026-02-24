@@ -23,41 +23,221 @@ ex:entity_spain a prov:Entity ;
     rdfs:label "Spain" ;
     prov:wasDerivedFrom ex:document_spanish_countries ;
     prov:wasGeneratedBy ex:activity_spanish_analysis ;
-    prov:generatedAtTime "2026-02-24T23:16:30Z"^^xsd:dateTime .
+    prov:generatedAtTime "2026-02-24T23:16:30Z"^^xsd:dateTime ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> .
 
 ex:entity_mexico a prov:Entity ;
     rdfs:label "Mexico" ;
     prov:wasDerivedFrom ex:document_spanish_countries ;
     prov:wasGeneratedBy ex:activity_spanish_analysis ;
-    prov:generatedAtTime "2026-02-24T23:16:31Z"^^xsd:dateTime .
+    prov:generatedAtTime "2026-02-24T23:16:31Z"^^xsd:dateTime ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> .
 
 ex:entity_argentina a prov:Entity ;
     rdfs:label "Argentina" ;
     prov:wasDerivedFrom ex:document_spanish_countries ;
     prov:wasGeneratedBy ex:activity_spanish_analysis ;
-    prov:generatedAtTime "2026-02-24T23:16:32Z"^^xsd:dateTime .
+    prov:generatedAtTime "2026-02-24T23:16:32Z"^^xsd:dateTime ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> .
 
 ex:entity_colombia a prov:Entity ;
     rdfs:label "Colombia" ;
     prov:wasDerivedFrom ex:document_spanish_countries ;
     prov:wasGeneratedBy ex:activity_spanish_analysis ;
-    prov:generatedAtTime "2026-02-24T23:16:33Z"^^xsd:dateTime .
+    prov:generatedAtTime "2026-02-24T23:16:33Z"^^xsd:dateTime ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> .
 
 ex:entity_peru a prov:Entity ;
     rdfs:label "Peru" ;
     prov:wasDerivedFrom ex:document_spanish_countries ;
     prov:wasGeneratedBy ex:activity_spanish_analysis ;
-    prov:generatedAtTime "2026-02-24T23:16:34Z"^^xsd:dateTime .
+    prov:generatedAtTime "2026-02-24T23:16:34Z"^^xsd:dateTime ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> .
 
-# EXTERNAL VALIDATION RESULT - API-verified Spanish countries
-ex:entity_api_spanish_countries a prov:Entity ;
-    rdfs:label "API-verified Spanish-speaking Countries" ;
-    prov:wasDerivedFrom ex:collection_spanish_countries ;
+# INDIVIDUAL COUNTRIES FROM API RESPONSE - Properly structured entities
+ex:entity_argentina_api a prov:Entity ;
+    rdfs:label "Argentina" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
     prov:wasGeneratedBy ex:activity_external_validation ;
     prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
-    prov:generatedAtTime "2026-02-24T23:26:00Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2026-02-24T23:26:01Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_bolivia_api a prov:Entity ;
+    rdfs:label "Bolivia" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:02Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_chile_api a prov:Entity ;
+    rdfs:label "Chile" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:03Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_colombia_api a prov:Entity ;
+    rdfs:label "Colombia" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:04Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_costa_rica_api a prov:Entity ;
+    rdfs:label "Costa Rica" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:05Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_cuba_api a prov:Entity ;
+    rdfs:label "Cuba" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:06Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_dominican_republic_api a prov:Entity ;
+    rdfs:label "Dominican Republic" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:07Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_ecuador_api a prov:Entity ;
+    rdfs:label "Ecuador" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:08Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_el_salvador_api a prov:Entity ;
+    rdfs:label "El Salvador" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:09Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_equatorial_guinea_api a prov:Entity ;
+    rdfs:label "Equatorial Guinea" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:10Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_guatemala_api a prov:Entity ;
+    rdfs:label "Guatemala" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:11Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_honduras_api a prov:Entity ;
+    rdfs:label "Honduras" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:12Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_mexico_api a prov:Entity ;
+    rdfs:label "Mexico" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:13Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_nicaragua_api a prov:Entity ;
+    rdfs:label "Nicaragua" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:14Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_panama_api a prov:Entity ;
+    rdfs:label "Panama" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:15Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_paraguay_api a prov:Entity ;
+    rdfs:label "Paraguay" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:16Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_peru_api a prov:Entity ;
+    rdfs:label "Peru" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:17Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_puerto_rico_api a prov:Entity ;
+    rdfs:label "Puerto Rico" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:18Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_spain_api a prov:Entity ;
+    rdfs:label "Spain" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:19Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_uruguay_api a prov:Entity ;
+    rdfs:label "Uruguay" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:20Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_venezuela_api a prov:Entity ;
+    rdfs:label "Venezuela" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:21Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:entity_western_sahara_api a prov:Entity ;
+    rdfs:label "Western Sahara" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:22Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+# FINAL COLLECTION - All API-derived countries
+ex:collection_all_spanish_countries a prov:Collection ;
+    rdfs:label "Complete Collection of All Spanish-speaking Countries" ;
+    prov:hadMember ex:entity_argentina_api, ex:entity_bolivia_api, ex:entity_chile_api, ex:entity_colombia_api, ex:entity_costa_rica_api, ex:entity_cuba_api, ex:entity_dominican_republic_api, ex:entity_ecuador_api, ex:entity_el_salvador_api, ex:entity_equatorial_guinea_api, ex:entity_guatemala_api, ex:entity_honduras_api, ex:entity_mexico_api, ex:entity_nicaragua_api, ex:entity_panama_api, ex:entity_paraguay_api, ex:entity_peru_api, ex:entity_puerto_rico_api, ex:entity_spain_api, ex:entity_uruguay_api, ex:entity_venezuela_api, ex:entity_western_sahara_api ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:generatedAtTime "2026-02-24T23:26:30Z"^^xsd:dateTime ;
     prov:wasAttributedTo ex:agent_cascade ;
-    ex:hasApiResponse "Argentina,Bolivia,Chile,Colombia,Costa Rica,Cuba,Dominican Republic,Ecuador,El Salvador,Equatorial Guinea,Guatemala,Honduras,Mexico,Nicaragua,Panama,Paraguay,Peru,Puerto Rico,Spain,Uruguay,Venezuela,Western Sahara" ;
     ex:hasCountryCount "21"^^xsd:integer .
 
 # STATEMENT - Grounded fact about Spanish countries
@@ -70,7 +250,8 @@ ex:statement_spanish_official a rdf:Statement, prov:Entity ;
     prov:wasDerivedFrom ex:document_spanish_countries ;
     prov:specializationOf ex:document_spanish_countries ;
     prov:generatedAtTime "2026-02-24T23:17:00Z"^^xsd:dateTime ;
-    prov:wasAttributedTo ex:agent_cascade .
+    prov:wasAttributedTo ex:agent_cascade ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> .
 
 # STATEMENT - Externally verified fact
 ex:statement_api_verification a rdf:Statement, prov:Entity ;
