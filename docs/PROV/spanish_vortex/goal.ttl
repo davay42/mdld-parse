@@ -1,0 +1,28 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:spanish:> .
+@prefix ex:   <tag:mdld.js.org,2026:spanish:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# GOAL - Spanish Countries Research
+# ========================================
+
+# Primary goal for Spanish language vortex
+ex:goal_spanish_countries a prov:Entity, prov:Plan ;
+    rdfs:label "Create verifiable list of Spanish-speaking countries with official language status" ;
+    prov:generatedAtTime "2026-02-24T23:00:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_user ;
+    prov:wasDerivedFrom ex:goal_language_research ;
+    prov:wasGeneratedBy ex:agent_user .
+
+# Higher-level goal reference
+ex:goal_language_research a prov:Entity, prov:Plan ;
+    rdfs:label "Research world languages and their official status" ;
+    prov:generatedAtTime "2026-01-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_user ;
+    prov:wasGeneratedBy ex:agent_user ;
+    prov:wasDerivedFrom ex:goal_knowledge_management .

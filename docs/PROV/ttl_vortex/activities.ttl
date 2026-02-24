@@ -1,0 +1,50 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:vortex:> .
+@prefix ex:   <tag:mdld.js.org,2026:vortex:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# ACTIVITIES - The Actions
+# ========================================
+
+# STROKE 2: Internal Analysis (Bottom Right)
+ex:activity_internal_analysis a prov:Activity ;
+    rdfs:label "Internal Analysis of 2D Vortex" ;
+    prov:used ex:document_2d_vortex ;
+    prov:startedAtTime "2026-02-24T22:12:00Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-02-24T22:18:00Z"^^xsd:dateTime ;
+    prov:qualifiedAssociation ex:association_internal_analysis ;
+    prov:wasInfluencedBy ex:goal_2d_vortex .
+
+# Association for internal analysis
+ex:association_internal_analysis a prov:Association ;
+    prov:agent ex:agent_cascade ;
+    prov:hadPlan ex:plan_vortex_summary ;
+    prov:hadRole ex:role_analyst .
+
+# Role for internal analysis
+ex:role_analyst a prov:Role ;
+    rdfs:label "Knowledge Analyst" .
+
+# STROKE 3: External Validation (Top Right)
+ex:activity_external_validation a prov:Activity ;
+    rdfs:label "External Validation of Vortex Concepts" ;
+    prov:used ex:collection_vortex_concepts ;
+    prov:wasInformedBy ex:activity_internal_analysis ;
+    prov:startedAtTime "2026-02-24T22:20:00Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-02-24T22:25:00Z"^^xsd:dateTime ;
+    prov:qualifiedAssociation ex:association_external_validation .
+
+# Association for external validation
+ex:association_external_validation a prov:Association ;
+    prov:agent ex:agent_cascade ;
+    prov:hadPlan ex:plan_vortex_summary ;
+    prov:hadRole ex:role_validator .
+
+# Role for external validation
+ex:role_validator a prov:Role ;
+    rdfs:label "Concept Validator" .

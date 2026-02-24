@@ -1,0 +1,53 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:vortex:> .
+@prefix ex:   <tag:mdld.js.org,2026:vortex:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# CONCEPTS - Abstract entities
+# ========================================
+
+ex:concept_vortex_dynamics a prov:Entity ;
+    rdfs:label "Vortex Dynamics" ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:wasGeneratedBy ex:activity_internal_analysis ;
+    prov:generatedAtTime "2026-02-24T22:19:00Z"^^xsd:dateTime .
+
+ex:concept_knowledge_flow a prov:Entity ;
+    rdfs:label "Knowledge Flow" ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:wasGeneratedBy ex:activity_internal_analysis ;
+    prov:generatedAtTime "2026-02-24T22:19:30Z"^^xsd:dateTime .
+
+ex:concept_vortex_propulsion a prov:Entity ;
+    rdfs:label "Vortex Propulsion" ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:wasGeneratedBy ex:activity_internal_analysis ;
+    prov:generatedAtTime "2026-02-24T22:20:00Z"^^xsd:dateTime .
+
+# PROPERTIES - RDF predicates
+ex:pred:hasArchitecture a rdf:Property ;
+    rdfs:label "has architecture" ;
+    rdfs:domain ex:concept_vortex_dynamics ;
+    rdfs:range xsd:string .
+
+ex:pred:hasScale a rdf:Property ;
+    rdfs:label "has scale" ;
+    rdfs:domain ex:concept_knowledge_flow ;
+    rdfs:range xsd:string .
+
+ex:pred:hasMechanism a rdf:Property ;
+    rdfs:label "has mechanism" ;
+    rdfs:domain ex:concept_vortex_propulsion ;
+    rdfs:range xsd:string .
+
+# ROLES - Agent roles
+ex:role_analyst a prov:Role ;
+    rdfs:label "Knowledge Analyst" .
+
+ex:role_validator a prov:Role ;
+    rdfs:label "Concept Validator" .

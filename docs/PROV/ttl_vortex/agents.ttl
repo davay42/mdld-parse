@@ -1,0 +1,21 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:vortex:> .
+@prefix ex:   <tag:mdld.js.org,2026:vortex:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# AGENTS - Who performs actions
+# ========================================
+
+# Human user - ultimate authority
+ex:agent_user a prov:Agent, prov:Person ;
+    rdfs:label "Human User" .
+
+# AI assistant - delegated by human
+ex:agent_cascade a prov:Agent, prov:SoftwareAgent ;
+    rdfs:label "Cascade AI Assistant" ;
+    prov:actedOnBehalfOf ex:agent_user .

@@ -1,0 +1,28 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:vortex:> .
+@prefix ex:   <tag:mdld.js.org,2026:vortex:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# GOAL - The North Star
+# ========================================
+
+# Primary goal for 2D Vortex documentation
+ex:goal_2d_vortex a prov:Entity, prov:Plan ;
+    rdfs:label "Create grounded summary of 2D Vortex document" ;
+    prov:generatedAtTime "2026-02-24T22:00:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_user ;
+    prov:wasDerivedFrom ex:goal_knowledge_management ;
+    prov:wasGeneratedBy ex:agent_user .
+
+# Higher-level goal reference
+ex:goal_knowledge_management a prov:Entity, prov:Plan ;
+    rdfs:label "Master personal knowledge management system" ;
+    prov:generatedAtTime "2026-01-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_user ;
+    prov:wasGeneratedBy ex:agent_user ;
+    prov:wasDerivedFrom ex:goal_knowledge_management .

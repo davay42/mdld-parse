@@ -1,0 +1,95 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:vortex:> .
+@prefix ex:   <tag:mdld.js.org,2026:vortex:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# RESULTS - Grounded Truth (Bottom Left)
+# ========================================
+
+# COLLECTION - Organized batch of concepts
+ex:collection_vortex_concepts a prov:Collection ;
+    rdfs:label "2D Vortex Concept Collection" ;
+    prov:hadMember ex:statement_quadrupole_engine, ex:statement_granularity_scales, ex:statement_propagation_mechanics ;
+    prov:wasGeneratedBy ex:activity_internal_analysis ;
+    prov:generatedAtTime "2026-02-24T22:15:00Z"^^xsd:dateTime .
+
+# STATEMENTS - Grounded Truth
+ex:statement_quadrupole_engine a rdf:Statement, prov:Entity ;
+    rdfs:label "4-State Quadrupole Engine" ;
+    rdf:subject ex:concept_vortex_dynamics ;
+    rdf:predicate ex:pred:hasArchitecture ;
+    rdf:object "4-state quadrupole with central orifice plate" ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:specializationOf ex:document_2d_vortex ;
+    prov:generatedAtTime "2026-02-24T22:30:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:statement_granularity_scales a rdf:Statement, prov:Entity ;
+    rdfs:label "Granularity-Viscosity Scale Dynamics" ;
+    rdf:subject ex:concept_knowledge_flow ;
+    rdf:predicate ex:pred:hasScale ;
+    rdf:object "Document→Collection→Statement with viscosity transitions" ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:specializationOf ex:document_2d_vortex ;
+    prov:generatedAtTime "2026-02-24T22:31:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+ex:statement_propagation_mechanics a rdf:Statement, prov:Entity ;
+    rdfs:label "Self-Propagation DIAS Engine" ;
+    rdf:subject ex:concept_vortex_propulsion ;
+    rdf:predicate ex:pred:hasMechanism ;
+    rdf:object "DIASDIASDIAS cycle with document recycling" ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:specializationOf ex:document_2d_vortex ;
+    prov:generatedAtTime "2026-02-24T22:32:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+# CONCEPTS - Abstract entities
+ex:concept_vortex_dynamics a prov:Entity ;
+    rdfs:label "Vortex Dynamics" ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:wasGeneratedBy ex:activity_internal_analysis ;
+    prov:generatedAtTime "2026-02-24T22:19:00Z"^^xsd:dateTime .
+
+ex:concept_knowledge_flow a prov:Entity ;
+    rdfs:label "Knowledge Flow" ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:wasGeneratedBy ex:activity_internal_analysis ;
+    prov:generatedAtTime "2026-02-24T22:19:30Z"^^xsd:dateTime .
+
+ex:concept_vortex_propulsion a prov:Entity ;
+    rdfs:label "Vortex Propulsion" ;
+    prov:wasDerivedFrom ex:document_2d_vortex ;
+    prov:wasGeneratedBy ex:activity_internal_analysis ;
+    prov:generatedAtTime "2026-02-24T22:20:00Z"^^xsd:dateTime .
+
+# PROPERTIES - RDF predicates
+ex:pred:hasArchitecture a rdf:Property ;
+    rdfs:label "has architecture" ;
+    rdfs:domain ex:concept_vortex_dynamics ;
+    rdfs:range xsd:string .
+
+ex:pred:hasScale a rdf:Property ;
+    rdfs:label "has scale" ;
+    rdfs:domain ex:concept_knowledge_flow ;
+    rdfs:range xsd:string .
+
+ex:pred:hasMechanism a rdf:Property ;
+    rdfs:label "has mechanism" ;
+    rdfs:domain ex:concept_vortex_propulsion ;
+    rdfs:range xsd:string .
+
+# ROLES - Agent roles
+ex:role_analyst a prov:Role ;
+    rdfs:label "Knowledge Analyst" .
+
+ex:role_validator a prov:Role ;
+    rdfs:label "Concept Validator" .

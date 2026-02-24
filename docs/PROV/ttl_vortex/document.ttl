@@ -1,0 +1,21 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:vortex:> .
+@prefix ex:   <tag:mdld.js.org,2026:vortex:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# DOCUMENT - External Entity (Intake)
+# ========================================
+
+# 2D Vortex Document - primary source material
+ex:document_2d_vortex a prov:Entity ;
+    rdfs:label "2D Vortex Document" ;
+    prov:atLocation <file:///Users/davay/Documents/MagiCorp/mdld-parse/docs/PROV/vortex/2D.md> ;
+    prov:hadPrimarySource ex:document_2d_vortex ;
+    prov:generatedAtTime "2026-02-24T22:10:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_user ;
+    prov:wasGeneratedBy ex:agent_user .

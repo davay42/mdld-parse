@@ -1,0 +1,21 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:spanish:> .
+@prefix ex:   <tag:mdld.js.org,2026:spanish:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# DOCUMENT - External Entity (Intake)
+# ========================================
+
+# Spanish Countries Wikipedia page - primary source material
+ex:document_spanish_countries a prov:Entity ;
+    rdfs:label "Spanish-speaking countries Wikipedia page" ;
+    prov:atLocation <https://en.wikipedia.org/wiki/Spanish_language> ;
+    prov:hadPrimarySource ex:document_spanish_countries ;
+    prov:generatedAtTime "2026-02-24T23:05:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_user ;
+    prov:wasGeneratedBy ex:agent_user .
