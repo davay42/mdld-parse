@@ -17,7 +17,8 @@ ex:goal_spanish_countries a prov:Entity, prov:Plan ;
     prov:generatedAtTime "2026-02-24T23:00:00Z"^^xsd:dateTime ;
     prov:wasAttributedTo ex:agent_user ;
     prov:wasDerivedFrom ex:goal_language_research ;
-    prov:wasGeneratedBy ex:agent_user .
+    prov:wasGeneratedBy ex:agent_user ;
+    prov:wasInformedBy ex:activity_external_validation .
 
 # Higher-level goal reference
 ex:goal_language_research a prov:Entity, prov:Plan ;

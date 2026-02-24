@@ -37,3 +37,42 @@ ex:agent_user a prov:Agent, prov:Person ;
 ex:agent_cascade a prov:Agent, prov:SoftwareAgent ;
     rdfs:label "Cascade AI Assistant" ;
     prov:actedOnBehalfOf ex:agent_user .
+
+# STROKE 3: External Validation (Top Right)
+ex:activity_external_validation a prov:Activity ;
+    rdfs:label "External Validation of Spanish Countries via Wikipedia API" ;
+    prov:used ex:collection_spanish_countries ;
+    prov:wasInformedBy ex:activity_spanish_analysis ;
+    prov:startedAtTime "2026-02-24T23:20:00Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-02-24T23:25:00Z"^^xsd:dateTime ;
+    prov:qualifiedAssociation ex:association_external_validation ;
+    prov:generated ex:goal_spanish_countries .
+
+# Association for external validation
+ex:association_external_validation a prov:Association ;
+    prov:agent ex:agent_cascade ;
+    prov:hadPlan ex:goal_spanish_countries ;
+    prov:hadRole ex:role_validator .
+
+# Role for external validation
+ex:role_validator a prov:Role ;
+    rdfs:label "External Data Validator" .
+
+# STROKE 4: Grounding (Bottom Left)
+ex:activity_grounding a prov:Activity ;
+    rdfs:label "Grounding Activity using API-verified Spanish Countries" ;
+    prov:used ex:entity_api_spanish_countries ;
+    prov:wasInformedBy ex:activity_external_validation ;
+    prov:startedAtTime "2026-02-24T23:30:00Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-02-24T23:35:00Z"^^xsd:dateTime ;
+    prov:qualifiedAssociation ex:association_grounding .
+
+# Association for grounding activity
+ex:association_grounding a prov:Association ;
+    prov:agent ex:agent_cascade ;
+    prov:hadPlan ex:goal_spanish_countries ;
+    prov:hadRole ex:role_grounding_agent .
+
+# Role for grounding activity
+ex:role_grounding_agent a prov:Role ;
+    rdfs:label "Grounding Agent" .

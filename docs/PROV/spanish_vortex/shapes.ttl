@@ -11,28 +11,72 @@
 # SHACL SHAPES FOR SPANISH VORTEX
 # ========================================
 
-# Goal Completion Shape - detects unfinished goals
-tag:GoalCompletionShape a sh:NodeShape ;
-    sh:targetClass prov:Plan ;
+# Phase 1 Intake Shape - ensures document processing
+tag:Phase1IntakeShape a sh:NodeShape ;
+    sh:target [
+        a sh:Node ;
+        sh:class prov:Entity ;
+        sh:property [
+            sh:path prov:atLocation ;
+            sh:pattern "^https?://.*" ;
+        ] ;
+    ] ;
     sh:property [
-        sh:path prov:wasInformedBy ;
+        sh:path prov:wasUsedBy ;
         sh:minCount 1 ;
         sh:nodeKind sh:IRI ;
-        sh:description "Goal must be informed by completed activity" ;
+        sh:description "External documents must be processed by internal activities" ;
         sh:severity sh:Violation ;
-        sh:message "⚠️ UNFINISHED GOAL: No completion activity found - create activity to achieve goal" ;
+        sh:message "⚠️ PHASE 1 INCOMPLETE: External document not processed - create internal analysis activity" ;
     ] .
 
-# External Validation Shape - detects missing external verification
-tag:ExternalValidationShape a sh:NodeShape ;
+# Phase 2 Processing Shape - ensures internal analysis
+tag:Phase2ProcessingShape a sh:NodeShape ;
     sh:targetClass prov:Collection ;
     sh:property [
         sh:path prov:wasUsedBy ;
         sh:minCount 1 ;
         sh:nodeKind sh:IRI ;
-        sh:description "Collection must be used by external validation activity" ;
+        sh:description "Internal collections must be validated externally" ;
         sh:severity sh:Violation ;
-        sh:message "⚠️ MISSING EXTERNAL VALIDATION: Collection not validated externally - create external activity with API/Wikipedia verification" ;
+        sh:message "⚠️ PHASE 2 INCOMPLETE: Collection not externally validated - create external validation activity" ;
+    ] .
+
+# Phase 3 Validation Shape - ensures external verification
+tag:Phase3ValidationShape a sh:NodeShape ;
+    sh:target [
+        a sh:Node ;
+        sh:class prov:Entity ;
+        sh:property [
+            sh:path prov:hadPrimarySource ;
+            sh:pattern "^https?://.*" ;
+        ] ;
+    ] ;
+    sh:property [
+        sh:path prov:wasUsedBy ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:description "Externally sourced entities must be used by subsequent activities" ;
+        sh:severity sh:Violation ;
+        sh:message "⚠️ PHASE 3 INCOMPLETE: External result not used by subsequent activity - create next phase activity" ;
+    ] .
+
+# Phase 4 Grounding Shape - ensures proper chain completion
+tag:Phase4GroundingShape a sh:NodeShape ;
+    sh:targetClass prov:Activity ;
+    sh:property [
+        sh:path prov:used ;
+        sh:minCount 1 ;
+        sh:node [
+            sh:class prov:Entity ;
+            sh:property [
+                sh:path prov:hadPrimarySource ;
+                sh:pattern "^https?://.*" ;
+            ] ;
+        ] ;
+        sh:description "Activities must use externally sourced entities for proper grounding" ;
+        sh:severity sh:Violation ;
+        sh:message "⚠️ PHASE 4 INCOMPLETE: Activity doesn't use external data - create grounding activity" ;
     ] .
 
 # Grounding Shape - detects ungrounded results

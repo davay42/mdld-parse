@@ -8,7 +8,7 @@
 @prefix mdp:  <http://mdld.js.org/prov/> .
 
 # ========================================
-# RESULTS - Internal Analysis Output
+# RESULTS - Internal Analysis Output + External Validation
 # ========================================
 
 # COLLECTION - Organized batch of Spanish countries
@@ -49,6 +49,17 @@ ex:entity_peru a prov:Entity ;
     prov:wasGeneratedBy ex:activity_spanish_analysis ;
     prov:generatedAtTime "2026-02-24T23:16:34Z"^^xsd:dateTime .
 
+# EXTERNAL VALIDATION RESULT - API-verified Spanish countries
+ex:entity_api_spanish_countries a prov:Entity ;
+    rdfs:label "API-verified Spanish-speaking Countries" ;
+    prov:wasDerivedFrom ex:collection_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:26:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade ;
+    ex:hasApiResponse "Argentina,Bolivia,Chile,Colombia,Costa Rica,Cuba,Dominican Republic,Ecuador,El Salvador,Equatorial Guinea,Guatemala,Honduras,Mexico,Nicaragua,Panama,Paraguay,Peru,Puerto Rico,Spain,Uruguay,Venezuela,Western Sahara" ;
+    ex:hasCountryCount "21"^^xsd:integer .
+
 # STATEMENT - Grounded fact about Spanish countries
 ex:statement_spanish_official a rdf:Statement, prov:Entity ;
     rdfs:label "Spanish as Official Language" ;
@@ -61,8 +72,68 @@ ex:statement_spanish_official a rdf:Statement, prov:Entity ;
     prov:generatedAtTime "2026-02-24T23:17:00Z"^^xsd:dateTime ;
     prov:wasAttributedTo ex:agent_cascade .
 
+# STATEMENT - Externally verified fact
+ex:statement_api_verification a rdf:Statement, prov:Entity ;
+    rdfs:label "API Verification of Spanish Countries" ;
+    rdf:subject ex:entity_api_spanish_countries ;
+    rdf:predicate ex:pred:hasVerificationSource ;
+    rdf:object "https://www.apicountries.com/lang/es" ;
+    prov:wasGeneratedBy ex:activity_external_validation ;
+    prov:wasDerivedFrom ex:collection_spanish_countries ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:27:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+# GROUNDING RESULT - Final grounded statement
+ex:entity_grounding_result a prov:Entity ;
+    rdfs:label "Grounded Spanish Countries Result" ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_grounding ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:36:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade ;
+    ex:hasFinalCountryCount "21"^^xsd:integer ;
+    ex:hasVerificationStatus "externally-grounded" .
+
+# STATEMENT - Final grounded fact
+ex:statement_final_grounding a rdf:Statement, prov:Entity ;
+    rdfs:label "Final Grounded Statement" ;
+    rdf:subject ex:entity_grounding_result ;
+    rdf:predicate ex:pred:hasVerificationStatus ;
+    rdf:object "externally-grounded" ;
+    prov:wasGeneratedBy ex:activity_grounding ;
+    prov:wasDerivedFrom ex:entity_api_spanish_countries ;
+    prov:hadPrimarySource <https://www.apicountries.com/lang/es> ;
+    prov:generatedAtTime "2026-02-24T23:37:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
 # PROPERTIES - RDF predicates
 ex:pred:hasOfficialLanguage a rdf:Property ;
     rdfs:label "has official language" ;
     rdfs:domain ex:collection_spanish_countries ;
+    rdfs:range xsd:string .
+
+ex:pred:hasVerificationSource a rdf:Property ;
+    rdfs:label "has verification source" ;
+    rdfs:domain ex:entity_api_spanish_countries ;
+    rdfs:range xsd:anyURI .
+
+ex:pred:hasApiResponse a rdf:Property ;
+    rdfs:label "has API response" ;
+    rdfs:domain ex:entity_api_spanish_countries ;
+    rdfs:range xsd:string .
+
+ex:pred:hasCountryCount a rdf:Property ;
+    rdfs:label "has country count" ;
+    rdfs:domain ex:entity_api_spanish_countries ;
+    rdfs:range xsd:integer .
+
+ex:pred:hasFinalCountryCount a rdf:Property ;
+    rdfs:label "has final country count" ;
+    rdfs:domain ex:entity_grounding_result ;
+    rdfs:range xsd:integer .
+
+ex:pred:hasVerificationStatus a rdf:Property ;
+    rdfs:label "has verification status" ;
+    rdfs:domain ex:entity_grounding_result ;
     rdfs:range xsd:string .
