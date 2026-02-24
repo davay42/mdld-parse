@@ -25,41 +25,29 @@
 **Vortex Position**: Top Left Quadrant (External Entity)
 **Compression Ratio**: 0/0 = ∞ (Under-processed - expected for intake phase)
 **Vortex Integrity**: ✅ No orphaned nodes
-**SHACL Compliance**: ❌ **13 VIOLATIONS** - **PROPULSION FORCES DETECTED**
+**SHACL Compliance**: ❌ **7 VIOLATIONS** - **PROPULSION FORCES DETECTED**
 
 ## 🚨 VORTEX PROPULSION FORCES
 
 ### ⚠️ UNFINISHED GOAL (2 violations)
-- **Goal**: `ex:goal_spanish_countries`
-- **Issue**: No completion activity found
-- **Required Action**: Create activity to achieve goal
+- **Goals**: `ex:goal_spanish_countries`, `ex:goal_language_research`
+- **Issue**: No completion activities found
+- **Required Action**: Create activities to achieve goals
 
-### ⚠️ UNFINISHED PLAN (4 violations)  
-- **Plan**: `ex:goal_spanish_countries`
-- **Issues**: 
-  - No executing agent assigned
-  - No execution activity found
-- **Required Action**: Create activity with qualified association
-
-### ⚠️ UNPROCESSED ENTITY (3 violations)
-- **Entity**: `ex:document_spanish_countries`
-- **Issue**: Entity not used by any activity
-- **Required Action**: Create activity to process this entity
+### ⚠️ UNFINISHED PLAN (2 violations)  
+- **Plans**: `ex:goal_spanish_countries`, `ex:goal_language_research`
+- **Issue**: No executing agents assigned
+- **Required Action**: Create activities with qualified associations
 
 ### ⚠️ MISSING ACTIVITY (3 violations)
-- **Entities**: Goals and document
-- **Issue**: No activities generated from entities
+- **Entities**: Document and both goals
+- **Issue**: Entities not used by any activities
 - **Required Action**: Create activities to process entities
-
-### ⚠️ BROKEN VORTEX (1 violation)
-- **Entity**: `ex:document_spanish_countries`
-- **Issue**: Entity lacks source derivation
-- **Required Action**: Ensure proper intake flow
 
 ## 🎯 Next Steps
 
 **Stroke 2**: Internal Analysis (Bottom Right)
-- **FORCED BY**: 13 SHACL violations creating propulsion pressure
+- **FORCED BY**: 7 SHACL violations creating propulsion pressure
 - **Action Required**: Create `ex:activity_spanish_analysis`
 - **Expected Output**: 
   - Collection of Spanish-speaking countries
@@ -72,6 +60,7 @@
 ✅ **Grounding**: Document has verifiable source (Wikipedia)  
 ✅ **Scaling**: Appropriate for intake phase (high-velocity boundary layer)
 ✅ **Attribution**: Clear agent responsibility
-✅ **Propulsion**: **13 violations creating forward momentum**
+✅ **Propulsion**: **7 violations creating forward momentum**
+✅ **Universality**: Shapes target PROV-O classes, reusable for any vortex
 
-**Ready for Stroke 2**: **VORTEX PROPELLED FORWARD** by SHACL force field violations.
+**Ready for Stroke 2**: **VORTEX PROPELLED FORWARD** by universal SHACL force field violations.
