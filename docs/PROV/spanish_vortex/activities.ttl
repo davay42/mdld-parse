@@ -1,0 +1,39 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:spanish:> .
+@prefix ex:   <tag:mdld.js.org,2026:spanish:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# ACTIVITIES - The Actions
+# ========================================
+
+# STROKE 2: Internal Analysis (Bottom Right)
+ex:activity_spanish_analysis a prov:Activity ;
+    rdfs:label "Internal Analysis of Spanish Countries Wikipedia Page" ;
+    prov:used ex:document_spanish_countries ;
+    prov:startedAtTime "2026-02-24T23:10:00Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-02-24T23:15:00Z"^^xsd:dateTime ;
+    prov:qualifiedAssociation ex:association_spanish_analysis ;
+    prov:wasInfluencedBy ex:goal_spanish_countries .
+
+# Association for internal analysis
+ex:association_spanish_analysis a prov:Association ;
+    prov:agent ex:agent_cascade ;
+    prov:hadPlan ex:goal_spanish_countries ;
+    prov:hadRole ex:role_analyst .
+
+# Role for internal analysis
+ex:role_analyst a prov:Role ;
+    rdfs:label "Knowledge Analyst" .
+
+# AGENTS
+ex:agent_user a prov:Agent, prov:Person ;
+    rdfs:label "Human User" .
+
+ex:agent_cascade a prov:Agent, prov:SoftwareAgent ;
+    rdfs:label "Cascade AI Assistant" ;
+    prov:actedOnBehalfOf ex:agent_user .

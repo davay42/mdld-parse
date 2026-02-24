@@ -11,7 +11,7 @@
 # SHACL SHAPES FOR SPANISH VORTEX
 # ========================================
 
-# Goal Completion Shape - detects unfinished goals (universal targeting)
+# Goal Completion Shape - detects unfinished goals
 tag:GoalCompletionShape a sh:NodeShape ;
     sh:targetClass prov:Plan ;
     sh:property [
@@ -23,45 +23,28 @@ tag:GoalCompletionShape a sh:NodeShape ;
         sh:message "⚠️ UNFINISHED GOAL: No completion activity found - create activity to achieve goal" ;
     ] .
 
-# Entity Processing Shape - detects unprocessed entities (universal targeting)
-tag:EntityProcessingShape a sh:NodeShape ;
-    sh:target [
-        a sh:Node ;
-        sh:class prov:Entity ;
-        sh:inverseOf [ sh:inversePath prov:wasGeneratedBy ] ;
-        sh:minCount 1 ;
-    ] ;
+# External Validation Shape - detects missing external verification
+tag:ExternalValidationShape a sh:NodeShape ;
+    sh:targetClass prov:Collection ;
     sh:property [
         sh:path prov:wasUsedBy ;
         sh:minCount 1 ;
         sh:nodeKind sh:IRI ;
-        sh:description "Entity must be used by processing activity" ;
+        sh:description "Collection must be used by external validation activity" ;
         sh:severity sh:Violation ;
-        sh:message "⚠️ UNPROCESSED ENTITY: Entity not used by any activity - create activity to process this entity" ;
+        sh:message "⚠️ MISSING EXTERNAL VALIDATION: Collection not validated externally - create external activity with API/Wikipedia verification" ;
     ] .
 
-# Activity Generation Shape - ensures activities are created (universal targeting)
-tag:ActivityGenerationShape a sh:NodeShape ;
+# Grounding Shape - detects ungrounded results
+tag:GroundingShape a sh:NodeShape ;
     sh:targetClass prov:Entity ;
     sh:property [
-        sh:path [ sh:inversePath prov:used ] ;
+        sh:path prov:hadPrimarySource ;
         sh:minCount 1 ;
         sh:nodeKind sh:IRI ;
-        sh:description "Entity must be used by at least one activity" ;
+        sh:description "Entity must have verifiable primary source" ;
         sh:severity sh:Violation ;
-        sh:message "⚠️ MISSING ACTIVITY: Entity not used by any activity - create activity to process this entity" ;
-    ] .
-
-# Plan Execution Shape - detects unexecuted plans (universal targeting)
-tag:PlanExecutionShape a sh:NodeShape ;
-    sh:targetClass prov:Plan ;
-    sh:property [
-        sh:path prov:wasAssociatedWith ;
-        sh:minCount 1 ;
-        sh:nodeKind sh:IRI ;
-        sh:description "Plan must be associated with executing agent" ;
-        sh:severity sh:Violation ;
-        sh:message "⚠️ UNFINISHED PLAN: No executing agent assigned - create activity with qualified association" ;
+        sh:message "⚠️ UNGROUNDED ENTITY: Entity lacks external verification source - add Wikipedia/API source" ;
     ] .
 
 tag:AgentShape a sh:NodeShape ;

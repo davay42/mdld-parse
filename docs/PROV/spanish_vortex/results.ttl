@@ -1,0 +1,68 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix tag:  <tag:mdld.js.org,2026:spanish:> .
+@prefix ex:   <tag:mdld.js.org,2026:spanish:example:> .
+@prefix mdp:  <http://mdld.js.org/prov/> .
+
+# ========================================
+# RESULTS - Internal Analysis Output
+# ========================================
+
+# COLLECTION - Organized batch of Spanish countries
+ex:collection_spanish_countries a prov:Collection ;
+    rdfs:label "Spanish-speaking Countries Collection" ;
+    prov:hadMember ex:entity_spain, ex:entity_mexico, ex:entity_argentina, ex:entity_colombia, ex:entity_peru ;
+    prov:wasGeneratedBy ex:activity_spanish_analysis ;
+    prov:generatedAtTime "2026-02-24T23:16:00Z"^^xsd:dateTime .
+
+# ENTITIES - Individual Spanish-speaking countries
+ex:entity_spain a prov:Entity ;
+    rdfs:label "Spain" ;
+    prov:wasDerivedFrom ex:document_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_spanish_analysis ;
+    prov:generatedAtTime "2026-02-24T23:16:30Z"^^xsd:dateTime .
+
+ex:entity_mexico a prov:Entity ;
+    rdfs:label "Mexico" ;
+    prov:wasDerivedFrom ex:document_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_spanish_analysis ;
+    prov:generatedAtTime "2026-02-24T23:16:31Z"^^xsd:dateTime .
+
+ex:entity_argentina a prov:Entity ;
+    rdfs:label "Argentina" ;
+    prov:wasDerivedFrom ex:document_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_spanish_analysis ;
+    prov:generatedAtTime "2026-02-24T23:16:32Z"^^xsd:dateTime .
+
+ex:entity_colombia a prov:Entity ;
+    rdfs:label "Colombia" ;
+    prov:wasDerivedFrom ex:document_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_spanish_analysis ;
+    prov:generatedAtTime "2026-02-24T23:16:33Z"^^xsd:dateTime .
+
+ex:entity_peru a prov:Entity ;
+    rdfs:label "Peru" ;
+    prov:wasDerivedFrom ex:document_spanish_countries ;
+    prov:wasGeneratedBy ex:activity_spanish_analysis ;
+    prov:generatedAtTime "2026-02-24T23:16:34Z"^^xsd:dateTime .
+
+# STATEMENT - Grounded fact about Spanish countries
+ex:statement_spanish_official a rdf:Statement, prov:Entity ;
+    rdfs:label "Spanish as Official Language" ;
+    rdf:subject ex:collection_spanish_countries ;
+    rdf:predicate ex:pred:hasOfficialLanguage ;
+    rdf:object "Spanish" ;
+    prov:wasGeneratedBy ex:activity_spanish_analysis ;
+    prov:wasDerivedFrom ex:document_spanish_countries ;
+    prov:specializationOf ex:document_spanish_countries ;
+    prov:generatedAtTime "2026-02-24T23:17:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo ex:agent_cascade .
+
+# PROPERTIES - RDF predicates
+ex:pred:hasOfficialLanguage a rdf:Property ;
+    rdfs:label "has official language" ;
+    rdfs:domain ex:collection_spanish_countries ;
+    rdfs:range xsd:string .
