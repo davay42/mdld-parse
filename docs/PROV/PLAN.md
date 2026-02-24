@@ -1,6 +1,5 @@
 # MDLD PROV-O Catalog Implementation Plan
-
-> A comprehensive plan for implementing the PROV-O catalog with SHACL validation, creating a mathematically consistent provenance manifold for AI-human collaboration. {?comment}
+> A comprehensive plan for implementing a PROV-O catalog with SHACL validation, creating a mathematically consistent provenance manifold for AI-human collaboration. {?comment}
 
 ---
 
@@ -29,7 +28,7 @@ This plan implements a **PROV-O Manifold Structure** that transforms traditional
 
 ## � Implementation Phases
 
-### **Phase 0: Minimal Vortex Procedure** �📋
+### **Phase 0: Minimal Vortex Procedure** �
 
 #### **Physical Metaphor: Paper Vortex System**
 
@@ -73,7 +72,57 @@ Vortex Stability (VS) = KV / (Entropy × Plan Adherence)
 3. **Grounding Test**: "Can I extract a single Statement of Fact?"
 4. **Closure Validation**: "Does today's work complete the Plan loop?"
 
-#### **Implementation Benefits**
+#### **SHACL as Centripetal Force**
+
+In physics, a vortex stays coherent through **pressure gradient**. In your PROV-O system, **SHACL shapes provide the centripetal force** that maintains structural integrity.
+
+**The Cross-Sectional Dynamics:**
+
+1. **The Outer Ring (Activities/Operations)**: High-velocity "surface" where Agent interacts with tools
+2. **The Inner Ring (Entities/Knowledge)**: Lower-velocity "core" where grounded facts reside
+
+**SHACL Violation Mechanics:**
+
+- **"Orphaned Entity" Violation**: Activity without prov:Entity output creates **low-pressure zone** → pulls Agent back to complete cycle
+- **"Incomplete Activity" Violation**: Entity without prov:used input creates **structural vacuum** → forces Agent to create new Activity
+- **Violation as Energy Gradient**: SHACL violations create **potential difference** that Agent must resolve through action
+
+**The Agent as "Viscosity-Reducer":**
+
+When SHACL detects a violation, it creates a **pressure gradient** that the Agent (Human or AI) must overcome:
+
+```
+Violation Pressure = Required State - Current State
+Agent Action = ∇(Violation Pressure) × Response_Coefficient
+```
+
+**Momentum Transfer:**
+
+- **High Momentum**: Strict SHACL + rapid Agent response = fast vortex spinning
+- **Stalling**: Loose SHACL + delayed Agent response = vortex dissipation
+- **Optimal Flow**: Balanced SHACL + appropriate Agent action = stable vortex circulation
+
+**The Geometry of Accountability:**
+
+```
+┌─────────────────────────────────────────┐
+│           ACTIVITIES (Outer Ring)        │  ← Agent Work
+│    ┌─────────────────────────────┐    │
+│    │    ENTITIES (Inner Ring)    │    │  ← SHACL Pressure
+│    │   • Grounded Facts           │    │
+│    │   • Knowledge Store          │    │
+│    └─────────────────────────────┘    │
+└─────────────────────────────────────────┘
+           ↑
+      VORTEX CIRCULATION
+```
+
+**SHACL Design Implications:**
+
+1. **Violation as Force**: Each SHACL rule creates a directional pressure toward system completion
+2. **Agent Response as Work**: The act of resolving violations becomes meaningful "vortex maintenance"
+3. **System Stability**: Balanced SHACL design creates stable, self-correcting manifold
+4. **Progressive Refinement**: Each resolved violation increases vortex momentum (knowledge quality)
 
 - **Zero Infrastructure**: No databases, no servers, just paper and pen
 - **Cognitive Clarity**: Physical layout forces mental organization
