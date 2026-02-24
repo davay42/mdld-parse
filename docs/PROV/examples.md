@@ -12,6 +12,8 @@ The check was performed by [Dr. Lena Ortiz] {+my:lenaOrtiz .prov:Agent ?prov:was
 Given the clean checksum match, I assign a confidence of [0.97] {my:confidence ^^xsd:decimal} to this observation.
 
 
+======
+
 
 # Family journal entry {=my:obsFamily1 .rdf:Statement .prov:Entity}
 
@@ -23,7 +25,7 @@ He stayed at the keyboard long after everyone else left the room, which is usual
 This note was written by [me] {+my:authorSelf .prov:Agent ?prov:wasAssociatedWith} shortly after the meal, timestamped [2026-02-19T19:25:00Z] {prov:endedAtTime ^^xsd:dateTime}.  
 It’s a personal impression, so the confidence is moderate at [0.65] {my:confidence ^^xsd:decimal}.
 
-
+=======
 
 # Gym tracker log {=my:obsGym1 .rdf:Statement .prov:Entity}
 
