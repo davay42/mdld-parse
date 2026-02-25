@@ -5,32 +5,89 @@
 
 ## 🎯 Executive Summary
 
-This plan implements a **PROV-O Manifold Structure** that transforms traditional provenance from a simple log into a mathematically consistent, topologically closed system. The approach ensures every entity, activity, and agent is connected through validated relationships, creating a "torus-like" structure where no node exists in isolation.
+This plan implements a **PROV-O Manifold Structure** informed by Knowledge Double Vortex experience, ensuring every entity, activity, and agent is connected through validated relationships, with SHACL shapes providing centripetal forces that propel the system through DIAD phases.
 
 ---
 
 ## 🧩 Core Architecture: The PROV-O Manifold
 
-### **Three-Axis System**
+### **DIAD Cycle Flow**
+1. **OD - Original Document** (Bottom Left): External documents enter the system
+2. **IA - Internal Activity** (Top Left): Internal analysis and processing
+3. **OA - External Activity** (Top Right): External validation and verification
+4. **ID - Internal Document** (Bottom Right): Grounded results and knowledge
 
-1. **Temporal Axis** (Time Flow): Activity → Entity → Activity
-2. **Intent Axis** (Goal Flow): Goal → Plan → Activity  
-3. **Accountability Axis** (Responsibility): Agent → Association → Plan
-
-### **Topological Closure Principles**
-
-- **No Orphaned Nodes**: Every entity must have a parent activity
-- **No Floating Intent**: Every plan must derive from a Goal
-- **No Unbound Actions**: Every activity must link to a Plan via Association
-- **No Rogue Agents**: Every software agent must delegate to a human
+### **SHACL Force Field Design**
+Each DIAD phase has corresponding SHACL shapes that create propulsion pressure:
+- **OD → IA**: Document processing validation forces internal analysis
+- **IA → OA**: Internal results pressure external validation
+- **OA → ID**: External validation forces grounding
+- **ID → OD**: Grounded documents complete the cycle
 
 ---
 
-## � Implementation Phases
+## 📋 Implementation Phases
 
-### **Phase 0: Minimal Vortex Procedure** �
+### **Phase 1: PROV-O Foundation**
+- Complete coverage of all PROV-O classes and properties
+- Implement entity-activity-agent relationships
+- Ensure topological closure principles
 
-#### **Physical Metaphor: Paper Vortex System**
+### **Phase 2: SHACL Integration**
+- Leverage existing SHACL catalog from @[docs/SHACL]
+- Create phase-specific validation shapes
+- Implement propulsion force mechanisms
+
+### **Phase 3: Double Vortex Patterns**
+- Apply provenance patterns from Spanish Vortex
+- Implement flexible validation with required/optional features
+- Enable iterative vortex development
+
+---
+
+## 🔬 Provenance Engine Design
+
+### **Physical Metaphor: SHACL Force Field**
+- **Centripetal Forces**: SHACL violations create inward pressure
+- **Vortex Propulsion**: Residual violations guide next iteration
+- **Frozen State**: Zero violations indicate complete grounding
+
+### **Self-Documenting SHACL Pattern**
+The SEED.md creates **self-referential provenance loops** where shapes are simultaneously:
+1. **Validation rules** (sh:NodeShape/sh:PropertyShape)
+2. **Grounded entities** (prov:Entity with prov:hadPrimarySource)
+3. **Self-referencing documentation** (prov:wasGeneratedBy the SEED itself)
+
+```markdown
+# SELF-DOCUMENTING SHAPE
+{=tag:shapes:DocumentIntegrity .sh:NodeShape .prov:Entity}
+prov:hadPrimarySource <file:///path/to/SEED.md> ;
+prov:wasGeneratedBy tag:seed:self ;
+prov:generatedAtTime "2026-02-25T16:03:00Z"^^xsd:dateTime ;
+sh:targetClass prov:Entity ;
+sh:property [
+    sh:path prov:wasDerivedFrom ;
+    sh:minCount 1 ;
+    sh:message "Self-Documenting: Entity must be derived from source"
+] .
+```
+
+### **Mathematical Consistency**
+- **No Orphaned Nodes**: Every entity has parent activity
+- **No Floating Intent**: Every plan derives from goal
+- **No Unbound Actions**: Every activity links to plan
+- **Complete Chains**: Goal → Activity → Result → Goal
+
+---
+
+## 📊 Deliverables
+
+1. **Complete PROV-O Catalog**: 100% coverage with Double Vortex patterns
+2. **SHACL Force Field**: Phase-based validation with propulsion
+3. **Documentation**: Physical metaphors for catalog-level understanding
+4. **Examples**: Working implementations demonstrating vortex flow
+
+The plan ensures the PROV-O catalog becomes a self-propelling knowledge system with complete provenance tracking and validation capabilities.
 
 A minimal viable PROV-O system can be implemented as a **Paper Vortex** - a manual, cognitive process that transforms high-entropy ideas into low-entropy knowledge through structured constraints.
 

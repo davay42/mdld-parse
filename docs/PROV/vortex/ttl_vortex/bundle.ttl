@@ -12,7 +12,7 @@
 # ========================================
 
 ex:bundle_vortex_test a prov:Bundle ;
-    rdfs:label "2D Vortex DIAS Cycle Test Bundle" ;
+    rdfs:label "2D Vortex DIAD Cycle Test Bundle" ;
     prov:hadMember ex:goal_2d_vortex, ex:plan_vortex_summary, ex:document_2d_vortex, 
                  ex:collection_vortex_concepts, ex:activity_internal_analysis,
                  ex:activity_external_validation, ex:statement_quadrupole_engine,

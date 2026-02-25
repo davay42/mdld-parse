@@ -42,10 +42,10 @@ ex:statement_granularity_scales a rdf:Statement, prov:Entity ;
     prov:wasAttributedTo ex:agent_cascade .
 
 ex:statement_propagation_mechanics a rdf:Statement, prov:Entity ;
-    rdfs:label "Self-Propagation DIAS Engine" ;
+    rdfs:label "Self-Propagation DIAD Engine" ;
     rdf:subject ex:concept_vortex_propulsion ;
     rdf:predicate ex:pred:hasMechanism ;
-    rdf:object "DIASDIASDIAS cycle with document recycling" ;
+    rdf:object "DIADIAD cycle with document recycling" ;
     prov:wasGeneratedBy ex:activity_external_validation ;
     prov:wasDerivedFrom ex:document_2d_vortex ;
     prov:specializationOf ex:document_2d_vortex ;

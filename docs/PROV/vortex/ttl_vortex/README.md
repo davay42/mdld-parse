@@ -17,7 +17,7 @@ This directory contains the complete 2D Vortex system broken into logical module
 | **concepts.ttl** | Abstract concepts and properties |
 | **bundle.ttl** | Complete provenance bundle |
 
-## 🔄 DIAS Cycle Flow
+## 🔄 DIAD Cycle Flow
 
 ```
 goal.ttl → document.ttl → activities.ttl → results.ttl → concepts.ttl
@@ -66,4 +66,4 @@ ig-cli list ttl_vortex/
 - **Vortex Integrity**: Complete 4-stroke cycles with no orphaned nodes
 - **Agent Balance**: Human authority with AI delegation
 
-This modular structure enables granular testing of each DIAS cycle component while maintaining complete W3C PROV-O compliance.
+This modular structure enables granular testing of each DIAD cycle component while maintaining complete W3C PROV-O compliance.

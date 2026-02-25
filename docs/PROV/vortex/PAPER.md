@@ -274,11 +274,11 @@ Day | Documents | Collections | Statements | Ratio | Status
 
 ---
 
-## 🔄 Self-Propagation: The DIAS Engine
+## 🔄 Self-Propagation: The DIAD Engine
 
 ### The Recursive Momentum Pattern
 
-The vortex achieves **self-propagation** through the **DIASDIASDIAS** cycle:
+The vortex achieves **self-propagation** through the **DIADDIADDIAD** cycle:
 
 ```
 D₁ → I₁ → A₁ → S₁  →  D₂ → I₂ → A₂ → S₂  →  D₃ → I₃ → A₃ → S₃

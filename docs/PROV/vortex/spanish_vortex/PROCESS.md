@@ -2,7 +2,7 @@
 
 ## 📋 Process Overview
 
-**Objective**: Begin DIAS cycle by ingesting Spanish countries data from Wikipedia.
+**Objective**: Begin DIAD cycle by ingesting Spanish countries data from Wikipedia.
 
 ## 🔍 Step-by-Step Execution
 

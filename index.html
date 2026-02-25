@@ -105,6 +105,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism.min.css">
 </head>
 
 <body>
@@ -209,7 +210,7 @@
                 style="display: flex; flex-flow: wrap; grid-template-columns: minmax(360px, 1.2fr) minmax(360px, 1fr) minmax(360px, 1fr); gap: 1rem; margin-bottom: 1rem; align-items: start;">
                 <div style="min-width: 100%;">
                     <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">MD-LD Input</h3>
-                    <textarea id="input"
+                    <textarea id="input" class="language-markdown"
                         style="width: 100%; height: 250px; padding: .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-family: var(--font-mono); font-size: 13px; resize: vertical; background: var(--bg-light); color: var(--text-code);"
                         placeholder="Write your MD-LD here...
 
@@ -223,13 +224,20 @@ Examples showcase real-world scenarios:
 Title: [My Document] {name}
 Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
                 </div>
+
                 <div style="min-width: 0;">
-                    <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Quads (highlighted)
+                    <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Quads
                     </h3>
                     <div id="output"
                         style="background: var(--bg-light); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow: auto; color: var(--text-code);">
                         Quads will appear here...</div>
                 </div>
+
+                <pre style="width:100%; max-height:280px;overflow-y: scroll;">
+                    <code id="ttl" class="language-turtle" style="font-size:0.8em;display:block">
+                        TTL loading...</code>
+                    </pre>
+
                 <div style="min-width: 0;" id="rendered-section" style="display: none;">
                     <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Rendered HTML+RDFa
                     </h3>
@@ -375,7 +383,8 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
   {
     "imports": {
       "./index.js": "./index.js",
-      "./tests.js": "./tests.js"
+      "./tests.js": "./tests.js",
+      "n3": "https://esm.sh/n3@2.0.1"
     }
   }
   </script>
@@ -384,6 +393,7 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
         import { parse, serialize, shortenIRI } from './src/index.js';
         import { render } from './src/render.js';
         import { runTests, tests } from './tests/index.js';
+        import { Writer, DataFactory as N3DataFactory, Store } from 'n3'
 
         let currentTestResults = [];
 
@@ -406,27 +416,27 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
 ## Document {=ex:doc .ex:Document label}
 Author: [Alice] {+ex:alice .ex:Person ?ex:author ex:name}
 `,
-            journal: `[tag] <tag:alice@example.com,2026:>
+            journal: `[my] <tag:alice@example.com,2026:>
 
-## 2024-07-18 — A good day {=tag:journal-2024-07-18 .tag:Event}
+## 2024-07-18 — A good day {=my:journal-2024-07-18 .my:Event}
 
-Mood: [Happy] {mood}
-Energy level: [8] {tag:energyLevel ^^xsd:integer}
-Place: [Central Park] {+tag:central-park ?tag:location .tag:Place label @en}
-With: [Sam] {+tag:sam .tag:Person ?tag:attendee}
-Weather: [Sunny] {tag:weather}
+Mood: [Happy] {my:mood}
+Energy level: [8] {my:energyLevel ^^xsd:integer}
+Place: [Central Park] {+my:central-park ?my:location .my:Place label @en}
+With: [Sam] {+my:sam .my:Person ?my:attendee}
+Weather: [Sunny] {my:weather}
 
-Activities: {?tag:hasActivity .tag:Activity label}
+Activities: {?my:hasActivity .my:Activity label}
 
-- Walking {=tag:walking-1}
-- Reading {=tag:reading-1}
+- Walking {=#walking}
+- Reading {=#reading}
 
 Reflections:
-I felt [peaceful] {tag:emotionalState} and the park was [beautiful] {tag:description}.
+I felt [peaceful] {my:emotionalState} and the park was [beautiful] {my:description}.
 
-Related events: {!tag:relatedEvent  .tag:Event}
-- Morning coffee {=tag:coffee-2024-07-18}
-- Evening dinner {=tag:dinner-2024-07-18}`,
+Related events: {!my:relatedEvent  .my:Event}
+- Morning coffee {=my:coffee-2024-07-18}
+- Evening dinner {=my:dinner-2024-07-18}`,
 
             recipe: `[food] <tag:alice@example.com,2026:food/>
 
@@ -709,6 +719,8 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
             const rendered = document.getElementById('rendered-output');
             const stats = document.getElementById('parse-stats');
 
+
+
             if (!input.trim()) {
                 output.textContent = 'Quads will appear here...';
                 if (ENABLE_RDFA_RENDER) {
@@ -724,6 +736,29 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
                 const duration = Math.round(performance.now() - startTime);
 
                 lastParse = { input, result };
+                const { quads, context } = result
+                delete context['@vocab']
+
+                const writer = new Writer({
+                    format: 'Turtle',
+                    prefixes: context
+                });
+
+                const store = new Store();
+                store.addQuads(quads);
+                writer.addQuads(store.getQuads())
+                writer.end((error, ttlResult) => {
+                    const ttlDiv = document.getElementById('ttl');
+                    if (error) {
+                        ttlDiv.textContent = 'Error: ' + error;
+                    } else {
+                        ttlDiv.textContent = ttlResult || 'No TTL output generated';
+                        // Re-highlight with Prism after content update
+                        if (window.Prism) {
+                            Prism.highlightElement(ttlDiv);
+                        }
+                    }
+                });
 
                 // Display rendered HTML+RDFa (only if enabled)
                 if (ENABLE_RDFA_RENDER) {
@@ -1048,6 +1083,11 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
         // Load initial example
         loadExample('journal');
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-markdown.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-turtle.min.js"></script>
+
 </body>
 
 </html>
