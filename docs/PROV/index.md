@@ -11,11 +11,13 @@ This catalog [includes] {+cat:includes .rdf:Property label} the most relevant an
 
 ---
 
-## Core Provenance Model {+class:CoreModel .Class label}
+## Core Provenance Model {=class:CoreModel .cat:Model label}
 
 The core PROV model defines the fundamental building blocks of provenance graphs. These terms account for the vast majority of real-world provenance data.
 
-### Core Classes
+### Core Classes {=#classes .Container label}
+
+There are 3 core class in PROV-O
 
 * Entity {=prov:Entity .Class}
 * Activity {=prov:Activity .Class}
