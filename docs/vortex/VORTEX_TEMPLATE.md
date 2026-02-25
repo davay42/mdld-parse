@@ -1,8 +1,5 @@
 [mdld] <https://mdld.js.org/>
 [vortex] <https://mdld.js.org/vortex/>
-[prov] <http://www.w3.org/ns/prov#>
-[sh] <http://www.w3.org/ns/shacl#>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
 
 # Vortex Template {=vortex:Template .sh:NodeShape label}
 
