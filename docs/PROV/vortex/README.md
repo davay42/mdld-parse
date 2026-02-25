@@ -52,6 +52,77 @@ Like a biological organism:
 
 ---
 
+## The Actual Propellants
+
+The Double Vortex operates like a **4-stroke combustion engine** where information and computational energy are the propellants:
+
+### Mass-Momentum System
+
+| Propellant | PROV-O Element | Physical Analogy | Function |
+|-----------|---------------|------------------|----------|
+| **Mass** | `prov:Entity` | Information content | Fuel that flows through the system |
+| **Momentum** | `prov:Activity` | Transformation force | Combustion that moves mass |
+| **Energy Source** | `prov:Agent` | Driving force | Plasma that carries energy |
+| **Pressure Field** | `prov:Plan` | Constraint boundaries | Orifice plate that shapes flow |
+| **Flow Field** | `prov:used/prov:wasGeneratedBy` | Causal field lines | Field lines that guide flow |
+
+### Four-Quadrant Engine Dynamics
+
+```
+    Top Left (External)    Top Right (External)
+    [Entity Sources]        [Tool Activities]
+         ↑                    ↓
+         ←→ ←→ ←→ ←→      ← Propagation
+    [Grounded Truth]        [LLM Reasoning]
+         ↓                    ↑
+    Bottom Left (Internal)   Bottom Right (Internal)
+    [Statements]            [Inference Activities]
+```
+
+**Phase Transitions** (Matter-Energy Interactions):
+
+1. **Intake Phase** (Top Left → Bottom Right):
+   - External entities (high pressure, high velocity) enter
+   - **Mass transfer**: Raw information gains internal structure
+   - **Energy increase**: Processing work raises information density
+   - SHACL validation acts as "filter" removing impurities
+
+2. **Power Phase** (Bottom Right → Top Right):
+   - Internal activities (low velocity, high pressure) process entities
+   - **Energy conversion**: Internal knowledge converted to external action
+   - **Maximum extraction**: Plan constraints limit power output
+   - **Momentum transfer**: Internal reasoning becomes external tool calls
+
+3. **Exhaust Phase** (Top Right → Bottom Left):
+   - External activities (high velocity, low pressure) discharge
+   - **Energy dissipation**: Results solidified into truth via SHACL validation
+   - **Entropy reduction**: System returns to low-entropy state
+   - **Mass solidification**: External actions become grounded statements
+
+### Pressure Differentials Drive Propulsion
+
+The vortex achieves self-propagation through **pressure differentials** created by SHACL constraints:
+
+- **Intake Pressure**: External documents unstable until `prov:specializationOf` creates statements (vacuum pulls entities in)
+- **Cognitive Pressure**: Unused statements flagged as "stagnant" until `prov:used` by activities (vacuum forces inference)
+- **Execution Pressure**: Plans incomplete until external `mdp:tool` validation occurs (vacuum forces tool use)
+- **Grounding Pressure**: Activities incomplete until `prov:wasGeneratedBy` entities exist (vacuum forces generation)
+
+These pressure differentials create **vacuum zones** that the agent must fill, ensuring continuous forward motion. Each violation resolution creates the conditions for the next violation—this is the "perpetual knowledge machine" that transforms high-entropy observations into low-entropy, grounded truth.
+
+### Energy Flow Equation
+
+```
+∂E/∂t = Power_in - Power_out + Dissipation
+```
+
+Where:
+- `Power_in` = External document intake + Internal reasoning
+- `Power_out` = External tool calls + Grounded statements
+- `Dissipation` = SHACL validation energy loss
+
+The system maintains energy conservation through the DIADIADIAD cycle where every transformation is accounted for in the provenance chain.
+
 ## Getting Started
 
 1. **Create SEED.md** with goal and SHACL constraints

@@ -2243,6 +2243,288 @@ SELECT ?stmt WHERE {
 
 ---
 
+## Part 9: DIAD Mapping to Chatbot Chat History
+
+The DIAD cycle maps directly to normal chatbot/chatgpt interactions, transforming casual conversations into structured knowledge with complete provenance.
+
+### Chat History as DIAD Cycle
+
+Every chatbot interaction follows the DIAD pattern:
+
+| Chatbot Phase | DIAD Phase | PROV-O Element | Example |
+|---------------|------------|----------------|---------|
+| **User Prompt** | Document Intake | Incoming `prov:Entity` | Human request as input document |
+| **LLM Response** | Internal Analysis | Internal `prov:Activity` | LLM reasoning generates entities |
+| **Tool Call** | External Validation | External `prov:Activity` | API/web tool validates knowledge |
+| **Tool Result** | Grounding | Grounded `prov:Entity` | Result becomes provenance-tracked entity |
+
+### Vault as Morphing Knowledge Graph
+
+Everything in the Vault is either an **Activity** or **Entity** that morphs with project SHACL shapes:
+
+**Project SHACL Shapes as prov:Collection Records**:
+
+```markdown
+# Project Shape Collection (Created by Internal Activity)
+{=tag:coll:project_shapes .prov:Collection}
+prov:wasGeneratedBy tag:act:create_shapes ;
+prov:hadMember tag:shapes:VortexIntegrity ;
+prov:hadMember tag:shapes:GroundingRequirement ;
+prov:hadMember tag:shapes:CompressionOptimal ;
+mdp:createdBy "internal_activity_reacting_to_goal_pressure" .
+
+# Internal Activity (LLM Run)
+{=tag:act:create_shapes .prov:Activity}
+prov:startedAtTime "2026-02-24T10:00:00Z"^^xsd:dateTime ;
+prov:endedAtTime "2026-02-24T10:05:00Z"^^xsd:dateTime ;
+prov:hadPlan tag:plan:setup_vortex ;
+prov:used tag:vortex:goal ;
+prov:qualifiedAssociation [
+    prov:hadPlan tag:plan:setup_vortex ;
+    prov:agent tag:agent:llm_architect ;
+    prov:role "shape_creator"
+] .
+```
+
+**Human Prompts as Incoming Entities**:
+
+```markdown
+# User Prompt as Entity
+{=tag:entity:user_prompt_001 .prov:Entity}
+rdfs:label "User: Create knowledge base about quantum computing" ;
+prov:wasGeneratedBy tag:act:human_input ;
+prov:generatedAtTime "2026-02-24T09:00:00Z"^^xsd:dateTime ;
+mdp:source "human_user" ;
+mdp:content "Create knowledge base about quantum computing" .
+
+# Human Input Activity
+{=tag:act:human_input .prov:Activity}
+prov:startedAtTime "2026-02-24T09:00:00Z"^^xsd:dateTime ;
+prov:endedAtTime "2026-02-24T09:00:05Z"^^xsd:dateTime ;
+prov:hadPlan tag:plan:goal_setting ;
+prov:wasAssociatedWith tag:agent:human_user .
+```
+
+**LLM Runs as Internal Activities**:
+
+```markdown
+# LLM Reasoning Activity
+{=tag:act:llm_reasoning_001 .prov:Activity}
+prov:startedAtTime "2026-02-24T10:00:00Z"^^xsd:dateTime ;
+prov:endedAtTime "2026-02-24T10:30:00Z"^^xsd:dateTime ;
+prov:hadPlan tag:plan:extract_facts ;
+prov:used tag:entity:user_prompt_001 ;
+prov:used tag:doc:quantum_paper ;
+prov:qualifiedAssociation [
+    prov:hadPlan tag:plan:extract_facts ;
+    prov:agent tag:agent:llm_researcher ;
+    prov:role "knowledge_extractor"
+] ;
+mdp:model "gpt-4-turbo" ;
+mdp:temperature 0.7 ;
+mdp:tokens_in 1500 ;
+mdp:tokens_out 800 .
+
+# Generated Entities
+{=tag:stmt:fact_001 .rdf:Statement}
+rdf:subject tag:concept:qubit ;
+rdf:predicate tag:pred:hasProperty ;
+rdf:object "superposition" ;
+prov:wasGeneratedBy tag:act:llm_reasoning_001 ;
+prov:generatedAtTime "2026-02-24T10:15:00Z"^^xsd:dateTime .
+```
+
+**Tool Calls as External Activities**:
+
+```markdown
+# External Tool Call Activity
+{=tag:act:web_search_001 .prov:Activity}
+prov:startedAtTime "2026-02-24T11:00:00Z"^^xsd:dateTime ;
+prov:endedAtTime "2026-02-24T11:05:00Z"^^xsd:dateTime ;
+prov:hadPlan tag:plan:validate_facts ;
+prov:used tag:stmt:fact_001 ;
+mdp:tool "web_search" ;
+mdp:query "quantum computing superposition applications" ;
+mdp:response_time 5.2 ;
+mdp:status "success" .
+
+# Tool Result Entity
+{=tag:entity:search_result_001 .prov:Entity}
+rdfs:label "Web Search Result" ;
+prov:wasGeneratedBy tag:act:web_search_001 ;
+prov:hadPrimarySource <https://example.com/quantum-apps> ;
+prov:generatedAtTime "2026-02-24T11:05:00Z"^^xsd:dateTime ;
+mdp:relevance_score 0.92 ;
+mdp:content "Quantum computers leverage superposition for cryptography..." .
+```
+
+### Complete Chatbot Conversation as DIAD Cycle
+
+**Example Chat Session**:
+
+```markdown
+# Turn 1: User Prompt (Document Intake)
+Human: "Create knowledge base about quantum computing"
+
+{=tag:entity:prompt_001 .prov:Entity}
+rdfs:label "User prompt" ;
+prov:wasGeneratedBy tag:act:human_input ;
+mdp:source "human_user" .
+
+# Turn 2: LLM Response (Internal Analysis)
+AI: "I'll help you build that. Let me start by gathering information..."
+
+{=tag:act:llm_planning .prov:Activity}
+prov:used tag:entity:prompt_001 ;
+prov:hadPlan tag:plan:research_quantum ;
+prov:qualifiedAssociation [
+    prov:agent tag:agent:llm_planner ;
+    prov:role "planner"
+] .
+
+# Turn 3: Tool Call (External Validation)
+AI: [calls web_search tool]
+
+{=tag:act:web_search .prov:Activity}
+mdp:tool "web_search" ;
+mdp:query "quantum computing overview" ;
+prov:hadPlan tag:plan:research_quantum .
+
+{=tag:entity:search_result .prov:Entity}
+prov:wasGeneratedBy tag:act:web_search ;
+prov:hadPrimarySource <https://example.com> .
+
+# Turn 4: LLM Processes Result (Internal Analysis)
+AI: "Based on my research, quantum computing uses qubits with superposition..."
+
+{=tag:act:llm_extraction .prov:Activity}
+prov:used tag:entity:search_result ;
+prov:hadPlan tag:plan:extract_facts .
+
+{=tag:stmt:fact_001 .rdf:Statement}
+rdf:subject tag:concept:qubit ;
+rdf:predicate tag:pred:hasProperty ;
+rdf:object "superposition" ;
+prov:wasGeneratedBy tag:act:llm_extraction ;
+prov:wasDerivedFrom tag:entity:search_result .
+
+# Turn 5: Tool Call for Validation (External Validation)
+AI: [calls fact_check tool]
+
+{=tag:act:fact_check .prov:Activity}
+mdp:tool "fact_check" ;
+prov:used tag:stmt:fact_001 .
+
+{=tag:entity:validation_result .prov:Entity}
+prov:wasGeneratedBy tag:act:fact_check ;
+mdp:validation_status "verified" .
+
+# Turn 6: Final Response (Grounding)
+AI: "Here's your knowledge base: [document with provenance]"
+
+{=tag:doc:quantum_summary .prov:Entity}
+prov:hadMember tag:coll:quantum_facts ;
+prov:hadPrimarySource <https://arxiv.org/abs/quantum-2024> ;
+prov:wasGeneratedBy tag:act:consolidation ;
+mdp:content """
+# Quantum Computing Summary
+
+## Qubit Properties
+- Superposition
+- Entanglement
+""" .
+```
+
+### Vault Morphing with Project SHACL Shapes
+
+The Vault continuously morphs as internal activities react to Goal/Plan pressure:
+
+**Pressure-Driven Morphing**:
+
+1. **Goal Pressure**: Creates vacuum for plan creation
+2. **Plan Pressure**: Creates vacuum for activity execution
+3. **Activity Pressure**: Creates vacuum for entity generation
+4. **Entity Pressure**: Creates vacuum for grounding
+
+**SHACL Shapes as Pressure Sensors**:
+
+```turtle
+# Shape detects when Vault needs morphing
+{=tag:shapes:VaultMorphing .sh:NodeShape}
+sh:targetClass prov:Collection ;
+sh:property [
+    sh:path prov:hadMember ;
+    sh:minCount 1 ;
+    sh:message "Collection must have members"
+] ;
+sh:property [
+    sh:path prov:wasGeneratedBy ;
+    sh:minCount 1 ;
+    sh:message "Collection must be generated by activity"
+] ;
+sh:property [
+    sh:path mdp:pressureSource ;
+    sh:in ( "goal_pressure" "plan_pressure" "activity_pressure" "entity_pressure" ) ;
+    sh:message "Collection must track pressure source"
+] .
+```
+
+**Example Vault Morphing**:
+
+```markdown
+# Initial Vault State (High Entropy)
+{=tag:coll:vortex_v1 .prov:Collection}
+prov:hadMember tag:entity:prompt_001 ;
+prov:hadMember tag:stmt:fact_001 ;
+mdp:entropy 0.95 ;
+mdp:compression_ratio 1.2 .
+
+# Internal Activity Reacts to Pressure
+{=tag:act:morph_vault .prov:Activity}
+prov:hadPlan tag:plan:optimize_vault ;
+prov:used tag:coll:vortex_v1 ;
+mdp:action "consolidate_statements" ;
+mdp:pressure_source "entity_pressure" .
+
+# Morphed Vault State (Low Entropy)
+{=tag:coll:vortex_v2 .prov:Collection}
+prov:wasDerivedFrom tag:coll:vortex_v1 ;
+prov:hadMember tag:doc:quantum_summary ;
+prov:hadMember tag:coll:quantum_facts ;
+mdp:entropy 0.35 ;
+mdp:compression_ratio 4.5 .
+```
+
+### Chatbot Conversation as Provenance Chain
+
+Every turn in a chatbot conversation becomes a node in the provenance graph:
+
+```
+User Prompt (Entity)
+    ↓ prov:wasGeneratedBy
+Human Input (Activity)
+    ↓ prov:used
+LLM Planning (Activity)
+    ↓ prov:wasGeneratedBy
+Plan (Entity)
+    ↓ prov:hadPlan
+LLM Extraction (Activity)
+    ↓ prov:wasGeneratedBy
+Statements (Entities)
+    ↓ prov:used
+Web Search (Activity)
+    ↓ prov:wasGeneratedBy
+Search Results (Entities)
+    ↓ prov:wasDerivedFrom
+Validated Statements (Entities)
+    ↓ prov:hadMember
+Final Document (Entity)
+```
+
+This ensures that every chatbot response can be traced back to its source through a complete provenance chain, eliminating hallucinations and enabling verification.
+
+---
+
 ## Conclusion
 
 The Knowledge Double Vortex provides a **physically grounded** framework for agentic knowledge work. By treating information flow as a vortex with measurable forces:
