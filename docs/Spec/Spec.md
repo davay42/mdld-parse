@@ -98,7 +98,7 @@ Is operating in **USA** {+nasa:usa ?nasa:countryOfOrigin}
 **Example:**
 ```md
 [Successful] {status} ← L = "Successful"
-[1969] {launchYear ^^xsd:gYear}      ← L = "1969"^^xsg:gYear
+[1969] {launchYear ^^xsd:gYear}      ← L = "1969"^^xsd:gYear
 [July 20] {launchDate @en} ← L = "July 20"@en
 ```
 
