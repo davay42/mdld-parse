@@ -377,6 +377,20 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
                     load...</p>
             </div>
         </section>
+
+        <section class="container" id="spec"
+            style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+            <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">📋 MD-LD Specification</h3>
+            <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
+                <span id="spec-status"
+                    style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+            </div>
+            <div id="spec-content"
+                style="max-height: 80svh; overflow-y: scroll; background: var(--bg-light); border: 1px solid var(--border-dark); border-radius: 4px; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: var(--text-dark);">
+                <p style="text-align: center; color: var(--text-muted); padding: 2rem; ">
+                    Loading specification...</p>
+            </div>
+        </section>
     </div>
 
     <script type="importmap">
@@ -384,7 +398,8 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
     "imports": {
       "./index.js": "./index.js",
       "./tests.js": "./tests.js",
-      "n3": "https://esm.sh/n3@2.0.1"
+      "n3": "https://esm.sh/n3@2.0.1",
+      "markdown-it": "https://esm.sh/markdown-it@14.1.0"
     }
   }
   </script>
@@ -393,7 +408,8 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
         import { parse, serialize, shortenIRI } from './src/index.js';
         import { render } from './src/render.js';
         import { runTests, tests } from './tests/index.js';
-        import { Writer, DataFactory as N3DataFactory, Store } from 'n3'
+        import { Writer, DataFactory as N3DataFactory, Store } from 'n3';
+        import MarkdownIt from 'markdown-it';
 
         let currentTestResults = [];
 
@@ -1077,11 +1093,69 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
         window.addEventListener('load', () => {
             setTimeout(() => {
                 runAllTests();
+                loadSpec();
             }, 500);
         });
 
         // Load initial example
         loadExample('journal');
+
+        // Load and render specification
+        async function loadSpec() {
+            const specContent = document.getElementById('spec-content');
+            const specStatus = document.getElementById('spec-status');
+
+            specStatus.textContent = 'Loading...';
+            specContent.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading specification...</p>';
+
+            try {
+                const response = await fetch('./docs/Spec/Spec.md');
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch spec: ${response.status}`);
+                }
+
+                const markdown = await response.text();
+                const md = new MarkdownIt({
+                    html: true,
+                    linkify: true,
+                    typographer: true,
+                    breaks: true
+                });
+
+                const html = md.render(markdown);
+
+                // Apply custom styling for the rendered spec
+                specContent.innerHTML = `
+                    <style>
+                        #spec-content h1 { color: var(--accent-orange); border-bottom: 2px solid var(--border-dark); padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0; }
+                        #spec-content h2 { color: var(--text-feature); border-bottom: 1px solid var(--border-dark); padding-bottom: 0.25rem; margin: 1.25rem 0 0.75rem 0; }
+                        #spec-content h3 { color: var(--text-feature); margin: 1rem 0 0.5rem 0; }
+                        #spec-content h4 { color: var(--text-muted); margin: 0.75rem 0 0.25rem 0; }
+                        #spec-content p { margin-bottom: 0.75rem; }
+                        #spec-content ul, #spec-content ol { margin: 0.5rem 0 0.75rem 1.5rem; }
+                        #spec-content li { margin-bottom: 0.25rem; }
+                        #spec-content code { background: var(--bg-input); padding: 0.125rem 0.25rem; border-radius: 3px; font-family: var(--font-mono); font-size: 0.875em; }
+                        #spec-content pre { background: var(--bg-input); padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.75rem 0; }
+                        #spec-content pre code { background: none; padding: 0; }
+                        #spec-content blockquote { border-left: 3px solid var(--accent-orange); padding-left: 1rem; margin: 0.75rem 0; color: var(--text-muted); font-style: italic; }
+                        #spec-content a { color: var(--accent-orange); text-decoration: none; }
+                        #spec-content a:hover { text-decoration: underline; }
+                        #spec-content table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
+                        #spec-content th, #spec-content td { border: 1px solid var(--border-dark); padding: 0.5rem; text-align: left; }
+                        #spec-content th { background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; }
+                        #spec-content hr { border: none; border-top: 1px solid var(--border-dark); margin: 1.5rem 0; }
+                    </style>
+                    ${html}
+                `;
+
+                specStatus.textContent = 'Specification loaded';
+
+            } catch (error) {
+                console.error('Error loading spec:', error);
+                specContent.innerHTML = `<p style="text-align: center; color: var(--color-error); padding: 2rem;">Error loading specification: ${error.message}</p>`;
+                specStatus.textContent = 'Error loading spec';
+            }
+        };
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"></script>
