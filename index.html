@@ -266,7 +266,7 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
                 <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🧩 Quad Lab (CRUD + diff
                     apply)</h3>
                 <p style="color: var(--text-muted); margin-bottom: .5rem;">Edit quads below. Applying changes generates
-                    a diff and calls <code>serialize()</code>
+                    a diff and calls <code>applyDiff()</code>
                     to patch the MD-LD source.</p>
                 <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
                     <button onclick="quadLabReset()" class="btn-hover"
@@ -313,7 +313,7 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
                             <button onclick="quadLabApplyDiff()" class="btn-hover btn-hover-primary"
                                 style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">✅
                                 Apply diff via
-                                serialize()</button>
+                                applyDiff()</button>
                             <button onclick="quadLabCopyDiff()" class="btn-hover btn-hover-secondary"
                                 style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem;">📋
                                 Copy diff
@@ -406,7 +406,7 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
   </script>
 
     <script type="module">
-        import { parse, serialize, shortenIRI } from './src/index.js';
+        import { parse, applyDiff, shortenIRI } from './src/index.js';
         import { render } from './src/render.js';
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store } from 'n3';
@@ -950,7 +950,7 @@ Future directions: {?research:suggestsFutureResearch .research:FutureResearch la
             const next = quadLabGetRows();
             const diff = quadLabDiffFrom(base, next);
 
-            const patched = serialize({
+            const patched = applyDiff({
                 text: inputEl.value,
                 diff,
                 origin: lastParse.result.origin,

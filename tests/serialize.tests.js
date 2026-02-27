@@ -1,4 +1,4 @@
-import { parse, serialize } from '../src/index.js';
+import { parse, applyDiff } from '../src/index.js';
 
 // Test helpers
 function assert(condition, message) {
@@ -62,7 +62,7 @@ Items: {?schema:containsItem .Product}
                 }
             ];
 
-            const { text } = serialize({
+            const { text } = applyDiff({
                 text: original,
                 diff: { add: newQuads },
                 origin: result.origin,
@@ -106,7 +106,7 @@ Rating: [4.5] {schema:rating ^^xsd:float}`;
                 ]
             };
 
-            const { text } = serialize({
+            const { text } = applyDiff({
                 text: original,
                 diff: changes,
                 origin: result.origin,
@@ -153,7 +153,7 @@ Milestones: {?hasMilestone .Event name}
                 ]
             };
 
-            const { text } = serialize({
+            const { text } = applyDiff({
                 text: original,
                 diff: changes,
                 origin: result.origin,
@@ -201,7 +201,7 @@ Content: [Sample content] {schema:text}`;
                 ]
             };
 
-            const { text } = serialize({
+            const { text } = applyDiff({
                 text: original,
                 diff: changes,
                 origin: result.origin,
@@ -249,7 +249,7 @@ Summary: [Hello world summary] {schema:summary @en }`;
                 ]
             };
 
-            const { text } = serialize({
+            const { text } = applyDiff({
                 text: original,
                 diff: changes,
                 origin: result.origin,
@@ -287,7 +287,7 @@ References: {!ex:citedBy}
 - Other Doc {=ex:other-doc .Article name}`;
 
             const result = parse(original);
-            const { text } = serialize({
+            const { text } = applyDiff({
                 text: original,
                 diff: {},
                 origin: result.origin,

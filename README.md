@@ -358,7 +358,7 @@ console.log(result.quads);
 // ]
 ```
 
-### `serialize({ text, diff, origin, options })`
+### `applyDiff({ text, diff, origin, options })`
 
 Apply RDF changes back to markdown with proper positioning.
 
@@ -393,7 +393,7 @@ const newQuad = {
   object: { termType: 'Literal', value: '2024-01-01' }
 };
 
-const updated = serialize({
+const updated = applyDiff({
   text: original,
   diff: { add: [newQuad] },
   origin: result.origin,
@@ -405,6 +405,52 @@ console.log(updated.text);
 //
 // [Alice] {author}
 // [2024-01-01] {datePublished}
+```
+
+### `generate(quads, context)`
+
+Generate deterministic MDLD from RDF quads with origin tracking.
+
+**Parameters:**
+
+- `quads` (array) — Array of RDF/JS Quads to convert
+- `context` (object, optional) — Prefix mappings (default: `{}`)
+  - Merged with DEFAULT_CONTEXT for proper CURIE shortening
+  - Only user-defined prefixes are rendered in output
+
+**Returns:** `{ text, origin, context }`
+
+- `text` — Generated MDLD markdown
+- `origin` — Origin tracking object with:
+  - `blocks` — Map of block IDs to source locations  
+  - `quadIndex` — Map of quads to block IDs
+- `context` — Final context used (includes defaults)
+
+**Example:**
+
+```javascript
+const quads = [
+  {
+    subject: { termType: 'NamedNode', value: 'http://example.org/article' },
+    predicate: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+    object: { termType: 'NamedNode', value: 'http://example.org/Article' }
+  },
+  {
+    subject: { termType: 'NamedNode', value: 'http://example.org/article' },
+    predicate: { termType: 'NamedNode', value: 'http://schema.org/author' },
+    object: { termType: 'NamedNode', value: 'http://example.org/alice' }
+  }
+];
+
+const result = generate(quads, { 
+  ex: 'http://example.org/',
+  schema: 'http://schema.org/'
+});
+
+console.log(result.text);
+// # Article {=ex:article .ex:Article}
+//
+// > alice {+ex:alice ?schema:author}
 ```
 
 ## Value Carriers
@@ -493,14 +539,14 @@ Therefore, the algebra is **closed**.
 ```markdown
 [alice] <tag:alice@example.com,2026:>
 
-# Meeting Notes {=alice:meeting-2024-01-15 .Meeting}
+# Meeting Notes {=alice:meeting-2024-01-15 .alice:Meeting}
 
-Attendees: {?attendee name}
+Attendees: {?alice:attendee label}
 
 - Alice {=alice:alice}
 - Bob {=alice:bob}
 
-Action items: {?actionItem name}
+Action items: {?alice:actionItem label}
 
 - Review proposal {=alice:task-1}
 ```
@@ -508,14 +554,14 @@ Action items: {?actionItem name}
 ### Developer Documentation
 
 ````markdown
-# API Endpoint {=api:/users/:id .APIEndpoint}
+# API Endpoint {=api:/users/:id .api:Endpoint}
 
-[GET] {method}
-[/users/:id] {path}
+[GET] {api:method}
+[/users/:id] {api:path}
 
 Example:
 
-```bash {=api:/users/:id#example .CodeExample text}
+```bash {=api:/users/:id#example .api:CodeExample api:code}
 curl https://api.example.com/users/123
 ```
 ````
@@ -525,13 +571,13 @@ curl https://api.example.com/users/123
 ```markdown
 [alice] <tag:alice@example.com,2026:>
 
-# Paper {=alice:paper-semantic-markdown .ScholarlyArticle}
+# Paper {=alice:paper-semantic-markdown .alice:ScholarlyArticle}
 
-[Semantic Web] {about}
-[Alice Johnson] {=alice:alice-johnson ?author}
-[2024-01] {datePublished ^^xsd:gYearMonth}
+[Semantic Web] {label}
+[Alice Johnson] {=alice:alice-johnson ?alice:author}
+[2024-01] {alice:datePublished ^^xsd:gYearMonth}
 
-> This paper explores semantic markup in Markdown. {abstract @en}
+> This paper explores semantic markup in Markdown. {comment @en}
 ```
 
 ## Testing

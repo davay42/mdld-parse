@@ -158,7 +158,7 @@ function markEntryAsVacant(entry, quad) {
     return null;
 }
 
-export function serialize({ text, diff, origin, options = {} }) {
+export function applyDiff({ text, diff, origin, options = {} }) {
     if (!diff || (!diff.add?.length && !diff.delete?.length)) {
         const reparsed = parse(text, { context: options.context || {} });
         return { text, origin: reparsed.origin };
