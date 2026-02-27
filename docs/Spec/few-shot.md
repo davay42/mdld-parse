@@ -15,13 +15,15 @@ Prefixes:
 Subjects:
 =IRI        # Full IRI, persists
 =#fragment  # Relative to current subject, replaces current fragment
-+iri        # Temporary object for local  ?/! predicates
-+#fragment  # Temporary soft fragment, replaces current fragment
 
 Predicates:
 p           # Literal property
 ?p          # Object property
 !p          # Reverse property
+
+Objects:
++iri        # Object for local  ?/! predicates
++#fragment  # Soft fragment, replaces current fragment
 
 Classes:
 .Class      # S rdf:type schema:Class
