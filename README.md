@@ -453,6 +453,46 @@ console.log(result.text);
 // > alice {+ex:alice ?schema:author}
 ```
 
+### `locate(quad, origin, text, context)`
+
+Locate the precise text range of a quad in MDLD text using origin tracking.
+
+**Parameters:**
+
+- `quad` (object) — The quad to locate (subject, predicate, object)
+- `origin` (object, optional) — Origin object containing blocks and quadIndex
+- `text` (string, optional) — MDLD text (auto-parsed if origin not provided)
+- `context` (object, optional) — Context for parsing when text needs to be parsed
+
+**Returns:** `{ blockId, entryIndex, range, content, blockRange, carrierType, isVacant }` or `null`
+
+- `blockId` — ID of the containing block
+- `entryIndex` — Position within block entries
+- `range` — Precise character range of the quad content
+- `content` — Actual text content at that range
+- `blockRange` — Full range of the containing block
+- `carrierType` — Type of carrier (heading, blockquote, list, span)
+- `isVacant` — Whether the slot is marked as vacant
+
+**Example:**
+
+```javascript
+import { parse, locate } from './src/index.js';
+
+const result = parse(mdldText, { context: { ex: 'http://example.org/' } });
+const quad = result.quads[0]; // Find a quad to locate
+
+// Pattern 1: With origin (most efficient)
+const location1 = locate(quad, result.origin, mdldText);
+
+// Pattern 2: Auto-parse text (convenient)
+const location2 = locate(quad, null, mdldText, { ex: 'http://example.org/' });
+
+console.log(location1.range); // { start: 38, end: 44 }
+console.log(location1.content); // " Alice"
+console.log(location1.carrierType); // "blockquote"
+```
+
 ## Value Carriers
 
 Only specific markdown elements can carry semantic values:
