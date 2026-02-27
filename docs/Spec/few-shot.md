@@ -126,9 +126,9 @@ my:sam a my:Person.
 
 # 2026-02-27 {=j:2026-02-27 .j:Record j:date ^^xsd:date}
 
-## A nice day in the park {rdfs:label}
+## A nice day in the park {label}
 
-With a [happy] {j:mood} mood and quite high energy [8] {j:energyLevel ^^xsd:integer} I went to the [Central Park] {+my:central-park ?my:location .my:Place rdfs:label @en}. The weather was [Sunny] {my:weather}. I felt [peaceful] {j:emotionalState} and the park was [beautiful] {j:comment}.
+With a [happy] {j:mood} mood and quite high energy [8] {j:energyLevel ^^xsd:integer} I went to the [Central Park] {+my:central-park ?my:location .my:Place label @en}. The weather was [Sunny] {my:weather}. I felt [peaceful] {j:emotionalState} and the park was [beautiful] {j:comment}.
 
 In the park I met [Sam] {+my:sam .my:Person ?j:met}.
 ```
@@ -169,12 +169,12 @@ ex:ProjectAlpha a ex:Project;
 
 # Project Alpha {=ex:ProjectAlpha .ex:Project}
 
-Project includes tasks: {?ex:hasTask .ex:Task rdfs:label}
+Project includes tasks: {?ex:hasTask .ex:Task label}
 
 - Design schema {=#task1}
 - Implement parser {=#task2}
 - Write documentation {=#task3}
-  with a subtask of {?ex:subTask .ex:Task rdfs:label}
+  with a subtask of {?ex:subTask .ex:Task label}
   - API reference {=#subtask3a}
 
 # Tasks
@@ -268,9 +268,9 @@ ex:ProductValidationShape a sh:NodeShape;
 ```mdld
 [ex] <http://example.org/>
 
-The **Product Validation Shape** {=ex:ProductValidationShape .sh:NodeShape rdfs:label} targets all [Products] {+ex:Product ?sh:targetClass} to validate core product requirements.
+The **Product Validation Shape** {=ex:ProductValidationShape .sh:NodeShape label} targets all [Products] {+ex:Product ?sh:targetClass} to validate core product requirements.
 
-**Product Name Rule** {=ex:#productName .sh:PropertyShape ?sh:property} requires the [label] {+rdfs:label ?sh:path} property to have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
+**Product Name Rule** {=ex:#productName .sh:PropertyShape ?sh:property} requires the [label] {+label ?sh:path} property to have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
 
 > Product must have exactly one label {sh:message}
 

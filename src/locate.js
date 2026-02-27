@@ -29,7 +29,7 @@ export function locate(quad, origin, text = '', context = {}) {
 
     // Generate the quad key to lookup in quadIndex
     const quadKey = quadIndexKey(normalizedQuad.subject, normalizedQuad.predicate, normalizedQuad.object);
-    
+
     // Find the slot information in quadIndex
     const slotInfo = origin.quadIndex.get(quadKey);
     if (!slotInfo) {
@@ -52,19 +52,26 @@ export function locate(quad, origin, text = '', context = {}) {
         content = text.substring(block.range.start, block.range.end);
     } else if (block.carrierType === 'blockquote' || block.carrierType === 'list' || block.carrierType === 'span') {
         // For blockquotes, lists, and spans, extract from block range
-        // Since we don't have precise entry ranges, extract from full block
         contentRange = block.range;
         content = text.substring(block.range.start, block.range.end);
-        
-        // If we have entries with relRange, try to extract specific entry
+
+        // For blockquotes, try to extract the specific carrier content from entries
         if (slotInfo.entryIndex != null && block.entries && block.entries[slotInfo.entryIndex]) {
             const entry = block.entries[slotInfo.entryIndex];
-            if (entry.relRange) {
-                // Calculate absolute position for this entry within block
-                const entryStart = block.range.start + entry.relRange.start;
-                const entryEnd = block.range.start + entry.relRange.end;
-                contentRange = { start: entryStart, end: entryEnd };
-                content = text.substring(entryStart, entryEnd);
+            if (entry.raw) {
+                // For blockquotes, the entry.raw contains the full carrier text
+                // Extract just the content part before the annotation
+                const annotationStart = entry.raw.indexOf('{');
+                if (annotationStart !== -1) {
+                    const carrierContent = entry.raw.substring(0, annotationStart).trim();
+                    // Find this content in the block text
+                    const contentStart = text.indexOf(carrierContent, block.range.start);
+                    if (contentStart !== -1) {
+                        const contentEnd = contentStart + carrierContent.length;
+                        contentRange = { start: contentStart, end: contentEnd };
+                        content = text.substring(contentStart, contentEnd);
+                    }
+                }
             }
         }
     }

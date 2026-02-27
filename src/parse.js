@@ -562,7 +562,12 @@ const manageListStack = (token, state) => {
 
 const combineSemanticInfo = (token, carriers, listFrame, state, itemSubject) => {
     const combinedSem = { subject: null, object: null, types: [], predicates: [], datatype: null, language: null, entries: [] };
-    const addSem = (sem) => { combinedSem.types.push(...sem.types); combinedSem.predicates.push(...sem.predicates); combinedSem.entries.push(...sem.entries); };
+    const addSem = (sem) => {
+        const entryIndex = combinedSem.entries.length;
+        combinedSem.types.push(...sem.types);
+        combinedSem.predicates.push(...sem.predicates);
+        combinedSem.entries.push(...sem.entries.map(entry => ({ ...entry, entryIndex })));
+    };
 
     if (listFrame?.contextSem) {
         const inheritedSem = processContextSem({ sem: listFrame.contextSem, itemSubject, contextSubject: listFrame.contextSubject, inheritLiterals: true, state });
