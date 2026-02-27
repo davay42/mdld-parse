@@ -23,26 +23,26 @@ No RDF. Nothing queryable. No subject exists.
 ## 2. Acknowledge the list as a thing
 
 She realizes this list itself is meaningful.
-She gives the heading an explicit subject.
+She mints a personal IRI space with a `tag` namespace (RFC 4151) gives the heading an explicit subject.
 
 ```md
 [alice] <tag:alice@example.com,2026:>
 
-# Highest Buildings {=alice:hb .Collection name}
+# Highest Buildings {=alice:hb .Container label}
 ```
 
 Now, and only now, RDF exists:
 
 ```turtle
-tag:alice@example.com,2026:hb a schema:Collection ;
-  schema:name "Highest Buildings" .
+tag:alice@example.com,2026:hb a rdfs:Container ;
+  rdfs:label "Highest Buildings" .
 ```
 
 Key idea:
 
-> **A subject without predicates emits nothing.
+> A subject without predicates emits nothing.
 > A predicate without a subject emits nothing.
-> No guessing, ever.**
+> No guessing, ever.
 
 Her knowledge base agents can now *see* this collection.
 
@@ -58,13 +58,13 @@ She keeps everything personal and local for now.
 ```md
 [alice] <tag:alice@example.com,2026:>
 
-## Burj Khalifa {=alice:burj-khalifa name}
+## Burj Khalifa {=alice:burj-khalifa label}
 
-[828] {height ^^xsd:integer}
+[828] {alice:height ^^xsd:integer}
 
-## Shanghai Tower {=alice:shanghai-tower name}
+## Shanghai Tower {=alice:shanghai-tower label}
 
-[632] {height ^^xsd:integer}
+[632] {alice:height ^^xsd:integer}
 ```
 
 Now the data is:
@@ -72,8 +72,6 @@ Now the data is:
 * explicit
 * stable
 * SPARQL-queryable
-
-Still **entirely hers**.
 
 ---
 
@@ -85,15 +83,15 @@ Fragments let her keep a clean hierarchy.
 ```md
 [alice] <tag:alice@example.com,2026:>
 
-# Highest Buildings {=alice:hb .Collection name}
+# Highest Buildings {=alice:hb .Container label}
 
-## Burj Khalifa {=#burj-khalifa name}
+## Burj Khalifa {=#burj-khalifa label}
 
-[828] {height ^^xsd:integer}
+[828] {alice:height ^^xsd:integer}
 
-## Shanghai Tower {=#shanghai-tower name}
+## Shanghai Tower {=#shanghai-tower label}
 
-[632] {height ^^xsd:integer}
+[632] {alice:height ^^xsd:integer}
 ```
 
 This expands to:
@@ -111,37 +109,19 @@ Fragments are:
 
 ---
 
-## 5. Add a prefix for future alignment
-
-She prepares for growth.
-
-```md
-[alice] <tag:alice@example.com,2026:>
-```
-
-Now she can write:
-
-```md
-# Highest Buildings {=alice:hb .Collection name}
-```
-
-This changes **nothing semantically**, but makes refactoring safe.
-
----
-
-## 6. Validate facts, keep ownership
+## 5. Validate facts, keep ownership
 
 After checking Wikipedia, she cleans heights and adds types.
 
 ```md
-**Burj Khalifa** {=#burj-khalifa .alice:hb/Skyscraper label} is the highest building at [828] {alice:hb/height ^^xsd:integer} meters is located in [Dubai] {alice:hb/location}
+**Burj Khalifa** {=#burj-khalifa .alice:Skyscraper label} is the highest building at [828] {alice:height ^^xsd:integer} meters is located in [Dubai] {alice:location}
 
-**Shanghai Tower** {=#shanghai-tower .alice:hb/Skyscraper label} - [632] {alice:hb/height ^^xsd:integer} is located in [Shanghai] {alice:hb/location}
+**Shanghai Tower** {=#shanghai-tower .alice:Skyscraper label} - [632] {alice:height ^^xsd:integer} is located in [Shanghai] {alice:location}
 ```
 
 ---
 
-## 7. Switch to a globally unique base (no publishing required)
+## 6. Switch to a globally unique base (no publishing required)
 
 She decides these IRIs should be globally valid.
 She changes **one line**.
@@ -162,20 +142,20 @@ This is **IRI alignment**, not migration.
 
 ---
 
-## 8. Align with global datasets (optional, explicit)
+## 7. Align with global datasets (optional, explicit)
 
 She wants to validate Burj Khalifa against Wikidata.
 
 She chooses to **align**, not replace.
 
 ```md
-### Burj Khalifa  {=wd:Q134164 .alice:hb/Skyscraper label !seeAlso}
+### Burj Khalifa  {=wd:Q134164 .alice:Skyscraper label !seeAlso}
 ```
 
 This emits:
 
 ```turtle
-wd:Q134164 a alice:hb/Skyscraper ;
+wd:Q134164 a alice:Skyscraper ;
   rdfs:label "Burj Khalifa" ;
   rdfs:seeAlso tag:alice@example.com,2026:hb#burj-khalifa .
 ```
@@ -188,7 +168,7 @@ Now agents can:
 
 ---
 
-## 9. The philosophy, in plain terms
+## 8. The philosophy, in plain terms
 
 * Markdown stays Markdown
 * Semantics are **opt-in**

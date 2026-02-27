@@ -13,8 +13,7 @@
 	],
 	"scripts": {
 		"test": "node tests/index.js",
-		"dev": "vitepress dev",
-		"build": "vitepress build"
+		"dev": "pnpx live-server"
 	},
 	"keywords": [
 		"mdld",
@@ -41,7 +40,6 @@
 		"url": "https://github.com/davay42/mdld-parse/issues"
 	},
 	"devDependencies": {
-		"n3": "^2.0.1",
-		"vitepress": "^2.0.0-alpha.16"
+		"n3": "^2.0.1"
 	}
 }
