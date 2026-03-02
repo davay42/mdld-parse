@@ -274,7 +274,11 @@ The **Product Validation Shape** {=ex:ProductValidationShape .sh:NodeShape label
 
 > Product must have exactly one label {sh:message}
 
-[The shape] {=ex:ProductValidationShape} also has **Product Price Rule** {=ex:#productPrice .sh:PropertyShape ?sh:property} that requires the [price] {+ex:price ?sh:path} property to be at least [0.01] {sh:minInclusive ^^xsd:decimal}
+We MUST repeat the subject for the second propertyShape to connect to the shape via ?sh:property - always rememeber about subject chaining:
+
+{=ex:ProductValidationShape}
+
+**Product Price Rule** {=ex:#productPrice .sh:PropertyShape ?sh:property} that requires the [price] {+ex:price ?sh:path} property to be at least [0.01] {sh:minInclusive ^^xsd:decimal}
 
 > Product price must be positive {sh:message}
 ```
