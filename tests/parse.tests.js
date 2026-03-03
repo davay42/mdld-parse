@@ -897,6 +897,127 @@ Regular content [after] {schema:description}`;
         }
     },
 
+    // §4.5 CommonMark Fenced Code Block Compliance
+    {
+        name: 'Tilde fenced code blocks should work like backticks',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n~~~mdld\n[This should be ignored] {label schema:description}\n~~~\n\n[This should be processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'This should be processed'),
+                'Only content outside code blocks should be processed');
+        }
+    },
+
+    {
+        name: 'Exact fence length matching - 6 tildes require 6 tildes to close',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n~~~~~~mdld\n[Content with ~~~~ inside] {label}\nMore content\n~~~~~~\n\n[Processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should process content outside code block');
+        }
+    },
+
+    {
+        name: 'Exact fence length matching - shorter fence should not close block',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n~~~~~~mdld\n[Content] {label}\n~~~~~  // This should NOT close the block\nStill content [inside] {label}\n~~~~~~  // This should close the block\n\n[Processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should only process content outside code block');
+        }
+    },
+
+    {
+        name: 'Exact fence length matching - longer fence should not close block',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n~~~mdld\n[Content] {label}\n~~~~~~~~  // This should NOT close the block\nStill content [inside] {label}\n~~~  // This should close the block\n\n[Processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should only process content outside code block');
+        }
+    },
+
+    {
+        name: 'Mixed fence types - backticks should not close tilde blocks',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n~~~mdld\n[Content] {label}\n```  // This should NOT close the tilde block\nStill content [inside] {label}\n~~~  // This should close the block\n\n[Processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should only process content outside code block');
+        }
+    },
+
+    {
+        name: 'Mixed fence types - tildes should not close backtick blocks',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n```mdld\n[Content] {label}\n~~~  // This should NOT close the backtick block\nStill content [inside] {label}\n```  // This should close the block\n\n[Processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should only process content outside code block');
+        }
+    },
+
+    {
+        name: 'Nested codeblocks with different fence lengths',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n~~~~mdld\n[Outer block content] {label}\n```mdld\n[This is still inside outer block] {label}\n```\nMore outer [content] {label}\n~~~~\n\n[Processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should only process content outside code block');
+        }
+    },
+
+    {
+        name: 'Tilde codeblocks with attributes should be processed',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n~~~javascript {ex:attribute}\n[Code example] {label schema:description}\nconsole.log("hello");\n~~~';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://example.org/attribute', '[Code example] {label schema:description}\nconsole.log("hello");'),
+                'Should use tilde code block content as attribute value');
+        }
+    },
+
+    {
+        name: 'Minimum fence length (3) should work for both types',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n~~~\nMin tilde block\n~~~\n\n```\nMin backtick block\n```\n\n[Processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should only process content outside code blocks');
+        }
+    },
+
+    {
+        name: 'Fence detection should ignore indentation',
+        fn: () => {
+            const md = '# Document {=ex:doc}\n\n    ~~~mdld\n    [Indented content] {label}\n    ~~~\n\n[Processed] {label}';
+            const { quads } = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'http://example.org/doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Processed'),
+                'Should only process content outside code block');
+        }
+    },
+
     // §11 Datatype Validation
     {
         name: 'Boolean datatype handling',

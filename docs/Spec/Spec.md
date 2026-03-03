@@ -129,6 +129,7 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 | `- item {...}` | List item text | `- Neil Armstrong {=ex:person .Person name}` |
 | `> quote {...}` | Quote text | `> "One small step" {comment}` |
 | ````lang {...}`` | Code block content | ````js {=ex:code .schema:SoftwareSourceCode}` |
+| `~~~lang {...}` | Tilde code block content | `~~~js {=ex:code .schema:SoftwareSourceCode}` |
 
 ### Links and Media (with URLs)
 

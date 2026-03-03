@@ -10,7 +10,7 @@ import {
 } from './utils.js';
 
 const URL_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
-const FENCE_REGEX = /^(`{3,})(.*)/;
+const FENCE_REGEX = /^(`{3,}|~{3,})(.*)/;
 const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
 const HEADING_REGEX = /^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
 const UNORDERED_LIST_REGEX = /^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
@@ -81,10 +81,16 @@ function scanTokens(text) {
 
     const processors = [
         {
-            test: line => line.startsWith('```'),
+            test: line => {
+                const trimmed = line.trim();
+                return trimmed.startsWith('```') || trimmed.startsWith('~~~');
+            },
             process: (line, lineStart, pos) => {
+                const trimmedLine = line.trim();
                 if (!codeBlock) {
-                    const fenceMatch = line.match(FENCE_REGEX);
+                    const fenceMatch = trimmedLine.match(FENCE_REGEX);
+                    if (!fenceMatch) return false;
+
                     const attrsText = fenceMatch[2].match(/\{[^{}]*\}/)?.[0] || null;
                     const attrsStartInLine = attrsText ? line.indexOf(attrsText) : -1;
                     const contentStart = lineStart + line.length + 1;
@@ -100,19 +106,27 @@ function scanTokens(text) {
                         attrsRange: attrsText && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrsText.length] : null,
                         valueRangeStart: contentStart
                     };
-                } else if (line.startsWith(codeBlock.fence)) {
-                    const valueStart = codeBlock.valueRangeStart;
-                    const valueEnd = Math.max(valueStart, lineStart - 1);
-                    tokens.push({
-                        type: 'code',
-                        range: [codeBlock.start, lineStart],
-                        text: codeBlock.content.join('\n'),
-                        lang: codeBlock.lang,
-                        attrs: codeBlock.attrs,
-                        attrsRange: codeBlock.attrsRange,
-                        valueRange: [valueStart, valueEnd]
-                    });
-                    codeBlock = null;
+                } else {
+                    // Check for exact fence match: same character type and same length
+                    const fenceChar = codeBlock.fence[0];
+                    const expectedFence = fenceChar.repeat(codeBlock.fence.length);
+
+                    // Extract the fence part from the beginning of the trimmed line
+                    const fenceMatch = trimmedLine.match(new RegExp(`^(${fenceChar}{3,})`));
+                    if (fenceMatch && fenceMatch[1] === expectedFence) {
+                        const valueStart = codeBlock.valueRangeStart;
+                        const valueEnd = Math.max(valueStart, lineStart - 1);
+                        tokens.push({
+                            type: 'code',
+                            range: [codeBlock.start, lineStart],
+                            text: codeBlock.content.join('\n'),
+                            lang: codeBlock.lang,
+                            attrs: codeBlock.attrs,
+                            attrsRange: codeBlock.attrsRange,
+                            valueRange: [valueStart, valueEnd]
+                        });
+                        codeBlock = null;
+                    }
                 }
                 return true;
             }
