@@ -141,11 +141,11 @@ Create fragment IRIs relative to current subject:
 ```markdown
 # Document {=ex:document}
 {=#summary}
-[Content] {name}
+[Content] {label}
 ```
 
 ```turtle
-ex:document#summary schema:name "Content" .
+ex:document#summary rdfs:label "Content" .
 ```
 
 Fragments replace any existing fragment and require a current subject.
@@ -157,11 +157,11 @@ Subject remains in scope until reset with `{=}` or new subject declared.
 Emit `rdf:type` triple:
 
 ```markdown
-## Apollo 11 {=ex:apollo11 .SpaceMission .Event}
+## Apollo 11 {=ex:apollo11 .ex:SpaceMission .ex:Event}
 ```
 
 ```turtle
-ex:apollo11 a schema:SpaceMission, schema:Event .
+ex:apollo11 a ex:SpaceMission, ex:Event .
 ```
 
 ### Literal Properties
@@ -171,15 +171,15 @@ Inline value carriers emit literal properties:
 ```markdown
 # Mission {=ex:apollo11}
 
-[Neil Armstrong] {commander}
-[1969] {year ^^xsd:gYear}
-[Historic mission] {description @en}
+[Neil Armstrong] {ex:commander}
+[1969] {ex:year ^^xsd:gYear}
+[Historic mission] {ex:description @en}
 ```
 
 ```turtle
-ex:apollo11 schema:commander "Neil Armstrong" ;
-  schema:year "1969"^^xsd:gYear ;
-  schema:description "Historic mission"@en .
+ex:apollo11 ex:commander "Neil Armstrong" ;
+  ex:year "1969"^^xsd:gYear ;
+  ex:description "Historic mission"@en .
 ```
 
 ### Object Properties
@@ -189,11 +189,11 @@ Links create relationships (use `?` prefix):
 ```markdown
 # Mission {=ex:apollo11}
 
-[NASA] {=ex:nasa ?organizer}
+[NASA] {=ex:nasa ?ex:organizer}
 ```
 
 ```turtle
-ex:apollo11 schema:organizer ex:nasa .
+ex:apollo11 ex:organizer ex:nasa .
 ```
 
 ### Resource Declaration
@@ -203,12 +203,12 @@ Declare resources inline with `{=iri}`:
 ```markdown
 # Mission {=ex:apollo11}
 
-[Neil Armstrong] {=ex:armstrong ?commander .Person}
+[Neil Armstrong] {=ex:armstrong ?ex:commander .prov:Person}
 ```
 
 ```turtle
-ex:apollo11 schema:commander ex:armstrong .
-ex:armstrong a schema:Person .
+ex:apollo11 ex:commander ex:armstrong .
+ex:armstrong a prov:Person .
 ```
 
 ### Lists
@@ -218,15 +218,15 @@ Lists require explicit subjects per item.
 ```markdown
 # Recipe {=ex:recipe}
 
-Ingredients: {?ingredient .Ingredient}
-- Flour {=ex:flour name}
-- Water {=ex:water name}
+Ingredients: {?ex:ingredient .ex:Ingredient}
+- Flour {=ex:flour label}
+- Water {=ex:water label}
 ```
 
 ```turtle
-ex:recipe schema:ingredient ex:flour, ex:water .
-ex:flour a schema:Ingredient ; schema:name "Flour" .
-ex:water a schema:Ingredient ; schema:name "Water" .
+ex:recipe ex:ingredient ex:flour, ex:water .
+ex:flour a ex:Ingredient ; rdfs:label "Flour" .
+ex:water a ex:Ingredient ; rdfs:label "Water" .
 ```
 
 ### Code Blocks
@@ -236,14 +236,14 @@ Code blocks are value carriers:
 ````markdown
 # Example {=ex:example}
 
-```javascript {=ex:code .SoftwareSourceCode text}
+```javascript {=ex:code .ex:SoftwareSourceCode ex:text}
 console.log("hello");
 ```
 ````
 
 ```turtle
-ex:code a schema:SoftwareSourceCode ;
-  schema:text "console.log(\"hello\")" .
+ex:code a ex:SoftwareSourceCode ;
+  ex:text "console.log(\"hello\")" .
 ```
 
 ### Blockquotes
@@ -251,11 +251,11 @@ ex:code a schema:SoftwareSourceCode ;
 ```markdown
 # Article {=ex:article}
 
-> MD-LD bridges Markdown and RDF. {abstract}
+> MD-LD bridges Markdown and RDF. {comment}
 ```
 
 ```turtle
-ex:article schema:abstract "MD-LD bridges Markdown and RDF." .
+ex:article rdfs:comment "MD-LD bridges Markdown and RDF." .
 ```
 
 ### Reverse Relations
@@ -265,13 +265,13 @@ Reverse the relationship direction:
 ```markdown
 # Part {=ex:part}
 
-Part of: {!hasPart}
+Part of: {!ex:hasPart}
 
 - Book {=ex:book}
 ```
 
 ```turtle
-ex:book schema:hasPart ex:part .
+ex:book ex:hasPart ex:part .
 ```
 
 ### Prefix Declarations
@@ -279,7 +279,6 @@ ex:book schema:hasPart ex:part .
 ```markdown
 [ex] <http://example.org/>
 [foaf] <http://xmlns.com/foaf/0.1/>
-[@vocab] <http://schema.org/>
 
 # Person {=ex:alice .foaf:Person}
 ```
@@ -326,7 +325,7 @@ Parse MD-LD markdown and return RDF quads with origin tracking.
 
 - `markdown` (string) — MD-LD formatted text
 - `options` (object, optional):
-  - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, schema }`)
+  - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
   - `dataFactory` (object) — Custom RDF/JS DataFactory
 
 **Returns:** `{ quads, origin, context }`
@@ -382,14 +381,14 @@ Apply RDF changes back to markdown with proper positioning.
 ```javascript
 const original = `# Article {=ex:article}
 
-[Alice] {author}`;
+[Alice] {ex:author}`;
 
 const result = parse(original, { context: { ex: 'http://example.org/' } });
 
 // Add a new property
 const newQuad = {
   subject: { termType: 'NamedNode', value: 'http://example.org/article' },
-  predicate: { termType: 'NamedNode', value: 'http://schema.org/datePublished' },
+  predicate: { termType: 'NamedNode', value: 'http://example.org/datePublished' },
   object: { termType: 'Literal', value: '2024-01-01' }
 };
 
@@ -437,20 +436,19 @@ const quads = [
   },
   {
     subject: { termType: 'NamedNode', value: 'http://example.org/article' },
-    predicate: { termType: 'NamedNode', value: 'http://schema.org/author' },
+    predicate: { termType: 'NamedNode', value: 'http://example.org/author' },
     object: { termType: 'NamedNode', value: 'http://example.org/alice' }
   }
 ];
 
 const result = generate(quads, { 
   ex: 'http://example.org/',
-  schema: 'http://schema.org/'
 });
 
 console.log(result.text);
 // # Article {=ex:article .ex:Article}
 //
-// > alice {+ex:alice ?schema:author}
+// > alice {+ex:alice ?ex:author}
 ```
 
 ### `locate(quad, origin, text, context)`

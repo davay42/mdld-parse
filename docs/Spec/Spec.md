@@ -128,8 +128,8 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 | `# Heading {...}` | Heading text | `# Apollo 11 {=ex:mission .Mission name}` |
 | `- item {...}` | List item text | `- Neil Armstrong {=ex:person .Person name}` |
 | `> quote {...}` | Quote text | `> "One small step" {comment}` |
-| ````lang {...}`` | Code block content | ````js {=ex:code .schema:SoftwareSourceCode}` |
-| `~~~lang {...}` | Tilde code block content | `~~~js {=ex:code .schema:SoftwareSourceCode}` |
+| ````lang {...}`` | Code block content | ````js {=ex:code .ex:SoftwareSourceCode}` |
+| `~~~lang {...}` | Tilde code block content | `~~~js {=ex:code ex:codecontent}` |
 
 ### Links and Media (with URLs)
 
@@ -374,12 +374,12 @@ wd:Q43653 a nasa:SpaceMission .
 
 **Multiple types are allowed:**
 ```md
-# Neil Armstrong {=nasa:neil .schema:Person .nasa:Astronaut}
+# Neil Armstrong {=nasa:neil .prov:Person .nasa:Astronaut}
 ```
 
 **Result:**
 ```turtle
-nasa:neil a schema:Person, nasa:Astronaut .
+nasa:neil a prov:Person, nasa:Astronaut .
 ```
 
 **Key points:**
@@ -505,21 +505,21 @@ The object `O` is available only from:
 ```md
 ## References {=tag:alice@example.com,2026:refs}
 
-[Alice] {=tag:alice@example.com,2026:alice ?schema:author schema:name}
+[Alice] {=tag:alice@example.com,2026:alice ?ex:author ex:name}
 [W3C RDF](https://www.w3.org/RDF) {?dct:references label}
-![Example image](https://www.example.com/image.jpg) {?schema:image label}
+![Example image](https://www.example.com/image.jpg) {?ex:image label}
 ```
 
 ### What This Creates
 
 ```turtle
-tag:alice@example.com,2026:refs schema:author <tag:alice@example.com,2026:alice> .
-<tag:alice@example.com,2026:alice> schema:name "Alice" .
+tag:alice@example.com,2026:refs ex:author <tag:alice@example.com,2026:alice> .
+<tag:alice@example.com,2026:alice> ex:name "Alice" .
 
 tag:alice@example.com,2026:refs dct:references <https://www.w3.org/RDF> .
 <https://www.w3.org/RDF> rdfs:label "W3C RDF" .
 
-tag:alice@example.com,2026:refs schema:image <https://www.example.com/image.jpg> .
+tag:alice@example.com,2026:refs ex:image <https://www.example.com/image.jpg> .
 <https://www.example.com/image.jpg> rdfs:label "Example image" .
 ```
 
@@ -801,9 +801,7 @@ Code blocks can carry annotations when you put `{...}` on the opening fence.
 ### How It Works
 
 ```md
-[@vocab] <http://schema.org/>
-
-``js {=ex:code .SoftwareSourceCode text}
+``js {=ex:code .exSoftwareSourceCode ex:text}
 console.log("hi")
 ``
 ```
@@ -812,22 +810,20 @@ The code block content is not parsed as MDLD and is available as the literal val
 
 ### Example
 
-```md
-[@vocab] <http://schema.org/>
-
-``js {=ex:code .SoftwareSourceCode text}
+````md
+```js {=ex:code .ex:SoftwareSourceCode ex:text}
 console.log("hi")
-``
-
-We can add a programming language or any additional info after the block as regular property annotations - *JavaScript* {language}.
 ```
+
+We can add a programming language or any additional info after the block as regular property annotations - *JavaScript* {ex:language}.
+````
 
 ### What It Creates
 
 ```turtle
-ex:code a schema:SoftwareSourceCode ;
-  schema:text "console.log(\"hi\")" ;
-  schema:language "JavaScript" .
+ex:code a ex:SoftwareSourceCode ;
+  ex:text "console.log(\"hi\")" ;
+  ex:language "JavaScript" .
 ```
 
 ### Key Points
