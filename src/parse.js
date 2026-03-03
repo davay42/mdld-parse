@@ -22,6 +22,29 @@ const INLINE_CARRIER_PATTERNS = {
     CODE_SPAN: /``(.+?)``\s*\{([^}]+)\}/y
 };
 
+// Cache for fence regex patterns to avoid recreation
+const FENCE_CLOSE_PATTERNS = new Map();
+
+function getFenceClosePattern(fenceChar) {
+    if (!FENCE_CLOSE_PATTERNS.has(fenceChar)) {
+        FENCE_CLOSE_PATTERNS.set(fenceChar, new RegExp(`^(${fenceChar}{3,})`));
+    }
+    return FENCE_CLOSE_PATTERNS.get(fenceChar);
+}
+
+function parseLangAndAttrs(langAndAttrs) {
+    const spaceIndex = langAndAttrs.indexOf(' ');
+    const braceIndex = langAndAttrs.indexOf('{');
+    const langEnd = Math.min(
+        spaceIndex > -1 ? spaceIndex : Infinity,
+        braceIndex > -1 ? braceIndex : Infinity
+    );
+    return {
+        lang: langAndAttrs.substring(0, langEnd),
+        attrsText: langAndAttrs.substring(langEnd).match(/\{[^{}]*\}/)?.[0] || null
+    };
+}
+
 const semCache = {};
 const EMPTY_SEM = Object.freeze({ predicates: [], types: [], subject: null });
 
@@ -81,27 +104,22 @@ function scanTokens(text) {
 
     const processors = [
         {
-            test: line => {
-                const trimmed = line.trim();
-                return trimmed.startsWith('```') || trimmed.startsWith('~~~');
-            },
+            test: line => FENCE_REGEX.test(line.trim()),
             process: (line, lineStart, pos) => {
                 const trimmedLine = line.trim();
                 if (!codeBlock) {
                     const fenceMatch = trimmedLine.match(FENCE_REGEX);
                     if (!fenceMatch) return false;
 
-                    const attrsText = fenceMatch[2].match(/\{[^{}]*\}/)?.[0] || null;
+                    const { lang, attrsText } = parseLangAndAttrs(fenceMatch[2]);
                     const attrsStartInLine = attrsText ? line.indexOf(attrsText) : -1;
                     const contentStart = lineStart + line.length + 1;
-                    const langAndAttrs = fenceMatch[2];
-                    const langEnd = langAndAttrs.indexOf(' ') > -1 ? langAndAttrs.indexOf(' ') :
-                        langAndAttrs.indexOf('{') > -1 ? langAndAttrs.indexOf('{') : langAndAttrs.length;
+
                     codeBlock = {
                         fence: fenceMatch[1],
                         start: lineStart,
                         content: [],
-                        lang: langAndAttrs.substring(0, langEnd),
+                        lang,
                         attrs: attrsText,
                         attrsRange: attrsText && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrsText.length] : null,
                         valueRangeStart: contentStart
@@ -110,9 +128,8 @@ function scanTokens(text) {
                     // Check for exact fence match: same character type and same length
                     const fenceChar = codeBlock.fence[0];
                     const expectedFence = fenceChar.repeat(codeBlock.fence.length);
+                    const fenceMatch = trimmedLine.match(getFenceClosePattern(fenceChar));
 
-                    // Extract the fence part from the beginning of the trimmed line
-                    const fenceMatch = trimmedLine.match(new RegExp(`^(${fenceChar}{3,})`));
                     if (fenceMatch && fenceMatch[1] === expectedFence) {
                         const valueStart = codeBlock.valueRangeStart;
                         const valueEnd = Math.max(valueStart, lineStart - 1);
