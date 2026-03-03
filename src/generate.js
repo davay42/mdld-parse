@@ -164,7 +164,7 @@ function buildDeterministicMDLD(subjectGroups, context) {
                 annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
             }
 
-            const literalText = `> ${quad.object.value} {${annotation}}\n`;
+            const literalText = `[${quad.object.value}] {${annotation}}\n`;
             const literalBlockId = generateBlockId();
             const literalBlock = {
                 id: literalBlockId,
