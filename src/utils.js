@@ -25,16 +25,31 @@ export function hash(str) {
     return Math.abs(h).toString(16).slice(0, 12);
 }
 
+const iriCache = new Map();
+
 export function expandIRI(term, ctx) {
     if (term == null) return null;
+
+    const cacheKey = `${term}|${ctx['@vocab'] || ''}|${Object.keys(ctx).filter(k => k !== '@vocab').sort().map(k => `${k}:${ctx[k]}`).join(',')}`;
+    if (iriCache.has(cacheKey)) {
+        return iriCache.get(cacheKey);
+    }
+
     const raw = typeof term === 'string' ? term : (typeof term === 'object' && typeof term.value === 'string') ? term.value : String(term);
     const t = raw.trim();
-    if (t.match(/^https?:/)) return t;
-    if (t.includes(':')) {
+    let result;
+
+    if (t.match(/^https?:/)) {
+        result = t;
+    } else if (t.includes(':')) {
         const [prefix, ref] = t.split(':', 2);
-        return ctx[prefix] ? ctx[prefix] + ref : t;
+        result = ctx[prefix] ? ctx[prefix] + ref : t;
+    } else {
+        result = (ctx['@vocab'] || '') + t;
     }
-    return (ctx['@vocab'] || '') + t;
+
+    iriCache.set(cacheKey, result);
+    return result;
 }
 
 export function shortenIRI(iri, ctx) {
