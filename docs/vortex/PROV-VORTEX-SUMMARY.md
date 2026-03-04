@@ -134,13 +134,11 @@ Your task: write a single MDLD file (vault/SEED.md) that declares:
 3. An initial intake stub: a prov:Activity with p:status "PENDING", linked to
    the Plan, with a p:toolCall literal describing the first external fetch needed
 
-Use this MDLD prefix block at the top:
-  [prov]  <http://www.w3.org/ns/prov#>
-  [sh]    <http://www.w3.org/ns/shacl#>
+Place a prefix block at the top:
   [vx]    <tag:{{VAULT_TAG}},{{YEAR}}:vortex:>
   [p]     <tag:{{VAULT_TAG}},{{YEAR}}:prop:>
 
-IRIs must follow the pattern vx:goal, vx:plan:v1, vx:activity:intake_001.
+IRIs must follow the pattern vx:goal, vx:plan:v1, vx:activity:intake_001. URL patterns are also allowed.
 All subjects declared on headings: # Title {=vx:iri .Class label}
 No prose outside annotated elements. Output only valid MDLD.
 

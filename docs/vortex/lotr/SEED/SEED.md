@@ -1,1 +1,0 @@
-Complete grounded story in MDLD notes format about faith and journeys of every ring of power in all Lord of the Rings universe by Tolkien.

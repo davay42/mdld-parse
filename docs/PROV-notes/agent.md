@@ -1,13 +1,10 @@
 [mdld] <https://mdld.js.org/>
 [cat] <mdld:prov/>
 [ex] <mdld:prov/example/agent/>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
 
 # Agent {=prov:Agent .Class label}
 
 > A person, organization, software agent, or other entity that can act and bear responsibility for activities. Agents are the actors in provenance who initiate, control, or participate in activities. {?comment}
-
-<http://www.w3.org/ns/prov#Agent> {?cat:fullIRI}
 
 ---
 
@@ -25,7 +22,7 @@ Agents represent **entities that can act** - people, organizations, software pro
 
 ## 📋 Agent Validation Shape
 
-The **Agent Shape** {=ex:AgentShape .sh:NodeShape ?cat:hasShape label} ensures proper agent modeling by targeting all [Agent] {+prov:Agent ?sh:targetClass} instances.
+The **Agent Shape** {=ex:AgentShape .sh:NodeShape ?mdp:hasShape label} ensures proper agent modeling by targeting all [Agent] {+prov:Agent ?sh:targetClass} instances.
 
 Agent shape defines these constraints: {?sh:property .sh:PropertyShape label}
 
@@ -41,7 +38,7 @@ Agent shape defines these constraints: {?sh:property .sh:PropertyShape label}
 
 ---
 
-## 📝 Test Data {=ex:data .Container ?cat:hasData}
+## 📝 Test Data {=ex:data .Container ?mdp:hasData}
 
 ### Person Agent {=ex:person .prov:Agent}
 
@@ -70,9 +67,9 @@ Missing required prov:Agent type - will fail validation.
 
 ---
 
-[Shape] {=ex:AgentShape} must produce exactly **1** {cat:expectsViolations ^^xsd:integer} violation.
+[Shape] {=ex:AgentShape} must produce exactly **1** {mdp:expectsViolations ^^xsd:integer} violation.
 
-### Expected Validation Results {=ex:results ?cat:hasResults}
+### Expected Validation Results {=ex:results ?mdp:hasResults}
 
 1. **Person Agent** - passes (has prov:Agent type)
 2. **Organization Agent** - passes (has prov:Agent type)  
