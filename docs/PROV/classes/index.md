@@ -3,7 +3,8 @@
 ## Classes {=mdp:class:index .Container label}
 
 Includes 30 classes {?member mdp:class:listed}
-- [Activity](./classes/Activity.md) {=prov:Activity}
+- [Activity](./Activity.md) {=prov:Activity}
+- [Entity](./Entity.md) {=prov:Entity}
 - ActivityInfluence {=prov:ActivityInfluence}
 - Agent {=prov:Agent}
 - AgentInfluence {=prov:AgentInfluence}
@@ -16,7 +17,6 @@ Includes 30 classes {?member mdp:class:listed}
 - Derivation {=prov:Derivation}
 - EmptyCollection {=prov:EmptyCollection}
 - End {=prov:End}
-- Entity {=prov:Entity}
 - EntityInfluence {=prov:EntityInfluence}
 - Generation {=prov:Generation}
 - Influence {=prov:Influence}

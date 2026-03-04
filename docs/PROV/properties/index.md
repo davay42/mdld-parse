@@ -53,7 +53,7 @@ The list contains 44 objects: {?member mdp:class:listed}
 
 ## Datatype Properties {=mdp:datatype:index .Container label}
 
-The list contains 44 objects: {?member mdp:class:listed}
+The list contains 6 datatype properties: {?member mdp:class:listed}
 
 - atTime {=prov:atTime}
 - endedAtTime {=prov:endedAtTime}
