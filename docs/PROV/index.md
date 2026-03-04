@@ -7,4 +7,117 @@
 
 We have authoritative source - the [prov-o.ttl](./prov-o.ttl) {+mdp:ttl ?member}
 
-Then we have the [lists.md](./lists.md) {+mdp:lists ?member} that list classes, object and datatype properties with integrity checks against the TTL.
+## Components {=mdp:components .Container label}
+
+6 components in layers: {?member .mdp:Component label}
+- Entities and Activities {=#entities-activities}
+- Derivations {=#derivations}
+- Agents, responsibility and influence {=#agents-responsibility}
+- Bundles {=#bundles}
+- Alternate {=#alternate}
+- Collections {=#collections}
+
+## Categories {=mdp:categories .Container label}
+
+3 categories for complexity classification: {?member .mdp:Category label}
+- Starting point {=#starting-point}
+    includes: {!prov:category}
+    - Activity {=prov:Activity}
+    - Entity {=prov:Entity}
+    - Agent {=prov:Agent}
+    - actedOnBehalfOf {=prov:actedOnBehalfOf}
+    - endedAtTime {=prov:endedAtTime}
+    - startedAtTime {=prov:startedAtTime}
+    - used {=prov:used}
+    - wasAssociatedWith {=prov:wasAssociatedWith}
+    - wasAttributedTo {=prov:wasAttributedTo}
+    - wasDerivedFrom {=prov:wasDerivedFrom}
+    - wasGeneratedBy {=prov:wasGeneratedBy}
+    - wasInformedBy {=prov:wasInformedBy}
+    
+- Qualified {=#qualified}
+    includes: {!prov:category}
+    - ActivityInfluence {=prov:ActivityInfluence}
+    - AgentInfluence {=prov:AgentInfluence}
+    - Association {=prov:Association}
+    - Attribution {=prov:Attribution}
+    - Communication {=prov:Communication}
+    - Delegation {=prov:Delegation}
+    - Derivation {=prov:Derivation}
+    - End {=prov:End}
+    - EntityInfluence {=prov:EntityInfluence}
+    - Generation {=prov:Generation}
+    - Influence {=prov:Influence}
+    - InstantaneousEvent {=prov:InstantaneousEvent}
+    - Invalidation {=prov:Invalidation}
+    - Plan {=prov:Plan}
+    - PrimarySource {=prov:PrimarySource}
+    - Quotation {=prov:Quotation}
+    - Revision {=prov:Revision}
+    - Role {=prov:Role}
+    - Start {=prov:Start}
+    - Usage {=prov:Usage}
+    - activity {=prov:activity}
+    - agent {=prov:agent}
+    - atTime {=prov:atTime}
+    - entity {=prov:entity}
+    - hadActivity {=prov:hadActivity}
+    - hadGeneration {=prov:hadGeneration}
+    - hadPlan {=prov:hadPlan}
+    - hadRole {=prov:hadRole}
+    - hadUsage {=prov:hadUsage}
+    - influencer {=prov:influencer}
+    - qualifiedAssociation {=prov:qualifiedAssociation}
+    - qualifiedAttribution {=prov:qualifiedAttribution}
+    - qualifiedCommunication {=prov:qualifiedCommunication}
+    - qualifiedDelegation {=prov:qualifiedDelegation}
+    - qualifiedDerivation {=prov:qualifiedDerivation}
+    - qualifiedEnd {=prov:qualifiedEnd}
+    - qualifiedGeneration {=prov:qualifiedGeneration}
+    - qualifiedInfluence {=prov:qualifiedInfluence}
+    - qualifiedInvalidation {=prov:qualifiedInvalidation}
+    - qualifiedPrimarySource {=prov:qualifiedPrimarySource}
+    - qualifiedQuotation {=prov:qualifiedQuotation}
+    - qualifiedRevision {=prov:qualifiedRevision}
+    - qualifiedStart {=prov:qualifiedStart}
+    - qualifiedUsage {=prov:qualifiedUsage}
+    - wasInfluencedBy {=prov:wasInfluencedBy}
+    
+- Expanded {=#expanded}
+    includes: {!prov:category}
+    - Bundle {=prov:Bundle}
+    - Collection {=prov:Collection}
+    - EmptyCollection {=prov:EmptyCollection}
+    - Location {=prov:Location}
+    - Organization {=prov:Organization}
+    - Person {=prov:Person}
+    - Plan {=prov:Plan}
+    - SoftwareAgent {=prov:SoftwareAgent}
+    - alternateOf {=prov:alternateOf}
+    - atLocation {=prov:atLocation}
+    - generated {=prov:generated}
+    - generatedAtTime {=prov:generatedAtTime}
+    - hadMember {=prov:hadMember}
+    - hadPrimarySource {=prov:hadPrimarySource}
+    - influenced {=prov:influenced}
+    - invalidated {=prov:invalidated}
+    - invalidatedAtTime {=prov:invalidatedAtTime}
+    - specializationOf {=prov:specializationOf}
+    - value {=prov:value}
+    - wasEndedBy {=prov:wasEndedBy}
+    - wasInvalidatedBy {=prov:wasInvalidatedBy}
+    - wasQuotedFrom {=prov:wasQuotedFrom}
+    - wasRevisionOf {=prov:wasRevisionOf}
+    - wasStartedBy {=prov:wasStartedBy}
+
+
+
+=======
+
+## Lists Shape {=mdp:shape:list .sh:NodeShape label}
+
+This shape keeps lists grounded in original ttl data - any missed IRI would trigger a violation.
+
+Initial [Class] {+owl:Class ?sh:targetClass}, [Object Props] {+owl:ObjectProperty ?sh:targetClass} and [Datatype Props] {+owl:DatatypeProperty ?sh:targetClass} lists in the catalog are validated.
+
+**Listed Rule** {=mdp:rule:listed .sh:propertyShape ?sh:property} checks for it to have [listed] {+mdp:class:listed ?sh:path} at least once [1] {sh:minCount}  - this is *informational* {+sh:Info ?sh:severity} constrain to keep the list integrity: **List integrity violation** {sh:message}
