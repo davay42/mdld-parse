@@ -4,18 +4,25 @@
 
 > The terms introduced in this section provide additional ways to describe the provenance among Entities, Activities, and Agents. The additional terms are illustrated in the following figure and can be separated into five different categories. {comment}
 
+![](./expanded.svg)
+
 The first category extends the Starting Point terms with subclasses, subproperties, and a superproperty.
 
-7 classes: {!prov:category}
+3 sub-classes of Agent: {!prov:category}
+
+- Person {=prov:Person}
+- Organization {=prov:Organization}
+- SoftwareAgent {=prov:SoftwareAgent}
+
+3 sub-classes of Entity: {!prov:category}
 
 - Bundle {=prov:Bundle}
 - Collection {=prov:Collection}
 - EmptyCollection {=prov:EmptyCollection}
-- Location {=prov:Location}
-- Organization {=prov:Organization}
-- Person {=prov:Person}
 - Plan {=prov:Plan}
-- SoftwareAgent {=prov:SoftwareAgent}
+
+And Location: {!prov:category}
+- Location {=prov:Location}
 
 15 properties: {!prov:category}
 

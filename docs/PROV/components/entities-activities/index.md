@@ -4,6 +4,8 @@
 
 The first component of PROV-DM is concerned with entities and activities, and their interrelations.
 
+![](./component1.png)
+
 includes 9 classes: {!prov:component}
 - Activity {=prov:Activity}
 - Communication {=prov:Communication}

@@ -11,13 +11,15 @@ Includes 30 classes {?member mdp:class:listed}
 - [Start](./Start.md) {=prov:Start}
 - [End](./End.md) {=prov:End}
 - [Invalidation](./Invalidation.md) {=prov:Invalidation}
+- [Bundle](./Bundle.md) {=prov:Bundle}
+- [Collection](./Collection.md) {=prov:Collection}
+- [Plan](./Plan.md) {=prov:Plan}
+
 - ActivityInfluence {=prov:ActivityInfluence}
 - Agent {=prov:Agent}
 - AgentInfluence {=prov:AgentInfluence}
 - Association {=prov:Association}
 - Attribution {=prov:Attribution}
-- Bundle {=prov:Bundle}
-- Collection {=prov:Collection}
 - Communication {=prov:Communication}
 - Delegation {=prov:Delegation}
 - Derivation {=prov:Derivation}
@@ -28,7 +30,7 @@ Includes 30 classes {?member mdp:class:listed}
 - Location {=prov:Location}
 - Organization {=prov:Organization}
 - Person {=prov:Person}
-- Plan {=prov:Plan}
+
 - PrimarySource {=prov:PrimarySource}
 - Quotation {=prov:Quotation}
 - Revision {=prov:Revision}
