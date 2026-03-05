@@ -45,6 +45,6 @@ Provided by [CAG] {+ex:civil_action_group ?prov:wasAttributedTo}
 
 ### Government {=ex:government .prov:Agent .prov:Organization}
 
-### Civil Action Group {=ex:civil_action_group .prov:Agent .prov:Organization}
+### Civil Action Group {=ex:civil_action_group .prov:Agent .prov:Organization foaf:name}
 
 ### National Newspaper Inc. {=ex:national_newspaper_inc .prov:Agent .prov:Organization foaf:name}

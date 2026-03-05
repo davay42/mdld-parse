@@ -6,39 +6,37 @@
 
 ![](./expanded.svg)
 
+### First category
+
 The first category extends the Starting Point terms with subclasses, subproperties, and a superproperty.
 
-3 sub-classes of Agent: {!prov:category}
+Sub-classes of Agent: {!prov:category}
 
-- Person {=prov:Person}
-- Organization {=prov:Organization}
-- SoftwareAgent {=prov:SoftwareAgent}
+-   Person {=prov:Person}
+-   Organization {=prov:Organization}
+-   SoftwareAgent {=prov:SoftwareAgent}
 
-3 sub-classes of Entity: {!prov:category}
+A **prov:Collection** {+prov:Collection !prov:category} is an Entity that provides a structure (e.g. set, list, etc.) to some constituents (which are themselves Entities). The **prov:Collection** class can be used to express the provenance of the collection itself: e.g. who maintained the collection, which members it contained as it evolved, and how it was assembled. The **prov:hadMember** {+prov:hadMember !prov:category} property is used to assert membership in a collection. **prov:EmptyCollection** {+prov:EmptyCollection !prov:category} is a Collection with no members.
 
-- Bundle {=prov:Bundle}
-- Collection {=prov:Collection}
-- EmptyCollection {=prov:EmptyCollection}
-- Plan {=prov:Plan}
+A **prov:Bundle** {+prov:Bundle !prov:category} is a named set of provenance descriptions, which may itself have provenance. The named set of provenance descriptions may be expressed as PROV-O or any other form. The subclass of Bundle that names a set of PROV-O assertions is not provided by PROV-O, since it is more appropriate to do so using other recommendations, standards, or technologies. In any case, a Bundle of PROV-O assertions is an abstract set of RDF triples, and adding or removing a triple creates a new distinct Bundle of PROV-O assertions.
 
-And Location: {!prov:category}
-- Location {=prov:Location}
+A **prov:Plan** {+prov:Plan !prov:category} is an entity that represents a set of actions or steps intended by one or more agents to achieve some goals.
 
-15 properties: {!prov:category}
+More general and more specific properties are also provided by the expanded terms. More generally, the property **prov:wasInfluencedBy** is a superproperty that relates any **prov:influenced** {+prov:influenced !prov:category} Entity, Activity, or Agent to any other influencing Entity, Activity, or Agent that had an effect on its characteristics. Three subproperties of **prov:wasDerivedFrom** are also provided for certain kinds of derivation among Entities: **prov:wasQuotedFrom** {+prov:wasQuotedFrom !prov:category} cites a potentially larger Entity (such as a book, blog, or image) from which a new Entity was created by repeating some or all of the original, **prov:wasRevisionOf** {+prov:wasRevisionOf !prov:category} indicates that the derived Entity contains substantial content from the original Entity (e.g., two editions of a book), and **prov:hadPrimarySource** {+prov:hadPrimarySource !prov:category} cites a preceding Entity produced by some agent with direct experience and knowledge about the topic (such as a reading from a sensor, or a journal written during an historical event).
 
-- alternateOf {=prov:alternateOf}
-- atLocation {=prov:atLocation}
-- generated {=prov:generated}
-- generatedAtTime {=prov:generatedAtTime}
-- hadMember {=prov:hadMember}
-- hadPrimarySource {=prov:hadPrimarySource}
-- influenced {=prov:influenced}
-- invalidated {=prov:invalidated}
-- invalidatedAtTime {=prov:invalidatedAtTime}
-- specializationOf {=prov:specializationOf}
-- value {=prov:value}
-- wasEndedBy {=prov:wasEndedBy}
-- wasInvalidatedBy {=prov:wasInvalidatedBy}
-- wasQuotedFrom {=prov:wasQuotedFrom}
-- wasRevisionOf {=prov:wasRevisionOf}
-- wasStartedBy {=prov:wasStartedBy}
+### Second category
+
+The second category of expanded terms relates Entities according to their levels of abstraction, where some Entities may present more specific aspects than their more general counterparts. While **prov:specializationOf** {+prov:specializationOf !prov:category} links a more specific Entity to a more general one (e.g., today's BBC news home page versus BBC's news home page on any day), **prov:alternateOf** {+prov:alternateOf !prov:category} links Entities that present aspects of the same thing, but not necessarily the same aspects or at the same time (e.g., the serialization of a document in different formats or a backup copy of a computer file).
+
+### Third category
+
+The third category of expanded terms allows further description of Entities. The property **prov:value** {+prov:value !prov:category} provides a literal value that is a direct representation of an entity. For example, the prov:value of a quote could be a string of the sentences stated, or the prov:value of an Entity involved in a numeric calculation could be the xsd:integer four. The property **prov:atLocation** {+prov:atLocation !prov:category} can be used to describe the **prov:Location** {+prov:Location !prov:category} of any Entity, Activity, Agent, or prov:InstantaneousEvent (i.e., the starting or ending of an activity or the generation, usage, or invalidation of an entity). The properties used to describe instances of **prov:Location** are outside the scope of PROV-O; reuse of other existing vocabulary is encouraged.
+
+### Fourth category
+
+The fourth category of expanded terms describes the lifetime of an Entity beyond being generated by an Activity and used by other Activities. For example, a painting could not have been displayed before it was painted, and it could not be sold after it was destroyed by fire. Similar to how Activities have start and end times, an Entity may be bound by points in time for which it was generated or is no longer usable. The properties **prov:generatedAtTime** {+prov:generatedAtTime !prov:category} and **prov:invalidatedAtTime** {+prov:invalidatedAtTime !prov:category} can be used to bound the starting and ending moments of an Entity's existence. The Activities that led to the generation or invalidation of an Entity can be provided using **prov:wasGeneratedBy** and **prov:wasInvalidatedBy**, respectively. **prov:generated** {+prov:generated !prov:category} and **prov:invalidated** {+prov:invalidated !prov:category} are the inverses of **prov:wasGeneratedBy** and **prov:wasInvalidatedBy** {+prov:wasInvalidatedBy !prov:category}, respectively, and are defined to facilitate Activity-as-subject as well as Entity-as-subject descriptions. For more about inverses, see the Appendix B.
+
+### Fifth category
+
+The fifth category of expanded terms describes the lifetime of an Activity beyond its start and end times and predecessor Activities. Activities may also be started or ended by Entities, which are described using the properties **prov:wasStartedBy** {+prov:wasStartedBy !prov:category} and **prov:wasEndedBy** {+prov:wasEndedBy !prov:category}, respectively. Since Entities may start or end Activities, and Agents may be Entities, then Agents may also start or end Activities. 
+
