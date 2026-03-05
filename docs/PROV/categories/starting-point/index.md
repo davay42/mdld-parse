@@ -30,7 +30,7 @@ The properties rdf:type and rdfs:label are used to express prov:type and prov:la
 
 ### TTL
 
-![ttl](./example.ttl)
+![ttl](./example1.ttl)
 
 ### MDLD
 
