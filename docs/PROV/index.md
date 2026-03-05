@@ -4,7 +4,15 @@
 
 > W3C standard for provenance chains working in MDLD text with SHACL validation {comment}
 
-We have authoritative source - the [prov-o.ttl](./prov-o.ttl) {+mdp:ttl ?member}
+> We have authoritative source - the [prov-o.ttl](./prov-o.ttl) {+mdp:ttl ?member}
+
+## Categories
+
+[3 categories](./categories/index.md)
+
+## Components
+
+[6 components](./components/index.md)
 
 ## Classes
 
@@ -14,10 +22,4 @@ We have authoritative source - the [prov-o.ttl](./prov-o.ttl) {+mdp:ttl ?member}
 
 [50 Properties](./properties/index.md)
 
-## Components
-
-[6 components](./components/index.md) 
-
-## Categories
-
-[3 categories](./categories/index.md)
+##

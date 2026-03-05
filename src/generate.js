@@ -204,7 +204,7 @@ function buildDeterministicMDLD(subjectGroups, context) {
             const objShort = shortenIRI(quad.object.value, context);
             const localName = extractLocalName(quad.object.value);
 
-            const objectText = `> ${localName} {+${objShort} ?${predShort}}\n`;
+            const objectText = `[${localName}] {+${objShort} ?${predShort}}\n`;
             const objectBlockId = generateBlockId();
             const objectBlock = {
                 id: objectBlockId,

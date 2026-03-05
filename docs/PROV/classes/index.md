@@ -3,8 +3,14 @@
 ## Classes {=mdp:class:index .Container label}
 
 Includes 30 classes {?member mdp:class:listed}
+
 - [Activity](./Activity.md) {=prov:Activity}
 - [Entity](./Entity.md) {=prov:Entity}
+- [Generation](./Generation.md) {=prov:Generation}
+- [Usage](./Usage.md) {=prov:Usage}
+- [Start](./Start.md) {=prov:Start}
+- [End](./End.md) {=prov:End}
+- [Invalidation](./Invalidation.md) {=prov:Invalidation}
 - ActivityInfluence {=prov:ActivityInfluence}
 - Agent {=prov:Agent}
 - AgentInfluence {=prov:AgentInfluence}
@@ -16,12 +22,9 @@ Includes 30 classes {?member mdp:class:listed}
 - Delegation {=prov:Delegation}
 - Derivation {=prov:Derivation}
 - EmptyCollection {=prov:EmptyCollection}
-- End {=prov:End}
 - EntityInfluence {=prov:EntityInfluence}
-- Generation {=prov:Generation}
 - Influence {=prov:Influence}
 - InstantaneousEvent {=prov:InstantaneousEvent}
-- Invalidation {=prov:Invalidation}
 - Location {=prov:Location}
 - Organization {=prov:Organization}
 - Person {=prov:Person}
@@ -31,5 +34,3 @@ Includes 30 classes {?member mdp:class:listed}
 - Revision {=prov:Revision}
 - Role {=prov:Role}
 - SoftwareAgent {=prov:SoftwareAgent}
-- Start {=prov:Start}
-- Usage {=prov:Usage}
