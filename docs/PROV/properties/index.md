@@ -2,7 +2,7 @@
 
 ## Object Properties {=mdp:properties .Container label}
 
-The list contains 44 objects: {?member mdp:class:listed}
+The list contains 44 object properties: {?member mdp:class:listed}
 
 - actedOnBehalfOf {=prov:actedOnBehalfOf}
 - activity {=prov:activity}
