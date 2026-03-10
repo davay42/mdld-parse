@@ -21,5 +21,3 @@
 ## Properties
 
 [50 Properties](./properties/index.md)
-
-##

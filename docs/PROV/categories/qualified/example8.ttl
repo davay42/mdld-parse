@@ -1,0 +1,20 @@
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex:     <http://example.org#> .
+
+ex:illustrationActivity 
+   a prov:Activity;                ## Using Starting Point terms,
+   prov:used ex:aggregatedByRegions; ##   the illustration activity used the aggregated data (to create the bar chart).
+.
+
+ex:aggregatedByRegions a prov:Entity .
+
+ex:illustrationActivity      
+   prov:qualifiedUsage [                                ## Qualify how the :illustrationActivity
+      a prov:Usage;                                     ##   used
+      prov:entity ex:aggregatedByRegions;                 ##     the Entity :aggregatedByRegions
+
+      prov:atTime "2011-07-14T03:03:03Z"^^xsd:dateTime; ## Qualification: The aggregated data was used 
+                                                        ##   at a particular time to create the bar chart..
+   ];
+.

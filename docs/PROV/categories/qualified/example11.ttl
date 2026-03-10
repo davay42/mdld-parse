@@ -1,0 +1,21 @@
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex:     <http://example.org#> .
+
+ex:bar_chart
+   a prov:Entity;                             ## Using Starting Point terms,
+   prov:wasDerivedFrom ex:aggregatedByRegions;  ##   the chart was derived from the aggregated dataset.
+.
+
+ex:aggregatedByRegions a prov:Entity .
+
+ex:bar_chart
+   prov:qualifiedDerivation [                      ## Qualify
+      a prov:Derivation;                           ##   how :bar_chart was derived from
+      prov:entity        ex:aggregatedByRegions;     ##     the dataset Entity :aggregatedByRegions.
+
+      prov:hadActivity   ex:aggregating_activity;    ## Qualification: The activity that derived the :bar_chart.
+      prov:hadUsage      ex:use_of_aggregatedData;   ## Qualification: How the activity used :aggregatedByRegions.
+      prov:hadGeneration ex:generation_of_bar_chart; ## Qualification: How the activity generated the :bar_chart.
+   ];
+.

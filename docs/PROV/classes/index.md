@@ -1,31 +1,15 @@
 [mdp] <https://mdld.js.org/prov/>
 
-## Classes {=mdp:class:index .Container label}
+## Agent {=prov:Agent label mdp:class:listed}
 
-Includes 30 classes {?member .Class mdp:class:listed}
+> An agent is something that bears some form of responsibility for an activity taking place, for the existence of an entity, or for another agent's activity. {prov:definition}
 
-- [Generation](./Generation.md) {=prov:Generation}
-- [Usage](./Usage.md) {=prov:Usage}
-- [Start](./Start.md) {=prov:Start}
-- [End](./End.md) {=prov:End}
-- [Invalidation](./Invalidation.md) {=prov:Invalidation}
-- ActivityInfluence {=prov:ActivityInfluence}
-- AgentInfluence {=prov:AgentInfluence}
-- Association {=prov:Association}
-- Attribution {=prov:Attribution}
-- Communication {=prov:Communication}
-- Delegation {=prov:Delegation}
-- Derivation {=prov:Derivation}
-- EntityInfluence {=prov:EntityInfluence}
-- Influence {=prov:Influence}
-- InstantaneousEvent {=prov:InstantaneousEvent}
-- Location {=prov:Location}
-- PrimarySource {=prov:PrimarySource}
-- Quotation {=prov:Quotation}
-- Revision {=prov:Revision}
-- Role {=prov:Role}
+Has 3 sub-classes: {!subClassOf mdp:class:listed}
 
-***
+- Organization {=prov:Organization}
+- Person {=prov:Person}
+- SoftwareAgent {=prov:SoftwareAgent}
+
 
 ## Entity {=prov:Entity .Class label mdp:class:listed}
 
@@ -73,12 +57,27 @@ A prov:Bundle is a named set of provenance descriptions, which may itself have p
 
 ***
 
-## Agent {=prov:Agent label mdp:class:listed}
+## Other classes {=mdp:class:index .Container label}
 
-> An agent is something that bears some form of responsibility for an activity taking place, for the existence of an entity, or for another agent's activity. {prov:definition}
+Includes 30 classes {?member .Class mdp:class:listed}
 
-Has 3 sub-classes: {!subClassOf mdp:class:listed}
-
-- Organization {=prov:Organization}
-- Person {=prov:Person}
-- SoftwareAgent {=prov:SoftwareAgent}
+- [Generation](./Generation.md) {=prov:Generation}
+- [Usage](./Usage.md) {=prov:Usage}
+- [Start](./Start.md) {=prov:Start}
+- [End](./End.md) {=prov:End}
+- [Invalidation](./Invalidation.md) {=prov:Invalidation}
+- ActivityInfluence {=prov:ActivityInfluence}
+- AgentInfluence {=prov:AgentInfluence}
+- Association {=prov:Association}
+- Attribution {=prov:Attribution}
+- Communication {=prov:Communication}
+- Delegation {=prov:Delegation}
+- Derivation {=prov:Derivation}
+- EntityInfluence {=prov:EntityInfluence}
+- Influence {=prov:Influence}
+- InstantaneousEvent {=prov:InstantaneousEvent}
+- Location {=prov:Location}
+- PrimarySource {=prov:PrimarySource}
+- Quotation {=prov:Quotation}
+- Revision {=prov:Revision}
+- Role {=prov:Role}

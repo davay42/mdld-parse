@@ -1,0 +1,24 @@
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex:     <http://example.org#> .
+
+ex:illustrationActivity
+   a prov:Activity;                ## Using Starting Point terms,
+   prov:wasAssociatedWith ex:derek;  ##   the illustration activity was associated with Derek in some way.
+.
+
+ex:derek a prov:Agent .
+
+ex:illustrationActivity
+   prov:qualifiedAssociation [       ## Qualify how the :illustrationActivity
+      a prov:Association;            ##   was associated with
+      prov:agent   ex:derek  ;          ##     the Agent Derek.
+
+      prov:hadRole ex:illustrationist; ## Qualification: The role that Derek served.
+      prov:hadPlan ex:tutorial_blog;   ## Qualification: The plan (or recipe, instructions)
+                                     ##   that Derek followed when creating the graphical chart.
+   ]
+.
+
+ex:tutorial_blog   a prov:Plan, prov:Entity .
+ex:illustrationist a prov:Role .
