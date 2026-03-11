@@ -12,23 +12,19 @@
 
 ---
 
-## 🛡️ Self-Validation Demo {=ex:demo ?cat:hasDemo}
+## 🛡️ Self-Validating Demo {=ex:demo ?cat:hasDemo}
 
-The **Date Validation Shape** {=ex:DateValidationShape .sh:NodeShape ?cat:hasShape label} targets all [Event] {+ex:Event ?sh:targetClass} instances to validate date requirements.
+### Date Validation Shape {=ex:DateValidationShape .sh:NodeShape ?cat:hasShape label} 
 
-**Event Date Rule** {=ex:DatePropertyShape .sh:PropertyShape ?sh:property} requires the [eventDate] {+ex:eventDate ?sh:path} property to pass [Date JS Constraint] {+ex:DateJSConstraint ?sh:JSConstraint} validation: *Event date must be a valid date string* {sh:message}
+#### Event date must be a valid date string {=ex:DatePropertyShape .sh:PropertyShape ?sh:property sh:message}
 
-**Date JS Constraint** {=ex:DateJSConstraint .sh:JSConstraint} uses JavaScript function to validate date strings: {sh:js """
+All [Events] {+ex:Event ?sh:targetClass} must have an [eventDate] {+ex:eventDate ?sh:path} that is a valid JS date.
+
+~~~~~~js {=ex:DateJSConstraint ?sh:JSConstraint sh:js}
 // Check if value is a valid date string
 const date = new Date(value);
 return !isNaN(date.getTime());
-"""}. 
-
-```js {=ex:DateJSConstraint .sh:JSConstraint ?sh:JSConstraint sh:js}
-// Check if value is a valid date string
-const date = new Date(value);
-return !isNaN(date.getTime());
-```
+~~~~~~
 
 ---
 

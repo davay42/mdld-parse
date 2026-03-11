@@ -7,16 +7,226 @@ export const DEFAULT_CONTEXT = {
     prov: 'http://www.w3.org/ns/prov#'
 };
 
-export const DataFactory = {
-    namedNode: (v) => ({ termType: 'NamedNode', value: v }),
-    blankNode: (v = `b${Math.random().toString(36).slice(2, 11)}`) => ({ termType: 'BlankNode', value: v }),
-    literal: (v, lang) => {
-        if (typeof lang === 'string') {
-            return { termType: 'Literal', value: v, language: lang, datatype: DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#langString') };
+// Base Term class for RDF/JS compatibility
+export class Term {
+    constructor(id) {
+        this.id = id;
+    }
+
+    equals(other) {
+        return !!other && this.termType === other.termType && this.value === other.value;
+    }
+}
+
+// NamedNode implementation
+export class NamedNode extends Term {
+    constructor(iri) {
+        super(iri);
+        this.termType = 'NamedNode';
+        this.value = iri;
+    }
+}
+
+// Literal implementation with language/direction support
+export class Literal extends Term {
+    constructor(id) {
+        super(id);
+        this.termType = 'Literal';
+        this.value = '';
+        this.language = '';
+        this.datatype = null;
+
+        // Parse the literal ID - handle escaped quotes properly
+        const dtMatch = id.match(/^"([^"\\]*(?:\\.[^"\\]*)*)"(\^\^([^"]+))?(@([^-]+)(--(.+))?)?$/);
+        if (dtMatch) {
+            // Unescape the value
+            this.value = dtMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            if (dtMatch[5]) {
+                this.language = dtMatch[5];
+                this.datatype = new NamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#langString');
+            } else if (dtMatch[3]) {
+                this.datatype = new NamedNode(dtMatch[3]);
+            } else {
+                this.datatype = new NamedNode('http://www.w3.org/2001/XMLSchema#string');
+            }
+        } else {
+            // Fallback for simple literals without complex parsing
+            this.value = id.replace(/^"|"$/g, '');
+            this.datatype = new NamedNode('http://www.w3.org/2001/XMLSchema#string');
         }
-        return { termType: 'Literal', value: v, language: '', datatype: lang || DataFactory.namedNode('http://www.w3.org/2001/XMLSchema#string') };
+    }
+
+    equals(other) {
+        return !!other &&
+            this.termType === other.termType &&
+            this.value === other.value &&
+            this.language === other.language &&
+            this.datatype?.value === other.datatype?.value;
+    }
+}
+
+// BlankNode implementation
+export class BlankNode extends Term {
+    constructor(name) {
+        super(name || `b${Math.random().toString(36).slice(2, 11)}`);
+        this.termType = 'BlankNode';
+        this.value = this.id;
+    }
+}
+
+// Variable implementation
+export class Variable extends Term {
+    constructor(name) {
+        super(name);
+        this.termType = 'Variable';
+        this.value = name;
+    }
+}
+
+// DefaultGraph implementation
+export class DefaultGraph extends Term {
+    constructor() {
+        super('');
+        this.termType = 'DefaultGraph';
+        this.value = '';
+    }
+
+    equals(other) {
+        return !!other && this.termType === other.termType;
+    }
+}
+
+// Default graph singleton
+const DEFAULTGRAPH = new DefaultGraph();
+
+// Quad implementation
+export class Quad extends Term {
+    constructor(subject, predicate, object, graph = DEFAULTGRAPH) {
+        super(`${subject.id}|${predicate.id}|${object.id}|${graph.id}`);
+        this.termType = 'Quad';
+        this.subject = subject;
+        this.predicate = predicate;
+        this.object = object;
+        this.graph = graph;
+    }
+
+    equals(other) {
+        return !!other &&
+            this.termType === other.termType &&
+            this.subject.equals(other.subject) &&
+            this.predicate.equals(other.predicate) &&
+            this.object.equals(other.object) &&
+            this.graph.equals(other.graph);
+    }
+
+    toJSON() {
+        return {
+            termType: this.termType,
+            subject: this.subject.toJSON ? this.subject.toJSON() : { termType: this.subject.termType, value: this.subject.value },
+            predicate: this.predicate.toJSON ? this.predicate.toJSON() : { termType: this.predicate.termType, value: this.predicate.value },
+            object: this.object.toJSON ? this.object.toJSON() : { termType: this.object.termType, value: this.object.value },
+            graph: this.graph.toJSON ? this.graph.toJSON() : { termType: this.graph.termType, value: this.graph.value }
+        };
+    }
+}
+
+// XSD constants
+const xsd = {
+    boolean: 'http://www.w3.org/2001/XMLSchema#boolean',
+    integer: 'http://www.w3.org/2001/XMLSchema#integer',
+    double: 'http://www.w3.org/2001/XMLSchema#double',
+    string: 'http://www.w3.org/2001/XMLSchema#string'
+};
+
+// DataFactory singleton matching N3.js interface
+export const DataFactory = {
+    namedNode: (iri) => new NamedNode(iri),
+    blankNode: (name) => new BlankNode(name),
+    literal: (value, languageOrDataType) => {
+        // Convert non-string values to string for proper serialization
+        const stringValue = String(value);
+        // Escape quotes in the value for proper serialization
+        const escapedValue = stringValue.replace(/"/g, '\\"');
+
+        // Create a language-tagged string
+        if (typeof languageOrDataType === 'string') {
+            return new Literal(`"${escapedValue}"@${languageOrDataType.toLowerCase()}`);
+        }
+
+        // Create a language-tagged string with base direction
+        if (languageOrDataType !== undefined && !('termType' in languageOrDataType)) {
+            const direction = languageOrDataType.direction ? `--${languageOrDataType.direction.toLowerCase()}` : '';
+            return new Literal(`"${escapedValue}"@${languageOrDataType.language.toLowerCase()}${direction}`);
+        }
+
+        // Automatically determine datatype for booleans and numbers
+        let datatype = languageOrDataType ? languageOrDataType.value : '';
+        if (datatype === '') {
+            // Convert a boolean
+            if (typeof value === 'boolean') {
+                datatype = xsd.boolean;
+            }
+            // Convert an integer or double
+            else if (typeof value === 'number') {
+                if (Number.isFinite(value)) {
+                    datatype = Number.isInteger(value) ? xsd.integer : xsd.double;
+                } else {
+                    datatype = xsd.double;
+                    if (!Number.isNaN(value)) {
+                        value = value > 0 ? 'INF' : '-INF';
+                    }
+                }
+            }
+        }
+
+        // Create a datatyped literal
+        return (datatype === '' || datatype === xsd.string)
+            ? new Literal(`"${escapedValue}"`)
+            : new Literal(`"${escapedValue}"^^${datatype}`);
     },
-    quad: (s, p, o, g) => ({ subject: s, predicate: p, object: o, graph: g || DataFactory.namedNode('') })
+    variable: (name) => new Variable(name),
+    defaultGraph: () => DEFAULTGRAPH,
+    quad: (subject, predicate, object, graph) => new Quad(subject, predicate, object, graph),
+    triple: (subject, predicate, object, graph) => new Quad(subject, predicate, object, graph), // Alias for quad
+    fromTerm: (term) => {
+        if (term instanceof Term) return term;
+
+        // Term instantiated with another library
+        switch (term.termType) {
+            case 'NamedNode':
+                return new NamedNode(term.value);
+            case 'BlankNode':
+                return new BlankNode(term.value);
+            case 'Variable':
+                return new Variable(term.value);
+            case 'DefaultGraph':
+                return DEFAULTGRAPH;
+            case 'Literal':
+                if (term.language) {
+                    return new Literal(`"${term.value}"@${term.language}`);
+                } else if (term.datatype) {
+                    return new Literal(`"${term.value}"^^${term.datatype.value || term.datatype}`);
+                } else {
+                    return new Literal(`"${term.value}"`);
+                }
+            case 'Quad':
+                return DataFactory.fromQuad(term);
+            default:
+                throw new Error(`Unexpected termType: ${term.termType}`);
+        }
+    },
+    fromQuad: (inQuad) => {
+        if (inQuad instanceof Quad) return inQuad;
+        if (inQuad.termType !== 'Quad') {
+            throw new Error(`Unexpected termType: ${inQuad.termType}`);
+        }
+        return new Quad(
+            DataFactory.fromTerm(inQuad.subject),
+            DataFactory.fromTerm(inQuad.predicate),
+            DataFactory.fromTerm(inQuad.object),
+            DataFactory.fromTerm(inQuad.graph)
+        );
+    }
 };
 
 export function hash(str) {

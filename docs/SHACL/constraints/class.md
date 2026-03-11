@@ -14,11 +14,13 @@
 
 ## Demo {=ex:demo ?cat:hasDemo}
 
-The **Employee Test Shape** {=ex:EmployeeTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate class constraints.
+### Employee Test Shape {=ex:EmployeeTestShape .sh:NodeShape ?cat:hasShape label}
 
-**Manager Class Rule** {=ex:#managerClass .sh:PropertyShape ?sh:property} requires the [manager] {+ex:manager ?sh:path} property to be an instance of [Person] {+ex:Person ?sh:class}: **Employee manager must be a Person instance** {sh:message}
+All [employees] {+member ?sh:targetObjectsOf} must have both **Human Manager** {+ex:#managerClass ?sh:property} and **Department** {+ex:#departmentClass ?sh:property} assigned.
 
-**Department Class Rule** {=ex:#departmentClass .sh:PropertyShape ?sh:property} requires the [department] {+ex:department ?sh:path} property to be an instance of [Department] {+ex:Department ?sh:class}: **Employee department must be a Department instance** {sh:message}
+**Employee manager must be a Person instance** {=ex:#managerClass .sh:PropertyShape message} requires the [manager] {+ex:manager ?sh:path} property to be an instance of [Person] {+ex:Person ?sh:class}.
+
+**Employee department must be a Department instance** {=ex:#departmentClass .sh:PropertyShape sh:message}  requires the [department] {+ex:department ?sh:path} property to be an instance of [Department] {+ex:Department ?sh:class}
 
 ---
 
@@ -26,22 +28,22 @@ The **Employee Test Shape** {=ex:EmployeeTestShape .sh:NodeShape ?cat:hasShape l
 
 #### Valid Employee {=ex:ValidEmployee ?member}
 
-Manager: [john-manager] {=ex:john ?ex:manager .ex:Person}
-Department: [engineering] {=ex:engineering ?ex:department .ex:Department}
+Manager: [john-manager] {+ex:john ?ex:manager .ex:Person}
+Department: [engineering] {+ex:engineering ?ex:department .ex:Department}
 
 #### Invalid Employee {=ex:InvalidEmployee ?member}
 
-Manager: [robot-ai] {=ex:ai ?ex:manager ex:Role}
-Department: [engineering] {=ex:engineering ?ex:department}
+Manager: [robot-ai] {+ex:ai ?ex:manager ex:Role}
+Department: [marketing] {+ex:marketing ?ex:department}
 
 ---
 
-[Demo] {=ex:demo} must produce exactly **1** {cat:expectsViolations ^^xsd:integer} violation.
+[Demo] {=ex:demo} must produce exactly **2** {cat:expectsViolations ^^xsd:integer} violation.
 
 ### Expected Validation Results {=ex:results ?cat:hasResults}
 
-1. **Valid Employee** - passes (manager is Person, department is Department)
-2. **Invalid Employee** - fails (manager is not Person instance)
+1. **Valid Employee** - passes (manager is a Person, department is a Department)
+2. **Invalid Employee** - fails (manager is not a Person, department is not a Department)
 
 ### 🔍 Test Validation
 
@@ -64,33 +66,3 @@ ig-cli validate ./constraints/class.md
 This approach ensures proper type checking while maintaining clear validation semantics.
 
 ---
-
-## 🏗️ **Supporting Infrastructure**
-
-### Person Class {=ex:Person .rdfs:Class label}
-
-> Represents a person in the organization {?rdfs:comment}
-
-### Department Class {=ex:Department .rdfs:Class label}
-
-> Represents an organizational department {?rdfs:comment}
-
-### Robot Class {=ex:Robot .rdfs:Class label}
-
-> Represents an AI robot system {?rdfs:comment}
-
----
-
-### Test Instances
-
-#### john-manager {=ex:john-manager}
-
-A [Person] {+ex:Person ?rdf:type} instance representing John the manager.
-
-#### robot-ai {=ex:robot-ai}
-
-A [Robot] {+ex:Robot ?rdf:type} instance representing an AI system.
-
-#### engineering {=ex:engineering}
-
-A [Department] {+ex:Department ?rdf:type} instance representing the engineering department.
