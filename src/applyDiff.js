@@ -48,9 +48,31 @@ function createAnnotationForQuad(quad, ctx) {
         return { text: `[${value}] {${ann}}`, isLiteral: true };
     } else if (isNamedNode(quad.object)) {
         const objectShort = shortenIRI(quad.object.value, ctx);
-        return { text: createObjectAnnotation(objectShort, predShort), isLiteral: false };
+        const objectAnn = createObjectAnnotation(objectShort, predShort);
+        return { text: objectAnn, isLiteral: false };
     }
     return null;
+}
+
+function createSubjectBlockForQuad(quad, ctx) {
+    const subjectShort = shortenIRI(quad.subject.value, ctx);
+    const predShort = shortenIRI(quad.predicate.value, ctx);
+    const subjectName = extractLocalName(quad.subject.value);
+
+    if (isNamedNode(quad.object)) {
+        // IRI object: create object reference
+        const objectShort = shortenIRI(quad.object.value, ctx);
+        return { text: `\n\n# ${subjectName.charAt(0).toUpperCase() + subjectName.slice(1)} {=${subjectShort}}\n[${objectShort}] {${predShort}}\n`, isNewSubject: true };
+    } else {
+        // Literal object: create property on separate line
+        const value = String(quad.object.value ?? '');
+        const annotation = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
+        return { text: `\n\n# ${subjectName.charAt(0).toUpperCase() + subjectName.slice(1)} {=${subjectShort}}\n[${value}] {${annotation}}\n`, isNewSubject: true };
+    }
+}
+
+function extractLocalName(iri) {
+    return iri.split('/').pop() || iri.split('#').pop() || iri;
 }
 
 function isValidQuad(quad) {
@@ -430,44 +452,43 @@ function materializeEdits(plan, text, ctx, base) {
 
         if (isLiteral(quad.object) || isNamedNode(quad.object)) {
             if (!targetBlock) {
-                const annotation = createAnnotationForQuad(quad, ctx);
+                // No target block - check if subject already exists in document
+                const subjectExists = Array.from(base?.quadMap?.values() || [])
+                    .some(block => block.subject?.value === quad.subject.value);
+
+                let annotation;
+                if (!subjectExists && isNamedNode(quad.object)) {
+                    // New subject with IRI object - create subject block
+                    annotation = createSubjectBlockForQuad(quad, ctx);
+                } else if (subjectExists) {
+                    // Existing subject - create simple annotation
+                    annotation = createAnnotationForQuad(quad, ctx);
+                } else {
+                    // New subject with literal - create subject block
+                    annotation = createSubjectBlockForQuad(quad, ctx);
+                }
+
                 if (annotation) {
-                    edits.push({ start: text.length, end: text.length, text: `\n${annotation.text}` });
+                    edits.push({ start: text.length, end: text.length, text: annotation.text });
                 }
                 continue;
             }
 
-            const span = readSpan(targetBlock, text, 'attrs');
-            if (!span) continue;
+            // Insert annotation after target block's range
+            const annotation = createAnnotationForQuad(quad, ctx);
+            if (annotation) {
+                // Find the end of the target block's content, not just its range
+                const targetBlockEnd = targetBlock.range.end;
+                let insertPos = targetBlockEnd;
 
-            // Check if this is a subject-only block (like {=ex:order-123})
-            const tokens = normalizeAttrsTokens(span.text);
-            const hasSubjectToken = tokens.some(t => t.startsWith('='));
-            const hasPredicateTokens = tokens.some(t => !t.startsWith('=') && !t.startsWith('.'));
-
-            if (tokens.length === 1 && tokens[0].startsWith('=')) {
-                // This is a subject-only block, create new annotation
-                const annotation = createAnnotationForQuad(quad, ctx);
-                if (annotation) {
-                    edits.push({ start: text.length, end: text.length, text: `\n${annotation.text}` });
+                // Skip past the target block's content to find the right insertion point
+                while (insertPos < text.length && text[insertPos] !== '\n') {
+                    insertPos++;
                 }
-                continue;
-            }
 
-            // Normal annotation block, add tokens
-            const existingTokens = blockTokensFromEntries(targetBlock) || tokens;
-            let updated = addTokenToSlot(existingTokens, ctx, quad);
-
-            // For literal predicates with datatypes, we need to add datatype token too
-            if (isLiteral(quad.object) && quad.object.datatype && quad.object.datatype.value !== DataFactory.literal('').datatype.value) {
-                const datatypeToken = `^^${shortenIRI(quad.object.datatype.value, ctx)}`;
-                if (!updated.includes(datatypeToken)) {
-                    updated = [...updated, datatypeToken];
-                }
-            }
-
-            if (updated.length !== existingTokens.length) {
-                edits.push({ start: span.start, end: span.end, text: writeAttrsTokens(updated) });
+                // Insert after the target block's content
+                const finalInsertPos = insertPos < text.length ? insertPos : text.length;
+                edits.push({ start: finalInsertPos, end: finalInsertPos, text: `\n${annotation.text}` });
             }
         }
     }
@@ -542,12 +563,21 @@ function findTargetBlock(quad, base, anchors) {
     const anchored = anchors.get(anchorKey);
     if (anchored?.block) return anchored.block;
 
-    // Block affinity: prefer same block, then same subject
-    for (const [, block] of base?.blocks || []) {
-        if (block.subject === quad.subject.value && block.attrsRange) {
-            return block;
-        }
+    // Find the best position within the subject's section
+    // Look for blocks with the same subject and sort by position
+    const subjectBlocks = Array.from(base?.quadMap?.values() || [])
+        .filter(block => block.subject?.value === quad.subject.value)
+        .sort((a, b) => a.range.start - b.range.start);
+
+    if (subjectBlocks.length === 0) return null;
+
+    // Strategy: Find the last block with attrsRange to maintain consistency
+    // For identical subject blocks, prefer the first one to avoid creating duplicates
+    const blocksWithAttrs = subjectBlocks.filter(block => block.attrsRange);
+    if (blocksWithAttrs.length > 0) {
+        return blocksWithAttrs[blocksWithAttrs.length - 1]; // Return last matching block
     }
 
-    return null;
+    // Fallback: return the last block in the subject's section
+    return subjectBlocks[subjectBlocks.length - 1];
 }

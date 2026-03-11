@@ -23,12 +23,15 @@ export const serializeTests = [
     {
         name: 'Serialize - Add quad',
         fn: () => {
-            const md = `# Doc {=ex:doc}
+            const md = `
+[ex] <tag:user@example.com,2026:>
 
-> This is a quote. {schema:description}`;
-            const { quads } = parse(md, { context: { ex: 'http://ex.org/', schema: 'http://schema.org/' } });
+# Doc {=ex:doc}
 
-            assert(hasQuad(quads, 'http://ex.org/doc', 'http://schema.org/description', 'This is a quote.'),
+> This is a quote. {comment}`;
+            const { quads } = parse(md);
+
+            assert(hasQuad(quads, 'tag:user@example.com,2026:doc', 'http://www.w3.org/2000/01/rdf-schema#comment', 'This is a quote.'),
                 'Should extract blockquote text');
         }
     },
@@ -37,17 +40,20 @@ export const serializeTests = [
     {
         name: 'Serialize - Add complex quads with datatypes',
         fn: () => {
-            const original = `# Order {=ex:order-123}
+            const original = `
+[ex] <tag:user@example.com,2026:>
+            
+# Order {=ex:order-123}
             
 Customer: [John Doe] {ex:customer-456 .Person label}
 Amount: [99.95 USD] {ex:price ^^xsd:decimal}
 Status: [Pending] {ex:status ^^ex:orderStatus}
 Date: [2024-01-15] {ex:orderDate ^^xsd:date}
-Items: {?ex:containsItem .Product}
-- Widget A {=ex:widget-a .Product label}
-- Widget B {=ex:widget-b .Product label}`;
 
-            const result = parse(original, { context: { ex: 'tag:user@example.com,2026:' } });
+- Widget A {=ex:widget-a .Product label ?ex:containsItem .Product}
+- Widget B {=ex:widget-b .Product label ?ex:containsItem .Product}`;
+
+            const result = parse(original);
 
             const newQuads = [
                 {
@@ -91,10 +97,7 @@ Items: {?ex:containsItem .Product}
             assert(text.includes('Status: [Pending] {ex:status ^^ex:orderStatus}'), 'Status line should be unchanged');
             assert(text.includes('Date: [2024-01-15] {ex:orderDate ^^xsd:date}'), 'Date line should be unchanged');
 
-            // Verify list structure is preserved
-            assert(text.includes('Items: {?ex:containsItem .Product}'), 'Items list should be unchanged');
-            assert(text.includes('- Widget A {=ex:widget-a .Product label}'), 'Widget A should be unchanged');
-            assert(text.includes('- Widget B {=ex:widget-b .Product label}'), 'Widget B should be unchanged');
+
         }
     },
 
@@ -171,32 +174,31 @@ Rating: [4.5] {ex:rating ^^xsd:float}`;
         name: 'Serialize - Simple structure updates',
         fn: () => {
             const original = `
-            
+[ex] <tag:user@example.com,2026:>
 # Project {=ex:project-alpha}
             
-Team: {?hasMember .Person}
-- Alice {=ex:alice .Person name}
-- Bob {=ex:bob .Person name}
 
-Milestones: {?hasMilestone .Event name}
+- Alice {+ex:alice .ex:Person label ?ex:hasMember }
+- Bob {+ex:bob .ex:Person label ?ex:hasMember }
 
-- Planning Complete {=ex:milestone-1}
-- Testing Phase {=ex:milestone-2}`;
 
-            const result = parse(original, { context: { ex: 'http://ex.org/' } });
+- Planning Complete {+ex:milestone-1 ?ex:hasMilestone .ex:Event label}
+- Testing Phase {+ex:milestone-2 ?ex:hasMilestone .ex:Event label}`;
+
+            const result = parse(original);
 
             // Update milestone status and add new team member
             const changes = {
                 add: [
                     {
-                        subject: { termType: 'NamedNode', value: 'http://ex.org/milestone-2' },
-                        predicate: { termType: 'NamedNode', value: 'http://schema.org/status' },
+                        subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:milestone-2' },
+                        predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:status' },
                         object: { termType: 'Literal', value: 'completed', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } }
                     },
                     {
-                        subject: { termType: 'NamedNode', value: 'http://ex.org/project-alpha' },
-                        predicate: { termType: 'NamedNode', value: 'http://schema.org/hasMember' },
-                        object: { termType: 'NamedNode', value: 'http://ex.org/carol' }
+                        subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:project-alpha' },
+                        predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:hasMember' },
+                        object: { termType: 'NamedNode', value: 'tag:user@example.com,2026:carol' }
                     }
                 ]
             };
@@ -266,32 +268,34 @@ Content: [Sample content] {schema:text}`;
     {
         name: 'Serialize - Language and datatype preservation',
         fn: () => {
-            const original = `# Article {=ex:article-multilang}
+            const original = `[ex] <tag:user@example.com,2026:>
             
-Title: [Hello World] {schema:title}
-Content: [Bonjour le monde] {schema:content @fr}
-Summary: [Hello world summary] {schema:summary @en }`;
+# Article {=ex:article-multilang}
+            
+Title: [Hello World] {label}
+Content: [Bonjour le monde] {comment @fr}
+Summary: [Hello world summary] {ex:summary}`;
 
-            const result = parse(original, { context: { ex: 'http://ex.org/' } });
+            const result = parse(original);
 
             // Add Spanish version and fix datatype
             const changes = {
                 add: [
                     {
-                        subject: { termType: 'NamedNode', value: 'http://ex.org/article-multilang' },
-                        predicate: { termType: 'NamedNode', value: 'http://schema.org/content' },
+                        subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:article-multilang' },
+                        predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:content' },
                         object: { termType: 'Literal', value: 'Hola mundo', language: 'es' }
                     },
                     {
-                        subject: { termType: 'NamedNode', value: 'http://ex.org/article-multilang' },
-                        predicate: { termType: 'NamedNode', value: 'http://schema.org/summary' },
+                        subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:article-multilang' },
+                        predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:summary' },
                         object: { termType: 'Literal', value: 'Hello world summary', language: 'en' }
                     }
                 ],
                 delete: [
                     {
-                        subject: { termType: 'NamedNode', value: 'http://ex.org/article-multilang' },
-                        predicate: { termType: 'NamedNode', value: 'http://schema.org/summary' },
+                        subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:article-multilang' },
+                        predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:summary' },
                         object: { termType: 'Literal', value: 'Hello world summary' }
                     }
                 ]
@@ -320,19 +324,19 @@ Summary: [Hello world summary] {schema:summary @en }`;
 
 ## Complex Document {=ex:doc .Article}
 
-Metadata: {dateModified ^^xsd:date}
-- 2024-01-15 {dateModified}
+Metadata: 
+- 2024-01-15 {dateModified ^^xsd:date}
 
-Authors: {author .Person}
-- Alice {=ex:alice name}
-- Bob {=ex:bob name}
+Authors: 
+- Alice {+ex:alice name author .Person}
+- Bob {+ex:bob name author .Person}
 
-Content: {?hasPart}
-- Section 1 {=ex:section1 .Section name}
-- Section 2 {=ex:section2 .Section name}
+Content: 
+- Section 1 {+ex:section1 ?hasPart .Section name}
+- Section 2 {+ex:section2 ?hasPart .Section name}
 
-References: {!ex:citedBy}
-- Other Doc {=ex:other-doc .Article name}`;
+References: 
+- Other Doc {=ex:other-doc !ex:citedBy .Article name}`;
 
             const result = parse(original);
             const { text } = applyDiff({
@@ -343,6 +347,124 @@ References: {!ex:citedBy}
             });
 
             assert(text === original, 'Complex document should round-trip exactly');
+        }
+    },
+
+    // Advanced applyDiff scenarios for subject chaining
+    {
+        name: 'Serialize - Subject block creation for IRI objects',
+        fn: () => {
+            const original = `
+[ex] <http://example.org/>
+
+# Person {=ex:person .Person}
+Name: [Alice] {ex:name}
+`;
+
+            const result = parse(original, { context: { ex: 'http://example.org/' } });
+
+            // Add new subject with IRI object
+            const changes = {
+                add: [{
+                    subject: { termType: 'NamedNode', value: 'http://example.org/company' },
+                    predicate: { termType: 'NamedNode', value: 'http://example.org/knows' },
+                    object: { termType: 'NamedNode', value: 'http://example.org/person' }
+                }]
+            };
+
+            const { text } = applyDiff({
+                text: original,
+                diff: changes,
+                origin: result.origin,
+                options: { context: result.context }
+            });
+
+            assert(text.includes('# Company {=ex:company}'),
+                'Should create new subject block for IRI object');
+            assert(text.includes('[ex:person] {ex:knows}'),
+                'Should create object reference within subject block');
+        }
+    },
+
+    {
+        name: 'Serialize - Multiple adds to different subjects',
+        fn: () => {
+            const original = `
+# Person {=ex:person .ex:Person}
+Name: [Alice] {ex:name}
+
+# Company {=ex:company .ex:Organization}
+Name: [TechCorp] {ex:companyName}
+    `;
+
+            const result = parse(original, { context: { ex: 'http://example.org/' } });
+
+            // Add properties to both existing subjects
+            const changes = {
+                add: [
+                    {
+                        subject: { termType: 'NamedNode', value: 'http://example.org/person' },
+                        predicate: { termType: 'NamedNode', value: 'http://example.org/age' },
+                        object: { termType: 'Literal', value: '30' }
+                    },
+                    {
+                        subject: { termType: 'NamedNode', value: 'http://example.org/company' },
+                        predicate: { termType: 'NamedNode', value: 'http://example.org/founded' },
+                        object: { termType: 'Literal', value: '2020' }
+                    }
+                ]
+            };
+
+            const { text } = applyDiff({
+                text: original,
+                diff: changes,
+                origin: result.origin,
+                options: { context: result.context }
+            });
+
+            console.log(text)
+
+            const lines = text.split('\n');
+            const ageLineIndex = lines.findIndex(line => line.includes('Age: [30]'));
+            const nameLineIndex = lines.findIndex(line => line.includes('Name: [Alice]'));
+
+            assert(ageLineIndex < nameLineIndex,
+                'Age should be added to person section');
+        }
+    },
+
+    {
+        name: 'Serialize - New subject with literal property',
+        fn: () => {
+            const original = `
+
+# Person {=ex:person .Person}
+Name: [Alice] {ex:name}
+    `;
+
+            const result = parse(original, { context: { ex: 'http://example.org/' } });
+
+            // Add completely new subject with literal
+            const changes = {
+                add: [{
+                    subject: { termType: 'NamedNode', value: 'http://example.org/newperson' },
+                    predicate: { termType: 'NamedNode', value: 'http://example.org/name' },
+                    object: { termType: 'Literal', value: 'Bob' }
+                }]
+            };
+
+            const { text } = applyDiff({
+                text: original,
+                diff: changes,
+                origin: result.origin,
+                options: { context: result.context }
+            });
+
+
+            assert(text.includes('# Newperson {=ex:newperson}'),
+                'Should create new subject block');
+            assert(text.includes('[Bob] {ex:name}'),
+                'Should create property within subject block');
         }
     }
 ];

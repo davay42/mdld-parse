@@ -274,9 +274,18 @@ export function expandIRI(term, ctx) {
 export function shortenIRI(iri, ctx) {
     if (!iri || !iri.startsWith('http')) return iri;
     if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) return iri.substring(ctx['@vocab'].length);
+
+    // Find the best matching prefix - more precise matching
     for (const [prefix, namespace] of Object.entries(ctx)) {
         if (prefix !== '@vocab' && iri.startsWith(namespace)) {
-            return prefix + ':' + iri.substring(namespace.length);
+            // Check if this is the best match (longest namespace)
+            const isBestMatch = Object.entries(ctx)
+                .filter(([p, ns]) => p !== '@vocab' && iri.startsWith(ns))
+                .every(([p, ns]) => namespace.length >= ns.length || (p === prefix && ns.length === namespace.length));
+
+            if (isBestMatch) {
+                return prefix + ':' + iri.substring(namespace.length);
+            }
         }
     }
     return iri;
