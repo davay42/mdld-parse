@@ -218,6 +218,15 @@ export const DataFactory = {
     fromQuad: (inQuad) => {
         if (inQuad instanceof Quad) return inQuad;
         if (inQuad.termType !== 'Quad') {
+            // Handle plain object quads by treating them as quads
+            if (inQuad.subject && inQuad.predicate && inQuad.object) {
+                return new Quad(
+                    DataFactory.fromTerm(inQuad.subject),
+                    DataFactory.fromTerm(inQuad.predicate),
+                    DataFactory.fromTerm(inQuad.object),
+                    DataFactory.fromTerm(inQuad.graph || DataFactory.defaultGraph())
+                );
+            }
             throw new Error(`Unexpected termType: ${inQuad.termType}`);
         }
         return new Quad(

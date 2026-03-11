@@ -371,12 +371,20 @@ function createBlock(subject, types, predicates, entries, range, attrsRange, val
 
 function emitQuad(quads, quadIndex, blockId, subject, predicate, object, dataFactory, meta = null) {
     if (!subject || !predicate || !object) return;
-    const quad = dataFactory.quad(subject, predicate, object);
+
+    // Ensure all terms are proper RDF/JS terms using DataFactory
+    const normSubject = dataFactory.fromTerm ? dataFactory.fromTerm(subject) : subject;
+    const normPredicate = dataFactory.fromTerm ? dataFactory.fromTerm(predicate) : predicate;
+    const normObject = dataFactory.fromTerm ? dataFactory.fromTerm(object) : object;
+
+    const quad = dataFactory.quad(normSubject, normPredicate, normObject);
     quads.push(quad);
 
     const slotInfo = createSlotInfo(blockId, meta?.entryIndex, {
         ...meta,
-        subject, predicate, object
+        subject: normSubject,
+        predicate: normPredicate,
+        object: normObject
     });
 
     quadIndex.set(quadIndexKey(quad.subject, quad.predicate, quad.object), slotInfo);

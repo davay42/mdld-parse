@@ -15,7 +15,8 @@ import {
     addSoftFragmentToken,
     removeSoftFragmentToken,
     objectSignature,
-    expandIRI
+    expandIRI,
+    DataFactory
 } from './utils.js';
 
 function getBlockById(base, blockId) {
@@ -26,14 +27,45 @@ function getEntryByQuadKey(base, quadKey) {
     return quadKey ? base?.quadIndex?.get(quadKey) : null;
 }
 
+// Helper functions for cleaner term type checking
+function isLiteral(term) {
+    return term?.termType === 'Literal';
+}
+
+function isNamedNode(term) {
+    return term?.termType === 'NamedNode';
+}
+
+function isRdfType(term) {
+    return term?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+}
+
+function createAnnotationForQuad(quad, ctx) {
+    const predShort = shortenIRI(quad.predicate.value, ctx);
+    if (isLiteral(quad.object)) {
+        const value = String(quad.object.value ?? '');
+        const ann = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
+        return { text: `[${value}] {${ann}}`, isLiteral: true };
+    } else if (isNamedNode(quad.object)) {
+        const objectShort = shortenIRI(quad.object.value, ctx);
+        return { text: createObjectAnnotation(objectShort, predShort), isLiteral: false };
+    }
+    return null;
+}
+
 function isValidQuad(quad) {
     return quad && quad.subject && quad.predicate && quad.object;
+}
+
+function normalizeDiffQuads(quads) {
+    // Use DataFactory.fromQuad for proper RDF/JS compatibility
+    return quads.map(quad => DataFactory.fromQuad(quad)).filter(isValidQuad);
 }
 
 function createLiteralAnnotation(value, predicate, language, datatype, ctx) {
     let ann = predicate;
     if (language) ann += ` @${language}`;
-    else if (datatype?.value && datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+    else if (datatype?.value && datatype.value !== DataFactory.literal('').datatype.value) {
         ann += ` ^^${shortenIRI(datatype.value, ctx)}`;
     }
     return ann;
@@ -126,23 +158,24 @@ function removeTokenFromSlot(entry, tokens, ctx, quad) {
 }
 
 function addTokenToSlot(tokens, ctx, quad) {
-    if (quad.predicate.value.endsWith('rdf-syntax-ns#type') && quad.object?.termType === 'NamedNode') {
+    // Use cleaner helper functions
+    if (isRdfType(quad.predicate) && isNamedNode(quad.object)) {
         const typeShort = shortenIRI(quad.object.value, ctx);
         const typeToken = typeShort.includes(':') || !typeShort.startsWith('http') ? `.${typeShort}` : null;
         if (typeToken && !tokens.includes(typeToken)) {
             return [...tokens, typeToken];
         }
-    } else if (quad.object.termType === 'NamedNode') {
+    } else if (isNamedNode(quad.object)) {
         const objectShort = shortenIRI(quad.object.value, ctx);
         const isSoftFragment = quad.object.value.includes('#');
         const fragment = isSoftFragment ? quad.object.value.split('#')[1] : null;
 
-        if (isSoftFragment) {
-            return addSoftFragmentToken(tokens, fragment);
+        if (fragment) {
+            return addSoftFragmentToken(tokens, objectShort, fragment);
         } else {
             return addObjectToken(tokens, objectShort);
         }
-    } else if (quad.object.termType === 'Literal') {
+    } else if (isLiteral(quad.object)) {
         const predShort = shortenIRI(quad.predicate.value, ctx);
         if (!tokens.includes(predShort)) {
             return [...tokens, predShort];
@@ -179,9 +212,9 @@ export function applyDiff({ text, diff, origin, options = {} }) {
 
 
 function planOperations(diff, base, ctx) {
-    // Normalize quads once
-    const normAdds = (diff.add || []).map(normalizeQuad).filter(isValidQuad);
-    const normDeletes = (diff.delete || []).map(normalizeQuad).filter(isValidQuad);
+    // Normalize quads using DataFactory for proper RDF/JS compatibility
+    const normAdds = normalizeDiffQuads(diff.add || []);
+    const normDeletes = normalizeDiffQuads(diff.delete || []);
 
     const plan = {
         literalUpdates: [],
@@ -215,12 +248,12 @@ function planOperations(diff, base, ctx) {
 
     // Detect literal updates early
     for (const deleteQuad of normDeletes) {
-        if (deleteQuad.object.termType !== 'Literal') continue;
+        if (!isLiteral(deleteQuad.object)) continue;
 
         const k = JSON.stringify([deleteQuad.subject.value, deleteQuad.predicate.value]);
         const candidates = addBySP.get(k) || [];
         const addQuad = candidates.find(x =>
-            x?.object?.termType === 'Literal' && !plan.consumedAdds.has(quadToKeyForOrigin(x))
+            isLiteral(x?.object) && !plan.consumedAdds.has(quadToKeyForOrigin(x))
         );
 
         if (!addQuad) continue;
@@ -236,7 +269,7 @@ function planOperations(diff, base, ctx) {
 
     // Find vacant slot occupations
     for (const quad of normAdds) {
-        if (quad.object.termType !== 'Literal') continue;
+        if (!isLiteral(quad.object)) continue;
         if (plan.consumedAdds.has(quadToKeyForOrigin(quad))) continue;
 
         const vacantSlot = findVacantSlot(base?.quadIndex, quad.subject, quad.predicate);
@@ -251,7 +284,7 @@ function planOperations(diff, base, ctx) {
 
     // Plan remaining deletes
     for (const quad of normDeletes) {
-        if (quad.object.termType === 'Literal') {
+        if (isLiteral(quad.object)) {
             const isUpdated = plan.literalUpdates.some(u =>
                 u.deleteQuad.subject.value === quad.subject.value &&
                 u.deleteQuad.predicate.value === quad.predicate.value &&
@@ -382,16 +415,11 @@ function materializeEdits(plan, text, ctx, base) {
             continue;
         }
 
-        if (quad.object.termType === 'Literal' || quad.object.termType === 'NamedNode') {
+        if (isLiteral(quad.object) || isNamedNode(quad.object)) {
             if (!targetBlock) {
-                const predShort = shortenIRI(quad.predicate.value, ctx);
-                if (quad.object.termType === 'Literal') {
-                    const value = String(quad.object.value ?? '');
-                    const ann = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
-                    edits.push({ start: text.length, end: text.length, text: `\n[${value}] {${ann}}` });
-                } else {
-                    const objectShort = shortenIRI(quad.object.value, ctx);
-                    edits.push({ start: text.length, end: text.length, text: createObjectAnnotation(objectShort, predShort) });
+                const annotation = createAnnotationForQuad(quad, ctx);
+                if (annotation) {
+                    edits.push({ start: text.length, end: text.length, text: `\n${annotation.text}` });
                 }
                 continue;
             }
@@ -406,14 +434,9 @@ function materializeEdits(plan, text, ctx, base) {
 
             if (tokens.length === 1 && tokens[0].startsWith('=')) {
                 // This is a subject-only block, create new annotation
-                const predShort = shortenIRI(quad.predicate.value, ctx);
-                if (quad.object.termType === 'Literal') {
-                    const value = String(quad.object.value ?? '');
-                    const ann = createLiteralAnnotation(value, predShort, quad.object.language, quad.object.datatype, ctx);
-                    edits.push({ start: text.length, end: text.length, text: `\n[${value}] {${ann}}` });
-                } else {
-                    const objectShort = shortenIRI(quad.object.value, ctx);
-                    edits.push({ start: text.length, end: text.length, text: createObjectAnnotation(objectShort, predShort) });
+                const annotation = createAnnotationForQuad(quad, ctx);
+                if (annotation) {
+                    edits.push({ start: text.length, end: text.length, text: `\n${annotation.text}` });
                 }
                 continue;
             }
@@ -423,7 +446,7 @@ function materializeEdits(plan, text, ctx, base) {
             let updated = addTokenToSlot(existingTokens, ctx, quad);
 
             // For literal predicates with datatypes, we need to add datatype token too
-            if (quad.object.termType === 'Literal' && quad.object.datatype && quad.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+            if (isLiteral(quad.object) && quad.object.datatype && quad.object.datatype.value !== DataFactory.literal('').datatype.value) {
                 const datatypeToken = `^^${shortenIRI(quad.object.datatype.value, ctx)}`;
                 if (!updated.includes(datatypeToken)) {
                     updated = [...updated, datatypeToken];
@@ -485,7 +508,7 @@ function resolveOriginEntry(quad, base) {
     const key = quadToKeyForOrigin(quad);
     let entry = key ? base?.quadIndex?.get(key) : null;
 
-    if (!entry && quad.object?.termType === 'Literal') {
+    if (!entry && isLiteral(quad.object)) {
         // Fallback: search by value
         for (const [k, e] of base?.quadIndex || []) {
             const parsed = parseQuadIndexKey(k);

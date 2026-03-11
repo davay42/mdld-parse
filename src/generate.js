@@ -1,4 +1,17 @@
-import { shortenIRI, expandIRI, quadIndexKey, createSlotInfo, DEFAULT_CONTEXT } from './utils.js';
+import { shortenIRI, expandIRI, quadIndexKey, createSlotInfo, DEFAULT_CONTEXT, DataFactory } from './utils.js';
+
+// Helper functions for cleaner term type checking
+function isLiteral(term) {
+    return term?.termType === 'Literal';
+}
+
+function isNamedNode(term) {
+    return term?.termType === 'NamedNode';
+}
+
+function isRdfType(term) {
+    return term?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+}
 
 
 function extractLocalName(iri) {
@@ -36,26 +49,26 @@ export function generate(quads, context = {}) {
 
 function normalizeAndSortQuads(quads) {
     return quads
-        .map(quad => ({
-            subject: { termType: quad.subject.termType, value: quad.subject.value },
-            predicate: { termType: quad.predicate.termType, value: quad.predicate.value },
-            object: quad.object.termType === 'Literal'
-                ? {
-                    termType: 'Literal',
-                    value: quad.object.value,
-                    language: quad.object.language || null,
-                    datatype: quad.object.datatype || { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' }
-                }
-                : { termType: 'NamedNode', value: quad.object.value }
-        }))
+        .map(quad => {
+            // Use DataFactory.fromTerm to ensure proper RDF/JS compatibility
+            const normSubject = DataFactory.fromTerm(quad.subject);
+            const normPredicate = DataFactory.fromTerm(quad.predicate);
+            const normObject = DataFactory.fromTerm(quad.object);
+
+            return {
+                subject: normSubject,
+                predicate: normPredicate,
+                object: normObject
+            };
+        })
         .sort((a, b) => {
             // Deterministic sorting: subject -> predicate -> object
             const sComp = a.subject.value.localeCompare(b.subject.value);
             if (sComp !== 0) return sComp;
             const pComp = a.predicate.value.localeCompare(b.predicate.value);
             if (pComp !== 0) return pComp;
-            const oA = a.object.termType === 'Literal' ? a.object.value : a.object.value;
-            const oB = b.object.termType === 'Literal' ? b.object.value : b.object.value;
+            const oA = isLiteral(a.object) ? a.object.value : a.object.value;
+            const oB = isLiteral(b.object) ? b.object.value : b.object.value;
             return oA.localeCompare(oB);
         });
 }
@@ -108,10 +121,10 @@ function buildDeterministicMDLD(subjectGroups, context) {
         const subjectQuads = subjectGroups.get(subjectIRI);
         const shortSubject = shortenIRI(subjectIRI, context);
 
-        // Separate types, literals, and objects
-        const types = subjectQuads.filter(q => q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
-        const literals = subjectQuads.filter(q => q.object.termType === 'Literal' && q.predicate.value !== 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
-        const objects = subjectQuads.filter(q => q.object.termType === 'NamedNode' && q.predicate.value !== 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
+        // Separate types, literals, and objects using helper functions
+        const types = subjectQuads.filter(q => isRdfType(q.predicate));
+        const literals = subjectQuads.filter(q => isLiteral(q.object) && !isRdfType(q.predicate));
+        const objects = subjectQuads.filter(q => isNamedNode(q.object) && !isRdfType(q.predicate));
 
         // Generate heading
         const localSubjectName = extractLocalName(subjectIRI);
@@ -158,9 +171,11 @@ function buildDeterministicMDLD(subjectGroups, context) {
             const predShort = shortenIRI(quad.predicate.value, context);
             let annotation = predShort;
 
+            // Use DataFactory XSD constants for datatype comparison
+            const xsdString = 'http://www.w3.org/2001/XMLSchema#string';
             if (quad.object.language) {
                 annotation += ` @${quad.object.language}`;
-            } else if (quad.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+            } else if (quad.object.datatype.value !== xsdString) {
                 annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
             }
 
