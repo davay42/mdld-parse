@@ -45,25 +45,25 @@ features:
 MD-LD allows you to author RDF graphs directly in Markdown using explicit `{...}` annotations:
 
 ```markdown
-# Apollo 11 {=ex:apollo11 .SpaceMission}
+# Apollo 11 {=ex:apollo11 .ex:SpaceMission}
 
-Launch: [1969-07-16] {startDate ^^xsd:date}
-Crew: [Neil Armstrong] {+ex:armstrong ?crewMember name}
-Description: [First crewed Moon landing] {description}
+Launch: [1969-07-16] {ex:startDate ^^xsd:date}
+Crew: [Neil Armstrong] {+ex:armstrong ?ex:crewMember label}
+Description: [First crewed Moon landing] {comment}
 
-[Section] {+#overview ?hasPart}
-Overview: [Mission summary] {description}
+[Section] {+#overview ?ex:hasPart}
+Overview: [Mission summary] {comment}
 ```
 
 Generates valid RDF triples:
 
 ```turtle
-ex:apollo11 a schema:SpaceMission ;
-  schema:startDate "1969-07-16"^^xsd:date ;
-  schema:crewMember ex:armstrong ;
-  schema:description "First crewed Moon landing" .
+ex:apollo11 a ex:SpaceMission ;
+  ex:startDate "1969-07-16"^^xsd:date ;
+  ex:crewMember ex:armstrong ;
+  rdfs:comment "First crewed Moon landing" .
 
-ex:armstrong schema:name "Neil Armstrong" .
+ex:armstrong rdfs:label "Neil Armstrong" .
 ```
 
 ## Core Features

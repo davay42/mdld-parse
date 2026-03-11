@@ -20,11 +20,11 @@ import {
 } from './utils.js';
 
 function getBlockById(base, blockId) {
-    return blockId ? base?.blocks?.get(blockId) : null;
+    return blockId ? base?.quadMap?.get(blockId) : null;
 }
 
 function getEntryByQuadKey(base, quadKey) {
-    return quadKey ? base?.quadIndex?.get(quadKey) : null;
+    return quadKey ? base?.quadMap?.get(quadKey) : null;
 }
 
 // Helper functions for cleaner term type checking
@@ -253,8 +253,7 @@ function planOperations(diff, base, ctx) {
         const key = JSON.stringify([quad.subject.value, objectSignature(quad.object)]);
         const quadKey = quadToKeyForOrigin(quad);
         const entry = getEntryByQuadKey(base, quadKey);
-        const blockId = entry?.blockId || entry;
-        const block = getBlockById(base, blockId);
+        const block = entry; // In unified structure, entry is the block
         if (block?.attrsRange) {
             anchors.set(key, { block, entry });
         }
@@ -273,7 +272,7 @@ function planOperations(diff, base, ctx) {
         if (!addQuad) continue;
 
         const entry = resolveOriginEntry(deleteQuad, base);
-        const block = entry ? getBlockById(base, entry.blockId || entry) : null;
+        const block = entry; // In unified structure, the entry is the block
 
         if (block) {
             plan.literalUpdates.push({ deleteQuad, addQuad, entry, block });
@@ -286,10 +285,10 @@ function planOperations(diff, base, ctx) {
         if (!isLiteral(quad.object)) continue;
         if (plan.consumedAdds.has(quadToKeyForOrigin(quad))) continue;
 
-        const vacantSlot = findVacantSlot(base?.quadIndex, quad.subject, quad.predicate);
+        const vacantSlot = findVacantSlot(base?.quadMap, quad.subject, quad.predicate);
         if (!vacantSlot) continue;
 
-        const block = base?.blocks?.get(vacantSlot.blockId);
+        const block = vacantSlot; // In unified structure, the slot is the block
         if (block) {
             plan.vacantSlotOccupations.push({ quad, vacantSlot, block });
             plan.consumedAdds.add(quadToKeyForOrigin(quad));
@@ -308,7 +307,7 @@ function planOperations(diff, base, ctx) {
         }
 
         const entry = resolveOriginEntry(quad, base);
-        const block = entry ? getBlockById(base, entry.blockId || entry) : null;
+        const block = entry; // In unified structure, entry is the block
         if (block) {
             plan.deletes.push({ quad, entry, block });
         }
@@ -395,7 +394,7 @@ function materializeEdits(plan, text, ctx, base) {
             };
             vacantSlot.blockInfo = blockInfo;
             const key = quadToKeyForOrigin(quad);
-            if (key) base.quadIndex.set(key, vacantSlot);
+            if (key) base.quadMap.set(key, vacantSlot);
         }
 
         const span = readSpan(block, text, 'attrs');
@@ -487,7 +486,7 @@ function applyEdits(text, edits, ctx, base) {
 
     // Extract vacant slots before reparsing
     const vacantSlots = new Map();
-    base?.quadIndex?.forEach((slot, key) => {
+    base?.quadMap?.forEach((slot, key) => {
         if (slot.isVacant) vacantSlots.set(key, slot);
     });
 
@@ -495,7 +494,7 @@ function applyEdits(text, edits, ctx, base) {
 
     // Merge vacant slots back
     vacantSlots.forEach((vacantSlot, key) => {
-        if (!reparsed.origin.blocks.has(vacantSlot.blockId) && vacantSlot.blockInfo) {
+        if (!reparsed.origin.quadMap.has(vacantSlot.id) && vacantSlot.blockInfo) {
             const { blockInfo } = vacantSlot;
             const emptyBlock = {
                 id: blockInfo.id,
@@ -506,12 +505,11 @@ function applyEdits(text, edits, ctx, base) {
                 subject: blockInfo.subject || '',
                 types: [],
                 predicates: [],
-                entries: [],
                 context: blockInfo.context || { ...ctx }
             };
-            reparsed.origin.blocks.set(vacantSlot.blockId, emptyBlock);
+            reparsed.origin.quadMap.set(vacantSlot.id, emptyBlock);
         }
-        reparsed.origin.quadIndex.set(key, vacantSlot);
+        reparsed.origin.quadMap.set(key, vacantSlot);
     });
 
     return { text: result, origin: reparsed.origin };
@@ -520,11 +518,11 @@ function applyEdits(text, edits, ctx, base) {
 // Helper functions for origin lookup
 function resolveOriginEntry(quad, base) {
     const key = quadToKeyForOrigin(quad);
-    let entry = key ? base?.quadIndex?.get(key) : null;
+    let entry = key ? base?.quadMap?.get(key) : null;
 
     if (!entry && isLiteral(quad.object)) {
         // Fallback: search by value
-        for (const [k, e] of base?.quadIndex || []) {
+        for (const [k, e] of base?.quadMap || []) {
             const parsed = parseQuadIndexKey(k);
             if (parsed && parsed.s === quad.subject.value &&
                 parsed.p === quad.predicate.value &&

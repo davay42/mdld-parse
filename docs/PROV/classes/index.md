@@ -123,10 +123,11 @@ Entities have a duration. Generation marks the beginning of an entity, whereas i
 
 ## Other classes {=mdp:class:index .Container label}
 
+**ActivityInfluence** {+prov:ActivityInfluence ?member .Class mdp:listed}
+**AgentInfluence** {+prov:AgentInfluence ?member .Class mdp:listed}
+
 Not yet inlined classes {?member .Class mdp:listed}
 
--   ActivityInfluence {=prov:ActivityInfluence}
--   AgentInfluence {=prov:AgentInfluence}
 -   Association {=prov:Association}
 -   Attribution {=prov:Attribution}
 -   Delegation {=prov:Delegation}

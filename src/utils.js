@@ -416,16 +416,29 @@ export function parseQuadIndexKey(key) {
     }
 }
 
-// Direct slot management functions - no factory needed
-export function createSlotInfo(blockId, entryIndex, meta = {}) {
+// Direct slot management functions - unified with block data
+export function createUnifiedSlot(block, entryIndex, meta = {}) {
     const slotId = meta.subject && meta.predicate ? hash(`${meta.subject.value}|${meta.predicate.value}`) : null;
     return {
-        blockId,
+        // Block metadata
+        id: block.id,
+        range: block.range,
+        attrsRange: block.attrsRange,
+        valueRange: block.valueRange,
+        carrierType: block.carrierType,
+        subject: block.subject,
+        types: block.types,
+        predicates: block.predicates,
+        context: block.context,
+
+        // Slot metadata
         entryIndex,
         slotId,
         isVacant: false,
         lastValue: null,
         vacantSince: null,
+
+        // Quad metadata
         ...meta
     };
 }
@@ -439,9 +452,9 @@ export function markSlotAsVacant(slotInfo, deletedValue) {
     } : null;
 }
 
-export function findVacantSlot(quadIndex, subject, predicate) {
+export function findVacantSlot(quadMap, subject, predicate) {
     const targetSlotId = hash(`${subject.value}|${predicate.value}`);
-    return Array.from(quadIndex.values())
+    return Array.from(quadMap.values())
         .find(slot => slot.slotId === targetSlotId && slot.isVacant);
 }
 

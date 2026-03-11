@@ -17,7 +17,7 @@ export function locate(quad, origin, text = '', context = {}) {
         origin = parseResult.origin;
     }
 
-    if (!quad || !origin || !origin.quadIndex || !origin.blocks) {
+    if (!quad || !origin || !origin.quadMap) {
         return null;
     }
 
@@ -27,57 +27,40 @@ export function locate(quad, origin, text = '', context = {}) {
         return null;
     }
 
-    // Generate the quad key to lookup in quadIndex
+    // Generate the quad key to lookup in quadMap
     const quadKey = quadIndexKey(normalizedQuad.subject, normalizedQuad.predicate, normalizedQuad.object);
 
-    // Find the slot information in quadIndex
-    const slotInfo = origin.quadIndex.get(quadKey);
+    // Find the slot information in quadMap
+    const slotInfo = origin.quadMap.get(quadKey);
     if (!slotInfo) {
         return null;
     }
 
-    // Get the block information
-    const block = origin.blocks.get(slotInfo.blockId);
-    if (!block) {
-        return null;
-    }
+    // In unified structure, slotInfo contains all block information
+    const block = slotInfo;
 
-    // Extract the actual text content based on carrier type and entry
+    // Extract the actual text content based on carrier type
     let contentRange = null;
     let content = '';
 
     if (block.carrierType === 'heading') {
-        // For headings, use the block's main range
-        contentRange = block.range;
-        content = text.substring(block.range.start, block.range.end);
-    } else if (block.carrierType === 'blockquote' || block.carrierType === 'list' || block.carrierType === 'span') {
-        // For blockquotes, lists, and spans, extract from block range
-        contentRange = block.range;
-        content = text.substring(block.range.start, block.range.end);
-
-        // For blockquotes, try to extract the specific carrier content from entries
-        if (slotInfo.entryIndex != null && block.entries && block.entries[slotInfo.entryIndex]) {
-            const entry = block.entries[slotInfo.entryIndex];
-            if (entry.raw) {
-                // For blockquotes, the entry.raw contains the full carrier text
-                // Extract just the content part before the annotation
-                const annotationStart = entry.raw.indexOf('{');
-                if (annotationStart !== -1) {
-                    const carrierContent = entry.raw.substring(0, annotationStart).trim();
-                    // Find this content in the block text
-                    const contentStart = text.indexOf(carrierContent, block.range.start);
-                    if (contentStart !== -1) {
-                        const contentEnd = contentStart + carrierContent.length;
-                        contentRange = { start: contentStart, end: contentEnd };
-                        content = text.substring(contentStart, contentEnd);
-                    }
-                }
-            }
+        // For headings, use the value range for the heading text
+        contentRange = block.valueRange;
+        content = text.substring(block.valueRange.start, block.valueRange.end);
+    } else if (block.carrierType === 'emphasis' || block.carrierType === 'blockquote' || block.carrierType === 'list' || block.carrierType === 'span') {
+        // For emphasis, blockquotes, lists, and spans, use the value range
+        if (block.valueRange) {
+            contentRange = block.valueRange;
+            content = text.substring(block.valueRange.start, block.valueRange.end);
+        } else {
+            // Fallback to block range
+            contentRange = block.range;
+            content = text.substring(block.range.start, block.range.end);
         }
     }
 
     return {
-        blockId: slotInfo.blockId,
+        blockId: slotInfo.id,
         entryIndex: slotInfo.entryIndex,
         kind: slotInfo.kind,
         subject: normalizedQuad.subject,
