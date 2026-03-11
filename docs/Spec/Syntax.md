@@ -45,39 +45,34 @@ Creates: `ex:doc#section1`, `ex:doc#section2`
 
 ## Lists
 
+Lists are pure Markdown structure with **no semantic scope**. Each list item requires explicit annotations.
+
 ```md
 [@vocab] <http://www.w3.org/2000/01/rdf-schema#>
 
 ## Analysis Project {=prj:project .Project label}
-Analysis steps: {?member .prj:Task label}
-- Sample preparation {=prj:step1}
-  Sub-tasks: {?member .prj.Task label}
-  - Weigh sample {=prj:step1-1}
-  - Mix reagents {=prj:step1-2}
-- Data collection {=prj:step2}
-  Sub-tasks: {?member .Task label}
-  - Run analysis {=prj:step2-1}
-  - Record results {=prj:step2-2}
+Analysis steps:
+
+- **Sample preparation** {+prj:step1 ?member .prj:Task label}
+- **Data collection** {+prj:step2 ?member .prj:Task label}
 ```
 
+**Key Rules:**
+- No semantic propagation from list scope
+- Each item must have explicit annotations
+- Use `+IRI` to maintain subject chaining for repeated object properties
+- Nested lists have no inheritance
 
-## List Item Policy: Single-Value Carriers
+## List Item Requirements
 
 **✅ CORRECT**
 ```md
-- Flour {=ex:flour}              # Subject declaration, participates in list
-- Walnuts {+ex:walnuts}          # Subject declaration, participates in list
+- **Flour** {=ex:flour}              # Subject declaration
+- **Walnuts** {+ex:walnuts}          # Subject chaining
 ```
 
-**❌ INCORRECT (Excluded from List Context)**
-```md
-- Whole wheat flour {description} # No subject = excluded
-- [*Important* ingredient] {priority}     # No subject = excluded
-- Flour {=ex:flour} [extra] {desc}        # Text after annotation = excluded
-- Flour {=ex:flour} - description         # Text after annotation = excluded
-```
 
-**Rule**: List items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context. Items without subjects are excluded.
+**Rule**: List items must have explicit subject (`{=iri}` or `{+iri}`) to emit semantics.
 
 ## Temporary Objects
 

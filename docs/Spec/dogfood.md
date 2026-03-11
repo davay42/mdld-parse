@@ -190,27 +190,19 @@ Three predicate directions create different relationships:
 
 ## Lists and Nesting {=mdld:lists .Class label}
 
-### List Item Policy: Single-Value Block Carriers
+Lists are pure Markdown structure with **no semantic scope**. Each list item requires explicit annotations.
 
-**Critical Rule**: All list items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context. Items without subjects are excluded from semantic relationships.
+### List Item Requirements
+
+**Critical Rule**: All list items must have explicit subject (`{=iri}` or `{+iri}`) to emit semantics.
 
 ### Simple Lists
-Research team members: {?mdld:includes .mdld:Role label}
-- Principal investigator {=#pi}
-- Research assistant {=#assistant} 
-- Lab technician {=#techl}
+Research team members:
 
-### Nested Lists {=#nested .Class label}
+- **Principal investigator** {+#pi ?mdld:includes .mdld:Role label}
+- **Research assistant** {+#assistant ?mdld:includes .mdld:Role label}
+- **Lab technician** {+#tech ?mdld:includes .mdld:Role label}
 
-Analysis project: {?mdld:includes .mdld:Task label}
-- Sample preparation {=#prep}
-  Preparation steps: {?mdld:includes .mdld:Task label}
-  - Weigh materials {=#weigh}
-  - Mix reagents {=#mix}
-- Data collection {=#collection}
-  Collection steps: {?mdld:includes .mdld:Task label}
-  - Run instrument {=#instrument}
-  - Record measurements {=#record}
 
 ## Code Blocks {=mdld:code-blocks .Class label}
 

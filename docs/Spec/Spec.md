@@ -539,144 +539,79 @@ tag:alice@example.com,2026:refs ex:image <https://www.example.com/image.jpg> .
 
 ## 11. Working with Lists
 
-Lists are for **repeating values** of the same relationship, with optional bulk class and value assignment.
+Lists are pure Markdown structure with **no semantic scope**. Each list item requires explicit annotations.
 
-### When to Use Lists
+### Explicit List Annotations
 
-Use lists when you have:
-- One predicate
-- Multiple objects
-- The same type of relationship
+Lists do not propagate semantics. Each list item must have its own explicit annotation.
 
 **Example:** Crew members of a mission
 ```md
-Crew: {?crew .Person name}
-- Neil Armstrong {=ex:neil}
-- Buzz Aldrin {=ex:buzz}
-- Michael Collins {=ex:michael}
+Crew {=ex:crew .Container}
+
+- Neil Armstrong {+ex:neil ?crew .Person name}
+- Buzz Aldrin {+ex:buzz ?crew .Person name}
+- Michael Collins {+ex:michael ?crew .Person name}
 ```
 
-### How List Context Works
+**Key Rules:**
+- No semantic propagation from list scope
+- Each item must have explicit annotations
+- Use `+IRI` to maintain subject chaining for repeated object properties
+- Nested lists have no inheritance
+- Lists are pure Markdown formatting
 
-A `{...}` block immediately before a list applies to **all items** in that list.
+### List Item Requirements
 
-**Rules:**
-- Must have non-empty text before the list annotation
-- Ordered (`1.`) and unordered (`-`) lists work the same
-- Each list item is a **single-value block carrier** - the entire text after the marker and before `{...}` becomes the literal value
-- **No inline carriers** are parsed within list items
-- **No additional data** after `{...}` - text after annotations is treated as literal content, such list items are ignored
-
-### List Item Policy: Single-Value Carriers
+Each list item is a **single-value block carrier** - the entire text after the marker becomes the literal value.
 
 **✅ CORRECT Patterns**
 
 ```md
-# Clean subject declaration (participates in list context)
-- Flour {=ex:flour}
+# Clean subject declaration
+- **Flour** {=ex:flour}
 
-# Subject with aditional local predicates
-- Flour {=ex:flour .c:Food label}
+# Subject with additional local predicates
+- **Flour** {=ex:flour .c:Food label}
+
+# Explicit subject chaining for repeated properties
+- **Flour** {+ex:flour ?ingredient .c:Food label}
+- **Water** {+ex:water ?ingredient .c:Food label}
 ```
 
-**❌ WRONG Patterns (Common LLM Mistakes)**
-
-```md
-# ❌ No subject declaration (excluded from list context)
-- Whole wheat flour {description}
-
-# ❌ Inline carriers in list items (excluded from list context)
-- [*Important* ingredient] {priority .Important}
-
-# ❌ Multiple annotations in same item (only first works)
-- Flour {=ex:flour} [description] {priority}
-
-# ❌ Text after annotation (excluded from list context)
-- Flour {=ex:flour} - additional description
-
-# ❌ Mixed content (creates ambiguity)
-- Flour {=ex:flour} [*organic*] {certified}
-```
-
-**Critical Rule**: **All list items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context.** Items without subjects are excluded from the list's semantic relationships.
-
-**Why These Rules Exist:**
-- **Streaming safety**: Each list item can be processed independently
-- **Round-trip predictability**: No ambiguity about semantic vs. literal content
-- **Human readability**: Clear separation between structure and description
-- **Explicit intent**: Forces authors to be clear about semantic relationships
+**Critical Rule**: **All list items must have explicit subject (`{=iri}` or `{+iri}`) to participate in semantic relationships.**
 
 ### Valid Alternatives for Additional Information
 
-**✅ Use Nested Lists (Semantic)**
+**✅ Use Nested Lists (Pure Structure)**
 ```md
-- Flour {=ex:flour}
-  Properties: {?hasProperty .rdf:Property label}
-  - Organic {=ex:organic}
-  - Fine ground {=ex:grind}
+- **Flour** {=ex:flour}
+  Properties:
+  - **Organic** {+ex:organic ?hasProperty .rdf:Property label}
+  - **Fine ground** {+ex:grind ?hasProperty .rdf:Property label}
 ```
 
 **✅ Use Separate Sections**
 ```md
-- Flour {=ex:flour}
+- **Flour** {=ex:flour}
 
 ## Flour Properties {=ex:flour .Important}
 [*Important*] {ex:priority}
 ```
 
-**❌ NEVER Use Nested Paragraphs (Invalid)**
-```md
-- Flour {=ex:flour}
-  Description: [additional description] {description}  # ❌ List context lost
-```
-
-**❌ NEVER Use URLs in Lists**
-```md
-- <https://example.com> {ex:resource}  # ❌ Wrong syntax
-```
-
-**Correct approach for URLs:**
-```md
-### External Resource {=ex:resource}
-URL: <https://example.com> {ex:url}
-```
-
-### Common Syntax Mistakes
-
-**❌ Inline Carriers in List Items**
-```md
-- [*Important* ingredient] {priority}     # ❌ No subject = excluded
-- Flour {=ex:flour} [extra] {desc}        # ❌ Text after annotation = excluded
-```
-
-**❌ Mixed Content in List Items**
-```md
-- Flour {=ex:flour} - description           # ❌ Text after annotation = excluded
-- Flour {=ex:flour} [*organic*] {certified} # ❌ Mixed content = ambiguous
-```
-
-**✅ Clean List Item Patterns**
-```md
-- Flour {=ex:flour}                        # ✅ Clean subject declaration
-- Organic flour {=ex:flour-organic label}  # ✅ Subject with descriptive text
-- Flour {=ex:flour .Food label}            # ✅ Subject with type and label
-```
-
 ### Nested Lists
 
-Each indentation level creates a new semantic scope:
+Each indentation level is pure Markdown structure with no semantic inheritance:
 
 ```md
 [#vocab] <http://schema.org/>
 
 ## Recipe {=tag:alice@example.com,2026:recipe .Recipe name}
 
-Ingredients: {?hasPart .Ingredient name}
-- Flour {=tag:alice@example.com,2026:flour}
-  Variants: {?hasPart .FlourType name}
-  - Whole wheat {=tag:alice@example.com,2026:flour-whole-wheat .WholeGrainFlour}
-  - White {=tag:alice@example.com,2026:flour-white .FlourType title}
-- Water {=tag:alice@example.com,2026:water}
+Ingredients:
+
+- **Flour** {+tag:alice@example.com,2026:flour ?hasPart .Ingredient name}
+- **Water** {+tag:alice@example.com,2026:water ?hasPart .Ingredient name}
 ```
 
 **What This Creates:**
@@ -686,39 +621,25 @@ tag:alice@example.com,2026:recipe a schema:Recipe ;
           schema:hasPart tag:alice@example.com,2026:flour, tag:alice@example.com,2026:water .
 
 tag:alice@example.com,2026:flour a schema:Ingredient ; 
-         schema:name "Flour" ;
-         schema:hasPart tag:alice@example.com,2026:flour-whole-wheat, tag:alice@example.com,2026:flour-white .
-
-tag:alice@example.com,2026:flour-whole-wheat a schema:WholeGrainFlour , schema:FlourType ; 
-                     schema:name "Whole wheat" .
-
-tag:alice@example.com,2026:flour-white a schema:FlourType ; 
-                schema:title "White" .
+         schema:name "Flour" .
                 
 tag:alice@example.com,2026:water a schema:Ingredient ; 
          schema:name "Water" .
 ```
 
-### Key Points
-
-- List context applies only to items at the same indentation level
-- Nested lists don't inherit semantic context
-- Each level needs its own annotation if you want semantics
-
 ### Ordered lists
 
-For legacy scenarios like SHACL `sh:in`, `sh:or`, you can manually construct `.rdf:List` structures using the verbose syntax:
+For legacy scenarios like SHACL `sh:in`, `sh:or`, you can manually construct `.rdf:List` structures using explicit syntax:
 
 ```md
 [ex] <http://example.org/>
 
-# Manual list construction
+# Manual list construction {=ex:manualList label}
 [head] {=ex:l1 ?sh:in .rdf:List}
 [a] {+ex:A ?rdf:first}
 [list2] {=ex:l2 ?rdf:rest}
 [b] {+ex:B ?rdf:first}
 [nil] {+rdf:nil ?rdf:rest}
-{=}
 ```
 
 ---
@@ -946,10 +867,11 @@ To keep things simple and predictable, MD-LD explicitly avoids these features:
 - **Auto-subjects** - No automatic subject creation
 - **Literal lists** - Structure doesn't imply semantics
 - **Blank nodes** - Every entity must have a proper identifier
-- **key=value syntax** - Use the explicit `{...}` format instead
+- **key=value syntax** - Use explicit `{...}` format instead
 - **Predicate guessing** - No automatic predicate selection
 - **Backtracking parses** - Always single-pass, forward-only
 - **CURIE in Markdown links** - Keep links and semantics separate
+- **Semantic list propagation** - No implicit semantics from list structures
 
 ### Why These Are Forbidden
 

@@ -184,44 +184,37 @@ ex:references schema:author <urn:person:alice> .
 
 ## 11. Lists
 
-### List Context
-`{...}` immediately before list applies to **all items** at same indentation level. Each list item must have a subject.
+Lists are pure Markdown structure with **no semantic scope**. Each list item requires explicit annotations.
+
+### Explicit List Annotations
 
 ```md
 [@vocab] <http://www.w3.org/2000/01/rdf-schema#>
 
 ## Research Team {=prj:team .Container label}
-Team members: {?member .Person label}
-- Lead researcher {=prj:lead}
-- Data analyst {=prj:analyst}
+Team members:
+
+- **Lead researcher** {+prj:lead ?member .Person label}
+- **Data analyst** {+prj:analyst ?member .Person label}
 ```
 
-**Ordered lists** (auto-generated `rdf:List`):
+**Key Rules:**
+- No semantic propagation from list scope
+- Each item must have explicit annotations
+- Use `+IRI` to maintain subject chaining for repeated object properties
+- Nested lists have no inheritance
+
+**Ordered lists** require explicit rdf:List construction:
 ```md
-## Status Values {=ex:statusValues}
-Status values: {?ex:in .ex:StatusType label}
-1. Active {=ex:Active}
-2. Pending {=ex:Pending}
-3. Inactive {=ex:Inactive}
-```
+[ex] <http://example.org/>
 
-### Nested Lists
-Each indentation level = new semantic scope. No inheritance across levels.
-
-**Example:**
-```md
-[@vocab] <http://www.w3.org/2000/01/rdf-schema#>
-
-## Analysis Project {=prj:project .Project label}
-Analysis steps: {?member .Container label}
-- Sample preparation {=prj:step1 .Task label}
-  Sub-tasks: {?member .Container label}
-  - Weigh sample {=prj:step1-1 .Task label}
-  - Mix reagents {=prj:step1-2 .Task label}
-- Data collection {=prj:step2 .Task label}
-  Sub-tasks: {?member .Container label}
-  - Run analysis {=prj:step2-1 .Task label}
-  - Record results {=prj:step2-2 .Task label}
+# Manual list construction {=ex:manualList label}
+[head] {=ex:l1 ?sh:in .rdf:List}
+[a] {+ex:A ?rdf:first}
+[list2] {=ex:l2 ?rdf:rest}
+[b] {+ex:B ?rdf:first}
+[nil] {+rdf:nil ?rdf:rest}
+{=}
 ```
 
 ---
@@ -316,6 +309,7 @@ Build namespace hierarchies by referencing previously declared prefixes:
 - Predicate guessing
 - Backtracking parses
 - CURIE in Markdown links
+- **Semantic list propagation**
 
 These ensure predictability, traceability, and single-pass processing.
 

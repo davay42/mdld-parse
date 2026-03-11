@@ -166,65 +166,51 @@ Same graph. Different ergonomics.
 
 ---
 
-## 6. Lists = repeated structure, never implicit nodes
+## 6. Lists = pure Markdown structure, explicit annotations only
 
-Lists **do not create subjects**.
-Each item must declare one.
+Lists have **no semantic scope**. Each item must have explicit annotations.
 
 ```md
 [alice] <tag:alice@example.com,2026:>
 
-Ingredients: {?hasIngredient .Ingredient}
+Ingredients: {=alice:recipe .Container}
 
-- Walnuts {=alice:walnut name}
-- Flour {=alice:flour name}
-- Water {=alice:water name}
+- Walnuts {+alice:walnut ?member .alice:Ingredient name}
+- Flour {+alice:flour ?member .alice:Ingredient name}
+- Water {+alice:water ?member .alice:Ingredient name}
 ```
 
-Result: clean, explicit graph. No blank nodes.
+Result: clean, explicit graph. No implicit semantics.
 
-### List Item Policy: Single-Value Carriers
+### List Item Requirements
 
-**✅ DO - Items with explicit subjects participate in list:**
+**✅ DO - Items with explicit subjects emit semantics:**
 ```md
-- Flour {=alice:flour}              # Clean subject, gets list context
-- Walnuts {=alice:walnuts}          # Clean subject, gets list context
+- **Flour** {=alice:flour}              # Clean subject
+- **Walnuts** {=alice:walnuts}          # Clean subject
 ```
 
-**❌ DON'T - These items are excluded from list context:**
-```md
-- Whole wheat flour {description}   # No subject = excluded
-- [*Important* ingredient] {priority}     # No subject = excluded
-- Flour {=alice:flour} [extra] {desc}      # Text after annotation = excluded
-- Flour {=alice:flour} - description       # Text after annotation = excluded
-```
 
-**Critical Rule**: **All list items must have explicit subject (`{=iri}` or `{+iri}`) to participate in list context.** Items without subjects are excluded from the list's semantic relationships.
+**Critical Rule**: **All list items must have explicit subject (`{=iri}` or `{+iri}`) to emit semantics.**
 
 **Valid Alternatives for Additional Information:**
 
-**✅ Nested Lists (Semantic)**
+**✅ Nested Lists (Pure Structure)**
 ```md
-- Flour {=alice:flour}
-  Properties: {?alice:hasProperty .alice:Property label}
-  - [Organic] {=alice:organic .alice:PesonalValue}
+- **Flour** {=alice:flour}
+  Properties:
+  - **Organic** {+alice:organic ?alice:hasProperty .alice:Property label}
 ```
 
 **✅ Separate Sections**
 ```md
-- Flour {=alice:flour}
+- **Flour** {=alice:flour}
 
 ## Flour Description {=alice:flour}
 [*Important*] {priority .Important}
 ```
 
-**❌ NEVER Nested Paragraphs (Invalid)**
-```md
-- Flour {=alice:flour}
-  Description: [text] {description}  # ❌ List context lost
-```
-
-**Why?** List items are **single-value block carriers**. This keeps lists predictable and streaming-safe.
+**Why?** Lists are **pure Markdown structure**. This keeps them predictable and streaming-safe.
 
 ---
 
@@ -305,6 +291,7 @@ Same graph. Different narrative flow.
 * ❌ No inferred subjects
 * ❌ No structural guessing
 * ❌ No multi-pass parsing
+* ❌ **No semantic list propagation**
 
 Every triple is **authored**, not derived.
 

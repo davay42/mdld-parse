@@ -22,10 +22,10 @@ Energy level: [8] {my:energyLevel ^^xsd:integer}
 
 Met [Sam] {+my:sam .my:Person ?my:attendee} on my regular walk at [Central Park] {+my:central-park ?my:location .my:Place label @en} and talked about [Sunny] {my:weather} weather. 
 
-Activities: {?my:hasActivity .my:Activity label}
+Activities:
 
-- Walking {=#walking}
-- Reading {=#reading}
+- **Walking** {+ex:walking ?my:hasActivity .my:Activity label}
+- **Reading** {+ex:reading ?my:hasActivity .my:Activity label}
 
 ```
 
@@ -69,7 +69,6 @@ Read the [FULL SPEC](./docs/Spec/Spec.md).
 - **Four predicate forms**: `p` (S→L), `?p` (S→O), `!p` (O→S)
 - **Type declarations**: `.Class` for rdf:type triples
 - **Datatypes & language**: `^^xsd:date` and `@en` support
-- **Lists**: Explicit subject declarations and numbered ordered lists with `rdf:List` support
 - **Fragments**: Built-in document structuring with `{=#fragment}`
 - **Round-trip serialization**: Markdown ↔ RDF ↔ Markdown preserves structure
 
@@ -213,14 +212,15 @@ ex:armstrong a prov:Person .
 
 ### Lists
 
-Lists require explicit subjects per item. 
+Lists are pure Markdown structure. Each list item requires explicit annotations:
 
 ```markdown
 # Recipe {=ex:recipe}
 
-Ingredients: {?ex:ingredient .ex:Ingredient}
-- Flour {=ex:flour label}
-- Water {=ex:water label}
+Ingredients:
+
+- **Flour** {+ex:flour ?ex:ingredient .ex:Ingredient label}
+- **Water** {+ex:water ?ex:ingredient .ex:Ingredient label}
 ```
 
 ```turtle
@@ -228,6 +228,11 @@ ex:recipe ex:ingredient ex:flour, ex:water .
 ex:flour a ex:Ingredient ; rdfs:label "Flour" .
 ex:water a ex:Ingredient ; rdfs:label "Water" .
 ```
+
+**Key Rules:**
+- No semantic propagation from list scope
+- Each item must have explicit annotations
+- Use `+IRI` to maintain subject chaining for repeated object properties
 
 ### Code Blocks
 
@@ -503,7 +508,7 @@ Only specific markdown elements can carry semantic values:
 
 **Block:**
 - Headings (`# Title`)
-- List items (`- item`, `1. item`) (single-level)
+- List items (`- item`, `1. item`) — pure Markdown structure
 - Blockquotes (`> quote`)
 - Code blocks (` ```lang `)
 
@@ -579,14 +584,14 @@ Therefore, the algebra is **closed**.
 
 # Meeting Notes {=alice:meeting-2024-01-15 .alice:Meeting}
 
-Attendees: {?alice:attendee label}
+Attendees:
 
-- Alice {=alice:alice}
-- Bob {=alice:bob}
+- **Alice** {+alice:alice ?alice:attendee label}
+- **Bob** {+alice:bob ?alice:attendee label}
 
-Action items: {?alice:actionItem label}
+Action items:
 
-- Review proposal {=alice:task-1}
+- **Review proposal** {+alice:task-1 ?alice:actionItem label}
 ```
 
 ### Developer Documentation
@@ -630,7 +635,7 @@ Tests validate:
 - Subject declaration and context
 - All predicate forms (p, ?p, !p)
 - Datatypes and language tags
-- List processing
+- Explicit list item annotations
 - Code blocks and blockquotes
 - Round-trip serialization
 

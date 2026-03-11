@@ -169,13 +169,13 @@ ex:ProjectAlpha a ex:Project;
 
 # Project Alpha {=ex:ProjectAlpha .ex:Project}
 
-Project includes tasks: {?ex:hasTask .ex:Task label}
+Project includes tasks: {}
 
-- Design schema {=#task1}
-- Implement parser {=#task2}
-- Write documentation {=#task3}
-  with a subtask of {?ex:subTask .ex:Task label}
-  - API reference {=#subtask3a}
+- Design schema {+#task1 ?ex:hasTask .ex:Task label}
+- Implement parser {+#task2 ?ex:hasTask .ex:Task label}
+- Write documentation {=#task3 ?ex:hasTask .ex:Task label}
+  with a subtask of {}
+  - API reference {+#subtask3a ?ex:subTask .ex:Task label}
 
 # Tasks
 
@@ -230,9 +230,9 @@ I also noted that the [spectrometer firmware] {+lab:spectrometerFW ?rdf:subject}
 
 ## Verification activity {=lab:actLab1 .prov:Activity}
 
-Has 2 observations stated: {!prov:wasGeneratedBy}
-- [System update] {=lab:obsLab1}
-- [System status] {=lab:obsLab2}
+Has 2 observations stated: 
+- System update {+lab:obsLab1 !prov:wasGeneratedBy}
+- System status {+lab:obsLab2 !prov:wasGeneratedBy}
 
 The check was performed by [Dr. Lena Ortiz] {+lab:lenaOrtiz .prov:Agent ?prov:wasAssociatedWith} during the early shift, finishing at [2026-02-18T06:42:00Z] {prov:endedAtTime ^^xsd:dateTime}.  
 ```

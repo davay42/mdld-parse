@@ -92,7 +92,7 @@ From: `[text](url)`, `![alt](url)`, `{=IRI}`
 
 ## 11. Lists
 
-`Anything {...}` before list applies to all items at same indentation.
+Lists are pure Markdown structure with **no semantic scope**. Each list item requires explicit annotations.
 
 ```md
 [prj] <tag:project@example.com,2026-02-03:>
@@ -100,19 +100,20 @@ From: `[text](url)`, `![alt](url)`, `{=IRI}`
 
 ## Local Projects Team {=prj:team .foaf:Group label}
 
-Team members: {?foaf:member .foaf:Person foaf:name}
+Team members:
 
-- Alice Cooper {=prj:alice}
-- Bruce Miles {=prj:bruce}
-  And his helpful family: {?foaf:knows .foaf:Person foaf:name}
-  - Cecile Miles {prj:cecile}
-  - Roger Miles {prj:roger}
-- Eva Clark {=prj:eva}
+- **Alice Cooper** {+prj:alice ?foaf:member .foaf:Person foaf:name}
+- **Bruce Miles** {+prj:bruce ?foaf:member .foaf:Person foaf:name}
+- **Eva Clark** {+prj:eva ?foaf:member .foaf:Person foaf:name}
 ```
 
-Nested lists = new scope, no inheritance.
+**Key Rules:**
+- No semantic propagation from list scope
+- Each item must have explicit annotations
+- Use `+IRI` to maintain subject chaining for repeated object properties
+- Nested lists have no inheritance
 
-**Ordered lists**  are possible with explicit rdf:List construction:
+**Ordered lists** require explicit rdf:List construction:
 ```md
 [ex] <http://example.org/>
 
@@ -195,7 +196,7 @@ Build namespace hierarchies by referencing previously declared prefixes:
 
 ## 15. Forbidden
 
-Implicit labels, structural inference, auto-subjects, literal lists, blank nodes, key=value, predicate guessing, backtracking, CURIE in links.
+Implicit labels, structural inference, auto-subjects, literal lists, blank nodes, key=value, predicate guessing, backtracking, CURIE in links, **semantic list propagation**.
 
 ## 16. Conformance
 
