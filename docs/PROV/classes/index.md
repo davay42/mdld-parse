@@ -1,41 +1,49 @@
 [mdp] <https://mdld.js.org/prov/>
+[owl] <http://www.w3.org/2002/07/owl#>
 
-## Agent {=prov:Agent label mdp:class:listed}
+## Class List Shape {=mdp:shape:classes .sh:NodeShape label}
+
+This shape keeps lists grounded in original ontology in Turtle format [../prov-o.ttl] {=nih:sha-256-128;cf1acd21933033f75b215e665722ed13;1 .prov:Entity prov:atLocation} - any missed term would trigger a violation.
+
+All [owl:Classes] {+owl:Class ?sh:targetClass} present is the system are validated - this is quite a broad approach and we had to comment out a couple of lines in original code, but this should be good enough for now.
+
+**Listed Rule** {=mdp:rule:listed .sh:propertyShape ?sh:property} checks for it to have [listed] {+mdp:listed ?sh:path} exactly once [1] {sh:minCount sh:maxCount}  - this is *informational* {+sh:Info ?sh:severity} constrain to keep the list integrity: **Class List integrity violation** {sh:message}
+
+## Agent {=prov:Agent label mdp:listed}
 
 > An agent is something that bears some form of responsibility for an activity taking place, for the existence of an entity, or for another agent's activity. {prov:definition}
 
-Has 3 sub-classes: {!subClassOf mdp:class:listed}
+Has 3 sub-classes: {!subClassOf mdp:listed}
 
-- Organization {=prov:Organization}
-- Person {=prov:Person}
-- SoftwareAgent {=prov:SoftwareAgent}
+-   Organization {=prov:Organization}
+-   Person {=prov:Person}
+-   SoftwareAgent {=prov:SoftwareAgent}
 
-
-## Entity {=prov:Entity .Class label mdp:class:listed}
+## Entity {=prov:Entity .Class label mdp:listed}
 
 > An entity is a physical, digital, conceptual, or other kind of thing with some fixed aspects; entities may be real or imaginary. {prov:definition}
 
 Has 3 sub-classes: {!subClassOf}
 
-- Collection {=prov:Collection}
-- Plan {=prov:Plan}
-- Bundle {=prov:Bundle}
+-   Collection {=prov:Collection}
+-   Plan {=prov:Plan}
+-   Bundle {=prov:Bundle}
 
-## Collection {=prov:Collection .Class label mdp:class:listed}
+## Collection {=prov:Collection .Class label mdp:listed}
 
 > A collection is an entity that provides a structure to some constituents, which are themselves entities. These constituents are said to be member of the collections. {prov:definition}
 
-Has a subclass - **Empty Collection** {=prov:EmptyCollection .Class mdp:class:listed label} - *An empty collection is a collection without members.* {prov:definition}
+Has a subclass - **Empty Collection** {=prov:EmptyCollection .Class mdp:listed label} - *An empty collection is a collection without members.* {prov:definition}
 
 The prov:Collection class can be used to express the provenance of the collection itself: e.g. who maintained the collection, which members it contained as it evolved, and how it was assembled. The prov:hadMember property is used to assert membership in a collection.
 
-## Plan {=prov:Plan .Class label mdp:class:listed}
+## Plan {=prov:Plan .Class label mdp:listed}
 
 > A plan is an entity that represents a set of actions or steps intended by one or more agents to achieve some goals. {prov:definition}
 
 > There exist no prescriptive requirement on the nature of plans, their representation, the actions or steps they consist of, or their intended goals. Since plans may evolve over time, it may become necessary to track their provenance, so plans themselves are entities. Representing the plan explicitly in the provenance can be useful for various tasks: for example, to validate the execution as represented in the provenance record, to manage expectation failures, or to provide explanations. {comment}
 
-## Bundle {=prov:Bundle .Class label mdp:class:listed}
+## Bundle {=prov:Bundle .Class label mdp:listed}
 
 > A bundle is a named set of provenance descriptions, and is itself an Entity, so allowing provenance of provenance to be expressed. {prov:definition}
 
@@ -49,7 +57,7 @@ A prov:Bundle is a named set of provenance descriptions, which may itself have p
 
 ***
 
-## Activity {=prov:Activity label mdp:class:listed}
+## Activity {=prov:Activity label mdp:listed}
 
 > An activity is something that occurs over a period of time and acts upon or with entities; it may include consuming, processing, transforming, modifying, relocating, using, or generating entities. {prov:definition}
 
@@ -57,27 +65,77 @@ A prov:Bundle is a named set of provenance descriptions, which may itself have p
 
 ***
 
+## Generation {=prov:Generation label mdp:listed}
+
+> Generation is the completion of production of a new entity by an activity. This entity did not exist before generation and becomes available for usage after this generation. {prov:definition}
+
+***
+
+## Usage {=prov:Usage label mdp:listed}
+
+> Usage is the beginning of utilizing an entity by an activity. Before usage, the activity had not begun to utilize this entity and could not have been affected by the entity. (Note: This definition is formulated for a given usage; it is permitted for an activity to have used a same entity multiple times.) {prov:definition}
+
+> Given that a usage is the beginning of utilizing an entity, it is instantaneous. {comment}
+
+***
+
+## Start {=prov:Start label mdp:listed}
+
+> Start is when an activity is deemed to have been started by an entity, known as trigger. The activity did not exist before its start. Any usage, generation, or invalidation involving an activity follows the activity's start. A start may refer to a trigger entity that set off the activity, or to an activity, known as starter ◊, that generated the trigger. {prov:definition}
+
+> Given that a start is when an activity is deemed to have started, it is instantaneous. {comment}
+
+***
+
+## End {=prov:End label mdp:listed}
+
+> End is when an activity is deemed to have been ended by an entity, known as trigger. The activity no longer exists after its end. Any usage, generation, or invalidation involving an activity precedes the activity's end. An end may refer to a trigger entity that terminated the activity, or to an activity, known as ender ◊ that generated the trigger. {prov:definition}
+
+> Given that an end is when an activity is deemed to have ended, it is instantaneous. {comment}
+
+***
+
+## Invalidation {=prov:Invalidation label mdp:listed}
+
+> Invalidation is the start of the destruction, cessation, or expiry of an existing entity by an activity. The entity is no longer available for use (or further invalidation) after invalidation. Any generation or usage of an entity precedes its invalidation. {prov:definition}
+
+> Given that an invalidation is the start of destruction, cessation, or expiry, it is instantaneous. {comment}
+
+Entities have a duration. Generation marks the beginning of an entity, whereas invalidation marks its end.
+
+***
+
+## Communication {=prov:Communication label mdp:listed}
+
+> Communication is the exchange of some unspecified entity by two activities, one activity using some entity generated by the other. {prov:definition}
+
+> A communication implies that activity a2 is dependent on another a1, by way of some unspecified entity that is generated by a1 and used by a2. {comment}
+
+***
+
+## InstantaneousEvent {=prov:InstantaneousEvent label mdp:listed}
+
+> The PROV data model is implicitly based on a notion of instantaneous events (or just events), that mark transitions in the world. Events include generation, usage, or invalidation of entities, as well as starting or ending of activities. This notion of event is not first-class in the data model, but it is useful for explaining its other concepts and its semantics. {prov:definition}
+
+> An instantaneous event, or event for short, happens in the world and marks a change in the world, in its activities and in its entities. The term 'event' is commonly used in process algebra with a similar meaning. Events represent communications or interactions; they are assumed to be atomic and instantaneous. {comment}
+
+<br />
+
 ## Other classes {=mdp:class:index .Container label}
 
-Includes 30 classes {?member .Class mdp:class:listed}
+Not yet inlined classes {?member .Class mdp:listed}
 
-- [Generation](./Generation.md) {=prov:Generation}
-- [Usage](./Usage.md) {=prov:Usage}
-- [Start](./Start.md) {=prov:Start}
-- [End](./End.md) {=prov:End}
-- [Invalidation](./Invalidation.md) {=prov:Invalidation}
-- ActivityInfluence {=prov:ActivityInfluence}
-- AgentInfluence {=prov:AgentInfluence}
-- Association {=prov:Association}
-- Attribution {=prov:Attribution}
-- Communication {=prov:Communication}
-- Delegation {=prov:Delegation}
-- Derivation {=prov:Derivation}
-- EntityInfluence {=prov:EntityInfluence}
-- Influence {=prov:Influence}
-- InstantaneousEvent {=prov:InstantaneousEvent}
-- Location {=prov:Location}
-- PrimarySource {=prov:PrimarySource}
-- Quotation {=prov:Quotation}
-- Revision {=prov:Revision}
-- Role {=prov:Role}
+-   ActivityInfluence {=prov:ActivityInfluence}
+-   AgentInfluence {=prov:AgentInfluence}
+-   Association {=prov:Association}
+-   Attribution {=prov:Attribution}
+-   Delegation {=prov:Delegation}
+-   Derivation {=prov:Derivation}
+-   EntityInfluence {=prov:EntityInfluence}
+-   Influence {=prov:Influence}
+-   InstantaneousEvent {=prov:InstantaneousEvent}
+-   Location {=prov:Location}
+-   PrimarySource {=prov:PrimarySource}
+-   Quotation {=prov:Quotation}
+-   Revision {=prov:Revision}
+-   Role {=prov:Role}

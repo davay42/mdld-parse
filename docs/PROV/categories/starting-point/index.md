@@ -6,9 +6,9 @@
 
 The Starting Point category is a small set of classes and properties that can be used to create simple, initial provenance descriptions. Three classes provide a basis for the rest of PROV-O:
 
-- An **prov:Entity** {+prov:Entity !prov:category} is a physical, digital, conceptual, or other kind of thing with some fixed aspects; entities may be real or imaginary.
-- An **prov:Activity** {+prov:Activity !prov:category} is something that occurs over a period of time and acts upon or with entities; it may include consuming, processing, transforming, modifying, relocating, using, or generating entities.
-- An **prov:Agent** {+prov:Agent !prov:category} is something that bears some form of responsibility for an activity taking place, for the existence of an entity, or for another agent's activity. 
+-   An **prov:Entity** {+prov:Entity !prov:category} is a physical, digital, conceptual, or other kind of thing with some fixed aspects; entities may be real or imaginary.
+-   An **prov:Activity** {+prov:Activity !prov:category} is something that occurs over a period of time and acts upon or with entities; it may include consuming, processing, transforming, modifying, relocating, using, or generating entities.
+-   An **prov:Agent** {+prov:Agent !prov:category} is something that bears some form of responsibility for an activity taking place, for the existence of an entity, or for another agent's activity.
 
 The three primary classes relate to one another and to themselves using the properties shown in the following figure.
 
