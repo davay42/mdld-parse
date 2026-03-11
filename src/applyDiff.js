@@ -57,9 +57,23 @@ function isValidQuad(quad) {
     return quad && quad.subject && quad.predicate && quad.object;
 }
 
-function normalizeDiffQuads(quads) {
+function normalizeDiffQuads(quads, ctx) {
     // Use DataFactory.fromQuad for proper RDF/JS compatibility
-    return quads.map(quad => DataFactory.fromQuad(quad)).filter(isValidQuad);
+    // But first expand any CURIEs in the quads to ensure proper matching
+    return quads.map(quad => {
+        // Expand CURIEs to full IRIs before normalization
+        const expandedQuad = {
+            subject: quad.subject.termType === 'NamedNode'
+                ? { ...quad.subject, value: expandIRI(quad.subject.value, ctx) }
+                : quad.subject,
+            predicate: quad.predicate.termType === 'NamedNode'
+                ? { ...quad.predicate, value: expandIRI(quad.predicate.value, ctx) }
+                : quad.predicate,
+            object: quad.object,
+            graph: quad.graph
+        };
+        return DataFactory.fromQuad(expandedQuad);
+    }).filter(isValidQuad);
 }
 
 function createLiteralAnnotation(value, predicate, language, datatype, ctx) {
@@ -213,8 +227,8 @@ export function applyDiff({ text, diff, origin, options = {} }) {
 
 function planOperations(diff, base, ctx) {
     // Normalize quads using DataFactory for proper RDF/JS compatibility
-    const normAdds = normalizeDiffQuads(diff.add || []);
-    const normDeletes = normalizeDiffQuads(diff.delete || []);
+    const normAdds = normalizeDiffQuads(diff.add || [], ctx);
+    const normDeletes = normalizeDiffQuads(diff.delete || [], ctx);
 
     const plan = {
         literalUpdates: [],

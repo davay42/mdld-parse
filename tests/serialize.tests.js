@@ -40,24 +40,24 @@ export const serializeTests = [
             const original = `# Order {=ex:order-123}
             
 Customer: [John Doe] {ex:customer-456 .Person label}
-Amount: [99.95 USD] {schema:price ^^xsd:decimal}
-Status: [Pending] {schema:status ^^ex:orderStatus}
-Date: [2024-01-15] {schema:orderDate ^^xsd:date}
-Items: {?schema:containsItem .Product}
+Amount: [99.95 USD] {ex:price ^^xsd:decimal}
+Status: [Pending] {ex:status ^^ex:orderStatus}
+Date: [2024-01-15] {ex:orderDate ^^xsd:date}
+Items: {?ex:containsItem .Product}
 - Widget A {=ex:widget-a .Product label}
 - Widget B {=ex:widget-b .Product label}`;
 
-            const result = parse(original, { context: { ex: 'http://ex.org/' } });
+            const result = parse(original, { context: { ex: 'tag:user@example.com,2026:' } });
 
             const newQuads = [
                 {
-                    subject: { termType: 'NamedNode', value: 'http://ex.org/order-123' },
-                    predicate: { termType: 'NamedNode', value: 'http://schema.org/discountCode' },
+                    subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:order-123' },
+                    predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:discountCode' },
                     object: { termType: 'Literal', value: 'SAVE20', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } }
                 },
                 {
-                    subject: { termType: 'NamedNode', value: 'http://ex.org/order-123' },
-                    predicate: { termType: 'NamedNode', value: 'http://schema.org/priority' },
+                    subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:order-123' },
+                    predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:priority' },
                     object: { termType: 'Literal', value: 'HIGH', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } }
                 }
             ];
@@ -69,10 +69,32 @@ Items: {?schema:containsItem .Product}
                 options: { context: result.context }
             });
 
-            assert(text.includes('discountCode'), 'Should add discount code');
-            assert(text.includes('priority'), 'Should add priority');
-            assert(text.includes('SAVE20'), 'Should include new discount value');
-            assert(text.includes('HIGH'), 'Should include new priority value');
+            // Precise assertions for actual applyDiff behavior
+            const lines = text.split('\n').filter(line => line.trim());
+
+            // Check that new properties were added as standalone annotations
+            assert(text.includes('tag:user@example.com,2026:discountCode'), 'Should add discountCode predicate');
+            assert(text.includes('tag:user@example.com,2026:priority'), 'Should add priority predicate');
+
+            // Verify standalone annotation structure
+            const discountLine = lines.find(line => line.includes('SAVE20'));
+            assert(discountLine === '[SAVE20] {tag:user@example.com,2026:discountCode}',
+                `Discount should be standalone annotation, got: ${discountLine}`);
+
+            const priorityLine = lines.find(line => line.includes('HIGH'));
+            assert(priorityLine === '[HIGH] {tag:user@example.com,2026:priority}',
+                `Priority should be standalone annotation, got: ${priorityLine}`);
+
+            // Verify other lines remain unchanged
+            assert(text.includes('Customer: [John Doe] {ex:customer-456 .Person label}'), 'Customer line should be unchanged');
+            assert(text.includes('Amount: [99.95 USD] {ex:price ^^xsd:decimal}'), 'Amount line should be unchanged');
+            assert(text.includes('Status: [Pending] {ex:status ^^ex:orderStatus}'), 'Status line should be unchanged');
+            assert(text.includes('Date: [2024-01-15] {ex:orderDate ^^xsd:date}'), 'Date line should be unchanged');
+
+            // Verify list structure is preserved
+            assert(text.includes('Items: {?ex:containsItem .Product}'), 'Items list should be unchanged');
+            assert(text.includes('- Widget A {=ex:widget-a .Product label}'), 'Widget A should be unchanged');
+            assert(text.includes('- Widget B {=ex:widget-b .Product label}'), 'Widget B should be unchanged');
         }
     },
 
@@ -82,26 +104,27 @@ Items: {?schema:containsItem .Product}
             const original = `# Product {=ex:product-789}
             
 Name: [Premium Widget] {label}
-Price: [149.99] {schema:price ^^xsd:decimal}
-Category: [Electronics] {schema:category}
-Rating: [4.5] {schema:rating ^^xsd:float}`;
+Price: [149.99] {ex:price ^^xsd:decimal}
+Category: [Electronics] {ex:category}
+Rating: [4.5] {ex:rating ^^xsd:float}`;
 
-            const result = parse(original, { context: { ex: 'http://ex.org/' } });
+            const result = parse(original, { context: { ex: 'tag:user@example.com,2026:' } });
 
-            // Simulate price update and category removal
+            // Proper literal update: delete old value, add new value for same subject+predicate
+            // This should trigger the vacant slot system for in-place update
             const changes = {
                 add: [
                     {
-                        subject: { termType: 'NamedNode', value: 'http://ex.org/product-789' },
-                        predicate: { termType: 'NamedNode', value: 'http://schema.org/price' },
+                        subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:product-789' },
+                        predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:price' },
                         object: { termType: 'Literal', value: '129.99', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#decimal' } }
                     }
                 ],
                 delete: [
                     {
-                        subject: { termType: 'NamedNode', value: 'http://ex.org/product-789' },
-                        predicate: { termType: 'NamedNode', value: 'http://schema.org/category' },
-                        object: { termType: 'Literal', value: 'Electronics' }
+                        subject: { termType: 'NamedNode', value: 'tag:user@example.com,2026:product-789' },
+                        predicate: { termType: 'NamedNode', value: 'tag:user@example.com,2026:price' },
+                        object: { termType: 'Literal', value: '149.99', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#decimal' } }
                     }
                 ]
             };
@@ -113,9 +136,34 @@ Rating: [4.5] {schema:rating ^^xsd:float}`;
                 options: { context: result.context }
             });
 
-            assert(text.includes('129.99'), 'Should update price');
-            assert(!text.includes('{category'), 'Should remove category semantics');
-            assert(text.includes('Premium Widget'), 'Should preserve original name');
+            // Precise assertions for literal update behavior (vacant slot system)
+            const lines = text.split('\n').filter(line => line.trim());
+
+            // Find the price line and verify it was updated in-place
+            const priceLine = lines.find(line => line.includes('Price:'));
+            assert(priceLine === 'Price: [129.99] {ex:price ^^xsd:decimal}',
+                `Price should be updated in-place via vacant slot system, got: ${priceLine}`);
+
+            // Verify category is preserved (not deleted)
+            const categoryLine = lines.find(line => line.includes('Category: [Electronics]'));
+            assert(categoryLine === 'Category: [Electronics] {ex:category}',
+                `Category should be preserved, got: ${categoryLine}`);
+
+            // Verify other properties are preserved exactly
+            const nameLine = lines.find(line => line.includes('Name:'));
+            assert(nameLine === 'Name: [Premium Widget] {label}',
+                `Name should be preserved exactly, got: ${nameLine}`);
+
+            const ratingLine = lines.find(line => line.includes('Rating:'));
+            assert(ratingLine === 'Rating: [4.5] {ex:rating ^^xsd:float}',
+                `Rating should be preserved exactly, got: ${ratingLine}`);
+
+            // Verify heading is preserved
+            assert(text.includes('# Product {=ex:product-789}'), 'Product heading should be preserved');
+
+            // Verify only one price annotation (in-place update, not duplicate)
+            const priceLines = lines.filter(line => line.includes('price') && line.includes('xsd:decimal'));
+            assert(priceLines.length === 1, 'Should have exactly one price annotation after in-place update');
         }
     },
 
