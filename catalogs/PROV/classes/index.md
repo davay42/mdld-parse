@@ -8,7 +8,9 @@ This list is grounded in original ontology in Turtle format [../prov-o.ttl] {=ni
 
 All [owl:Classes] {+owl:Class ?sh:targetClass} present is the system are validated - this is quite a broad approach and we had to comment out a couple of lines in original code, but this should be good enough for now.
 
-**Listed Rule** {=mdp:rule:listed .sh:propertyShape ?sh:property} checks for it to have [listed] {+mdp:listed ?sh:path} exactly once [1] {sh:minCount sh:maxCount ^^xsd:integer}  - this is *informational* {+sh:Info ?sh:severity} constrain to keep the list integrity: **Class List integrity violation** {sh:message}
+**Class List integrity violation** {=mdp:rule:listed .sh:propertyShape ?sh:property sh:message} checks for it to have [listed] {+mdp:listed ?sh:path} exactly once [1] {sh:minCount sh:maxCount ^^xsd:integer}  - this is *informational* {+sh:Info ?sh:severity} constrain to keep the list integrity.
+
+====
 
 ## Agent {=prov:Agent label mdp:listed}
 
@@ -16,15 +18,15 @@ All [owl:Classes] {+owl:Class ?sh:targetClass} present is the system are validat
 
 Has 3 sub-classes: [Organization] {+prov:Organization !subClassOf}, [Person] {+prov:Person !subClassOf} and [SoftwareAgent] {+prov:SoftwareAgent !subClassOf mdp:listed}.
 
-## Person {=prov:Person .Class mdp:listed}
+## Person {=prov:Person .Class label mdp:listed}
 
 > Person agents are people. {prov:definition}
 
-## Organization {=prov:Organization .Class mdp:listed}
+## Organization {=prov:Organization .Class label mdp:listed}
 
 > An organization is a social or legal institution such as a company, society, etc. {prov:definition}
 
-## SoftwareAgent {=prov:SoftwareAgent .Class mdp:listed}
+## SoftwareAgent {=prov:SoftwareAgent .Class label mdp:listed}
 
 > A software agent is running software. {prov:definition}
 
@@ -32,18 +34,15 @@ Has 3 sub-classes: [Organization] {+prov:Organization !subClassOf}, [Person] {+p
 
 > An entity is a physical, digital, conceptual, or other kind of thing with some fixed aspects; entities may be real or imaginary. {prov:definition}
 
-Has 3 sub-classes: 
--   Collection {+prov:Collection !subClassOf}
--   Plan {+prov:Plan !subClassOf}
--   Bundle {+prov:Bundle !subClassOf}
+Has 3 sub-classes: [Collection] {+prov:Collection !subClassOf}, [Plan] {+prov:Plan !subClassOf} and [Bundle] {+prov:Bundle !subClassOf}.
 
 ## Collection {=prov:Collection .Class label mdp:listed}
 
 > A collection is an entity that provides a structure to some constituents, which are themselves entities. These constituents are said to be member of the collections. {prov:definition}
 
-Has a subclass - **Empty Collection** {=prov:EmptyCollection .Class mdp:listed label} - *An empty collection is a collection without members.* {prov:definition}
-
 The prov:Collection class can be used to express the provenance of the collection itself: e.g. who maintained the collection, which members it contained as it evolved, and how it was assembled. The prov:hadMember property is used to assert membership in a collection.
+
+Has a subclass - **Empty Collection** {=prov:EmptyCollection .Class mdp:listed label !subClassOf} - *An empty collection is a collection without members.* {prov:definition}
 
 ## Plan {=prov:Plan .Class label mdp:listed}
 

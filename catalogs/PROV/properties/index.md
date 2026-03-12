@@ -1,4 +1,14 @@
 [mdp] <https://mdld.js.org/prov/>
+[owl] <http://www.w3.org/2002/07/owl#>
+
+## Lists Shape {=mdp:shape:list .sh:NodeShape label}
+
+This shape keeps lists grounded in original ttl data - any missed IRI would trigger a violation.
+
+[Object] {+owl:ObjectProperty ?sh:targetClass} and [Datatype] {+owl:DatatypeProperty ?sh:targetClass} properties lists in the catalog are validated.
+
+**Property List integrity violation** {=mdp:rule:listed .sh:propertyShape ?sh:property sh:message} checks for it to have [listed] {+mdp:listed ?sh:path} at least once [1] {sh:minCount ^^xsd:integer}  - this is *informational* {+sh:Info ?sh:severity} constrain to keep the list integrity.
+
 
 ## Object Properties {=mdp:properties .Container label}
 
@@ -51,7 +61,7 @@ The list contains 44 object properties:
 
 ===============
 
-## Datatype Properties {=mdp:datatype:index .Container label}
+## Datatype Properties {=mdp:datatypes .Container label}
 
 The list contains 6 datatype properties:
 

@@ -1125,5 +1125,49 @@ Description: [No subject description] {schema:description}`;
             assert(hasQuad(quads, 'https://nasa.gov', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://example.org/Organization'),
                 'Should use URL as subject for type declaration (consistent with <URL> behavior)');
         }
+    },
+
+    {
+        name: 'List items maintain current subject context',
+        fn: () => {
+            const md = `# Container {=ex:container .Container}
+
+List items:
+
+- Item1 {+ex:item1 ?member}
+- Item2 {+ex:item2 ?member}
+- Item3 {+ex:item3 ?member}`;
+
+            const { quads } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            // Should have: container type, 3 member relationships
+            assert(quads.length === 4, `Should emit 4 triples, got ${quads.length}`);
+
+            // Container should have type (note: .Container resolves to rdfs:Container via @vocab)
+            assert(hasQuad(quads, 'http://example.org/container', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2000/01/rdf-schema#Container'),
+                'Container should have type');
+
+            // Container should have member relationships to each item
+            assert(hasQuad(quads, 'http://example.org/container', 'http://www.w3.org/2000/01/rdf-schema#member', 'http://example.org/item1'),
+                'Container should have member relationship to item1');
+            assert(hasQuad(quads, 'http://example.org/container', 'http://www.w3.org/2000/01/rdf-schema#member', 'http://example.org/item2'),
+                'Container should have member relationship to item2');
+            assert(hasQuad(quads, 'http://example.org/container', 'http://www.w3.org/2000/01/rdf-schema#member', 'http://example.org/item3'),
+                'Container should have member relationship to item3');
+
+            // Verify no standalone subject triples (list items should not create their own subjects)
+            const standaloneSubjects = quads.filter(q =>
+                q.subject.value.startsWith('http://example.org/item') &&
+                q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+            );
+            assert(standaloneSubjects.length === 0, 'List items should not create standalone subject triples');
+
+            // Verify the key fix: list items should be associated with container subject, not standalone
+            const containerMemberQuads = quads.filter(q =>
+                q.subject.value === 'http://example.org/container' &&
+                q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#member'
+            );
+            assert(containerMemberQuads.length === 3, 'All list items should be members of container');
+        }
     }
 ];
