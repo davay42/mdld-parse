@@ -15,21 +15,19 @@
 
 This demo demonstrates node constraint using address validation scenario.
 
-### Address Validation Demo
+### Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape ?cat:hasShape label}
 
-The **Employee Validation Shape** {=ex:EmployeeValidationShape .sh:NodeShape ?cat:hasShape label} targets all [employees] {+ex:Employee ?sh:targetClass} to validate address structure: **Employee must have valid address** {sh:message}
+Targets all [employees] {+ex:Employee ?sh:targetClass} to validate address structure: **Employee must have valid address** {=ex:#addressRule .sh:PropertyShape ?sh:property sh:message}. Each [address] {+ex:address ?sh:path} property must point at a proper [Address node] {+ex:AddressShape ?sh:node} validation.
 
-**Address Rule** {=ex:#addressRule .sh:PropertyShape ?sh:property} validates the [address] {+ex:address ?sh:path} property using the [Address Shape] {+ex:AddressShape ?sh:node}.
+#### Address Shape {=ex:AddressShape .sh:NodeShape label}
 
-**Address Shape** {=ex:AddressShape .sh:NodeShape} defines address requirements.
+Defines address requirements: **Street Rule** {=ex:#streetProperty ?sh:property label} and **City Rule** {=ex:#cityProperty ?sh:property label}.
 
-**Street Property** {=ex:#streetProperty .sh:PropertyShape ?sh:property} validates the [street] {+ex:street ?sh:path} property with at least [5] {sh:minLength ^^xsd:integer} characters.
+**Street Rule** {=ex:#streetProperty .sh:PropertyShape} validates the [street] {+ex:street ?sh:path} property with at least [5] {sh:minLength ^^xsd:integer} characters.
 
-{=ex:AddressShape}
+**City Rule** {=ex:#cityProperty .sh:PropertyShape} validates the [city] {+ex:city ?sh:path} property with at least [2] {sh:minLength ^^xsd:integer} characters.
 
-**City Property** {=ex:#cityProperty .sh:PropertyShape ?sh:property} validates the [city] {+ex:city ?sh:path} property with at least [2] {sh:minLength ^^xsd:integer} characters.
-
-{=ex:demo}
+---
 
 ### 📋 Test Data {=ex:data .Container}
 
@@ -38,20 +36,20 @@ The **Employee Validation Shape** {=ex:EmployeeValidationShape .sh:NodeShape ?ca
 An employee with a complete, valid address.
 
 Name: [John Doe] {ex:name}
-Address: [Valid Address] {=ex:ValidAddress .ex:Address ?ex:address}
 
-[Valid Address] {=ex:ValidAddress} Street: [Main Street] {ex:street}
-[Valid Address] {=ex:ValidAddress} City: [New York] {ex:city}
+Address: [Valid Address] {=ex:ValidAddress .ex:Address ?ex:address}
+Street: [Main Street] {ex:street}
+City: [New York] {ex:city}
 
 #### Invalid Employee - Short Address {=ex:InvalidEmployee .ex:Employee}
 
 An employee with an address that has insufficient detail.
 
 Name: [Jane Smith] {ex:name}
-Address: [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}
 
-[Short Address] {=ex:ShortAddress} Street: [St] {ex:street}
-[Short Address] {=ex:ShortAddress} City: [NY] {ex:city}
+Address: [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}
+Street: [St] {ex:street}
+City: [NY] {ex:city}
 
 #### Employee with Literal Address {=ex:LiteralEmployee .ex:Employee}
 

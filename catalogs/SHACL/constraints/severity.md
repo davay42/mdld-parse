@@ -18,13 +18,13 @@ This demo demonstrates severity levels and custom messages using user account va
 
 ### User Account Validation Demo
 
-The **User Validation Shape** {=ex:UserValidationShape .sh:NodeShape ?cat:hasShape label} targets all [users] {+ex:User ?sh:targetClass} to validate account requirements with different severity levels.
+The **User Validation Shape** {=ex:UserValidationShape .sh:NodeShape ?cat:hasShape label} targets all [users] {+ex:User ?sh:targetClass} to validate account requirements with different severity levels: **Critical Email Rule** {+ex:CriticalRule ?sh:property label}, **Warning Age Rule** {+ex:WarningRule ?sh:property label} and **Info Name Rule** {+ex:InfoNameRule ?sh:property label}.
 
-It includes the **Critical Email Rule** {=ex:CriticalRule .sh:PropertyShape ?sh:property} that requires [email] {+ex:email ?sh:path} to be [string] {+xsd:string ?sh:datatype} and [required] {+1 ?sh:minCount} with [Violation severity] {+sh:Violation ?sh:severity}: **Email address is required and must be valid** {sh:message}.
+**Email address is required and must be valid** {=ex:CriticalRule .sh:PropertyShape sh:message} that requires [email] {+ex:email ?sh:path} to be [string] {+xsd:string ?sh:datatype} and at least [1] {sh:minCount ^^xsd:integer} corporate email [example.com] {sh:pattern} with [Violation severity] {+sh:Violation ?sh:severity}.
 
-**It** {=ex:UserValidationShape} also includes the **Warning Age Rule** {=ex:WarningRule .sh:PropertyShape ?sh:property} that requires [age] {+ex:age ?sh:path} to be [integer] {+xsd:integer ?sh:datatype} and [maximum 120] {+120 ?sh:maxInclusive} with [Warning severity] {+sh:Warning ?sh:severity}: **Age should be between 18 and 120** {sh:message}.
+**Age should be between 18 and 120** {=ex:WarningRule .sh:PropertyShape sh:message} that requires [age] {+ex:age ?sh:path} to be [integer] {+xsd:integer ?sh:datatype}, more than [18] {sh:minInclusive ^^xsd:integer} and less than [120] {sh:maxInclusive ^^xsd:integer} with [Warning severity] {+sh:Warning ?sh:severity}.
 
-**it** {=ex:UserValidationShape} also includes the **Info Name Rule** {=ex:InfoNameRule .sh:PropertyShape ?sh:property} that requires [name] {+ex:name ?sh:path} to be [string] {+xsd:string ?sh:datatype} and [required] {+1 ?sh:minCount} with [Info severity] {+sh:Info ?sh:severity}: **Name should be provided for better user experience** {sh:message}.
+**Name should be a string of 2+ letters** {=ex:InfoNameRule .sh:PropertyShape sh:message} that requires [name] {+ex:name ?sh:path} to be [string] {+xsd:string ?sh:datatype} at least [1] {sh:minCount} and longer than [3] {sh:minInclusive} with [Info severity] {+sh:Info ?sh:severity}.
 
 ### 📋 Test Data {=ex:data .Container}
 

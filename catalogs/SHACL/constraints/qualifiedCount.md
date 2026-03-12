@@ -18,15 +18,9 @@ This demo demonstrates qualified constraints using work email validation scenari
 
 ### Work Email Validation Demo
 
-The **Employee Validation Shape** {=ex:EmployeeValidationShape .sh:NodeShape ?cat:hasShape label} targets all [employees] {+ex:Employee ?sh:targetClass} to validate work email requirements: **Employee must have exactly one work email** {sh:message}
+The **Employee Validation Shape** {=ex:EmployeeValidationShape .sh:NodeShape ?cat:hasShape label} targets all [employees] {+ex:Employee ?sh:targetClass} to validate work email requirements:
 
-**Work Email Rule** {=ex:#workEmailRule .sh:PropertyShape ?sh:property} validates the [email] {+ex:email ?sh:path} property with qualified constraints.
-
-Must have at least [1] {sh:qualifiedMinCount ^^xsd:integer} and at most [1] {sh:qualifiedMaxCount ^^xsd:integer} work email that matches the [Work Email Shape] {+ex:WorkEmailShape ?sh:qualifiedValueShape}.
-
-**Work Email Shape** {=ex:WorkEmailShape .sh:NodeShape} defines what counts as a work email: must be a [literal] {+sh:Literal ?sh:nodeKind} with [string] {+xsd:string ?sh:datatype} type and pattern [company.org] {sh:pattern}.
-
-{=ex:demo}
+**Employee must have exactly one work email** {=ex:#workEmailRule .sh:PropertyShape ?sh:property sh:message} applies to every [email] {+ex:email ?sh:path} property with qualified constraints: it must have exactly [1] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} work email that matches the **Work Email Shape** {=ex:WorkEmailShape .sh:NodeShape ?sh:qualifiedValueShape} which defines what counts as a work email: must be a [literal] {+sh:Literal ?sh:nodeKind} with [string] {+xsd:string ?sh:datatype} type and pattern [company.org] {sh:pattern}.
 
 ### 📋 Test Data {=ex:data .Container}
 

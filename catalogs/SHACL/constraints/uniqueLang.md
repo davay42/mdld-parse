@@ -17,13 +17,10 @@ This demo demonstrates unique language constraint using multilingual document ti
 
 ### Multilingual Document Demo
 
-The **Unique Language Example Shape** {=ex:UniqueLangExampleShape .sh:NodeShape ?cat:hasShape label} targets [ValidNode] {+ex:ValidNode ?sh:targetNode} and [InvalidNode] {+ex:InvalidNode ?sh:targetNode} to validate [title] {+ex:title ?sh:path} has [true] {sh:uniqueLang}: **Title language tags must be unique** {sh:message}.
+The **Unique Language Example Shape** {=ex:UniqueLangExampleShape .sh:NodeShape ?cat:hasShape label} targets [ValidNode] {+ex:ValidNode ?sh:targetNode} and [InvalidNode] {+ex:InvalidNode ?sh:targetNode} to validate 
 
-{=ex:UniqueLangExampleShape}
+**Each language tag must appear only once** {=ex:TitleProperty .sh:PropertyShape ?sh:property sh:message} - [title] {+ex:title ?sh:path} values have [true] {sh:uniqueLang ^^xsd:boolean}. 
 
-**Title Property** {=ex:TitleProperty .sh:PropertyShape ?sh:property} ensures [title] {+ex:title ?sh:path} values have [true] {sh:uniqueLang}: **Each language tag must appear only once** {sh:message}.
-
-{=ex:demo}
 
 ### 📋 Test Data {=ex:data .Container}
 

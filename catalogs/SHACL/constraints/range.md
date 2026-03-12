@@ -31,15 +31,19 @@
 
 ## Demo {=ex:demo ?cat:hasDemo}
 
-The **Event Management Test Shape** {=ex:EventTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate comprehensive range constraints across multiple datatypes for event management scenarios.
+### Event Management Test Shape {=ex:EventTestShape .sh:NodeShape ?cat:hasShape label}
 
-**Ticket Price Range Rule** {=ex:#priceRange .sh:PropertyShape ?sh:property} ensures the [ticketPrice] {+ex:price ?sh:path} property follows standard event pricing guidelines by being at least [10.00] {sh:minInclusive ^^xsd:decimal} (minimum viable ticket price) and at most [1000.00] {sh:maxInclusive ^^xsd:decimal} (premium event cap): **Event ticket prices must be between $10.00 and $1000.00 inclusive for fair pricing** {sh:message}
+Validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate comprehensive range constraints across multiple datatypes for event management scenarios. It includes **Ticket Price Range Rule** {+ex:#priceRange ?sh:property label}, **Attendee Age Restriction Rule** {+ex:#ageRange ?sh:property label}, **Event Scheduling Window Rule** {+ex:#eventDate ?sh:property label} and **Registration Deadline Rule** {=ex:#registrationDeadline ?sh:property label}.
 
-[Test Shape] {=ex:EventTestShape} declares the **Attendee Age Restriction Rule** {=ex:#ageRange .sh:PropertyShape ?sh:property} that enforces legal and safety requirements by requiring the [attendeeAge] {+ex:age ?sh:path} property to be greater than [18] {sh:minExclusive ^^xsd:integer} (legal adult age) and less than [65] {sh:maxExclusive ^^xsd:integer} (senior discount eligibility): **Event attendees must be strictly between 18 and 65 years old for age-restricted events** {sh:message}
+### Rules
 
-[Test Shape] {=ex:EventTestShape} also has **Event Scheduling Window Rule** {=ex:#eventDate .sh:PropertyShape ?sh:property} that validates the [eventDate] {+ex:eventDate ?sh:path} property falls within the current planning cycle by being at least [2024-01-01] {sh:minInclusive ^^xsd:date} (start of fiscal year) and at most [2025-12-31] {sh:maxInclusive ^^xsd:date} (end of planning horizon): **Events must be scheduled within the 2024-2025 planning period for proper resource allocation** {sh:message}
+**Event ticket prices must be between $10.00 and $1000.00 inclusive for fair pricing** {=ex:#priceRange .sh:PropertyShape sh:message} - [ticketPrice] {+ex:price ?sh:path} property follows standard event pricing guidelines by being at least [10.00] {sh:minInclusive ^^xsd:decimal} (minimum viable ticket price) and at most [1000.00] {sh:maxInclusive ^^xsd:decimal} (premium event cap).
 
-[Test Shape] {=ex:EventTestShape} also has **Registration Deadline Rule** {=ex:#registrationDeadline .sh:PropertyShape ?sh:property} that ensures proper advance planning by requiring the [registrationDeadline] {+ex:registrationDeadline ?sh:path} property to be greater than [2024-12-31T23:59:59Z] {sh:minExclusive ^^xsd:dateTime} (end of current year): **Registration deadlines must be set after December 31, 2024 to allow adequate preparation time** {sh:message}
+**Event attendees must be strictly between 18 and 65 years old for age-restricted events** {=ex:#ageRange .sh:PropertyShape sh:message} - legal and safety requirements by requiring the [attendeeAge] {+ex:age ?sh:path} property to be greater than [18] {sh:minExclusive ^^xsd:integer} (legal adult age) and less than [65] {sh:maxExclusive ^^xsd:integer} (senior discount eligibility).
+
+**Events must be scheduled within the 2024-2025 planning period for proper resource allocation** {=ex:#eventDate .sh:PropertyShape sh:message} - the [eventDate] {+ex:eventDate ?sh:path} property falls within the current planning cycle by being at least [2024-01-01] {sh:minInclusive ^^xsd:date} (start of fiscal year) and at most [2025-12-31] {sh:maxInclusive ^^xsd:date} (end of planning horizon).
+
+**Registration deadlines must be set after December 31, 2024 to allow adequate preparation time** {=ex:#registrationDeadline .sh:PropertyShape sh:message} - proper advance planning by requiring the [registrationDeadline] {+ex:registrationDeadline ?sh:path} property to be greater than [2024-12-31T23:59:59Z] {sh:minExclusive ^^xsd:dateTime} (end of current year).
 
 ---
 

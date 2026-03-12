@@ -19,11 +19,10 @@ This demo demonstrates logical NOT constraint using forbidden status validation 
 
 The **User Status Shape** {=ex:UserStatusShape .sh:NodeShape ?cat:hasShape label} targets all [users] {+ex:User ?sh:targetClass} to validate forbidden status: **User cannot have deleted status** {sh:message}
 
-User status must not conform to the forbidden shape using sh:not: [Forbidden Status Shape] {+ex:ForbiddenStatusShape ?sh:not}.
+User status must not conform to the forbidden shape using [Forbidden Status Shape] {+ex:ForbiddenStatusShape ?sh:not}.
 
 **Forbidden Status Shape** {=ex:ForbiddenStatusShape .sh:NodeShape} requires the [status] {+ex:status ?sh:path} property to be exactly [deleted] {sh:hasValue}.
 
-{=ex:demo}
 
 ### 📋 Test Data {=ex:data .Container}
 
