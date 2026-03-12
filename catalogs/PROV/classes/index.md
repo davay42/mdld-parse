@@ -1,33 +1,41 @@
 [mdp] <https://mdld.js.org/prov/>
 [owl] <http://www.w3.org/2002/07/owl#>
 
-## Class List Shape {=mdp:shape:classes .sh:NodeShape label}
 
-This shape keeps lists grounded in original ontology in Turtle format [../prov-o.ttl] {=nih:sha-256-128;cf1acd21933033f75b215e665722ed13;1 .prov:Entity prov:atLocation} - any missed term would trigger a violation.
+This list is grounded in original ontology in Turtle format [../prov-o.ttl] {=nih:sha-256-128;cf1acd21933033f75b215e665722ed13;1 .prov:Entity prov:atLocation}.
+
+## Class List Shape {=mdp:shape:classes .sh:NodeShape label}
 
 All [owl:Classes] {+owl:Class ?sh:targetClass} present is the system are validated - this is quite a broad approach and we had to comment out a couple of lines in original code, but this should be good enough for now.
 
-**Listed Rule** {=mdp:rule:listed .sh:propertyShape ?sh:property} checks for it to have [listed] {+mdp:listed ?sh:path} exactly once [1] {sh:minCount sh:maxCount}  - this is *informational* {+sh:Info ?sh:severity} constrain to keep the list integrity: **Class List integrity violation** {sh:message}
+**Listed Rule** {=mdp:rule:listed .sh:propertyShape ?sh:property} checks for it to have [listed] {+mdp:listed ?sh:path} exactly once [1] {sh:minCount sh:maxCount ^^xsd:integer}  - this is *informational* {+sh:Info ?sh:severity} constrain to keep the list integrity: **Class List integrity violation** {sh:message}
 
 ## Agent {=prov:Agent label mdp:listed}
 
 > An agent is something that bears some form of responsibility for an activity taking place, for the existence of an entity, or for another agent's activity. {prov:definition}
 
-Has 3 sub-classes: {!subClassOf mdp:listed}
+Has 3 sub-classes: [Organization] {+prov:Organization !subClassOf}, [Person] {+prov:Person !subClassOf} and [SoftwareAgent] {+prov:SoftwareAgent !subClassOf mdp:listed}.
 
--   Organization {=prov:Organization}
--   Person {=prov:Person}
--   SoftwareAgent {=prov:SoftwareAgent}
+## Person {=prov:Person .Class mdp:listed}
+
+> Person agents are people. {prov:definition}
+
+## Organization {=prov:Organization .Class mdp:listed}
+
+> An organization is a social or legal institution such as a company, society, etc. {prov:definition}
+
+## SoftwareAgent {=prov:SoftwareAgent .Class mdp:listed}
+
+> A software agent is running software. {prov:definition}
 
 ## Entity {=prov:Entity .Class label mdp:listed}
 
 > An entity is a physical, digital, conceptual, or other kind of thing with some fixed aspects; entities may be real or imaginary. {prov:definition}
 
-Has 3 sub-classes: {!subClassOf}
-
--   Collection {=prov:Collection}
--   Plan {=prov:Plan}
--   Bundle {=prov:Bundle}
+Has 3 sub-classes: 
+-   Collection {+prov:Collection !subClassOf}
+-   Plan {+prov:Plan !subClassOf}
+-   Bundle {+prov:Bundle !subClassOf}
 
 ## Collection {=prov:Collection .Class label mdp:listed}
 
@@ -119,7 +127,6 @@ Entities have a duration. Generation marks the beginning of an entity, whereas i
 
 > An instantaneous event, or event for short, happens in the world and marks a change in the world, in its activities and in its entities. The term 'event' is commonly used in process algebra with a similar meaning. Events represent communications or interactions; they are assumed to be atomic and instantaneous. {comment}
 
-<br />
 
 ## Other classes {=mdp:class:index .Container label}
 
