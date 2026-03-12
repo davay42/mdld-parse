@@ -25,7 +25,7 @@ The **Unique Language Example Shape** {=ex:UniqueLangExampleShape .sh:NodeShape 
 
 {=ex:demo}
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Document {=ex:ValidNode}
 

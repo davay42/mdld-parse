@@ -19,7 +19,7 @@ This demo demonstrates the disjoint constraint using country labels.
 
 The **Disjoint Example Shape** {=ex:DisjointExampleShape .sh:NodeShape ?cat:hasShape label} targets [USA] {+ex:USA ?sh:targetNode} and [Germany] {+ex:Germany ?sh:targetNode} to validate that [preferred labels] {+ex:prefLabel ?sh:path} are [disjoint] {+ex:altLabel ?sh:disjoint}: **Preferred labels must be different from alternative labels** {sh:message}.
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Case - USA {=ex:USA}
 

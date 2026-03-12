@@ -31,7 +31,7 @@ The **Database Validation Shape** {=ex:DatabaseValidationShape .sh:NodeShape ?ca
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Main Database {=ex:MainDatabase}
 

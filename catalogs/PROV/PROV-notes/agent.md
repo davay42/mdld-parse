@@ -30,7 +30,7 @@ Agent shape defines these constraints: {?sh:property .sh:PropertyShape label}
 - Attribution Rule {=ex:#attribution}
 - Delegation Rule {=ex:#delegation}
 
-**Association Rule** {=ex:#association .sh:PropertyShape ?sh:property} allows [wasAssociatedWith] {+prov:wasAssociatedWith ?sh:path} to link agents to activities they participated in.
+**Every Agent** {=ex:AgentShape} may be **Associated** {=ex:#association .sh:PropertyShape ?sh:property} by using [wasAssociatedWith] {+prov:wasAssociatedWith ?sh:path} to link agents to activities they participated in.
 
 **Attribution Rule** {=ex:#attribution .sh:PropertyShape ?sh:property} allows [wasAttributedTo] {+prov:wasAttributedTo ?sh:path} to credit agents for entity creation.
 

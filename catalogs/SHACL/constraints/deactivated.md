@@ -15,17 +15,17 @@
 
 This demo demonstrates deactivated constraint using user account validation.
 
-### User Account Validation Demo
+### Shape
 
-The **Deactivated Example Shape** {=ex:DeactivatedExampleShape .sh:NodeShape ?cat:hasShape label} targets [Valid Node] {+ex:ValidNode ?sh:targetNode}  [Invalid Node] {+ex:InvalidNode  ?sh:targetNode} to validate user account properties.
+The **Deactivated Example Shape** {=ex:DeactivatedExampleShape .sh:NodeShape ?cat:hasShape label} targets [Valid Node] {+ex:ValidNode ?sh:targetNode}  [Invalid Node] {+ex:InvalidNode  ?sh:targetNode} to validate user account properties with **Active Status Rule** {+ex:ActiveProperty ?sh:property label} and **Deactivated Category Rule** {+ex:DeactivatedProperty ?sh:property label} 
 
-**Active Status Rule** {=ex:ActiveProperty .sh:PropertyShape ?sh:property} ensures [status] {+ex:status ?sh:path} must be [active] {sh:hasValue}: **User status must be active** {sh:message}.
+### Rules
 
-{=ex:DeactivatedExampleShape}
+**User status must be active** {=ex:ActiveProperty .sh:PropertyShape sh:message}: [status] {+ex:status ?sh:path} must be [active] {sh:hasValue}.
 
-**Deactivated Category Rule** {=ex:DeactivatedProperty .sh:PropertyShape ?sh:property} ensures [category] {+ex:category ?sh:path} must be [premium] {sh:hasValue} but is [deactivated] {sh:deactivated}: **Category rule temporarily disabled** {sh:message}.
+**Must have premium category** {=ex:DeactivatedProperty .sh:PropertyShape sh:message}: [category] {+ex:category ?sh:path} is always [premium] {sh:hasValue}. Was temporarily [deactivated] {sh:deactivated}.
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Account {=ex:ValidNode}
 

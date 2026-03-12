@@ -18,17 +18,19 @@
 
 ---
 
-## Demo {=ex:demo ?cat:hasDemo}
+## Shapes {=ex:demo ?cat:hasDemo}
 
-The **Person Test Shape** {=ex:PersonTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate count constraints.
+The **Person Test Shape** {=ex:PersonTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate count constraints - [email] {+ex:#emailExact ?sh:property} and [phone] {+ex:#phoneOptional ?sh:property}.
 
-**Required Email Rule** {=ex:#emailExact .sh:PropertyShape ?sh:property} requires the [email] {+ex:email ?sh:path} property to have at least [1] {sh:minCount ^^xsd:integer} and at most [1] {sh:maxCount ^^xsd:integer} value: **Person must have exactly one email address** {sh:message}
+## Rules
 
-**Optional Phone Rule** {=ex:#phoneOptional .sh:PropertyShape ?sh:property} allows the [phone] {+ex:phone ?sh:path} property to have at most [2] {sh:maxCount ^^xsd:integer} values: **Person can have at most two phone numbers** {sh:message}
+**Person must have exactly one email address** {=ex:#emailExact .sh:PropertyShape  sh:message} requires the [email] {+ex:email ?sh:path} property to have exactly  [1] {sh:minCount sh:maxCount ^^xsd:integer}.
+
+**Person can have at most two phone numbers** {=ex:#phoneOptional .sh:PropertyShape  sh:message} allows the [phone] {+ex:phone ?sh:path} property to have at most [2] {sh:maxCount ^^xsd:integer} values.
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Person {=ex:ValidPerson ?member}
 
@@ -50,18 +52,18 @@ Phone: [555-9999] {ex:phone}
 
 ---
 
-[Demo] {=ex:demo} must produce exactly **2** {cat:expectsViolations ^^xsd:integer} violations.
+[Demo] {=ex:demo} must produce exactly **3** {cat:expectsViolations ^^xsd:integer} violations.
 
 ### Expected Validation Results {=ex:results ?cat:hasResults}
 
 1. **Valid Person** - passes (1 email, 2 phones - all within limits)
 2. **Invalid Person - Too Few** - fails (0 emails - below minCount of 1)
-3. **Invalid Person - Too Many** - fails (2 emails - exceeds maxCount of 1)
+3. **Invalid Person - Too Many** - fails 2 times (2 emails - exceeds maxCount of 1, 3 phones exceed the maxCount of 2)
 
 ### 🔍 Test Validation
 
 ```bash
-# This should show 2 violations for count constraint violations
+# This should show 3 violations for count constraint violations
 ig-cli validate ./constraints/count.md
 ```
 

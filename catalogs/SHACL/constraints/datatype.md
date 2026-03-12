@@ -14,17 +14,21 @@
 
 ## 🛡️ Self-Validation Demo {=ex:demo ?cat:hasDemo}
 
-The **Product Test Shape** {=ex:ProductTestShape .sh:NodeShape ?cat:hasShape label} validates both [Valid Product] {+ex:ValidProduct ?sh:targetNode} and [Invalid Product] {+ex:InvalidProduct ?sh:targetNode} entities to demonstrate datatype constraints.
+### Shapes
 
-**Decimal Price Rule** {=ex:#priceDecimal .sh:PropertyShape ?sh:property} requires the [price] {+ex:price ?sh:path} property to be a [decimal] {+xsd:decimal ?sh:datatype} value for accurate calculations: *Product price must be a decimal number* {sh:message}
+The **Product Test Shape** {=ex:ProductTestShape .sh:NodeShape ?cat:hasShape label} validates both [Valid Product] {+ex:ValidProduct ?sh:targetNode} and [Invalid Product] {+ex:InvalidProduct ?sh:targetNode} entities to demonstrate datatype constraints: **Decimal Price Rule** {+ex:#priceDecimal ?sh:property} and **Integer Quantity Rule** {+ex:#quantityInteger ?sh:property}.
 
-**Integer Quantity Rule** {=ex:#quantityInteger .sh:PropertyShape ?sh:property} requires the [quantity] {+ex:quantity ?sh:path} property to be an [integer] {+xsd:integer ?sh:datatype} value: *Product quantity must be an integer* {sh:message}
+### Rules
+
+**Product price must be a decimal number** {=ex:#priceDecimal .sh:PropertyShape sh:message} requires the [price] {+ex:price ?sh:path} property to be a [decimal] {+xsd:decimal ?sh:datatype} value for accurate calculations.
+
+**Product quantity must be an integer** {=ex:#quantityInteger .sh:PropertyShape sh:message} requires the [quantity] {+ex:quantity ?sh:path} property to be an [integer] {+xsd:integer ?sh:datatype} value.
 
 ---
 
 ## Demo {=ex:demo}
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Product {=ex:ValidProduct ?member}
 
@@ -38,12 +42,12 @@ Quantity: [five] {ex:quantity ^^xsd:string}
 
 ---
 
-[Demo] {=ex:demo} must produce exactly **1** {cat:expectsViolations ^^xsd:integer} violation.
+[Demo] {=ex:demo} must produce exactly **2** {cat:expectsViolations ^^xsd:integer} violation.
 
 ### Expected Validation Results {=ex:results ?cat:hasResults}
 
 1. **Valid Product** - passes (decimal price, integer quantity)
-2. **Invalid Product** - fails (price is string instead of decimal)
+2. **Invalid Product** - fails 2 times (price is string instead of decimal, quantity must be integer)
 
 ### 🔍 **Test Validation**
 

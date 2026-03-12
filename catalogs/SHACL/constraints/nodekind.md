@@ -24,7 +24,7 @@ The **Document Test Shape** {=ex:DocumentTestShape .sh:NodeShape ?cat:hasShape l
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Document {=ex:ValidDocument .ex:Documen ?member}
 

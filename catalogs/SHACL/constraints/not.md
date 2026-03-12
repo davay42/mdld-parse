@@ -25,7 +25,7 @@ User status must not conform to the forbidden shape using sh:not: [Forbidden Sta
 
 {=ex:demo}
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid User - Active {=ex:ValidActiveUser .ex:User}
 

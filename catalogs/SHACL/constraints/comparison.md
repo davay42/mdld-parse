@@ -33,7 +33,7 @@ The **Event Planning Shape** {=ex:EventPlanningShape .sh:NodeShape ?cat:hasShape
 
 {=ex:demo}
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Event {=ex:ValidEvent .ex:Event}
 

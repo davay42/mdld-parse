@@ -26,7 +26,7 @@ It includes the **Critical Email Rule** {=ex:CriticalRule .sh:PropertyShape ?sh:
 
 **it** {=ex:UserValidationShape} also includes the **Info Name Rule** {=ex:InfoNameRule .sh:PropertyShape ?sh:property} that requires [name] {+ex:name ?sh:path} to be [string] {+xsd:string ?sh:datatype} and [required] {+1 ?sh:minCount} with [Info severity] {+sh:Info ?sh:severity}: **Name should be provided for better user experience** {sh:message}.
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid User {=ex:ValidUser .ex:User}
 

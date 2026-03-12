@@ -23,7 +23,7 @@ The **Product Validation Shape** {=ex:ProductValidationShape .sh:NodeShape ?cat:
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Laptop {=ex:Laptop .ex:Product}
 

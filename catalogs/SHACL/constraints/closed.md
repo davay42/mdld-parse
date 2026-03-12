@@ -17,15 +17,13 @@ This demo demonstrates closed world validation using person data.
 
 ### Person Data Demo
 
-The **Closed Example Shape** {=ex:ClosedExampleShape .sh:NodeShape ?cat:hasShape label} targets [ValidPerson] {+ex:ValidPerson ?sh:targetNode} and [InvalidPerson] {+ex:InvalidPerson ?sh:targetNode} with [closed world] {sh:closed}: **Only declared properties allowed** {sh:message}.
+**Only declared properties allowed** {=ex:ClosedExampleShape .sh:NodeShape ?cat:hasShape label} targets [ValidPerson] {+ex:ValidPerson ?sh:targetNode} and [InvalidPerson] {+ex:InvalidPerson ?sh:targetNode} with **no additional properties** {sh:closed} constraint except [Name] {+ex:NameProperty ?sh:property} and [Age] {+ex:AgeProperty ?sh:property}.
 
-**Name Property** {=ex:NameProperty .sh:PropertyShape ?sh:property} ensures [name] {+schema:name ?sh:path} is [string] {+xsd:string ?sh:datatype} and [1] {sh:minCount}: **Person must have a name** {sh:message}.
+**Person must have a name** {=ex:NameProperty .sh:PropertyShape  sh:message} ensures [name] {+schema:name ?sh:path} is [string] {+xsd:string ?sh:datatype} and [1] {sh:minCount}.
 
-{=ex:ClosedExampleShape}
+**Person must have exactly one age** {=ex:AgeProperty .sh:PropertyShape sh:message} ensures [age] {+ex:age ?sh:path} is [integer] {+xsd:integer ?sh:datatype} and exactly [1] {sh:minCount sh:maxCount}.
 
-**Age Property** {=ex:AgeProperty .sh:PropertyShape ?sh:property} ensures [age] {+ex:age ?sh:path} is [integer] {+xsd:integer ?sh:datatype} and [1] {sh:maxCount}: **Person must have exactly one age** {sh:message}.
-
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Person {=ex:ValidPerson}
 

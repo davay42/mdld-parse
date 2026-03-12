@@ -25,7 +25,7 @@ The **Business Rule Validation Shape** {=ex:BusinessRuleValidationShape .sh:Node
 
 {=ex:demo}
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Contract {=ex:ValidContract .ex:Contract}
 

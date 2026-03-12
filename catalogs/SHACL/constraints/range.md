@@ -43,7 +43,7 @@ The **Event Management Test Shape** {=ex:EventTestShape .sh:NodeShape ?cat:hasSh
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Event {=ex:ValidEvent ?member}
 

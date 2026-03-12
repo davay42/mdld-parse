@@ -398,7 +398,7 @@ The **[Term] Shape** {=ex:[Term]Shape .sh:NodeShape ?cat:hasShape label}...
 
 ---
 
-## 📝 Test Data {=ex:data .Container ?cat:hasData}
+## 📝 Test Data {=ex:data .Container}
 
 [Test cases with expected violations]
 

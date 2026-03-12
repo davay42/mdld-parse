@@ -24,7 +24,7 @@ All [employees] {+member ?sh:targetObjectsOf} must have both **Human Manager** {
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Employee {=ex:ValidEmployee ?member}
 

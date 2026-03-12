@@ -13,15 +13,21 @@
 
 ## Demo {=ex:demo ?cat:hasDemo}
 
-The **System Status Test Shape** {=ex:SystemStatusTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate hasValue constraints for mandatory system properties.
+### Shapes
 
-**Status Required Rule** {=ex:#statusRequired .sh:PropertyShape ?sh:property} requires the [status] {+ex:status ?sh:path} property to be exactly [active] {sh:hasValue}: **Main server must have active status** {sh:message}
+The **System Status Test Shape** {=ex:SystemStatusTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate hasValue constraints for mandatory system properties with **Status Required Rule** {+ex:#statusRequired ?sh:property} and **Environment Required Rule** {+ex:#environmentRequired ?sh:property}.
 
-[Test Shape] {=ex:SystemStatusTestShape} also has **Environment Required Rule** {=ex:#environmentRequired .sh:PropertyShape ?sh:property} that requires the [environment] {+ex:environment ?sh:path} property to be exactly [production] {sh:hasValue}: **Main server must be in production environment** {sh:message}
+### Rules
+
+**Main server must have active status** {=ex:#statusRequired .sh:PropertyShape sh:message} requires the [status] {+ex:status ?sh:path} property to be exactly [active] {sh:hasValue}.
+
+**Main server must be in production environment** {=ex:#environmentRequired .sh:PropertyShape sh:message} that requires the [environment] {+ex:environment ?sh:path} property to be exactly [production] {sh:hasValue}.
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+{=ex:demo}
+
+### 📋 Test Data {=ex:data .Container}
 
 #### Main Server {=ex:MainServer ?member}
 

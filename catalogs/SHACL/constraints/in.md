@@ -15,23 +15,19 @@
 
 This demo demonstrates value enumeration using a status validation scenario.
 
-### Status Validation Demo
+### Status Validation Shape {=ex:StatusValidationShape .sh:NodeShape ?cat:hasShape label}
 
-The **Status Validation Shape** {=ex:StatusValidationShape .sh:NodeShape ?cat:hasShape label} targets all [employees] {+ex:Employee ?sh:targetClass} to validate status values.
+Targets all [employees] {+ex:Employee ?sh:targetClass} to validate status values.
 
-**Allowed Status Rule** {=ex:#allowedStatus .sh:PropertyShape ?sh:property}
+**Status must be in allowed list** {=ex:#allowedStatus .sh:PropertyShape ?sh:property sh:message}
 
-> Status must be either Active or Inactive: **Status must be in allowed list** {sh:message}
-
-This property defines rules for the [status] {+ex:status ?sh:path} property.
-
-Status values must be in the allowed list using verbose RDF list syntax.
+[Status] {+ex:status ?sh:path} must be either Active or Inactive. We need to define these using verbose RDF list syntax.
 
 First we need a [List] {=ex:l1 ?sh:in .rdf:List} node with the first item assigned to it [Active] {+ex:Active ?rdf:first}, then followed by another [list] {=ex:l2 ?rdf:rest} node with the second item [Inactive] {+ex:Inactive ?rdf:first} followed by a nil node (end of list) [nil] {+rdf:nil ?rdf:rest} And reset current subject to avoid accidental assignments: {=}
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Employee {=ex:ValidEmployee .ex:Employee}
 

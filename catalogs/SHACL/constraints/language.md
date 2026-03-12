@@ -19,19 +19,16 @@ This demo demonstrates language constraint using multilingual document scenarios
 
 The **Multilingual Document Shape** {=ex:MultilingualDocumentShape .sh:NodeShape ?cat:hasShape label} targets all [documents] {+ex:Document ?sh:targetClass} to validate language tags.
 
-**Title Language Rule** {=ex:#titleLanguage .sh:PropertyShape ?sh:property}
-
-> Title must be in English or French: **Title language must be in allowed list** {sh:message}
-
-This property defines rules for the [title] {+ex:title ?sh:path} property.
+**Title language must be in allowed list** {=ex:#titleLanguage .sh:PropertyShape ?sh:property sh:message} defines rules for the [title] {+ex:title ?sh:path} property.
 
 Title language tags must be in the allowed list using verbose RDF list syntax.
 
-We start from the [head] {=ex:l1 ?sh:languageIn .rdf:List} of the list, followed by first literal value [en] {rdf:first}, then goes the next list [node] {=ex:l2 ?rdf:rest} with another language as literal in an inline value carrier [fr] {rdf:first} followed by a closing [nil] {+rdf:nil ?rdf:rest} and as subject reset. {=}
+We start from the [List] {=ex:l1 ?sh:languageIn .rdf:List} of the list, followed by first literal value [en] {rdf:first}, then goes the next list [node] {=ex:l2 ?rdf:rest} with another language as literal in an inline value carrier [fr] {rdf:first} followed by a closing [nil] {+rdf:nil ?rdf:rest} and as subject reset.
+{=}
 
 ***
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### English Document {=ex:EnglishDocument .ex:Document}
 

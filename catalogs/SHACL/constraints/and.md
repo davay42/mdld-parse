@@ -17,7 +17,7 @@ This demo demonstrates logical AND constraint using product validation scenario.
 
 ### Product Validation Demo
 
-The **Product Validation Shape** {=ex:ProductValidationShape .sh:NodeShape ?cat:hasShape label} targets all [products] {+ex:Product ?sh:targetClass} to validate multiple conditions: **All conditions must be satisfied** {sh:message}
+The **Product Validation Shape** {=ex:ProductValidationShape .sh:NodeShape ?cat:hasShape label} targets all [products] {+ex:Product ?sh:targetClass} to validate multiple conditions: **Product must have a price and at least 1 category defined** {sh:message}
 
 Product must satisfy all constraints using verbose RDF list syntax for sh:and.
 
@@ -29,7 +29,7 @@ Product must satisfy all constraints using verbose RDF list syntax for sh:and.
 
 {=ex:demo}
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Product {=ex:ValidProduct .ex:Product}
 

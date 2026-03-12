@@ -19,17 +19,23 @@
 
 ## Demo {=ex:demo ?cat:hasDemo}
 
-The **User Account Test Shape** {=ex:UserAccountTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate length constraints.
+## Shapes
 
-**Username Length Rule** {=ex:#usernameLength .sh:PropertyShape ?sh:property} requires the [username] {+ex:username ?sh:path} property to have at least [3] {sh:minLength ^^xsd:integer} and at most [20] {sh:maxLength ^^xsd:integer} characters: **Username must be 3-20 characters long** {sh:message}
+The **User Account Test Shape** {=ex:UserAccountTestShape .sh:NodeShape ?cat:hasShape label} validates all [member] {+member ?sh:targetObjectsOf} entities of the test data container to demonstrate length constraints with **Username Length Rule** {+ex:#usernameLength ?sh:property}, **Password Length Rule** {+ex:#passwordLength ?sh:property label} and **Bio Length Rule** {+ex:#bioLength .sh:PropertyShape ?sh:property label}
 
-[Test Shape] {=ex:UserAccountTestShape} declares the **Password Length Rule** {=ex:#passwordLength .sh:PropertyShape ?sh:property} that requires the [password] {+ex:password ?sh:path} property to have at least [8] {sh:minLength ^^xsd:integer} characters: **Password must be at least 8 characters long** {sh:message}
+## Rules
 
-[Test Shape] {=ex:UserAccountTestShape} also has **Bio Length Rule** {=ex:#bioLength .sh:PropertyShape ?sh:property} that requires the [bio] {+ex:bio ?sh:path} property to have at most [200] {sh:maxLength ^^xsd:integer} characters: **Bio must be at most 200 characters long** {sh:message}
+**Username must be 3-20 characters long** {=ex:#usernameLength .sh:PropertyShape sh:message} requires the [username] {+ex:username ?sh:path} property to have at least [3] {sh:minLength ^^xsd:integer} and at most [20] {sh:maxLength ^^xsd:integer} characters.
+
+**Password must be at least 8 characters long** {=ex:#passwordLength .sh:PropertyShape sh:message} 
+[password] {+ex:password ?sh:path} property to have at least [8] {sh:minLength ^^xsd:integer} characters.
+
+**Bio must be at most 200 characters long** {=ex:#bioLength .sh:PropertyShape sh:message}  
+[bio] {+ex:bio ?sh:path} property has at most [200] {sh:maxLength ^^xsd:integer} characters.
 
 ---
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid User {=ex:ValidUser ?member}
 

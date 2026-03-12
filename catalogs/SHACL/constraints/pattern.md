@@ -20,7 +20,7 @@ This demo demonstrates pattern validation using email addresses.
 
 The **Pattern Example Shape** {=ex:PatternExampleShape .sh:NodeShape ?cat:hasShape label} targets [ValidNode and InvalidNode] {+ex:ValidNode ex:InvalidNode ?sh:targetNode} to validate [email addresses] {+ex:email ?sh:path} match [^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$] {sh:pattern} with [i] {sh:flags}: **Email must follow standard format** {sh:message}.
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Email {=ex:ValidNode}
 

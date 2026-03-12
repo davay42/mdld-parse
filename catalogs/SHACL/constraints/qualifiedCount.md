@@ -28,7 +28,7 @@ Must have at least [1] {sh:qualifiedMinCount ^^xsd:integer} and at most [1] {sh:
 
 {=ex:demo}
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Employee {=ex:ValidEmployee .ex:Employee}
 

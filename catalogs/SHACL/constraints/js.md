@@ -16,9 +16,11 @@
 
 ### Date Validation Shape {=ex:DateValidationShape .sh:NodeShape ?cat:hasShape label} 
 
+All [Events] {+ex:Event ?sh:targetClass} are checked.
+
 #### Event date must be a valid date string {=ex:DatePropertyShape .sh:PropertyShape ?sh:property sh:message}
 
-All [Events] {+ex:Event ?sh:targetClass} must have an [eventDate] {+ex:eventDate ?sh:path} that is a valid JS date.
+Must have an [eventDate] {+ex:eventDate ?sh:path} that is a valid JS date.
 
 ~~~~~~js {=ex:DateJSConstraint ?sh:JSConstraint sh:js}
 // Check if value is a valid date string
@@ -30,7 +32,7 @@ return !isNaN(date.getTime());
 
 ## Demo {=ex:demo}
 
-### 📋 Test Data {=ex:data .Container ?cat:hasData}
+### 📋 Test Data {=ex:data .Container}
 
 #### Valid Event {=ex:ValidEvent .ex:Event ?member}
 
