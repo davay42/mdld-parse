@@ -422,8 +422,6 @@ Name: [TechCorp] {ex:companyName}
                 options: { context: result.context }
             });
 
-            console.log(text)
-
             const lines = text.split('\n');
             const ageLineIndex = lines.findIndex(line => line.includes('Age: [30]'));
             const nameLineIndex = lines.findIndex(line => line.includes('Name: [Alice]'));

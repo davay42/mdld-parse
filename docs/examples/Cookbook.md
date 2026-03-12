@@ -1,30 +1,32 @@
-## Apple Pie {=urn:recipe:apple-pie .Recipe name}
+[cook] <tag:me@example.com,2026:recipes:>
 
-Description: **Classic homemade apple pie** {description}
-Cooking time: **45** {cookTime ^^xsd:integer} minutes
-Servings: **8** {recipeYield ^^xsd:integer}
-Difficulty: **Medium** {urn:skill:difficulty}
+## Apple Pie {=cook:apple-pie .Recipe label}
 
-Ingredients: {?recipeIngredient .Ingredient name}
+Description: **Classic homemade apple pie** {comment}
+Cooking time: **45** {cook:cookTime ^^xsd:integer} minutes
+Servings: **8** {cook:recipeYield ^^xsd:integer}
+Difficulty: **Medium** {cook:skill:difficulty}
 
-* Apples {=urn:food:apples}
-* Sugar {=urn:food:sugar}
-* Butter {=urn:food:butter}
-* Flour {=urn:food:flour}
-* Cinnamon {=urn:food:cinnamon}
+Ingredients:
 
-_Ingredient_ {+urn:food:ingredient .Class name} - is a class for all ingredients in our **Cookbook** {+urn:collection:cookbook .Collection name ?isPartOf}.
+* Apples {+cook:apples ?cook:recipeIngredient .cook:Ingredient label}
+* Sugar {+cook:sugar ?cook:recipeIngredient .cook:Ingredient label}
+* Butter {+cook:butter ?cook:recipeIngredient .cook:Ingredient label}
+* Flour {+cook:flour ?cook:recipeIngredient .cook:Ingredient label}
+* Cinnamon {+cook:cinnamon ?cook:recipeIngredient .cook:Ingredient label}
 
-Equipment: {?urn:requiresEquipment name}
+_Ingredient_ {=cook:ingredient .Class label} - is a class for all ingredients in our **Cookbook** {!member +urn:collection:cookbook .Container label }.
 
-* Oven {=urn:kitchen:oven-1 .Device }
-* Mixing bowl {=urn:kitchen:bowl-1 .Utensil}
-* Rolling pin {=urn:kitchen:pin-1 .Utensil}
+Equipment:
 
-Calories:  [1235] {urn:nutrition:calories ^^xsd:integer} calories
-Sugar: [40] {urn:nutrition:sugarGrams ^^xsd:decimal} grams
+* Oven {+cook:oven-1 ?cook:requiresEquipment .cook:Device}
+* Mixing bowl {+cook:bowl-1 ?cook:requiresEquipment .cook:Utensil}
+* Rolling pin {+cook:pin-1 ?cook:requiresEquipment .cook:Utensil}
 
-Related recipes: {!urn:class:variationOf .Recipe name}
+Calories:  [1235] {cook:calories ^^xsd:integer} calories
+Sugar: [40] {cook:sugarGrams ^^xsd:decimal} grams
 
-* Apple Crumble {=urn:recipe:apple-crumble .Recipe }
-* Peach Pie {=urn:recipe:peach-pie .Recipe}
+Related recipes:
+
+* Apple Crumble {+cook:apple-crumble !cook:variationOf .cook:Recipe}
+* Peach Pie {+cook:peach-pie !cook:variationOf .cook:Recipe}

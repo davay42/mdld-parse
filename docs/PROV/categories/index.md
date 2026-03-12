@@ -2,8 +2,8 @@
 
 ## Categories {=mdp:categories .Container label}
 
-3 categories for complexity classification: {?member}
+3 categories for complexity classification: 
 
--   [Starting point](./starting-point/index.md) {=mdp:categories#starting-point}
--   [Qualified](./qualified/index.md) {=mdp:categories#qualified}
--   [Expanded](./expanded/index.md) {=mdp:categories#expanded}
+- [Starting point](./starting-point/index.md) {+mdp:categories#starting-point ?member}
+- [Qualified](./qualified/index.md) {+mdp:categories#qualified ?member}
+- [Expanded](./expanded/index.md) {+mdp:categories#expanded ?member}
