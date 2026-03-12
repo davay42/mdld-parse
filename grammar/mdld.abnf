@@ -90,21 +90,19 @@ paragraph       = 1*VCHAR
 blockquote      = ">" WSP text
 code-fence      = 3"`" [ text ] LF *( text / LF ) 3"`"
 
-; 10. Lists (semantic model)
+; 10. Lists (pure Markdown structure)
 
-; 10.1 List anchor (semantic anchor)
-; A list anchor introduces semantic predicates/types for immediate list items
-list-anchor = paragraph *WSP attrs-block
-
-; 10.2 List item
+; 10.1 List items (explicit annotations only)
+; List items are pure Markdown structure requiring explicit annotations
 list-item = list-marker WSP text *WSP [ attrs-block ]
 list-marker = "-" / "*" / "+" / 1*DIGIT "."
 
-; 10.3 List block
-list-block = list-anchor LF list-item *( LF list-item / LF nested-list )
+; 10.2 List block
+; Lists are pure Markdown with no semantic propagation
+list-block = list-item *( LF list-item / LF nested-list )
 
-; 10.4 Nested list (semantic reset)
-; Nested lists do not inherit semantic scope
+; 10.3 Nested list
+; Nested lists have no semantic inheritance
 nested-list = 1*WSP list-block
 
 ; 11. Standalone subject declarations
@@ -123,6 +121,7 @@ annotation =
 
 ; 13. Grammar guarantees (normative)
 ; Attribute token order is semantically unordered
+; Lists are pure Markdown structure with no semantic scope
 ; Nested lists establish a new semantic scope
 ; No implicit inheritance across list levels
 ; Deterministic, streaming-friendly parsing
@@ -135,3 +134,4 @@ annotation =
 ; - Nested attribute blocks
 ; - Implicit subjects/predicates
 ; - Structural inference
+; - Semantic list propagation

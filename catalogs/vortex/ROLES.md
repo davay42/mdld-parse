@@ -754,12 +754,12 @@ A tree does not stop being alive when the wind stops blowing.
 
 All roles as members of the vault's agent registry:
 
-Vault Roles: {?p:hasRole}
-- [Root Feeder] {=role:root_feeder label}
-- [Xylem Carrier] {=role:xylem_carrier label}
-- [Mesophyll Analyst] {=role:mesophyll_analyst label}
-- [Phloem Grounder] {=role:phloem_grounder label}
-- [Stomatal Guard] {=role:stomatal_guard label}
-- [Apical Meristem] {=role:apical_meristem label}
-- [Cambium Shaper] {=role:cambium_shaper label}
-- [Immune Sentinel] {=role:immune_sentinel label}
+Vault Roles: 
+- [Root Feeder] {+role:root_feeder label ?p:hasRole}
+- [Xylem Carrier] {+role:xylem_carrier label ?p:hasRole}
+- [Mesophyll Analyst] {+role:mesophyll_analyst label ?p:hasRole}
+- [Phloem Grounder] {+role:phloem_grounder label ?p:hasRole}
+- [Stomatal Guard] {+role:stomatal_guard label ?p:hasRole}
+- [Apical Meristem] {+role:apical_meristem label ?p:hasRole}
+- [Cambium Shaper] {+role:cambium_shaper label ?p:hasRole}
+- [Immune Sentinel] {+role:immune_sentinel label ?p:hasRole}

@@ -380,7 +380,7 @@ Author: [Alice] {+ex:alice .Person ?author name}"></textarea>
 
         <section class="container" id="spec"
             style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
-            <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;"><a href="/docs/Spec/Spec.md"
+            <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;"><a href="/spec/Spec.md"
                     style="text-decoration: none;">📋 MD-LD Specification </a></h3>
             <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
                 <span id="spec-status"
@@ -1116,7 +1116,7 @@ Future directions:
             specContent.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading specification...</p>';
 
             try {
-                const response = await fetch('./docs/Spec/Spec.md');
+                const response = await fetch('./spec/Spec.md');
                 if (!response.ok) {
                     throw new Error(`Failed to fetch spec: ${response.status}`);
                 }

@@ -86,14 +86,10 @@ paragraph      = vchar , { vchar | whitespace } ;
 blockquote     = ">" , whitespace , text ;
 codeFence      = "```" , [ text ] , newline , { text | newline } , "```" ;
 
-(* 11. Lists (semantic model) *)
+(* 11. Lists (pure Markdown structure) *)
 
-(* 11.1 List anchor (semantic anchor) *)
-(* A list anchor introduces semantic predicates/types for immediate list items *)
-listHeader =
-    paragraph , whitespace* , attrsBlock ;
-
-(* 11.2 List item *)
+(* 11.1 List items (explicit annotations only) *)
+(* List items are pure Markdown structure requiring explicit annotations *)
 listItem =
     listMarker , whitespace , text , whitespace* , attrsBlock? ;
 
@@ -103,13 +99,13 @@ listMarker =
     | "+"
     | digit , { digit } , "." ;
 
-(* 11.3 List block *)
+(* 11.2 List block *)
+(* Lists are pure Markdown with no semantic propagation *)
 listBlock =
-    listHeader , newline ,
     listItem , { newline , listItem | nestedList } ;
 
-(* 11.4 Nested list (semantic reset) *)
-(* Nested lists do not inherit semantic scope *)
+(* 11.3 Nested list *)
+(* Nested lists have no semantic inheritance *)
 nestedList =
     indent , listBlock ;
 
@@ -130,8 +126,17 @@ annotation =
 
 (* 14. Grammar guarantees (normative) *)
 (* Attribute token order is semantically unordered *)
+(* Lists are pure Markdown structure with no semantic scope *)
 (* Nested lists establish a new semantic scope *)
 (* No implicit inheritance across list levels *)
 (* Deterministic, streaming-friendly parsing *)
 (* Round-trip safe (MD-LD ↔ RDF ↔ MD-LD) *)
 (* No semantic inference at syntax level *)
+
+(* 15. Forbidden constructs (not expressible in this grammar) *)
+(* - Blank nodes *)
+(* - Key-value pairs  *)
+(* - Nested attribute blocks *)
+(* - Implicit subjects/predicates *)
+(* - Structural inference *)
+(* - Semantic list propagation *)
