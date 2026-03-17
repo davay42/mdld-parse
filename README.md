@@ -59,7 +59,7 @@ my:central-park a my:Place;
 
 ```
 
-Read the [FULL SPEC](./spec/Spec.md).
+Read the [FULL SPEC](./spec/Spec.md), or study [examples](./examples/index.md)
 
 ## Core Features
 

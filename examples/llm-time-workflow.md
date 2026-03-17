@@ -13,7 +13,11 @@ The workflow shows: user query → plan creation → time tool execution → res
 
 # User and Agent {=llm:participants .prov:Collection}
 
-## User {=llm:user .prov:Agent label}
+## User {=nih:sha-256-128;8eeae17830e7c428288a5d68ceb09bf4;8 .prov:Agent label}
+
+`npub1m52n4487kek65nm530varud0welv8wp5tk32wwcqltret6k8qhxqz0uxwy` {prov:value}
+
+[user] <nih:sha-256-128;8eeae17830e7c428288a5d68ceb09bf4;8>
 
 [alice@example.com] {llm:email}
 [End user requesting time information] {llm:role}
@@ -34,11 +38,14 @@ Session started at [2026-03-10T14:51:00Z] {prov:generatedAtTime ^^xsd:dateTime}.
 
 # User Request {=nih:sha-256-128;cd61bf0cc67fc2233111c91167e2abb3;a .prov:Entity label}
 
-Received at [2026-03-10T14:51:05Z] {prov:generatedAtTime ^^xsd:dateTime} from [User] {+llm:user ?prov:wasAttributedTo}.
+Received at [2026-03-10T14:51:05Z] {prov:generatedAtTime ^^xsd:dateTime} from [User] {+user: ?prov:wasAttributedTo}.
 
 ~~~~~~ {prov:value}
 What time is it?
 ~~~~~~
+
+This is a signed value by a [qualified attribution] {=nih:sha-256-128;d04bcf7aef37ef6e9dbe6a0fd67b40e4;4 ?prov:qualifiedAttribution}
+`sig1zcmlnyrjah6498nsa2hk5tal0nuxt83kn2f4yjnmnme7ef3pef9z0uv3zha69f4f5h47p0hzzrz84nvfq95dkurqdduzg94639ledqqzu5u5g` {prov:value} by **User** {+user: ?prov:agent}
 
 ---
 
@@ -112,7 +119,7 @@ This activity was informed by the time execution step.
 
 [time execution] {+llm:timeExecution ?prov:wasInformedBy}.
 
-Led by [LLM Agent] {+llm:agent ?prov:wasAssociatedWith} acting on behalf of [User] {+llm:user ?prov:actedOnBehalfOf}.
+Led by [LLM Agent] {+llm:agent ?prov:wasAssociatedWith} acting on behalf of [User] {+user: ?prov:actedOnBehalfOf}.
 
 Generated final response:
 

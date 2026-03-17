@@ -1104,34 +1104,37 @@ Future directions:
             }, 500);
         });
 
+        // Handle hash changes for back/forward navigation
+        window.addEventListener('hashchange', handleHashNavigation);
+
         // Load initial example
         loadExample('journal');
 
-        // Load and render specification
-        async function loadSpec() {
+        // Mini MD Browser
+        let md = new MarkdownIt({
+            html: true,
+            linkify: true,
+            typographer: true,
+            breaks: true
+        });
+
+        async function loadMarkdownFile(filePath) {
             const specContent = document.getElementById('spec-content');
             const specStatus = document.getElementById('spec-status');
 
-            specStatus.textContent = 'Loading...';
-            specContent.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading specification...</p>';
+            specStatus.textContent = `Loading ${filePath}...`;
+            specContent.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading markdown...</p>';
 
             try {
-                const response = await fetch('./spec/Spec.md');
+                const response = await fetch(filePath);
                 if (!response.ok) {
-                    throw new Error(`Failed to fetch spec: ${response.status}`);
+                    throw new Error(`Failed to fetch ${filePath}: ${response.status}`);
                 }
 
                 const markdown = await response.text();
-                const md = new MarkdownIt({
-                    html: true,
-                    linkify: true,
-                    typographer: true,
-                    breaks: true
-                });
-
                 const html = md.render(markdown);
 
-                // Apply custom styling for the rendered spec
+                // Apply custom styling and intercept links
                 specContent.innerHTML = `
                     <style>
                         #spec-content h1 { color: var(--accent-orange); border-bottom: 2px solid var(--border-dark); padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0; }
@@ -1155,14 +1158,65 @@ Future directions:
                     ${html}
                 `;
 
-                specStatus.textContent = 'Specification loaded';
+                // Intercept markdown file links
+                specContent.querySelectorAll('a[href$=".md"]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const href = link.getAttribute('href');
+                        const currentPath = decodeURIComponent(window.location.hash.slice(1)) || './README.md';
+
+                        let newPath;
+                        if (href.startsWith('./')) {
+                            // Relative to current directory
+                            const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                            newPath = currentDir + href.slice(2);
+                        } else if (href.startsWith('/')) {
+                            // Absolute from root
+                            newPath = '.' + href;
+                        } else {
+                            // Relative to current directory
+                            const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                            newPath = currentDir + href;
+                        }
+
+                        console.log('Current path:', currentPath);
+                        console.log('Link href:', href);
+                        console.log('Resolved path:', newPath);
+
+                        window.location.hash = encodeURIComponent(newPath);
+                    });
+                });
+
+                specStatus.textContent = filePath;
+                document.title = `MDLD Parser - ${filePath}`;
 
             } catch (error) {
-                console.error('Error loading spec:', error);
-                specContent.innerHTML = `<p style="text-align: center; color: var(--color-error); padding: 2rem;">Error loading specification: ${error.message}</p>`;
-                specStatus.textContent = 'Error loading spec';
+                console.error('Error loading markdown:', error);
+                specContent.innerHTML = `<p style="text-align: center; color: var(--color-error); padding: 2rem;">Error loading ${filePath}: ${error.message}</p>`;
+                specStatus.textContent = `Error loading ${filePath}`;
             }
-        };
+        }
+
+        // Handle hash navigation
+        function handleHashNavigation() {
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                try {
+                    const filePath = decodeURIComponent(hash);
+                    loadMarkdownFile(filePath);
+                } catch (e) {
+                    console.error('Invalid hash:', hash);
+                    loadMarkdownFile('./README.md');
+                }
+            } else {
+                loadMarkdownFile('./README.md');
+            }
+        }
+
+        // Load and render specification (legacy function)
+        async function loadSpec() {
+            handleHashNavigation();
+        }
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"></script>
