@@ -4,7 +4,7 @@
 
 [![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
 
-[Documentation](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse) | [Playground](https://mdld.js.org/playground)
+[Demo](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse) 
 
 ## What is MD-LD?
 
