@@ -655,9 +655,40 @@ Future directions:
 - Cross-validation {+research:future-crossval ?research:suggestsFutureResearch .research:FutureResearch label}`
         };
 
+        // Example files configuration
+        const exampleFiles = {
+            minimal: './examples/demo/minimal.md',
+            journal: './examples/demo/journal.md',
+            recipe: './examples/demo/recipe.md',
+            project: './examples/demo/project.md',
+            apollo: './examples/demo/space-mission.md',
+            research: './examples/demo/research.md'
+        };
+
+        // Loaded example content cache
+        let exampleContent = {};
+
+        // Load all example files
+        async function loadExampleFiles() {
+            for (const [key, path] of Object.entries(exampleFiles)) {
+                try {
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        exampleContent[key] = await response.text();
+                    } else {
+                        console.warn(`Failed to load example ${key}: ${response.status}`);
+                        exampleContent[key] = `# Error loading example\n\nCould not load ${path}`;
+                    }
+                } catch (error) {
+                    console.warn(`Error loading example ${key}:`, error);
+                    exampleContent[key] = `# Error loading example\n\nCould not load ${path}`;
+                }
+            }
+        }
+
         // Load example
         window.loadExample = function (name) {
-            document.getElementById('input').value = examples[name];
+            document.getElementById('input').value = exampleContent[name];
             parseMDLD();
         };
 
@@ -1097,7 +1128,13 @@ Future directions:
         });
 
         // Auto-run tests on page load
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
+            // Load example files first
+            await loadExampleFiles();
+
+            // Load initial example after files are loaded
+            loadExample('journal');
+
             setTimeout(() => {
                 runAllTests();
                 loadSpec();
@@ -1107,8 +1144,8 @@ Future directions:
         // Handle hash changes for back/forward navigation
         window.addEventListener('hashchange', handleHashNavigation);
 
-        // Load initial example
-        loadExample('journal');
+        // Load initial example (moved to async load above)
+        // loadExample('journal');
 
         // Mini MD Browser
         let md = new MarkdownIt({
