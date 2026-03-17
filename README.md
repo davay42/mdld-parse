@@ -75,7 +75,7 @@ Read the [FULL SPEC](./spec/Spec.md), or study [examples](./examples/index.md)
 ## Installation
 
 ```bash
-npm install mdld-parse
+pnpm install mdld-parse
 ```
 
 ### Node.js
