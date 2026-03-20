@@ -1,14 +1,21 @@
-# MDLD `merge()` — Implementation Spec (v2)
+# MDLD `merge()` — Implementation Spec (v3)
 
 ## Summary
 
-Introduce `merge()` as the universal composition primitive for MDLD documents.  
-It subsumes `parse()` and `applyDiff()` entirely.  
-A sequence of MDLD documents is processed left-to-right in a single ordered pass,
-each document's `quads` and `remove` applied to a shared quad buffer.  
-The result is the final asserted graph state, net retractions, full provenance chain,
-and optionally a materialized clean MDLD document produced by applying accumulated
-diffs back onto the last text input via the existing `applyDiff()` machinery.
+Introduce `merge()` as the universal composition primitive for MDLD documents.
+
+**Primary use case:** a single MDLD document containing its own edit history
+as `-` polarity tokens. `merge(doc, { materialize: true })` resolves all
+polarity markers back onto the source text via `applyDiff()`, preserving
+prose, narrative, and vacant slots — producing a clean compacted document
+with identical semantic state.
+
+**Secondary use case:** chaining multiple MDLD documents into a reproducible
+edit chain. Each document's resolved `quads` and `remove` arrays (already
+live-buffer-resolved by `parse()`) are folded into a shared session buffer.
+
+`merge()` subsumes `parse()` and `applyDiff()` as thin wrappers.
+No existing logic changes. ~80 lines of new glue code.
 
 ---
 
@@ -25,17 +32,17 @@ type MergeInput = string | ParseResult
 interface MergeOptions {
   context?:        PrefixMap    // seed context — applied before any document is parsed
   dataFactory?:    DataFactory  // RDF/JS DataFactory
-  materialize?:    boolean      // if true, produce .text via applyDiff on last text input
+  materialize?:    boolean      // if true, produce .text via applyDiff on last string input
   inheritContext?: boolean      // if true, prefix declarations bleed across documents
                                 // DEFAULT: false — each document is self-contained
 }
 
 interface MergeResult {
   quads:    Quad[]       // final asserted graph state
-  remove:   Quad[]       // net retractions targeting external prior state
+  remove:   Quad[]       // net retractions targeting state outside this merge call
   origin:   MergeOrigin  // provenance chain across all input documents
   context:  PrefixMap    // union of all contexts encountered, left-to-right
-  text?:    string       // materialized clean MDLD — only if materialize: true
+  text?:    string       // compacted MDLD — only present if materialize: true
 }
 ```
 
@@ -43,108 +50,118 @@ interface MergeResult {
 
 ## 2. Ordering invariant (normative)
 
-**The caller owns document ordering. `merge()` never infers, reorders, or sorts its inputs.**
+**The caller owns document ordering. `merge()` never infers, reorders, or sorts.**
 
-Documents are processed strictly in the array order supplied. This is the core
-MDLD single-pass guarantee extended to sequences. Supplying documents in the
-wrong order produces wrong results — this is by design, not a bug. The calling
-layer (filesystem walker, version control, Semantic OS chain manager) is
-responsible for establishing canonical order before calling `merge()`.
+Documents are processed strictly in the array order supplied.
+The calling layer (Semantic OS chain manager, version control, user code)
+is responsible for establishing canonical order before calling `merge()`.
 
-Corollary: `merge()` must never accept a directory path, glob, or any input
-that would require it to impose an ordering. Only explicit arrays of strings
-or ParseResults are valid inputs.
+`merge()` must never accept directory paths, globs, or any input requiring
+it to impose an ordering. Only explicit arrays of strings or ParseResults.
 
 ---
 
 ## 3. Processing model
 
-### 3.1 Shared buffer
+### 3.1 What `parse()` already resolves
 
-A single `quadBuffer: Set<Quad>` and `removeSet: Set<Quad>` span the entire
-merge session across all input documents.
+`parse()` with diff polarity implemented returns:
+- `quads` — the live-buffer state after full single-pass parse. All
+  intra-document cancels (assert then retract same quad) are already
+  resolved and silent. This is the net asserted state of that document.
+- `remove` — quads that arrived as `-` tokens but were absent from the
+  live buffer at that moment. These target state outside the document.
+
+**`merge()` never sees raw token-level retractions.** It only sees the
+already-resolved `quads` and `remove` arrays from each `parse()` call.
+The live-buffer guarantee is entirely inside `parse()`.
+
+### 3.2 Session buffer
+
+A single `sessionBuffer: Set<Quad>` and `sessionRemoveSet: Set<Quad>`
+span the merge session across all input documents.
 
 For each document in array order:
 
-1. If input is a `string` → parse it (single-pass, per existing parser)
-2. If input is a `ParseResult` → use as-is, no re-parse
-3. For each quad in `doc.quads` → `quadBuffer.add(quad)`
-4. For each quad in `doc.remove`:
-   - If `quadBuffer.has(quad)` → `quadBuffer.delete(quad)` — intra-session cancel, silent, appears in neither output array
-   - Else → `removeSet.add(quad)` — inter-session retraction, surfaces in `result.remove`
+```javascript
+// step 1 — resolve input
+const doc = typeof input === 'string'
+  ? parse(input, { context: sessionContext })
+  : input  // ParseResult passthrough — no re-parse
 
-### 3.2 Quad identity
+// step 2 — fold quads into session state
+for (const quad of doc.quads) {
+  sessionBuffer.add(quad)
+}
 
-Same five-field exact match used throughout the parser:
-`(subject.value, predicate.value, object.value, object.datatype?.value, object.language)`
+// step 3 — fold remove into session state
+for (const quad of doc.remove) {
+  if (sessionBuffer.has(quad)) {
+    sessionBuffer.delete(quad)      // inter-document cancel — silent
+  } else {
+    sessionRemoveSet.add(quad)      // external retract — surfaces in result.remove
+  }
+}
+```
 
-No new equality logic. Reuse existing `DataFactory.equals()`.
+**Two cancel levels, both silent:**
+- Intra-document: handled inside `parse()` before `merge()` sees anything
+- Inter-document: `sessionBuffer.has()` check in step 3
 
 ### 3.3 Context isolation (default)
 
-By default (`options.inheritContext` not set or `false`), **each document is
-parsed with only `options.context` as its prefix map**. Prefix declarations
-in doc₁ do not bleed into doc₂. Every document must be self-contained and
-independently readable.
+By default, each document is parsed with only `options.context` as its
+prefix map. Prefix declarations in doc₁ do not bleed into doc₂.
+Every document must be self-contained and independently readable —
+a document whose IRIs resolve differently depending on chain position
+is not a reliable semantic artifact.
 
-This is the correct default because:
-- Documents may be stored, signed, and replayed in isolation
-- A document whose IRIs resolve differently depending on what preceded it
-  in a chain is not a reliable semantic artifact
-- `options.context` already provides the right mechanism for sharing a
-  base vocabulary across all documents in a chain
+`options.context` is the right mechanism for sharing a base vocabulary.
 
 When `options.inheritContext: true`, prefix declarations accumulate
-left-to-right across documents (later declarations win on collision).
-This is an explicit opt-in for tightly coupled document families where
-shared prefixes are a known authoring convenience. Use with care.
+left-to-right (later declarations win on collision). Explicit opt-in
+for tightly coupled document families. Use with care.
 
-`result.context` always reflects the union of all contexts encountered,
-regardless of isolation mode — it is the accumulated output, not the
-per-document input.
+`result.context` always reflects the union of all contexts encountered —
+it is the accumulated output, not the per-document input.
 
-### 3.4 Tracking the last text input
+### 3.4 Tracking the anchor text
 
-For materialization (§6), `merge()` must track the last document that was
-supplied as a raw `string`. This is the anchor text that `applyDiff()` will
-operate on. If no string input was supplied (all inputs are `ParseResult`),
-materialization is not available and `materialize: true` is silently ignored
-with a warning.
+For materialization, `merge()` tracks the **last document supplied as a
+raw string**. This is the prose anchor that `applyDiff()` operates on.
+Its parsed origin provides the character-range map for all edits.
+
+If no string input exists in the session (all inputs are ParseResult),
+`materialize: true` emits a warning and `result.text` is absent.
 
 ---
 
 ## 4. Result fields
 
 ### `quads`
-Contents of `quadBuffer` after all documents processed.  
-Final asserted graph state. A quad added by doc₁ and removed by doc₃ is
-absent from both `quads` and `remove` (silent intra-session cancel).
+`sessionBuffer` contents after all documents processed.
+Final asserted graph state. All cancels (intra and inter-document) already resolved.
 
 ### `remove`
-Contents of `removeSet` after all documents processed.  
-Exclusively inter-session retractions — quads targeting state outside this
-merge call. Applying this result to an external store is exactly:
+`sessionRemoveSet` contents after all documents processed.
+Exclusively retractions targeting state **outside** this merge call.
+Applying to an external store:
 ```javascript
 store.removeQuads(result.remove)
 store.addQuads(result.quads)
 ```
 
-### Invariant
+### Hard invariant
 ```
-result.quads ∩ result.remove = ∅  // always enforced, hard error if violated
+result.quads ∩ result.remove = ∅   // always — violation is a bug
 ```
-
-### `origin`
-See §5.
 
 ### `context`
-The accumulated `PrefixMap` after processing all documents.  
-Suitable as `options.context` for a subsequent `merge()` call to seed
-prefix continuity without enabling cross-document bleed.
+Accumulated PrefixMap after all documents. Suitable as `options.context`
+for a subsequent `merge()` call without enabling bleed.
 
 ### `text`
-Only present when `options.materialize === true` and at least one string
-input was supplied. See §6 for full semantics.
+See §6. Present only when `materialize: true` and a string input exists.
 
 ---
 
@@ -152,112 +169,122 @@ input was supplied. See §6 for full semantics.
 
 ```typescript
 interface MergeOrigin {
-  documents: DocumentOrigin[]          // one entry per input, in merge order
-  quadIndex: Map<Quad, QuadOrigin>     // indexes both quads and remove entries
+  documents: DocumentOrigin[]       // one per input, in merge order
+  quadIndex: Map<Quad, QuadOrigin>  // covers quads and remove entries
 }
 
 interface DocumentOrigin {
-  index:    number              // position in input array (0-based)
+  index:    number                  // position in input array (0-based)
   input:    'string' | 'ParseResult'
-  origin:   Origin              // per-document origin from parse()
-  context:  PrefixMap           // context used to parse THIS document (isolated or inherited)
+  origin:   Origin                  // per-document origin from parse()
+  context:  PrefixMap               // context used to parse this document
 }
 
 interface QuadOrigin {
-  documentIndex: number         // which document emitted this quad
+  documentIndex: number             // which document emitted this quad
   blockId:       string
   entryIndex:    number
   range:         Range
   carrierType:   CarrierType
   isVacant:      boolean
-  polarity:      '+' | '-'      // '+' for all quads in result.quads, '-' for result.remove
+  polarity:      '+' | '-'
 }
 ```
 
-`quadIndex` covers all quads in both `result.quads` and `result.remove`.  
-Full traceability: every quad can be traced to its exact source location
-in its source document, regardless of polarity.
-
-The `polarity` field on `QuadOrigin` is the only addition relative to the
-existing `Origin` type. All existing `locate()` calls work unchanged.
+`quadIndex` covers all quads in both `result.quads` and `result.remove`.
+Every quad is traceable to its exact source location in its source document.
+All existing `locate()` calls work unchanged.
 
 ---
 
 ## 6. Materialization via `applyDiff()`
 
-When `options.materialize === true`, `merge()` produces `result.text` by
-applying accumulated diffs **onto the last string input** using the existing
-`applyDiff()` three-phase machinery (plan → materialize edits → apply + reparse).
+### Primary use case — single document compaction
+
+A single MDLD document accumulates `-` polarity tokens as the author edits.
+`merge(doc, { materialize: true })` compacts it:
+
+```javascript
+// author's living document
+const doc = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Software Engineer] {my:jobTitle}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`
+
+const { quads, text } = merge(doc, { materialize: true })
+// text: clean MDLD, polarity markers resolved, prose preserved
+// quads: identical to merge(doc).quads
+```
+
+The document is both the parse source and the `applyDiff()` anchor.
+All intra-document cancels were already resolved by `parse()` live-buffer.
+`applyDiff()` only needs to materialise vacant slots left by external retracts.
+
+### Multi-document use case — chain compaction
+
+```javascript
+const { text } = merge([docA, docB, docC], { materialize: true })
+// text anchored to docC (last string input)
+// applyDiff() applies net diff relative to docC's state onto docC's text
+```
 
 ### Why `applyDiff()` and not `generate()`
 
-`generate()` produces valid MDLD from a quad set but is **editorially lossy** —
-it discards prose structure, section order, narrative context, and vacant slots.
-The output is semantically equivalent but unrecognizable to a human editor.
+`generate()` is editorially lossy — it discards prose structure, section
+order, narrative context, and vacant slots. Output is semantically correct
+but unrecognizable to a human editor.
 
-`applyDiff()` operates on the **source text** with character-range precision.
-It preserves everything the author wrote and only touches the specific carriers
-that changed. The materialized output is the same document with diffs resolved —
+`applyDiff()` operates on source text with character-range precision.
+It preserves everything the author wrote and only touches changed carriers.
+The materialized output is the same document with polarity resolved —
 still readable, still editable, still the author's document.
 
 ### Materialization process
 
 ```javascript
-lastText = last string input in the merge session
-accumulatedDiff = {
-  add:    result.quads,   // final asserted state
-  delete: result.remove   // net inter-session retractions
+const anchorText   = lastStringInput           // last raw string in session
+const anchorOrigin = its parse().origin        // character-range map
+const anchorQuads  = its parse().quads         // what anchorText currently asserts
+
+// net diff from anchorText's state to final merged state
+const netDiff = {
+  add:    sessionBuffer  // quads to assert (some may already be in anchorQuads)
+  delete: sessionRemoveSet // quads to retract from anchorText's state
 }
 
 result.text = applyDiff({
-  text:    lastText,
-  diff:    accumulatedDiff,
-  origin:  origin of lastText,
+  text:    anchorText,
+  diff:    netDiff,
+  origin:  anchorOrigin,
   options: { context: result.context }
 }).text
 ```
 
-The accumulated diff expresses the net change from `lastText`'s state to the
-final merged state. `applyDiff()` resolves this against the actual source
-positions tracked in `lastText`'s origin — using vacant slots, literal updates,
-and range-based edits exactly as it does today.
+`applyDiff()` handles the rest via its existing three-phase pipeline:
+plan (literal updates, vacant slot occupations, deletes, adds) →
+materialize edits (character ranges) → apply + reparse.
+
+No changes to `applyDiff()` internals required. The only relaxation needed
+is accepting a pre-assembled `{add, delete}` object directly — which it
+already supports via its existing `diff` parameter.
+
+### Compaction guarantee (normative)
+
+```
+merge(result.text).quads ≡ result.quads
+```
+
+Same quad set always. Compaction is semantics-preserving by construction —
+it uses the same `applyDiff()` + `parse()` pipeline that produced `result.quads`.
 
 ### Properties of materialized output
 
-- **Prose-preserving** — only changed carriers are touched, all prose survives
-- **Vacant-slot-aware** — removed values leave proper vacant slots for future edits
-- **No polarity markers** — all `-`/`+` are resolved, output is pure assertions
-- **Valid genesis document** — `merge(result.text)` produces identical `quads`
-- **Independently readable** — self-contained, no chain dependency
-
-### Compaction pattern
-
-The natural use of materialization is periodic compaction of a document's
-own edit history. An MDLD file accumulates `-`/`+` pairs over time as the
-author makes changes. Compaction collapses them:
-
-```javascript
-const { text } = merge(editedDoc, { materialize: true })
-// write text back to disk — clean, no polarity markers, same semantic state
-```
-
-**Compaction guarantee (normative):**
-```
-merge(compact).quads ≡ merge(original).quads
-```
-Same quad set, always. Compaction is semantics-preserving by construction
-because it uses the same `applyDiff()` + `parse()` pipeline.
-
-### Limitation
-
-If all inputs are `ParseResult` (no string input in the session), the source
-text is unavailable and `applyDiff()` cannot operate. In this case:
-- `materialize: true` is ignored
-- A warning is emitted: `"materialize requires at least one string input"`
-- `result.text` is absent
-
-A future `materialize: 'generate'` mode may fall back to `generate()` for
-purely quad-derived snapshots where prose fidelity is not required.
+- **Prose-preserving** — only changed carriers touched, all prose survives
+- **Vacant-slot-aware** — removed values leave proper slots for future edits
+- **No polarity tokens** — all `-p` resolved, output is pure assertions
+- **Valid standalone document** — `merge(result.text)` produces identical `quads`
+- **Self-contained** — no chain dependency, independently readable
 
 ---
 
@@ -266,14 +293,16 @@ purely quad-derived snapshots where prose fidelity is not required.
 | Call | Equivalent to |
 |---|---|
 | `merge(text)` | `parse(text)` |
-| `merge(text, { materialize: true })` | `parse(text)` then `applyDiff()` self-application |
-| `merge([baseText, diffText])` | `applyDiff({ text: baseText, diff: parse(diffText) })` |
+| `merge(text, { materialize: true })` | `parse(text)` + `applyDiff()` self-compaction |
+| `merge([textA, textB])` | parse both, fold session buffers, no text output |
+| `merge([textA, textB], { materialize: true })` | fold + `applyDiff()` onto `textB` |
 | `merge(parsedResult)` | identity passthrough, no re-parse |
 | `merge([a, b, c, d])` | full replay chain |
-| `merge([a, b, c], { materialize: true })` | replay chain + compact onto `c`'s text |
 
-`parse()` and `applyDiff()` become thin wrappers over `merge()` for
-backwards compatibility, or are deprecated in favour of direct `merge()` usage.
+`parse()` → `merge(text)`  
+`applyDiff({ text, diff, origin, options })` → `merge([text, diffText], { materialize: true })`
+
+Both kept as thin wrappers for backwards compatibility.
 
 ---
 
@@ -281,130 +310,183 @@ backwards compatibility, or are deprecated in favour of direct `merge()` usage.
 
 ### 8.1 Single document — parse() equivalence
 ```javascript
-const result = merge(`
+merge(`
 [my] <tag:hr@example.com,2026:>
 # Employee {=my:emp456 .my:Employee}
-[Alice]{my:name}
+[Alice] {my:name}
 `)
 ```
-Expected: identical `quads` to `parse()` on same input. `remove: []`.
+Expected: identical `quads` to `parse()`. `remove: []`.
 
-### 8.2 Two documents — state transition
+### 8.2 Single document compaction — primary use case
+```javascript
+const doc = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Software Engineer] {my:jobTitle}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`
+
+const result = merge(doc, { materialize: true })
+```
+
+Session trace (inside `parse()`, live-buffer):
+```
+.my:Employee             → sessionBuffer: {type:Employee}
+my:jobTitle "SE"         → sessionBuffer: {type:Employee, jobTitle:SE}
+-my:jobTitle "SE"        → has() ✓ → delete()    INTRA-DOC CANCEL
+my:jobTitle "SSE"        → sessionBuffer: {type:Employee, jobTitle:SSE}
+```
+
+Expected:
+- `quads` contains `emp456 jobTitle "Senior Software Engineer"`
+- `quads` contains `emp456 type Employee`
+- `remove` is **empty** — cancel was intra-document, resolved inside `parse()`
+- `result.text` contains `[Senior Software Engineer] {my:jobTitle}` — polarity token gone
+- `merge(result.text).quads` ≡ `result.quads`
+
+### 8.3 Two documents — inter-document cancel
 ```javascript
 merge([
   `[my] <tag:hr@example.com,2026:>
    # Employee {=my:emp456 .my:Employee}
-   [Software Engineer]{my:jobTitle}`,
+   [Software Engineer] {my:jobTitle}`,
 
   `[my] <tag:hr@example.com,2026:>
    # Employee {=my:emp456}
-   -[Software Engineer]{my:jobTitle}
-   [Senior Software Engineer]{my:jobTitle}`
+   [Software Engineer] {-my:jobTitle}
+   [Senior Software Engineer] {my:jobTitle}`
 ])
 ```
+
+Session trace:
+```
+doc₁ parse() → quads: {type:Employee, jobTitle:"SE"}   remove: []
+doc₂ parse() → quads: {jobTitle:"SSE"}                 remove: {jobTitle:"SE"}
+
+fold doc₁: sessionBuffer = {type:Employee, jobTitle:"SE"}
+fold doc₂ quads: sessionBuffer = {type:Employee, jobTitle:"SE", jobTitle:"SSE"}
+fold doc₂ remove: sessionBuffer.has(jobTitle:"SE") ✓ → delete()   INTER-DOC CANCEL
+```
+
 Expected:
-- `quads` contains `my:jobTitle "Senior Software Engineer"`
-- `quads` does NOT contain `"Software Engineer"`
-- `remove` contains `my:jobTitle "Software Engineer"` (inter-session retraction)
+- `quads` contains `emp456 jobTitle "Senior Software Engineer"`
+- `quads` contains `emp456 type Employee`
+- `remove` is **empty** — inter-document cancel, resolved in session fold
 - `origin.documents.length === 2`
 
-### 8.3 Intra-session silent cancel
+### 8.4 External retract — `remove` is populated
 ```javascript
-merge([
-  `[my] <tag:hr@example.com,2026:>
-   # Employee {=my:emp456}
-   [Engineer]{my:jobTitle}`,
-
-  `[my] <tag:hr@example.com,2026:>
-   {=my:emp456}
-   -[Engineer]{my:jobTitle}`
-])
+merge(`[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`)
 ```
-Expected: `"Engineer"` absent from both `quads` and `remove`. Silent cancel.
 
-### 8.4 Context isolation (default)
+Session trace (inside `parse()`, live-buffer):
+```
+-my:jobTitle "SE"   → has()? NO → removeSet.add()   EXTERNAL RETRACT
+my:jobTitle "SSE"   → sessionBuffer.add()
+```
+
+Expected:
+- `quads` contains `emp456 jobTitle "Senior Software Engineer"`
+- `remove` contains `emp456 jobTitle "Software Engineer"`
+- This is the diff authoring case — "SE" lived in a prior store or document
+
+### 8.5 Type migration — single annotation, single document
+```javascript
+merge(`[my] <tag:hr@example.com,2026:>
+# Project Alpha {=my:proj .my:ActiveProject}
+# Project Alpha {=my:proj -.my:ActiveProject .my:ArchivedProject}`)
+```
+
+Session trace:
+```
+.my:ActiveProject    → sessionBuffer.add()
+-.my:ActiveProject   → has() ✓ → delete()    INTRA-DOC CANCEL
+.my:ArchivedProject  → sessionBuffer.add()
+```
+
+Expected:
+- `quads` contains `proj type ArchivedProject`
+- `quads` does NOT contain `proj type ActiveProject`
+- `remove` is **empty**
+
+### 8.6 Context isolation (default)
 ```javascript
 merge([
   `[my] <tag:hr@example.com,2026:>
    # Employee {=my:emp456}`,
-
-  // does NOT redeclare [my] prefix
   `# Employee {=my:emp456}
-   [Alice]{my:name}`
+   [Alice] {my:name}`   // no [my] prefix declaration
 ])
 ```
-Expected: second document fails to resolve `my:` — parse warning emitted,
-`my:name` triple absent or flagged. Prefix from doc₁ did NOT bleed.
+Expected: parse warning on doc₂, `my:name` triple absent, prefix did NOT bleed.
 
-### 8.5 Context inheritance opt-in
-Same input as 8.4 but with `{ inheritContext: true }`.  
-Expected: `my:` resolves in doc₂, `my:name "Alice"` present in `quads`.
+### 8.7 Context inheritance opt-in
+Same as 8.6 with `{ inheritContext: true }`.
+Expected: `my:name "Alice"` present in `quads`.
 
-### 8.6 Materialization — prose preserved
+### 8.8 Multi-document materialization — anchor is last string
 ```javascript
-const result = merge([
-  `[my] <tag:hr@example.com,2026:>
-   # Employee {=my:emp456}
-   [Software Engineer]{my:jobTitle}`,
-
-  `[my] <tag:hr@example.com,2026:>
-   {=my:emp456}
-   -[Software Engineer]{my:jobTitle}
-   [Senior Software Engineer]{my:jobTitle}`
-], { materialize: true })
+const result = merge([docA, docB, docC], { materialize: true })
 ```
 Expected:
-- `result.text` contains `[Senior Software Engineer]{my:jobTitle}`
-- `result.text` does NOT contain `-[Software Engineer]`
-- `merge(result.text).quads` ≡ `result.quads` (compaction guarantee)
+- `result.text` is `docC`'s prose with net diff from all three docs applied
+- `merge(result.text).quads` ≡ `result.quads`
+- `docA` and `docB`'s prose is NOT in `result.text` — anchor is `docC`
 
-### 8.7 Compaction — self-application
-```javascript
-const editedDoc = `[my] <tag:hr@example.com,2026:>
-# Employee {=my:emp456}
--[Engineer]{my:jobTitle}
-[Senior Engineer]{my:jobTitle}`
-
-const { text } = merge(editedDoc, { materialize: true })
-```
-Expected:
-- `text` contains `[Senior Engineer]{my:jobTitle}`
-- `text` does NOT contain `-[Engineer]`
-- `merge(text).quads` ≡ `merge(editedDoc).quads`
-
-### 8.8 ParseResult passthrough — no re-parse
+### 8.9 ParseResult passthrough — no re-parse
 ```javascript
 const parsed = merge(text)
 const result = merge([parsed, diffText])
 ```
 Expected: `parsed` not re-parsed. `result.origin.documents[0].input === 'ParseResult'`.
 
-### 8.9 Invariant — enforced on all fixtures
-`result.quads ∩ result.remove = ∅` — assert as post-condition on every test.
-
 ### 8.10 Materialize with no string input — warning
 ```javascript
-const a = merge(textA)
-const b = merge(textB)
-merge([a, b], { materialize: true })
+merge([merge(textA), merge(textB)], { materialize: true })
 ```
-Expected: warning emitted, `result.text` absent, `quads` and `remove` correct.
+Expected: warning emitted, `result.text` absent, `quads`/`remove` correct.
+
+### 8.11 Compaction guarantee — all materialization tests
+For every test where `materialize: true`:
+```
+merge(result.text).quads ≡ result.quads
+```
+Assert as post-condition.
+
+### 8.12 Hard invariant — all tests
+```
+result.quads ∩ result.remove = ∅
+```
+Assert as post-condition on every test. Violation is a bug.
 
 ---
 
-## 9. Minimal change surface
+## 9. Implementation — minimal change surface
 
-| Layer | Change |
-|---|---|
-| `parse()` | Add `remove: Quad[]` to return (per diff-polarity spec) |
-| `merge()` | New function — ~80 lines, loop + shared buffer + applyDiff call |
-| `applyDiff()` | Accept pre-computed `{add, delete}` from merge session directly (one-line signature relaxation) |
-| `MergeOrigin` | New type wrapping existing `Origin` per document |
-| `QuadOrigin` | Add `polarity: '+' \| '-'` and `documentIndex: number` fields |
-| `parse()`, `applyDiff()` exports | Thin wrappers for backwards compatibility |
-| All other internals | No change |
+```
+parse()              already done — returns quads + remove
+                     no further changes needed
 
-The `applyDiff()` three-phase pipeline (plan → materialize → apply+reparse)
-requires no logic changes — only that `merge()` can call it with a
-pre-assembled `{add, delete}` quad diff rather than always computing it
-internally. This is a one-line signature relaxation, not a rewrite.
+merge()              new function ~80 lines
+                     - iterate inputs, parse strings, passthrough ParseResults
+                     - fold doc.quads → sessionBuffer
+                     - fold doc.remove → sessionBuffer.delete or sessionRemoveSet
+                     - track last string input + its origin for materialization
+                     - if materialize: call applyDiff() with netDiff
+                     - return { quads, remove, origin, context, text? }
+
+applyDiff()          no internal changes
+                     already accepts pre-assembled {add, delete} via diff param
+
+MergeOrigin          new type — wraps existing Origin per document
+QuadOrigin           add documentIndex + polarity fields to existing type
+
+parse() export       thin wrapper: merge(text, options)
+applyDiff() export   thin wrapper: merge([text, diffText], { materialize: true })
+```
+
+Total new logic: ~80 lines in `merge()`, ~5 lines of wrapper adjustments.
+Zero changes to parser internals, token routing, or `applyDiff()` pipeline.
