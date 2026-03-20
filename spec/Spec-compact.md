@@ -139,6 +139,23 @@ Multiple types allowed: `.Person .Astronaut`
 
 **Emission rule:** Create quad only if all nodes exist and roles are valid.
 
+### 8.1 Diff Polarity (Remove Tokens)
+
+Prefix `-` to any predicate for remove polarity:
+
+| Syntax | Effect |
+|--------|--------|
+| `-p`   | Remove S→L fact |
+| `-?p`  | Remove S→O fact |
+| `-!p`  | Remove O→S fact |
+| `-.C`  | Remove rdf:type fact |
+
+**Live state routing:** Cancel if quad exists in buffer, else add to remove array.
+
+**Parse result:** `{ quads, remove, origin, context }`
+
+**Invariant:** `quads ∩ remove = ∅`
+
 ---
 
 ## 9. Literals

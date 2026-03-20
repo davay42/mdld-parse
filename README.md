@@ -70,6 +70,7 @@ Read the [FULL SPEC](./spec/Spec.md), or study [examples](./examples/index.md)
 - **Type declarations**: `.Class` for rdf:type triples
 - **Datatypes & language**: `^^xsd:date` and `@en` support
 - **Fragments**: Built-in document structuring with `{=#fragment}`
+- **Diff polarity**: Remove tokens with `-` prefix for diff authoring
 - **Round-trip serialization**: Markdown ↔ RDF ↔ Markdown preserves structure
 
 ## Installation
@@ -320,6 +321,96 @@ Build hierarchical namespaces by referencing previously defined prefixes:
 - **Hierarchical**: Build deep namespace structures
 - **Streaming-safe**: Forward-reference only, single-pass parsing
 
+## Diff Polarity: Remove Tokens for Diff Authoring
+
+Add per-predicate remove polarity to retract quads during parsing. Use `-` prefix on any predicate token to route it as a retraction against the live graph state.
+
+### Basic Remove Syntax
+
+```markdown
+[my] <tag:hr@example.com,2026:>
+
+# Employee {=my:emp456 .my:Employee}
+[Software Engineer] {my:jobTitle}
+[Software Engineer] {-my:jobTitle}    # Remove previous title
+[Senior Software Engineer] {my:jobTitle}  # Add new title
+```
+
+**Results:**
+- `quads`: Contains `Senior Software Engineer` job title
+- `remove`: Empty (cancelled in-stream)
+
+### External Retraction
+
+When removing a quad that doesn't exist in the current document:
+
+```markdown
+# Employee {=my:emp456}
+[Software Engineer] {-my:jobTitle}  # External retract
+[Senior Software Engineer] {my:jobTitle}
+```
+
+**Results:**
+- `quads`: Contains `Senior Software Engineer` job title  
+- `remove`: Contains `Software Engineer` job title (targets prior state)
+
+### Remove Token Forms
+
+| Token | Normal | Remove | Effect |
+|-------|---------|--------|---------|
+| `p` | `[value] {label}` | `[value] {-label}` | Remove literal property |
+| `?p` | `[obj] {?rel}` | `[obj] {-?rel}` | Remove object property |
+| `!p` | `[obj] {!rel}` | `[obj] {-!rel}` | Remove reverse property |
+| `.C` | `{.Type}` | `{-.Type}` | Remove type assertion |
+
+### Mixed Polarity
+
+Same annotation can have both add and remove tokens:
+
+```markdown
+# Doc {=my:doc -.my:Draft .my:Published -my:version}
+[2.0] {my:version}
+```
+
+**Streaming trace:**
+1. `-.my:Draft` → External retract (Draft not in current state)
+2. `.my:Published` → Add Published type
+3. `-my:version "Doc"` → External retract (version not in current state)  
+4. `my:version "2.0"` → Add version 2.0
+
+### Type Migration
+
+Replace types in a single annotation:
+
+```markdown
+# Project Alpha {=my:proj -.my:ActiveProject .my:ArchivedProject}
+```
+
+**Results:**
+- `quads`: `my:proj rdf:type my:ArchivedProject`
+- `remove`: `my:proj rdf:type my:ActiveProject`
+
+### Live State Guarantee
+
+The parser maintains a live quad buffer representing the current graph state at every point during parsing. Remove tokens route against this state:
+
+- **If quad exists in buffer** → Cancel immediately (appears nowhere)
+- **If quad absent from buffer** → Add to remove array (external retract)
+
+This enables powerful diff authoring while maintaining streaming-safe single-pass parsing.
+
+### Invalid Remove Syntax
+
+Some tokens don't support remove polarity and will warn:
+
+```markdown
+# These warn but don't crash
+{-=my:subject}     # Subject declarations have no polarity
+{-+my:object}      # Object declarations have no polarity  
+{-^^xsd:date}      # Datatype modifiers have no polarity
+{-@en}             # Language tags have no polarity
+```
+
 ## API Reference
 
 ### `parse(markdown, options)`
@@ -333,12 +424,13 @@ Parse MD-LD markdown and return RDF quads with origin tracking.
   - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
   - `dataFactory` (object) — Custom RDF/JS DataFactory
 
-**Returns:** `{ quads, origin, context }`
+**Returns:** `{ quads, remove, origin, context }`
 
-- `quads` — Array of RDF/JS Quads
+- `quads` — Array of RDF/JS Quads (final resolved graph state)
+- `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
 - `origin` — Origin tracking object with:
   - `blocks` — Map of block IDs to source locations
-  - `quadIndex` — Map of quads to block IDs
+  - `quadIndex` — Map of quads to block IDs with polarity tracking
 - `context` — Final context used (includes prefixes)
 
 **Example:**
@@ -347,7 +439,8 @@ Parse MD-LD markdown and return RDF quads with origin tracking.
 const result = parse(
   `# Article {=ex:article .ex:Article}
   
-  [Alice] {=ex:alice ?author}`,
+  [Alice] {=ex:alice ?author}
+  [Bob] {-ex:author}`,  // Remove previous author
   { context: { ex: 'http://example.org/' } }
 );
 
@@ -358,7 +451,30 @@ console.log(result.quads);
 //     predicate: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
 //     object: { termType: 'NamedNode', value: 'http://example.org/Article' }
 //   },
-//   ...
+//   {
+//     subject: { termType: 'NamedNode', value: 'http://example.org/article' },
+//     predicate: { termType: 'NamedNode', value: 'http://example.org/author' },
+//     object: { termType: 'NamedNode', value: 'http://example.org/alice' }
+//   }
+// ]
+
+console.log(result.remove);
+// [] - Empty because Alice author was cancelled in-stream
+
+// For external retractions:
+const result2 = parse(
+  `# Article {=ex:article}
+  [Alice] {-ex:author}`,  // External retract (Alice not in current state)
+  { context: { ex: 'http://example.org/' } }
+);
+
+console.log(result2.remove);
+// [
+//   {
+//     subject: { termType: 'NamedNode', value: 'http://example.org/article' },
+//     predicate: { termType: 'NamedNode', value: 'http://example.org/author' },
+//     object: { termType: 'NamedNode', value: 'http://example.org/alice' }
+//   }
 // ]
 ```
 

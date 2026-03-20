@@ -1169,5 +1169,215 @@ List items:
             );
             assert(containerMemberQuads.length === 3, 'All list items should be members of container');
         }
+    },
+
+    // Diff Polarity Tests
+    {
+        name: 'Intra-document cancel — remove is empty',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Software Engineer] {my:jobTitle}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Senior Software Engineer'),
+                'Should have final job title');
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:emp456', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:Employee'),
+                'Should have employee type');
+            assert(remove.length === 0, `Remove should be empty, got ${remove.length}`);
+            assert(!hasQuad(quads, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Software Engineer'),
+                'Software Engineer should be cancelled');
+        }
+    },
+
+    {
+        name: 'External retract — remove is populated',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Senior Software Engineer'),
+                'Should have final job title');
+            assert(remove.length === 1, `Remove should have 1 triple, got ${remove.length}`);
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Software Engineer'),
+                'Should have Software Engineer in remove');
+        }
+    },
+
+    {
+        name: 'Type migration — single annotation',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Project Alpha {=my:proj -.my:ActiveProject .my:ArchivedProject}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:proj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:ArchivedProject'),
+                'Should have Archived type');
+            assert(remove.length === 1, `Remove should have 1 triple, got ${remove.length}`);
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:proj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:ActiveProject'),
+                'Should have Active type in remove');
+        }
+    },
+
+    {
+        name: 'Type migration — with prior assertion in same document',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Project Alpha {=my:proj .my:ActiveProject}
+# Project Alpha {=my:proj -.my:ActiveProject .my:ArchivedProject}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:proj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:ArchivedProject'),
+                'Should have Archived type');
+            assert(remove.length === 0, `Remove should be empty, got ${remove.length}`);
+            assert(!hasQuad(quads, 'tag:hr@example.com,2026:proj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:ActiveProject'),
+                'Active type should be cancelled');
+        }
+    },
+
+    {
+        name: 'Object triple remove',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Team {=my:team789}
+[old member] {-?my:hasMember +my:emp123}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 0, `Should emit 0 triples, got ${quads.length}`);
+            assert(remove.length === 1, `Remove should have 1 triple, got ${remove.length}`);
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:team789', 'tag:hr@example.com,2026:hasMember', 'tag:hr@example.com,2026:emp123'),
+                'Should have member relationship in remove');
+        }
+    },
+
+    {
+        name: 'Reverse triple remove',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Chapter {=my:ch1}
+[Book] {-!my:hasPart +my:book}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 0, `Should emit 0 triples, got ${quads.length}`);
+            assert(remove.length === 1, `Remove should have 1 triple, got ${remove.length}`);
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:book', 'tag:hr@example.com,2026:hasPart', 'tag:hr@example.com,2026:ch1'),
+                'Should have reverse relationship in remove');
+        }
+    },
+
+    {
+        name: 'Block carriers — all types',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+{=my:doc}
+# Old Title {-label}
+# New Title {label}
+> old quote {-prov:value}
+> new quote {prov:value}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:', prov: 'http://www.w3.org/ns/prov#' } });
+
+            assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'New Title'),
+                'Should have new title');
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:doc', 'http://www.w3.org/ns/prov#value', 'new quote'),
+                'Should have new quote');
+            assert(remove.length === 2, `Remove should have 2 triples, got ${remove.length}`);
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:doc', 'http://www.w3.org/2000/01/rdf-schema#label', 'Old Title'),
+                'Should have old title in remove');
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:doc', 'http://www.w3.org/ns/prov#value', 'old quote'),
+                'Should have old quote in remove');
+        }
+    },
+
+    {
+        name: 'Mixed polarity — same annotation',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Doc {=my:doc -.my:Draft .my:Published -my:version}
+[2.0] {my:version}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 2, `Should emit 2 triples, got ${quads.length}`);
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:doc', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:Published'),
+                'Should have Published type');
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:doc', 'tag:hr@example.com,2026:version', '2.0'),
+                'Should have version 2.0');
+            assert(remove.length === 2, `Remove should have 2 triples, got ${remove.length}`);
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:doc', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:Draft'),
+                'Should have Draft type in remove');
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:doc', 'tag:hr@example.com,2026:version', 'Doc'),
+                'Should have version Doc in remove');
+        }
+    },
+
+    {
+        name: 'Subject context unaffected by remove token',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Engineer] {-my:jobTitle}
+[Alice] {my:name}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:name', 'Alice'),
+                'Should have name Alice');
+            assert(remove.length === 1, `Remove should have 1 triple, got ${remove.length}`);
+            assert(hasQuad(remove, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Engineer'),
+                'Should have Engineer job title in remove');
+        }
+    },
+
+    {
+        name: 'Invalid -= — warning, not error',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Doc {-=my:doc .my:Article}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(quads.length === 1, `Should emit 1 triple, got ${quads.length}`);
+            assert(hasQuad(quads, 'tag:hr@example.com,2026:doc', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:Article'),
+                'Should have Article type');
+            assert(remove.length === 0, `Remove should be empty, got ${remove.length}`);
+        }
+    },
+
+    {
+        name: 'Hard invariant — quads ∩ remove = ∅',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Test {=my:test}
+[value] {label}
+[value] {-label}
+[value2] {label}`;
+            const { quads, remove } = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+
+            // Check that no quad appears in both arrays
+            const quadKeys = new Set();
+            quads.forEach(q => {
+                quadKeys.add(`${q.subject.value}|${q.predicate.value}|${q.object.value}`);
+            });
+
+            let overlap = false;
+            remove.forEach(q => {
+                const key = `${q.subject.value}|${q.predicate.value}|${q.object.value}`;
+                if (quadKeys.has(key)) {
+                    overlap = true;
+                }
+            });
+
+            assert(!overlap, 'Hard invariant violated: quads ∩ remove should be empty');
+            assert(quads.length === 1, `Should have 1 quad, got ${quads.length}`);
+            assert(remove.length === 0, `Remove should be empty for intra-document cancellation, got ${remove.length}`);
+        }
     }
 ];

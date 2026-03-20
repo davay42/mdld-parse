@@ -314,19 +314,32 @@ export function parseSemanticBlock(raw) {
         let m;
 
         while ((m = re.exec(cleaned)) !== null) {
-            const token = m[0];
+            let token = m[0];
             const relStart = 1 + m.index;
             const relEnd = relStart + token.length;
             const entryIndex = result.entries.length;
 
+            // Handle remove polarity - strip leading - and set remove flag
+            let remove = false;
+            if (token.startsWith('-') && token.length > 1) {
+                remove = true;
+                token = token.slice(1);
+            }
+
             // Handle special tokens
             if (token === '=') {
+                if (remove) {
+                    console.warn('-= is not valid, subject declarations have no polarity');
+                }
                 result.subject = 'RESET';
                 result.entries.push({ kind: 'subjectReset', relRange: { start: relStart, end: relEnd }, raw: token });
                 continue;
             }
 
             if (token.startsWith('=') && !token.startsWith('=#')) {
+                if (remove) {
+                    console.warn('-= is not valid, subject declarations have no polarity');
+                }
                 const iri = token.substring(1);
                 result.subject = iri;
                 result.entries.push({ kind: 'subject', iri, relRange: { start: relStart, end: relEnd }, raw: token });
@@ -337,7 +350,7 @@ export function parseSemanticBlock(raw) {
             let processed = false;
             for (const [pattern, config] of Object.entries(TOKEN_PATTERNS)) {
                 if (token.startsWith(pattern)) {
-                    const entry = { kind: config.kind, relRange: { start: relStart, end: relEnd }, raw: token };
+                    const entry = { kind: config.kind, relRange: { start: relStart, end: relEnd }, raw: m[0] };
                     const extracted = config.extract(token);
 
                     if (config.kind === 'fragment') {
@@ -347,22 +360,36 @@ export function parseSemanticBlock(raw) {
                         result.object = `#${extracted}`;
                         entry.fragment = extracted;
                     } else if (config.kind === 'object') {
+                        if (remove) {
+                            console.warn('-+ is not valid, object declarations have no polarity');
+                            remove = false;
+                        }
                         result.object = extracted;
                         entry.iri = extracted;
                     } else if (config.kind === 'datatype') {
+                        if (remove) {
+                            console.warn('-^^ is not valid, datatype modifiers have no polarity');
+                            remove = false;
+                        }
                         if (!result.language) result.datatype = extracted;
                         entry.datatype = extracted;
                     } else if (config.kind === 'language') {
+                        if (remove) {
+                            console.warn('-@ is not valid, language modifiers have no polarity');
+                            remove = false;
+                        }
                         result.language = extracted;
                         result.datatype = null;
                         entry.language = extracted;
                     } else if (config.kind === 'type') {
-                        result.types.push({ iri: extracted, entryIndex });
+                        result.types.push({ iri: extracted, entryIndex, remove });
                         entry.iri = extracted;
+                        entry.remove = remove;
                     } else if (config.kind === 'property') {
-                        result.predicates.push({ iri: extracted, form: config.form, entryIndex });
+                        result.predicates.push({ iri: extracted, form: config.form, entryIndex, remove });
                         entry.iri = extracted;
                         entry.form = config.form;
+                        entry.remove = remove;
                     }
 
                     result.entries.push(entry);
@@ -373,8 +400,8 @@ export function parseSemanticBlock(raw) {
 
             // Default case (no pattern match)
             if (!processed) {
-                result.predicates.push({ iri: token, form: '', entryIndex });
-                result.entries.push({ kind: 'property', iri: token, form: '', relRange: { start: relStart, end: relEnd }, raw: token });
+                result.predicates.push({ iri: token, form: '', entryIndex, remove });
+                result.entries.push({ kind: 'property', iri: token, form: '', relRange: { start: relStart, end: relEnd }, raw: m[0], remove });
             }
         }
 

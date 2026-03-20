@@ -433,6 +433,75 @@ If anything is missing, **no fact is created** - this prevents errors.
 
 MD-LD implementations must support all three forms. They're not optional - they're core to how MD-LD works.
 
+### 8.5 Diff Polarity: Remove Tokens
+
+MD-LD supports per-predicate remove polarity using the `-` prefix. This enables diff authoring by allowing tokens to retract quads against the live graph state during parsing.
+
+#### Remove Token Syntax
+
+| Token | Normal Form | Remove Form | Effect |
+|-------|-------------|-------------|--------|
+| Literal predicate | `p` | `-p` | Remove S→L fact |
+| Object predicate | `?p` | `-?p` | Remove S→O fact |
+| Reverse predicate | `!p` | `-!p` | Remove O→S fact |
+| Type declaration | `.C` | `-.C` | Remove rdf:type fact |
+
+#### Live State Routing
+
+The parser maintains a live quad buffer representing the current graph state. Remove tokens route against this state:
+
+1. **If quad exists in buffer** → Cancel immediately (appears nowhere)
+2. **If quad absent from buffer** → Add to remove array (external retract)
+
+#### Examples
+
+**Intra-document cancellation:**
+```md
+[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Software Engineer] {my:jobTitle}
+[Software Engineer] {-my:jobTitle}    # Cancel previous
+[Senior Software Engineer] {my:jobTitle}
+```
+Result: `quads` contains only Senior Engineer title, `remove` is empty.
+
+**External retraction:**
+```md
+# Employee {=my:emp456}
+[Software Engineer] {-my:jobTitle}  # External retract
+[Senior Software Engineer] {my:jobTitle}
+```
+Result: `quads` contains Senior Engineer, `remove` contains Software Engineer.
+
+**Mixed polarity:**
+```md
+# Doc {=my:doc -.my:Draft .my:Published -my:version}
+[2.0] {my:version}
+```
+Same annotation can contain both add and remove tokens.
+
+#### Invalid Remove Syntax
+
+These tokens warn but don't support remove polarity:
+- `-=IRI` - Subject declarations have no polarity
+- `-+IRI` - Object declarations have no polarity
+- `-^^datatype` - Datatype modifiers have no polarity
+- `-@lang` - Language tags have no polarity
+
+#### Return Structure
+
+Parse results include a `remove` array:
+```javascript
+{
+  quads: [...],      // Final resolved graph state
+  remove: [...],     // External retractions targeting prior state
+  origin: {...},     // Origin tracking with polarity
+  context: {...}     // Final context
+}
+```
+
+**Hard invariant:** `quads ∩ remove = ∅` - no quad appears in both arrays.
+
 ---
 
 ## 9. Working with Literals

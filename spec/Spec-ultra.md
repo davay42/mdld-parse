@@ -67,6 +67,16 @@ Ambiguous = no output.
 
 Create quad only if all nodes exist.
 
+### 8.1 Remove Polarity
+
+Prefix `-` for remove tokens: `-p`, `-?p`, `-!p`, `-.C`
+
+Route against live buffer: cancel if present, else add to remove array.
+
+Result: `{ quads, remove, origin, context }`
+
+Invariant: `quads ∩ remove = ∅`
+
 ## 9. Literals
 
 From value carrier only.

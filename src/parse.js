@@ -366,20 +366,49 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
     };
 }
 
-function emitQuad(quads, quadMap, block, subject, predicate, object, dataFactory, meta = null) {
+function emitQuad(quads, quadBuffer, removeSet, quadMap, block, subject, predicate, object, dataFactory, meta = null) {
     if (!subject || !predicate || !object) return;
 
     const quad = dataFactory.quad(subject, predicate, object);
-    quads.push(quad);
+    const remove = meta?.remove || false;
 
-    const unifiedSlot = createUnifiedSlot(block, meta?.entryIndex, {
-        ...meta,
-        subject,
-        predicate,
-        object
-    });
+    if (remove) {
+        // Check if quad exists in current buffer
+        const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
+        if (quadBuffer.has(quadKey)) {
+            // In current state → cancel, appears nowhere
+            quadBuffer.delete(quadKey);
+            // Also remove from quads array if present
+            const index = quads.findIndex(q =>
+                q.subject.value === quad.subject.value &&
+                q.predicate.value === quad.predicate.value &&
+                q.object.value === quad.object.value
+            );
+            if (index !== -1) {
+                quads.splice(index, 1);
+            }
+            // Remove from quadMap
+            quadMap.delete(quadKey);
+        } else {
+            // Not in current state → external retract
+            removeSet.add(quad);
+        }
+    } else {
+        // Add to buffer and quads
+        const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
+        quadBuffer.set(quadKey, quad);
+        quads.push(quad);
 
-    quadMap.set(quadIndexKey(quad.subject, quad.predicate, quad.object), unifiedSlot);
+        const unifiedSlot = createUnifiedSlot(block, meta?.entryIndex, {
+            ...meta,
+            subject,
+            predicate,
+            object,
+            polarity: remove ? '-' : '+'
+        });
+
+        quadMap.set(quadKey, unifiedSlot);
+    }
 }
 
 const resolveFragment = (fragment, state) => {
@@ -406,23 +435,24 @@ function resolveObject(sem, state) {
 
 const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
     const expandedType = expandIRI(typeIRI, state.ctx);
+    const typeInfo = typeof entryIndex === 'object' ? entryIndex : { entryIndex, remove: false };
     emitQuad(
-        state.quads, state.origin.quadMap, block,
+        state.quads, state.quadBuffer, state.removeSet, state.origin.quadMap, block,
         subject,
         state.df.namedNode(expandIRI('rdf:type', state.ctx)),
         state.df.namedNode(expandedType),
         state.df,
-        { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex }
+        { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex: typeInfo.entryIndex, remove: typeInfo.remove }
     );
 };
 
 function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier) {
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
-        const entryIndex = typeof t === 'string' ? null : t.entryIndex;
+        const typeInfo = typeof t === 'string' ? { entryIndex: null, remove: false } : t;
         // Type subject priority: explicit subject > soft object > carrier URL > current subject
         let typeSubject = newSubject || localObject || carrierO || S;
-        createTypeQuad(typeIRI, typeSubject, state, block, entryIndex);
+        createTypeQuad(typeIRI, typeSubject, state, block, typeInfo);
     });
 }
 
@@ -453,9 +483,9 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
         const role = determinePredicateRole(pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L);
         if (role) {
             const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-            emitQuad(state.quads, state.origin.quadMap, block,
+            emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadMap, block,
                 role.subject, P, role.object, state.df,
-                { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex }
+                { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex, remove: pred.remove || false }
             );
         }
     });
@@ -555,6 +585,8 @@ export function parse(text, options = {}) {
         ctx: { ...DEFAULT_CONTEXT, ...(options.context || {}) },
         df: options.dataFactory || DataFactory,
         quads: [],
+        quadBuffer: new Map(),
+        removeSet: new Set(),
         origin: { quadMap: new Map() },
         currentSubject: null,
         tokens: null,
@@ -582,5 +614,18 @@ export function parse(text, options = {}) {
         TOKEN_PROCESSORS[token.type]?.(token, state);
     }
 
-    return { quads: state.quads, origin: state.origin, context: state.ctx };
+    // Convert removeSet to array and ensure hard invariant: quads ∩ remove = ∅
+    const removeArray = Array.from(state.removeSet);
+    const quadKeys = new Set();
+    state.quads.forEach(q => {
+        quadKeys.add(quadIndexKey(q.subject, q.predicate, q.object));
+    });
+
+    // Filter removeArray to ensure no overlap with quads
+    const filteredRemove = removeArray.filter(quad => {
+        const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
+        return !quadKeys.has(key);
+    });
+
+    return { quads: state.quads, remove: filteredRemove, origin: state.origin, context: state.ctx };
 }
