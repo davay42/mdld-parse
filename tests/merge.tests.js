@@ -1,0 +1,240 @@
+import { merge, parse } from '../src/index.js';
+
+// Test helpers
+function assert(condition, message) {
+    if (!condition) {
+        throw new Error(message || 'Assertion failed');
+    }
+}
+
+// Helper function to create a quad key for comparison
+function quadKey(quad) {
+    const datatype = quad.object.datatype?.value || '';
+    const language = quad.object.language || '';
+    return `${quad.subject.value}|${quad.predicate.value}|${quad.object.value}|${datatype}|${language}`;
+}
+
+// Helper to check if quad exists in array
+function hasQuad(quads, subject, predicate, object) {
+    return quads.some(q =>
+        q.subject.value === subject &&
+        q.predicate.value === predicate &&
+        q.object.value === object
+    );
+}
+
+export const mergeTests = [
+    {
+        name: 'Single document — equivalence to parse()',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Alice] {my:name}>`;
+
+            const result = merge([md],);
+
+            assert(result.quads.length === parse(md,).quads.length,
+                `Merge quads length ${result.quads.length} should equal parse quads length ${parse(md,).quads.length}`);
+            assert(result.remove.length === 0,
+                `Merge remove should be empty, got ${result.remove.length}`);
+            assert(result.origin.documents.length === 1,
+                `Should have 1 document, got ${result.origin.documents.length}`);
+        }
+    },
+
+    {
+        name: 'Single document with appended diff — primary use case',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Software Engineer] {my:jobTitle}
+
+---
+
+# Employee {=my:emp456}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`;
+
+            const result = merge([md],);
+
+            assert(result.quads.length === 2, `Should have 2 quads, got ${result.quads.length}`);
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:emp456', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:Employee'),
+                'Should have Employee type');
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Senior Software Engineer'),
+                'Should have Senior Engineer title');
+            assert(result.remove.length === 0, `Remove should be empty, got ${result.remove.length}`);
+        }
+    },
+
+    {
+        name: 'Single document — external retract',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`;
+
+            const result = merge([md],);
+
+            assert(result.quads.length === 1, `Should have 1 quad, got ${result.quads.length}`);
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Senior Software Engineer'),
+                'Should have Senior Engineer title');
+            assert(result.remove.length === 1, `Should have 1 remove, got ${result.remove.length}`);
+            assert(hasQuad(result.remove, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Software Engineer'),
+                'Should remove Software Engineer title');
+        }
+    },
+
+    {
+        name: 'Two documents — inter-document cancel',
+        fn: () => {
+            const doc1 = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Software Engineer] {my:jobTitle}`;
+
+            const doc2 = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`;
+
+            const result = merge([doc1, doc2],);
+
+            assert(result.quads.length === 2, `Should have 2 quads, got ${result.quads.length}`);
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:emp456', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:Employee'),
+                'Should have Employee type');
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Senior Software Engineer'),
+                'Should have Senior Engineer title');
+            assert(result.remove.length === 0, `Remove should be empty, got ${result.remove.length}`);
+            assert(result.origin.documents.length === 2, `Should have 2 documents, got ${result.origin.documents.length}`);
+        }
+    },
+
+    {
+        name: 'Type migration — single annotation',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Project {=my:proj .my:ActiveProject}
+# Project {=my:proj -.my:ActiveProject .my:ArchivedProject}`;
+
+            const result = merge([md],);
+
+            assert(result.quads.length === 1, `Should have 1 quad, got ${result.quads.length}`);
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:proj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:ArchivedProject'),
+                'Should have ArchivedProject type');
+            assert(!hasQuad(result.quads, 'tag:hr@example.com,2026:proj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:ActiveProject'),
+                'Should not have ActiveProject type');
+            assert(result.remove.length === 0, `Remove should be empty, got ${result.remove.length}`);
+        }
+    },
+
+    {
+        name: 'Type migration — with prior assertion in same document',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Project {=my:proj .my:ActiveProject}
+# Project {=my:proj -.my:ActiveProject .my:ArchivedProject}`;
+
+            const result = merge([md],);
+
+            assert(result.quads.length === 1, `Should have 1 quad, got ${result.quads.length}`);
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:proj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:ArchivedProject'),
+                'Should have ArchivedProject type');
+            assert(!hasQuad(result.quads, 'tag:hr@example.com,2026:proj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:ActiveProject'),
+                'Should not have ActiveProject type');
+            assert(result.remove.length === 0, `Remove should be empty, got ${result.remove.length}`);
+        }
+    },
+
+    {
+        name: 'ParseResult passthrough — no re-parse',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Alice] {my:name}`;
+
+            const parsed = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+            const result = merge([parsed, md], { context: { my: 'tag:hr@example.com,2026:' } });
+
+            assert(result.origin.documents.length === 2, `Should have 2 documents, got ${result.origin.documents.length}`);
+            assert(result.origin.documents[0].input === 'ParseResult',
+                `First document should be ParseResult, got ${result.origin.documents[0].input}`);
+            assert(result.origin.documents[1].input === 'string',
+                `Second document should be string, got ${result.origin.documents[1].input}`);
+        }
+    },
+
+    {
+        name: 'Hard invariant — quads ∩ remove = ∅',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Software Engineer] {my:jobTitle}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`;
+
+            const result = merge([md],);
+
+            // Check that no quad appears in both arrays
+            const quadKeys = new Set();
+            result.quads.forEach(q => quadKeys.add(quadKey(q)));
+
+            let overlap = false;
+            result.remove.forEach(q => {
+                if (quadKeys.has(quadKey(q))) {
+                    overlap = true;
+                }
+            });
+
+            assert(!overlap, 'Hard invariant violated: quads ∩ remove should be empty');
+        }
+    },
+
+    {
+        name: 'Four-document replay chain',
+        fn: () => {
+            const genesis = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}`;
+
+            const promotion = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Junior Software Engineer] {my:jobTitle}`;
+
+            const reorg = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Junior Software Engineer] {-my:jobTitle}
+[Software Engineer] {my:jobTitle}`;
+
+            const salaryUpdate = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456}
+[Software Engineer] {-my:jobTitle}
+[Senior Software Engineer] {my:jobTitle}`;
+
+            const result = merge([genesis, promotion, reorg, salaryUpdate],
+            );
+
+            assert(result.quads.length === 2, `Should have 2 quads, got ${result.quads.length}`);
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:emp456', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:Employee'),
+                'Should have Employee type');
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:emp456', 'tag:hr@example.com,2026:jobTitle', 'Senior Software Engineer'),
+                'Should have Senior Engineer title');
+            assert(result.origin.documents.length === 4, `Should have 4 documents, got ${result.origin.documents.length}`);
+        }
+    },
+
+    {
+        name: 'Mixed polarity in single annotation',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Doc {=my:doc -.my:Draft .my:Published -my:version}
+[2.0] {my:version}`;
+
+            const result = merge([md],);
+
+            assert(result.quads.length === 2, `Should have 2 quads, got ${result.quads.length}`);
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:doc', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'tag:hr@example.com,2026:Published'),
+                'Should have Published type');
+            assert(hasQuad(result.quads, 'tag:hr@example.com,2026:doc', 'tag:hr@example.com,2026:version', '2.0'),
+                'Should have version 2.0');
+        }
+    }
+];

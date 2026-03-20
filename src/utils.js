@@ -262,6 +262,9 @@ export function expandIRI(term, ctx) {
         result = t;
     } else if (t.includes(':')) {
         const [prefix, ref] = t.split(':', 2);
+        if (prefix && !ctx[prefix] && prefix !== '@vocab') {
+            console.warn(`Undefined prefix "${prefix}" in IRI "${t}" - treating as literal`);
+        }
         result = ctx[prefix] ? ctx[prefix] + ref : t;
     } else {
         result = (ctx['@vocab'] || '') + t;
