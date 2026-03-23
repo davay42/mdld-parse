@@ -1,115 +1,421 @@
 # Polarity & Retraction System
 
-The MDLD polarity system enables **sophisticated diff authoring** and **document evolution** through explicit assertion and retraction semantics. This system provides deterministic conflict resolution and enables powerful collaborative editing scenarios.
+MD-LD includes a **sophisticated polarity system** that enables diff authoring and document evolution through explicit `+` and `-` prefixes on predicates and types.
 
-## Overview
+## Core Concepts
 
-MDLD uses **polarity prefixes** to control the semantic intent of annotations:
+### Polarity Types
 
-- **No prefix** - Positive polarity (default behavior)
-- **`-` (negative)** - Retract existing triples
+- **Positive (`+`)**: Default polarity, adds triples to the graph
+- **Negative (`-`)**: Removes triples, either intra-document or external retractions
 
+### Polarity Forms
 
-This system enables **intra-document cancel** (within the same document) and **external retract** (targeting prior document state).
+| Form | Positive | Negative | Use Case |
+|------|-----------|-----------|-----------|
+| `p` | `{p}` | `{-p}` | Literal properties |
+| `?p` | `{?p}` | `{-?p}` | Object properties |
+| `!p` | `{!p}` | `{-!p}` | Reverse properties |
+| `.Class` | `{.Class}` | `-.Class}` | Type declarations (subject only) |
 
-## Polarity Syntax
+### Resolution Behavior
 
-### Basic Polarity
+- **Intra-document cancel**: When negative matches existing positive → both removed
+- **External retract**: When negative has no matching positive → becomes external retract
+- **Merge resolution**: External retractions cancel positives from prior documents
 
-```markdown
-# Positive assertions (default)
-[Alice] {author}         
-[2024] {date ^^xsd:date} 
+## Polarity Syntax Patterns
 
-# Negative retractions
-[Alice] {-author}
-[2024] {-date ^^xsd:date}
-```
-
-### Subject & Object Declarations
-
-Subject and object declarations have **no polarity** - they are always positive:
+### 1. Literal Property Polarity (-p)
 
 ```markdown
-# ✅ Correct - subjects have no polarity
-{=ex:alice}               # Subject declaration
-{+ex:bob}                 # Object declaration
+[ex] <http://example.org/>
 
-# ❌ Incorrect - polarity not allowed
-{-=ex:alice}              # Invalid
-{-+ex:bob}                # Invalid
+# Document {=ex:doc}
+
+[Alice] {label}          // Add name
+[Alice] {-label}         // Remove name (intra-document cancel)
+[Bob] {label}            // Add Bob's name
 ```
 
-### Type Declarations
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.object.value} ${q.predicate.value}`));
+// ['Bob http://www.w3.org/2000/01/rdf-schema#label']
+console.log(result.remove.length); // 0 (cancelled in-stream)
+```
 
-Type declarations can have polarity **only in subject declarations**:
+### 2. Object Property Polarity (-?p)
 
 ```markdown
-# ✅ Correct - types in subject declaration
-# Person {=ex:person .ex:Person}              # Positive type
-# Person {=ex:person -.ex:Person}             // Negative type (external retract)
+[ex] <http://example.org/>
 
-# ❌ Incorrect - standalone type annotations
-{.ex:Person}              # Not parsed as type
-{-.ex:Person}             # Not parsed as type
+# Document {=ex:doc}
+
+[Alice] {+ex:alice ?author}     // Alice is author
+[Bob] {+ex:bob ?author}         // Bob is author  
+[Bob] {-?author}                // Remove Bob as author
 ```
 
-**Note:** Type retractions in subject declarations become external retractions since they don't match in-document positives.
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value.split('/').pop()}`));
+// ['doc author bob']
+console.log(result.remove.length); // 0 (cancelled in-stream)
+```
 
-## Intra-Document Cancel
+### 3. Reverse Property Polarity (-!p)
 
-### Exact Statement Cancel
-
-Only exact SPO (Subject-Predicate-Object) triples cancel within the same document:
+**Important**: Reverse properties need proper subject context and object declarations:
 
 ```markdown
-# Article {=ex:article}
+[ex] <http://example.org/>
 
-[Alice] {author}          # + assertion
-[Alice] {-author}         // Cancels the above (exact SPO match)
-[Charlie] {author}        # + assertion (different object)
+# Document
+
+Parent: [Alice] {=ex:alice .prov:Person label}
+Child: [Bob] {+ex:bob !ex:hasParent}
+
+Child is not [Bob] {+ex:bob -!ex:hasParent}, it's [Bryan] {+ex:bryan !ex:hasParent}.
 ```
 
-**Result:** Only Charlie is listed as author.
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value.split('/').pop()}`));
+// ['alice rdf:type prov#Person', 'alice label Alice', 'bryan hasParent alice']
+console.log(result.remove.length); // 0 (cancelled in-stream)
+```
 
+**Why this works:**
+- `Parent: [Alice] {=ex:alice .prov:Person label}` - Creates Alice as Person with label
+- `Child: [Bob] {+ex:bob !ex:hasParent}` - Creates Bob with reverse relationship to Alice
+- `[Bob] {+ex:bob -!ex:hasParent}` - Retracts Bob's hasParent relationship
+- `[Bryan] {+ex:bryan !ex:hasParent}` - Creates Bryan with reverse relationship to Alice
+
+### 4. Type Polarity (-.Class)
+
+Type retractions work both in subject declarations and as standalone annotations:
+
+```markdown
+[ex] <http://example.org/>
+
+# Document
+Parent: [Alice] {=ex:alice .prov:Person label}
+is [employed] {.ex:Employee}
+Child: [Bob] {+ex:bob !ex:hasParent}
+
+Is no more an [Employee] {-.ex:Employee}, but a [unemployed] {.ex:Unemployed}.
+
+The child is not [Bob] {+ex:bob -!ex:hasParent}, it's [Bryan] {+ex:bryan !ex:hasParent}.
+```
+
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} rdf:type ${q.object.value.split('/').pop()}`));
+// ['alice rdf:type prov#Person', 'alice rdf:type Unemployed']
+console.log(result.remove.length); // 0 (cancelled in-stream)
+```
+
+**Expected Turtle:**
 ```turtle
-ex:article ex:author ex:charlie .
+@prefix ex: <http://example.org/>.
+
+ex:alice a prov:Person, ex:Unemployed;
+    rdfs:label "Alice".
+ex:bryan ex:hasParent ex:alice.
 ```
 
-**Note:** `[Bob] {-author}` does NOT cancel `[Alice] {author}` because they have different objects.
+### 5. Mixed Polarity (Same Annotation)
 
-### Multiple Different Objects
-
-Multiple objects with the same predicate are all retained (no cross-canceling):
+Combine add and remove operations in single annotation:
 
 ```markdown
-# Article {=ex:article}
+[ex] <http://example.org/>
 
+# Document {=ex:doc -.ex:Draft .ex:Published -ex:version}
+[2.0] {ex:version}
+```
+
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
+// ['doc rdf:type http://example.org/Published', 'doc http://example.org/version 2.0']
+console.log(result.remove.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
+// ['doc rdf:type http://example.org/Draft', 'doc http://example.org/version Document']
+```
+
+### 6. External Retract (No Matching Positive)
+
+When removing non-existent triples, they become external retractions:
+
+```markdown
+[ex] <http://example.org/>
+
+# Document {=ex:doc}
+
+[Alice] {-author}         // External retract (no matching positive)
+[Bob] {author}           // Add Bob as author
+```
+
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.object.value} ${q.predicate.value}`));
+// ['Bob http://www.w3.org/2000/01/rdf-schema#author']
+console.log(result.remove.map(q => `${q.object.value} ${q.predicate.value}`));
+// ['Alice http://www.w3.org/2000/01/rdf-schema#author']
+```
+
+## Real-World Workflows
+
+### 1. Document Versioning
+
+Track changes across document versions:
+
+```markdown
+[ex] <http://example.org/>
+
+# Article v1 {=ex:article .ex:Article}
 [Alice] {author}
-[Bob] {author}
-[Charlie] {author}      # All three authors are retained
+[Draft] {status}
+
+# Article v2 {=ex:article}
+[Alice] {-author}        // Retract original author
+[Bob] {author}          // Add new author
+[Draft] {-status}       // Retract draft status
+[Published] {status}    // Add published status
 ```
 
-**Result:** All three authors are listed.
-
-```turtle
-ex:article ex:author ex:alice, ex:bob, ex:charlie .
+**Merge Result:**
+```javascript
+const merged = merge([v1, v2]);
+console.log(merged.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
+// ['article rdf:type Article', 'article author Bob', 'article status Published']
 ```
 
-**Note:** Only exact SPO matches cancel. Different objects with the same predicate do not cancel each other.
+### 2. Collaborative Editing
+
+Multiple authors working simultaneously:
+
+```markdown
+[ex] <http://example.org/>
+
+# Alice's changes
+# Document {=ex:doc}
+> Content A {section}
+[Shared] {author}
+
+# Bob's changes  
+# Document {=ex:doc}
+> Content A {-section}   // Retract Alice's content
+> Content B {section}    // Add Bob's content
+[Shared] {-author}       // Retract Alice's authorship
+[Bob] {author}           // Add himself as author
+```
+
+**Merge Result:**
+```javascript
+const merged = merge([aliceDoc, bobDoc]);
+console.log(merged.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
+// ['doc section Content B', 'doc author Bob']
+```
+
+### 3. Type Migration
+
+Migrate data structures with controlled transitions:
+
+```markdown
+[ex] <http://example.org/>
+
+# Old Schema
+# Person {=ex:person .ex:Person}
+[Alice] {name}
+
+# New Schema  
+# Person {=ex:person -.ex:Person .ex:Human}
+[Alice] {-name}           // Retract old property
+[Alice] {fullName}        // Add new property
+```
+
+**Merge Result:**
+```javascript
+const migrated = merge([oldSchema, newSchema]);
+console.log(migrated.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
+// ['person rdf:type Human', 'person fullName Alice']
+```
+
+### 4. Environment Configuration
+
+Manage environment-specific settings:
+
+```markdown
+[ex] <http://example.org/>
+
+# Config {=ex:config}
+
+# Development
+[Debug Mode] {setting}
+[localhost] {server}
+
+# Production  
+[Debug Mode] {-setting}   // Retract debug setting
+[localhost] {-server}     // Retract dev server
+[prod.example.com] {server}   // Add prod server
+```
+
+**Merge Result:**
+```javascript
+const configMerged = merge([devConfig, prodConfig]);
+console.log(configMerged.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
+// ['config server prod.example.com']
+```
+
+### 5. Template Instantiation
+
+Use templates with placeholder content:
+
+```markdown
+[ex] <http://example.org/>
+
+# Template {=ex:template}
+[Placeholder] {title}     // Template placeholder
+[Draft] {status}
+
+# Instance {=ex:instance}
+[Placeholder] {-title}   // Retract placeholder
+[Real Title] {title}     // Add real title
+[Draft] {-status}        // Retract draft status
+[Published] {status}     // Add published status
+```
+
+**Merge Result:**
+```javascript
+const instance = merge([template, instance]);
+console.log(instance.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
+// ['instance title Real Title', 'instance status Published']
+```
+
+### 6. Data Cleanup
+
+Clean up inconsistent data:
+
+```markdown
+[ex] <http://example.org/>
+
+# Messy Data {=ex:data}
+[Alice] {name}
+[alice] {name}           // Duplicate with different case
+[25] {age ^^xsd:integer}
+[25] {age ^^xsd:string}   // Wrong datatype
+
+# Cleaned Data {=ex:data}
+[alice] {-name}           // Remove lowercase version
+[25] {-age ^^xsd:string} // Remove wrong datatype
+```
+
+**Merge Result:**
+```javascript
+const cleaned = merge([messyData, cleanedData]);
+console.log(cleaned.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
+// ['data name Alice', 'data age 25^^xsd:integer']
+```
+
+## Advanced Patterns
+
+### 1. Chained Retractions
+
+Build retraction chains for complex changes:
+
+```markdown
+[ex] <http://example.org/>
+
+# Article {=ex:article}
+
+[Version 1] {title}
+[Version 2] {title}
+[Version 1] {-title}    // Remove V1
+[Version 3] {title}
+[Version 2] {-title}    // Remove V2
+```
+
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.object.value} ${q.predicate.value}`));
+// ['Version 3 http://www.w3.org/2000/01/rdf-schema#title']
+```
+
+### 2. Family Tree Management
+
+Use reverse properties for family relationships:
+
+```markdown
+[ex] <http://example.org/>
+
+# Family Tree
+
+Parent: [John] {=ex:john .ex:Person}
+Child: [Alice] {+ex:alice !ex:hasParent}
+Child: [Bob] {+ex:bob !ex:hasParent}
+
+# Update relationships
+[Alice] {+ex:alice -!ex:hasParent}      // Remove Alice's parent link
+[Bob] {+ex:bob -!ex:hasParent}       // Remove Bob's parent link
+[Grandparent] {+ex:grandparent !ex:hasParent}  // Add grandparent
+```
+
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value.split('/').pop()}`));
+// ['john rdf:type Person', 'grandparent hasParent john']
+```
+
+### 3. Organizational Structure
+
+Model company hierarchies with reverse properties:
+
+```markdown
+[org] <http://company.com/>
+
+# Company Structure {=org:company}
+
+CEO: [Jane] {+org:jane .org:Person}
+Department: [Engineering] {+org:engineering !org:hasDepartment}
+Team: [Platform] {+org:platform !org:hasTeam}
+
+# Reorganization {=org:company}
+[Engineering] {+org:engineering -!org:hasDepartment}  // Remove department link
+[Platform] {+org:platform -!org:hasTeam}         // Remove team link
+[Research] {+org:research !org:hasDepartment}  // New department
+```
+
+**Result:**
+```javascript
+const result = parse(markdown);
+console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value.split('/').pop()}`));
+// ['jane rdf:type Person', 'research hasDepartment jane']
+```
 
 ## Remove Quads System
 
-The parser maintains two separate collections for different purposes:
+The parser maintains two separate collections:
 
 - **`quads`** - Final resolved graph state (what actually exists)
 - **`remove`** - External retractions targeting prior document state
 
 ### Intra-Document Cancel
 
-When positive and negative triples match exactly within the same document, they cancel immediately:
+When positive and negative triples match exactly within the same document:
 
 ```markdown
+[ex] <http://example.org/>
+
 # Employee {=my:emp456 .my:Employee}
 [Software Engineer] {my:jobTitle}
 [Software Engineer] {-my:jobTitle}    // Cancels above
@@ -118,19 +424,18 @@ When positive and negative triples match exactly within the same document, they 
 
 **Result:**
 ```javascript
-const result = parse(markdown, { context: { my: 'tag:hr@example.com,2026:' } });
-
+const result = parse(markdown);
 console.log(result.quads.length);    // 2 (type + final jobTitle)
 console.log(result.remove.length);    // 0 (empty - no external retractions)
 ```
 
-**Explanation:** The negative `[Software Engineer] {-my:jobTitle}` finds and cancels the matching positive `[Software Engineer] {my:jobTitle}` within the same document, so no external retract is needed.
-
 ### External Retract
 
-When negative triples don't find matching positives in the current document, they become external retractions:
+When negative triples don't find matching positives in the current document:
 
 ```markdown
+[ex] <http://example.org/>
+
 # Employee {=my:emp456}
 [Software Engineer] {-my:jobTitle}    // No matching positive in current doc
 [Senior Software Engineer] {my:jobTitle}
@@ -138,29 +443,9 @@ When negative triples don't find matching positives in the current document, the
 
 **Result:**
 ```javascript
-const result = parse(markdown, { context: { my: 'tag:hr@example.com,2026:' } });
-
-console.log(result.quads.length);    // 1 (only Senior Software Engineer)
+const result = parse(markdown);
+console.log(result.quads.length);    // 2 (type + Senior Software Engineer)
 console.log(result.remove.length);    // 1 (Software Engineer retract)
-console.log(result.remove[0]);         // Quad for Software Engineer
-```
-
-**Explanation:** The negative `[Software Engineer] {-my:jobTitle}` has no matching positive in the current document, so it becomes an external retract targeting prior document state.
-
-### Type Migration
-
-Type retractions work the same way and become external retractions:
-
-```markdown
-# Project Alpha {=my:proj -.my:ActiveProject .my:ArchivedProject}
-```
-
-**Result:**
-```javascript
-const result = parse(markdown, { context: { my: 'tag:hr@example.com,2026:' } });
-
-console.log(result.quads);    // [type: ArchivedProject]
-console.log(result.remove);    // [type: ActiveProject] (external retract)
 ```
 
 ### Merge Resolution
@@ -170,15 +455,18 @@ External retractions are resolved during document merging:
 ```javascript
 import { merge } from 'mdld-parse';
 
-const doc1 = `# Employee {=my:emp456 .my:Employee}
+const doc1 = `
+[my] <tag:ex,2026:>
+# Employee {=my:emp456 .my:Employee}
 [Software Engineer] {my:jobTitle}`;
 
-const doc2 = `# Employee {=my:emp456}
+const doc2 = `
+[my] <tag:ex,2026:>
+# Employee {=my:emp456}
 [Software Engineer] {-my:jobTitle}    // External retract
 [Senior Software Engineer] {my:jobTitle}`;
 
-const merged = merge([doc1, doc2], { context: { my: 'tag:hr@example.com,2026:' } });
-
+const merged = merge([doc1, doc2]);
 console.log(merged.quads);    // Software Engineer removed, Senior Software Engineer remains
 console.log(merged.remove);  // [] - Empty after resolution
 ```
@@ -191,8 +479,8 @@ The system maintains the hard invariant: **quads ∩ remove = ∅**
 const result = parse(markdown);
 
 // This is always true:
-const overlap = result.quads.some(quad => 
-    result.remove.some(remove => 
+const overlap = result.quads.some(quad =>
+    result.remove.some(remove =>
         quad.subject.equals(remove.subject) &&
         quad.predicate.equals(remove.predicate) &&
         quad.object.equals(remove.object)
@@ -202,16 +490,20 @@ const overlap = result.quads.some(quad =>
 console.log(overlap); // false - never any overlap
 ```
 
-### Use Cases for Remove Quads
+## Use Cases for Polarity
 
-#### 1. Document Versioning
+### 1. Document Versioning
 ```javascript
 // v1: Original document
-const v1 = parse(`# Article {=ex:article}
+const v1 = parse(`[ex] <tag:ex,2026:>
+
+# Article {=ex:article}
 [Alice] {author}`);
 
 // v2: Update with retraction
-const v2 = parse(`# Article {=ex:article}
+const v2 = parse(`
+[ex] <tag:ex,2026:>
+# Article {=ex:article}
 [Alice] {-author}      // External retract
 [Bob] {author}`);
 
@@ -220,45 +512,49 @@ const final = merge([v1, v2]);
 // Result: Bob is author, Alice removed
 ```
 
-#### 2. Collaborative Editing
+### 2. Collaborative Editing
 ```javascript
 // Alice's changes
 const alice = parse(`# Doc {=ex:doc}
-[Content A] {section}`);
+> Content A {section}`);
 
 // Bob's changes (retract Alice's content)
 const bob = parse(`# Doc {=ex:doc}
-[Content A] {-section}   // External retract
-[Content B] {section}`);
+> Content A {-section}   // External retract
+> Content B {section}`);
 
 // Resolve conflicts
 const resolved = merge([alice, bob]);
 // Result: Only Content B remains
 ```
 
-#### 3. Data Migration
+### 3. Data Migration
 ```javascript
 // Old schema
-const old = parse(`# Person {=ex:person}
-[Employee] {status}`);
+const old = parse(`
+[ex] <tag:ex,2026:>
+# Person {=ex:person}
+[Employee] {ex:status}`);
 
 // Migration script
-const migration = parse(`# Person {=ex:person}
-[Employee] {-status}     // Retract old status
-[Staff] {status}        // Add new status`);
+const migration = parse(`
+[ex] <tag:ex,2026:>
+# Person {=ex:person}
+[Employee] {-ex:status}     // Retract old status
+[Staff] {ex:status}        // Add new status`);
 
 const migrated = merge([old, migration]);
 // Result: Status changed from Employee to Staff
 ```
 
-### Performance Characteristics
+## Performance Characteristics
 
 - **O(1) lookup:** Quad keys enable fast cancel/retract detection
 - **Streaming:** Remove detection during single-pass parsing
 - **Memory efficient:** Remove quads stored separately from final state
 - **Deterministic:** Same input always produces same quads/remove separation
 
-### API Reference
+## API Reference
 
 ```javascript
 const result = parse(markdown, options);
@@ -274,363 +570,18 @@ const location = locate(quad, result.origin);
 console.log(location.polarity); // '+' for quads, '-' for removes
 ```
 
-## External Retract
-
-### Targeting Prior State
-
-Negative triples that don't match in-document positives become **external retractions**:
-
-```markdown
-# Article v2 {=ex:article}
-
-[Alice] {-author}         # External retract - Alice not in current state
-[Bob] {author}            # New assertion
-```
-
-**Result:** Bob is author, Alice is marked for retraction.
-
-```javascript
-const result = parse(markdown, { context: { ex: 'http://example.org/' } });
-
-console.log(result.quads);
-// [ex:article rdf:type ex:Article, ex:article ex:author ex:bob]
-
-console.log(result.remove);
-// [ex:article ex:author ex:alice]  // External retract
-```
-
-### Merge Resolution
-
-External retractions are resolved during document merging:
-
-```javascript
-import { merge } from 'mdld-parse';
-
-const doc1 = `# Article {=ex:article}
-[Alice] {author}`;
-
-const doc2 = `# Article {=ex:article}
-[Alice] {-author}
-[Bob] {author}`;
-
-const merged = merge([doc1, doc2]);
-
-console.log(merged.quads);
-// [ex:article rdf:type ex:Article, ex:article ex:author ex:bob]
-
-console.log(merged.remove);
-// [] - Empty because Alice was retracted by doc2
-```
-
-## Use Cases
-
-### 1. Document Versioning
-
-Track changes across document versions:
-
-```markdown
-# Article v1 {=ex:article}
-[Alice] {author}
-[2024-01-01] {datePublished ^^xsd:date}
-
-# Article v2 {=ex:article}
-[Alice] {-author}          # Retract original author
-[Bob] {author}             # New author
-[2024-01-01] {-datePublished ^^xsd:date}  # Retract old date
-[2024-02-01] {datePublished ^^xsd:date}  # New date
-```
-
-**Merge Result:** Bob is author, date is 2024-02-01.
-
-### 2. Collaborative Editing
-
-Multiple authors can work simultaneously:
-
-```markdown
-# Shared Doc {=ex:doc}
-
-# Alice's changes
-[Alice] {author}
-[Draft] {status}
-
-# Bob's changes  
-[Bob] {-author}           # Retract Alice's authorship
-[Bob] {author}            # Add himself as author
-[Published] {-status}    # Retract draft status
-[Published] {status}     # Add published status
-```
-
-**Merge Result:** Bob is author, status is Published.
-
-### 3. Template Instantiation
-
-Use templates with placeholder content:
-
-```markdown
-# Template {=ex:template}
-[Placeholder] {title}
-[Draft] {status}
-
-# Instance {=ex:instance}
-[Placeholder] {-title}    # Retract placeholder
-[Real Title] {title}      # Add real title
-[Draft] {-status}         # Retract draft status
-[Final] {status}          # Add final status
-```
-
-**Merge Result:** Real Title with Final status.
-
-### 4. Conditional Content
-
-Environment-specific content:
-
-```markdown
-# Config {=ex:config}
-
-# Development
-[Debug Mode] {setting}
-[localhost] {server}
-
-# Production  
-[Debug Mode] {-setting}   # Retract debug setting
-[prod.example.com] {-server}  # Retract dev server
-[prod.example.com] {server}   # Add prod server
-```
-
-**Merge Result:** Production configuration only.
-
-### 5. Data Migration
-
-Migrate data structures:
-
-```markdown
-# Old Schema {=ex:old}
-[Person] {type}
-[Alice] {name}
-
-# New Schema {=ex:new}
-[Person] {-type}          # Retract old type
-[Human] {type}            # Add new type
-[Alice] {-name}           # Retract old property
-[Alice] {fullName}        # Add new property
-```
-
-**Merge Result:** Migrated data with new schema.
-
-## Advanced Patterns
-
-### 1. Chained Retractions
-
-Build retraction chains for complex changes:
-
-```markdown
-# Article {=ex:article}
-
-[Version 1] {title}
-[Version 1] {-title}      # Retract v1
-[Version 2] {title}       # Add v2
-[Version 2] {-title}      # Retract v2
-[Version 3] {title}       # Add v3
-```
-
-**Result:** Version 3 is title.
-
-### 2. Selective Retraction
-
-Retract specific values while preserving others:
-
-```markdown
-# Person {=ex:person}
-
-[Alice] {name}
-[25] {age ^^xsd:integer}
-[Engineer] {occupation}
-
-[25] {-age ^^xsd:integer}  # Retract only age
-[26] {age ^^xsd:integer}  # Update age
-```
-
-**Result:** Alice, age 26, Engineer.
-
-### 3. Polarity in Lists
-
-Use polarity in list items:
-
-```markdown
-# Task List {=ex:tasks}
-
-- [Task 1] {status}       # + assertion
-- [Task 2] {-status}      # - retraction
-- [Task 3] {status}       # + assertion
-```
-
-**Result:** Task 1 and Task 3 have status.
-
-### 4. Block-Level Polarity
-
-Apply polarity to block carriers:
-
-```markdown
-# Article {=ex:article}
-
-> Alice Smith {author}    # + assertion
-> Bob Jones {-author}     # - retraction
-> Carol Davis {author}    # + assertion
-```
-
-**Result:** Carol is author.
-
-## Implementation Details
-
-### Conflict Resolution Rules
-
-1. **Intra-document priority:** Negative cancels positive within same document
-2. **External retract:** Negative without matching positive becomes retract
-3. **Merge resolution:** Retracts remove matching quads from prior documents
-4. **Final state:** Only non-retracted quads remain
-
-### Performance Considerations
-
-- **O(1) lookup:** Quad keys enable fast polarity matching
-- **Streaming:** Polarity resolved during single-pass parsing
-- **Memory efficient:** Retractions don't store full quad data
-- **Deterministic:** Same input always produces same output
-
-### Error Handling
-
-```javascript
-// Invalid polarity usage
-try {
-  const result = parse(`{-=ex:invalid}  # Invalid polarity on subject`);
-} catch (error) {
-  console.log('Polarity error:', error.message);
-}
-
-// Warning logged for invalid retractions
-const result = parse(`# Doc {=ex:doc}
-[NonExistent] {-property}`);  // Warning logged
-```
-
 ## Best Practices
 
-### 1. Use Explicit Polarity
+1. **Use external retractions for versioning** - Retract old versions in new documents
+2. **Combine retractions in single annotation** - Batch related changes together
+3. **Test merge behavior** - Verify that retractions work as expected
+4. **Document intent** - Explain why retractions are needed
+5. **Use type migration** - Change data structures safely with type retractions
+6. **Ensure proper context** - Reverse properties need subject and object declarations
 
-```markdown
-# ✅ Clear intent
-[Alice] {+author}
-[Bob] {-author}
+## Limitations
 
-# ✅ Also clear (default positive)
-[Alice] {author}
-[Bob] {-author}
-```
-
-### 2. Group Related Changes
-
-```markdown
-# ✅ Logical grouping
-# Update author section
-[Alice] {-author}
-[Bob] {author}
-[2024] {dateUpdated ^^xsd:date}
-```
-
-### 3. Document Intent
-
-```markdown
-# Migration: Remove old email format
-[old@email.com] {-email}
-[new@email.com] {email}
-```
-
-### 4. Test External Retractions
-
-```javascript
-// Verify external retractions
-const result = parse(markdown);
-if (result.remove.length > 0) {
-  console.log('External retractions:', result.remove.length);
-}
-```
-
-### 5. Use Merge for Resolution
-
-```javascript
-// Always use merge for multi-document scenarios
-const final = merge([doc1, doc2, doc3]);
-// Don't manually handle retractions
-```
-
-## API Reference
-
-### Parse Results
-
-```javascript
-const result = parse(markdown);
-
-console.log(result.quads);    // Final resolved quads
-console.log(result.remove);   // External retractions
-console.log(result.origin);   // Origin with polarity info
-```
-
-### Locate with Polarity
-
-```javascript
-const location = locate(quad, origin);
-console.log(location.polarity);  // '+' or '-'
-```
-
-### Merge with Retractions
-
-```javascript
-const merged = merge([doc1, doc2]);
-// Retractions in doc2 cancel matching quads in doc1
-```
-
-## Examples
-
-### Complete Document Evolution
-
-```markdown
-# Article v1 {=ex:article}
-[Alice] {author}
-[Draft] {status}
-[2024-01-01] {created ^^xsd:date}
-
-# Article v2 {=ex:article}
-[Alice] {-author}          # Retract original
-[Bob] {author}             # New author
-[Draft] {-status}          # Retract draft
-[Published] {status}       # Published status
-[2024-01-15] {updated ^^xsd:date}  # Update date
-```
-
-**Final State:**
-```turtle
-ex:article rdf:type ex:Article ;
-    ex:author ex:bob ;
-    ex:status ex:Published ;
-    ex:created "2024-01-01"^^xsd:date ;
-    ex:updated "2024-01-15"^^xsd:date .
-```
-
-### Collaborative Scenario
-
-```markdown
-# Shared Doc {=ex:doc}
-
-# Alice's contribution
-[Intro] {section}
-[Alice] {author}
-
-# Bob's contribution
-[Intro] {-section}       # Retract Alice's intro
-[Overview] {section}     # Bob's intro
-[Alice] {-author}         # Retract Alice
-[Bob] {author}            # Add Bob
-[Alice] {+editor}         # Add Alice as editor
-```
-
-**Merge Result:** Bob is author, Alice is editor, Overview is section.
-
-The polarity system provides **powerful, deterministic document evolution** capabilities that enable sophisticated collaborative editing and version control scenarios while maintaining the simplicity and readability of Markdown.
+- **Exact SPO matching** - Only exact subject-predicate-object triples cancel
+- **No partial retractions** - Can't retract based on patterns or conditions
+- **Forward-reference constraint** - Retractions must reference previously declared items
+- **Context requirements** - Reverse properties need proper subject context and object declarations

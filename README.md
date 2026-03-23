@@ -6,13 +6,53 @@
 
 [Demo](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse) 
 
-## What is MD-LD?
+## 🚀 Quick Start
+
+```bash
+pnpm install mdld-parse
+```
+
+```javascript
+import { parse } from 'mdld-parse';
+
+const result = parse(`
+[ex] <http://example.org/>
+
+# Document {=ex:doc .ex:Article label}
+
+[Alice] {?ex:author =ex:alice .prov:Person ex:firstName label}
+[Smith] {ex:lastName}`);
+
+console.log(result.quads);
+// RDF/JS quads ready for n3.js, rdflib, etc.
+// @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+// @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+// @prefix prov: <http://www.w3.org/ns/prov#>.
+// @prefix ex: <http://example.org/>.
+
+// ex:doc a ex:Article;
+//     rdfs:label "Document";
+//     ex:author ex:alice.
+// ex:alice a prov:Person;
+//     rdfs:label "Alice";
+//     ex:firstName "Alice";
+//     ex:lastName "Smith".
+```
+
+## 📚 Documentation Hub
+
+- **📖 [Documentation](./docs/index.md)** - Complete documentation with guides and references
+- **🎯 [Examples](./examples/index.md)** - Real-world MD-LD examples and use cases  
+- **� [Specification](./spec/index.md)** - Formal specification and test suite
+
+
+
+## 🌟 What is MD-LD?
 
 MD-LD allows you to author RDF graphs directly in Markdown using explicit `{...}` annotations:
 
 ```markdown
 [my] <tag:alice@example.com,2026:>
-
 # 2024-07-18 {=my:journal-2024-07-18 .my:Event my:date ^^xsd:date}
 
 ## A good day {label}
@@ -26,7 +66,6 @@ Activities:
 
 - **Walking** {+ex:walking ?my:hasActivity .my:Activity label}
 - **Reading** {+ex:reading ?my:hasActivity .my:Activity label}
-
 ```
 
 Generates valid RDF triples:
@@ -59,90 +98,30 @@ my:central-park a my:Place;
 
 ```
 
-Read the [FULL SPEC](./spec/Spec.md), or study [examples](./examples/index.md)
+## ✨ Core Features
 
-## Core Features
+- **🔗 Prefix folding** - Build hierarchical namespaces with lightweight IRI authoring
+- **📍 Subject declarations** - `{=IRI}` and `{=#fragment}` for context setting
+- **🎯 Object IRIs** - `{+IRI}` and `{+#fragment}` for temporary object declarations  
+- **🔄 Three predicate forms** - `p` (S→L), `?p` (S→O), `!p` (O→S)
+- **🏷️ Type declarations** - `.Class` for rdf:type triples
+- **📅 Datatypes & language** - `^^xsd:date` and `@en` support
+- **🧩 Fragments** - Document structuring with `{=#fragment}`
+- **⚡ Polarity system** - Sophisticated diff authoring with `+` and `-` prefixes
+- **📍 Origin tracking** - Complete provenance with lean quad-to-source mapping
 
-- **Prefix folding**: Build hierarchical namespaces with lightweight IRI authoring
-- **Subject declarations**: `{=IRI}` and `{=#fragment}` for context setting
-- **Object IRIs**: `{+IRI}` and `{+#fragment}` for temporary object declarations  
-- **Four predicate forms**: `p` (S→L), `?p` (S→O), `!p` (O→S)
-- **Type declarations**: `.Class` for rdf:type triples
-- **Datatypes & language**: `^^xsd:date` and `@en` support
-- **Fragments**: Built-in document structuring with `{=#fragment}`
-- **Polarity system**: Sophisticated diff authoring with `+` and `-` prefixes
-- **Round-trip serialization**: Markdown ↔ RDF ↔ Markdown preserves structure
-- **Origin tracking**: Complete provenance with lean quad-to-source mapping
+## 📦 Installation
 
-## Origin Tracking System
-
-MDLD includes a sophisticated **origin tracking system** that provides complete provenance for every RDF quad. This enables powerful use cases:
-
-- **🎯 UI Navigation** - Click-to-jump functionality in editors
-- **🔍 Better Debugging** - Full quad information available in origin tracking  
-- **📊 Enhanced Provenance** - Complete relationship tracking for knowledge graphs
-
-```javascript
-import { parse, locate } from 'mdld-parse';
-
-const result = parse(mdldText, { context: { ex: 'http://example.org/' } });
-const quad = result.quads[0];
-
-const location = locate(quad, result.origin);
-console.log(location);
-// {
-//   blockId: '4ac750c12',
-//   range: { start: 33, end: 53 },
-//   carrierType: 'blockquote',
-//   subject: 'http://example.org/alice',
-//   predicate: 'http://www.w3.org/2000/01/rdf-schema#name',
-//   context: { ex: 'http://example.org/' },
-//   value: 'Alice Smith',
-//   polarity: '+'
-// }
-```
-
-📖 **See [Origin Documentation](./docs/origin.md)** for complete details and examples.
-
-## Polarity & Retraction System
-
-MDLD includes a **sophisticated polarity system** that enables diff authoring and document evolution:
-
-- **🔄 Document Versioning** - Track changes across document versions
-- **👥 Collaborative Editing** - Multiple authors can work simultaneously
-- **📝 Template Instantiation** - Use templates with placeholder content
-- **🔧 Data Migration** - Migrate data structures with controlled transitions
-
-```javascript
-import { parse, merge } from 'mdld-parse';
-
-// Document with polarity
-const doc1 = `# Article {=ex:article}
-[Alice] {author}`;
-
-const doc2 = `# Article {=ex:article}
-[Alice] {-author}  // Retract Alice
-[Bob] {author}    // Add Bob`;
-
-const merged = merge([doc1, doc2]);
-console.log(merged.quads); // Bob is now the author
-```
-
-📖 **See [Polarity Documentation](./docs/polarity.md)** for complete diff authoring guide.
-
-## Installation
+### Node.js
 
 ```bash
 pnpm install mdld-parse
 ```
 
-### Node.js
-
 ```javascript
 import { parse } from 'mdld-parse';
 
 const markdown = `# Document {=ex:doc .Article}
-
 [Alice] {author}`;
 
 const result = parse(markdown, {
@@ -159,11 +138,12 @@ console.log(result.quads);
 <script type="module">
   import { parse } from 'https://cdn.jsdelivr.net/npm/mdld-parse/+esm';
   
-  const result = parse('# Hello {=ex:hello}');
+  const result = parse('# Hello {=ex:hello label}');
 </script>
 ```
 
-## Semantic Model
+
+## 🧠 Semantic Model
 
 MD-LD encodes a directed labeled multigraph where three nodes may be in scope:
 
@@ -181,7 +161,7 @@ Each predicate form determines the graph edge:
 | `?p`  | S → O   | `[NASA] {=ex:nasa ?org}`     | object property  |
 | `!p` | O → S    | `[Parent] {=ex:p !hasPart}`  | reverse object   |
 
-## Syntax Reference
+## 🎨 Syntax Quick Reference
 
 ### Subject Declaration
 
@@ -378,23 +358,7 @@ Build hierarchical namespaces by referencing previously defined prefixes:
 - **Hierarchical**: Build deep namespace structures
 - **Streaming-safe**: Forward-reference only, single-pass parsing
 
-## Diff Polarity: Remove Tokens for Diff Authoring
-
-Add per-predicate remove polarity to retract quads during parsing. Use `-` prefix on any predicate token to route it as a retraction against the live graph state.
-
-### Basic Remove Syntax
-
-```markdown
-[my] <tag:hr@example.com,2026:>
-
-# Employee {=my:emp456 .my:Employee}
-[Software Engineer] {my:jobTitle}
-[Software Engineer] {-my:jobTitle}    # Remove previous title
-[Senior Software Engineer] {my:jobTitle}  # Add new title
-```
-
-**Results:**
-- `quads`: Contains `Senior Software Engineer` job title
+## 🔧 API Reference
 - `remove`: Empty (cancelled in-stream)
 
 ### External Retraction
@@ -560,7 +524,7 @@ Merge multiple MDLD documents with diff polarity resolution.
 ```javascript
 const merged = merge([
   `# Article {=ex:article}
-  [Alice] {author}`,
+  [Bob] {author}`,
   `# Article {=ex:article}
   [Bob] {-author}
   [Charlie] {author}`
@@ -771,7 +735,7 @@ This spans all **2 × 2** combinations of:
 * source ∈ {subject, object/literal}
 * target ∈ {subject, object/literal}
 
-Therefore, the algebra is **closed**.
+Therefore, algebra is **closed**.
 
 ## Use Cases
 
