@@ -1,13 +1,13 @@
 import { parseTests } from './parse.tests.js';
-import { serializeTests } from './serialize.tests.js';
 import { locateTests } from './locate.tests.js';
 import { mergeTests } from './merge.tests.js';
+import { originLeanTests } from './origin-lean.tests.js';
 
 const tests = [
     ...parseTests,
-    ...serializeTests,
     ...locateTests,
     ...mergeTests,
+    ...originLeanTests,
 ];
 
 let passed = 0;

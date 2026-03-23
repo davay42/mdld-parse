@@ -67,9 +67,9 @@ export function merge(docs, options = {}) {
             sessionBuffer.set(key, quad);
 
             // Create quad origin with document index and polarity
-            const existingOrigin = doc.origin.quadMap.get(quad);
+            const existingOrigin = doc.origin.quadIndex.get(quadKey(quad));
             if (existingOrigin) {
-                quadIndex.set(quad, {
+                quadIndex.set(quadKey(quad), {
                     ...existingOrigin,
                     documentIndex: i,
                     polarity: '+'
@@ -90,9 +90,9 @@ export function merge(docs, options = {}) {
             }
 
             // Create quad origin for remove quads
-            const existingOrigin = doc.origin.quadMap.get(quad);
+            const existingOrigin = doc.origin.quadIndex.get(quadKey(quad));
             if (existingOrigin) {
-                quadIndex.set(quad, {
+                quadIndex.set(quadKey(quad), {
                     ...existingOrigin,
                     documentIndex: i,
                     polarity: '-'
@@ -128,14 +128,4 @@ export function merge(docs, options = {}) {
         origin: mergeOrigin,
         context: finalContext
     };
-}
-
-/**
- * Backward compatibility wrapper - parse() becomes thin wrapper around merge()
- * @param {string} markdown 
- * @param {Object} options
- * @returns {Object}
- */
-export function parseWithMerge(markdown, options = {}) {
-    return merge([markdown], options);
 }

@@ -428,9 +428,8 @@ Parse MD-LD markdown and return RDF quads with origin tracking.
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
-- `origin` — Origin tracking object with:
-  - `blocks` — Map of block IDs to source locations
-  - `quadIndex` — Map of quads to block IDs with polarity tracking
+- `origin` — Lean origin tracking object with:
+  - `quadIndex` — Map of quads to origin entries for UI navigation and audit
 - `context` — Final context used (includes prefixes)
 
 **Example:**
@@ -572,26 +571,25 @@ console.log(result.text);
 // > alice {+ex:alice ?ex:author}
 ```
 
-### `locate(quad, origin, text, context)`
+### `locate(quad, origin)`
 
-Locate the precise text range of a quad in MDLD text using origin tracking.
+Locate the origin entry for a quad using the lean origin system.
 
 **Parameters:**
 
 - `quad` (object) — The quad to locate (subject, predicate, object)
-- `origin` (object, optional) — Origin object containing blocks and quadIndex
-- `text` (string, optional) — MDLD text (auto-parsed if origin not provided)
-- `context` (object, optional) — Context for parsing when text needs to be parsed
+- `origin` (object) — Origin object containing quadIndex
 
-**Returns:** `{ blockId, entryIndex, range, content, blockRange, carrierType, isVacant }` or `null`
+**Returns:** `{ blockId, range, carrierType, subject, predicate, context, value, polarity }` or `null`
 
 - `blockId` — ID of the containing block
-- `entryIndex` — Position within block entries
-- `range` — Precise character range of the quad content
-- `content` — Actual text content at that range
-- `blockRange` — Full range of the containing block
-- `carrierType` — Type of carrier (heading, blockquote, list, span)
-- `isVacant` — Whether the slot is marked as vacant
+- `range` — Character range of the carrier in the source text
+- `carrierType` — Type of carrier (heading, blockquote, span)
+- `subject` — Subject IRI of the quad
+- `predicate` — Predicate IRI of the quad
+- `context` — Context object inherited from parsing
+- `value` — Raw carrier text content
+- `polarity` — '+' for assertions, '-' for retractions
 
 **Example:**
 
@@ -601,15 +599,11 @@ import { parse, locate } from './src/index.js';
 const result = parse(mdldText, { context: { ex: 'http://example.org/' } });
 const quad = result.quads[0]; // Find a quad to locate
 
-// Pattern 1: With origin (most efficient)
-const location1 = locate(quad, result.origin, mdldText);
+const location = locate(quad, result.origin);
 
-// Pattern 2: Auto-parse text (convenient)
-const location2 = locate(quad, null, mdldText, { ex: 'http://example.org/' });
-
-console.log(location1.range); // { start: 38, end: 44 }
-console.log(location1.content); // " Alice"
-console.log(location1.carrierType); // "blockquote"
+console.log(location.range); // { start: 38, end: 44 }
+console.log(location.value); // "Alice"
+console.log(location.carrierType); // "blockquote"
 ```
 
 ## Value Carriers

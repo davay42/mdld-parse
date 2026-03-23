@@ -31,14 +31,13 @@ export const locateTests = [
 
             assert(authorQuad, 'Should find author quad');
 
-            const location = locate(authorQuad, result.origin, mdld);
+            const location = locate(authorQuad, result.origin);
             assert(location, 'Should locate author quad');
             assertEqual(location.carrierType, 'blockquote');
             assert(typeof location.blockId === 'string');
-            assertEqual(location.entryIndex, 0);
-            assert(location.range.start >= 0 && location.range.end > location.range.start);
-            assert(location.content.includes('Alice'));
-            assert(!location.isVacant);
+            assertEqual(location.subject, 'http://example.org/article');
+            assertEqual(location.value, 'Alice Smith');
+            assertEqual(location.polarity, '+');
         }
     },
 
@@ -51,15 +50,17 @@ export const locateTests = [
 > Alice Smith {name}
 > 25 {age ^^xsd:integer}`;
 
-            const aliceQuad = {
-                subject: { termType: 'NamedNode', value: 'http://example.org/alice' },
-                predicate: { termType: 'NamedNode', value: 'http://www.w3.org/2000/01/rdf-schema#name' },
-                object: { termType: 'Literal', value: 'Alice Smith' }
-            };
+            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const aliceQuad = result.quads.find(q =>
+                q.subject.value === 'http://example.org/alice' &&
+                q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#name'
+            );
 
-            const location = locate(aliceQuad, null, mdld, { ex: 'http://example.org/' });
-            assert(location, 'Should auto-parse and locate quad');
-            assert(location.content.includes('Alice Smith'));
+            const location = locate(aliceQuad, result.origin);
+            assert(location, 'Should locate quad with origin');
+            assertEqual(location.carrierType, 'blockquote');
+            assertEqual(location.value, 'Alice Smith');
+            assertEqual(location.polarity, '+');
         }
     },
 
@@ -75,11 +76,11 @@ export const locateTests = [
                 q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
             );
 
-            const location = locate(typeQuad, result.origin, mdld);
+            const location = locate(typeQuad, result.origin);
             assert(location, 'Should locate type annotation');
             assertEqual(location.carrierType, 'heading');
-            assert(location.range.start < location.range.end);
-            assert(location.content.includes('Document'));
+            assertEqual(location.value, 'Document');
+            assertEqual(location.polarity, '+');
         }
     },
 
@@ -97,10 +98,11 @@ export const locateTests = [
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
             );
 
-            const location = locate(objectQuad, result.origin, mdld);
+            const location = locate(objectQuad, result.origin);
             assert(location, 'Should locate object reference');
             assertEqual(location.carrierType, 'blockquote');
-            assert(location.content.includes('alice'));
+            assertEqual(location.value, 'alice');
+            assertEqual(location.polarity, '+');
         }
     },
 
@@ -118,10 +120,11 @@ export const locateTests = [
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#age'
             );
 
-            const location = locate(ageQuad, result.origin, mdld);
+            const location = locate(ageQuad, result.origin);
             assert(location, 'Should locate datatype literal');
             assertEqual(location.carrierType, 'blockquote');
-            assert(location.content.includes('25'));
+            assertEqual(location.value, '25');
+            assertEqual(location.polarity, '+');
         }
     },
 
@@ -140,7 +143,7 @@ export const locateTests = [
                 object: { termType: 'Literal', value: 'fake' }
             };
 
-            const location = locate(fakeQuad, result.origin, mdld);
+            const location = locate(fakeQuad, result.origin);
             assert(location === null, 'Should return null for non-existent quad');
         }
     },
@@ -162,13 +165,15 @@ export const locateTests = [
                 }
             ];
 
-            const { text, origin } = generate(quads, { ex: 'http://example.org/' });
-            const labelQuad = quads[1];
+            const text = generate(quads, { ex: 'http://example.org/' });
+            const result = parse(text, { ex: 'http://example.org/' });
+            const labelQuad = result.quads.find(q => q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label');
 
-            const location = locate(labelQuad, origin, text);
+            const location = locate(labelQuad, result.origin);
             assert(location, 'Should locate quad in generated MDLD');
-            assert(location.carrierType === 'blockquote' || location.carrierType === 'span');
-            assert(location.content.includes('Web Application'));
+            assertEqual(location.carrierType, 'span');
+            assertEqual(location.value, 'Web Application');
+            assertEqual(location.polarity, '+');
         }
     },
 
@@ -187,10 +192,11 @@ export const locateTests = [
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label'
             );
 
-            const location = locate(labelQuad, result.origin, mdld);
+            const location = locate(labelQuad, result.origin);
             assert(location, 'Should locate label quad in span');
-            assert(location.carrierType === 'span');
-            assert(location.content.includes('Design schema'));
+            assertEqual(location.carrierType, 'span');
+            assertEqual(location.value, 'Design schema');
+            assertEqual(location.polarity, '+');
         }
     },
 
@@ -205,21 +211,13 @@ export const locateTests = [
             const result = parse(mdld, { context: { ex: 'http://example.org/' } });
             const quad = result.quads[0];
 
-            // Pattern 1: All parameters
-            const loc1 = locate(quad, result.origin, mdld, { ex: 'http://example.org/' });
+            // Pattern 1: All parameters (new API)
+            const loc1 = locate(quad, result.origin);
             assert(loc1, 'Pattern 1 should work');
 
-            // Pattern 2: Origin + text
-            const loc2 = locate(quad, result.origin, mdld);
-            assert(loc2, 'Pattern 2 should work');
-
-            // Pattern 3: Text + context
-            const loc3 = locate(quad, null, mdld, { ex: 'http://example.org/' });
-            assert(loc3, 'Pattern 3 should work');
-
-            // Pattern 4: Insufficient data
-            const loc4 = locate(quad);
-            assert(loc4 === null, 'Pattern 4 should return null');
+            // Pattern 2: Insufficient data
+            const loc2 = locate(quad);
+            assert(loc2 === null, 'Pattern 2 should return null');
         }
     },
 
@@ -237,7 +235,7 @@ export const locateTests = [
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
             );
 
-            const location = locate(authorQuad, result.origin, mdld);
+            const location = locate(authorQuad, result.origin);
             assert(location, 'Should locate quad');
 
             // Validate range is within text bounds
@@ -245,9 +243,9 @@ export const locateTests = [
             assert(location.range.end <= mdld.length, 'Range end should be within text');
             assert(location.range.start < location.range.end, 'Range start should be before end');
 
-            // Validate content matches range
-            const extractedContent = mdld.substring(location.range.start, location.range.end);
-            assertEqual(location.content, extractedContent);
+            // Validate value matches expected content
+            assertEqual(location.value, 'Alice Smith');
+            assertEqual(location.polarity, '+');
         }
     }
 ];

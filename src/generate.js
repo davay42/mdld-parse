@@ -1,4 +1,4 @@
-import { shortenIRI, expandIRI, quadIndexKey, createUnifiedSlot, DEFAULT_CONTEXT, DataFactory } from './utils.js';
+import { shortenIRI, expandIRI, DEFAULT_CONTEXT, DataFactory } from './utils.js';
 
 // Helper functions for cleaner term type checking
 function isLiteral(term) {
@@ -29,7 +29,7 @@ function extractLocalName(iri) {
  * Generate deterministic MDLD from RDF quads
  * Purpose: TTL→MDLD conversion with canonical structure
  * Input: RDF quads + context
- * Output: MDLD text + origin + context
+ * Output: MDLD text
  */
 export function generate(quads, context = {}) {
     const fullContext = { ...DEFAULT_CONTEXT, ...context };
@@ -38,13 +38,9 @@ export function generate(quads, context = {}) {
 
     const subjectGroups = groupQuadsBySubject(normalizedQuads);
 
-    const { text, quadMap } = buildDeterministicMDLD(subjectGroups, fullContext);
+    const { text } = buildDeterministicMDLD(subjectGroups, fullContext);
 
-    return {
-        text,
-        origin: { quadMap },
-        context: fullContext
-    };
+    return text;
 }
 
 function normalizeAndSortQuads(quads) {
@@ -86,8 +82,6 @@ function groupQuadsBySubject(quads) {
 
 function buildDeterministicMDLD(subjectGroups, context) {
     let text = '';
-    let currentPos = 0;
-    const quadMap = new Map();
 
     // Add prefixes first (deterministic order), but exclude default context prefixes
     const sortedPrefixes = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
@@ -96,13 +90,11 @@ function buildDeterministicMDLD(subjectGroups, context) {
         if (prefix !== '@vocab' && !prefix.startsWith('@') && !DEFAULT_CONTEXT[prefix]) {
             const prefixDecl = `[${prefix}] <${namespace}>\n`;
             text += prefixDecl;
-            currentPos += prefixDecl.length;
         }
     }
 
     if (sortedPrefixes.length > 0) {
         text += '\n';
-        currentPos += 1;
     }
 
     // Process subjects in deterministic order
@@ -125,31 +117,7 @@ function buildDeterministicMDLD(subjectGroups, context) {
 
         const headingText = `# ${localSubjectName} {=${shortSubject}${typeAnnotations}}\n\n`;
 
-        const headingBlock = {
-            id: generateBlockId(),
-            range: { start: currentPos, end: currentPos + headingText.length },
-            subject: subjectIRI,
-            types: types.map(t => t.object.value),
-            predicates: [],
-            context: { ...context },
-            carrierType: 'heading',
-            attrsRange: { start: currentPos + headingText.indexOf('{'), end: currentPos + headingText.indexOf('}') + 1 },
-            valueRange: { start: currentPos + 2, end: currentPos + 2 + localSubjectName.length }
-        };
-
-        // Add type quads to quadMap
-        types.forEach((quad, i) => {
-            const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
-            quadMap.set(key, createUnifiedSlot(headingBlock, i, {
-                kind: 'type',
-                subject: quad.subject,
-                predicate: quad.predicate,
-                object: quad.object
-            }));
-        });
-
         text += headingText;
-        currentPos += headingText.length;
 
         // Add literals (deterministic order)
         const sortedLiterals = literals.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
@@ -166,30 +134,7 @@ function buildDeterministicMDLD(subjectGroups, context) {
             }
 
             const literalText = `[${quad.object.value}] {${annotation}}\n`;
-            const literalBlock = {
-                id: generateBlockId(),
-                range: { start: currentPos, end: currentPos + literalText.length },
-                subject: subjectIRI,
-                types: [],
-                predicates: [{ iri: quad.predicate.value, form: '' }],
-                context: { ...context },
-                carrierType: 'span',
-                valueRange: { start: currentPos + 1, end: currentPos + 1 + quad.object.value.length },
-                attrsRange: { start: currentPos + literalText.indexOf('{'), end: currentPos + literalText.indexOf('}') + 1 }
-            };
-
-            // Add to quadMap
-            const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
-            quadMap.set(key, createUnifiedSlot(literalBlock, 0, {
-                kind: 'pred',
-                subject: quad.subject,
-                predicate: quad.predicate,
-                object: quad.object,
-                form: ''
-            }));
-
             text += literalText;
-            currentPos += literalText.length;
         }
 
         // Add objects (deterministic order)
@@ -198,40 +143,11 @@ function buildDeterministicMDLD(subjectGroups, context) {
             const objShort = shortenIRI(quad.object.value, context);
             const predShort = shortenIRI(quad.predicate.value, context);
             const objectText = `[${objShort}] {+${objShort} ?${predShort}}\n`;
-
-            const objectBlock = {
-                id: generateBlockId(),
-                range: { start: currentPos, end: currentPos + objectText.length },
-                subject: subjectIRI,
-                types: [],
-                predicates: [{ iri: quad.predicate.value, form: '?' }],
-                context: { ...context },
-                carrierType: 'span',
-                valueRange: { start: currentPos + 1, end: currentPos + 1 + objShort.length },
-                attrsRange: { start: currentPos + objectText.indexOf('{'), end: currentPos + objectText.indexOf('}') + 1 }
-            };
-
-            // Add to quadMap
-            const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
-            quadMap.set(key, createUnifiedSlot(objectBlock, 0, {
-                kind: 'pred',
-                subject: quad.subject,
-                predicate: quad.predicate,
-                object: quad.object,
-                form: '?'
-            }));
-
             text += objectText;
-            currentPos += objectText.length;
         }
 
         text += '\n';
-        currentPos += 1;
     }
 
-    return { text, quadMap };
-}
-
-function generateBlockId() {
-    return Math.random().toString(36).substring(2, 10);
+    return { text };
 }

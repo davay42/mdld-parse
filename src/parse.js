@@ -4,7 +4,6 @@ import {
     expandIRI,
     parseSemanticBlock,
     quadIndexKey,
-    createUnifiedSlot,
     createLiteral,
     hash
 } from './utils.js';
@@ -343,7 +342,7 @@ function determineCarrierType(url) {
     return { carrierType: 'span', resourceIRI: null };
 }
 
-function createBlock(subject, types, predicates, range, attrsRange, valueRange, carrierType, ctx) {
+function createBlock(subject, types, predicates, range, attrsRange, valueRange, carrierType, ctx, text) {
     const expanded = {
         subject,
         types: types.map(t => expandIRI(typeof t === 'string' ? t : t.iri, ctx)),
@@ -356,17 +355,16 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
     return {
         id: blockId,
         range: { start: range[0], end: range[1] },
-        attrsRange: attrsRange ? { start: attrsRange[0], end: attrsRange[1] } : null,
-        valueRange: valueRange ? { start: valueRange[0], end: valueRange[1] } : null,
         carrierType: carrierType || null,
         subject,
         types: expanded.types,
         predicates: expanded.predicates,
-        context: ctx
+        context: ctx,
+        text: text || ''
     };
 }
 
-function emitQuad(quads, quadBuffer, removeSet, quadMap, block, subject, predicate, object, dataFactory, meta = null) {
+function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null) {
     if (!subject || !predicate || !object) return;
 
     const quad = dataFactory.quad(subject, predicate, object);
@@ -387,8 +385,8 @@ function emitQuad(quads, quadBuffer, removeSet, quadMap, block, subject, predica
             if (index !== -1) {
                 quads.splice(index, 1);
             }
-            // Remove from quadMap
-            quadMap.delete(quadKey);
+            // Remove from quadIndex
+            quadIndex.delete(quadKey);
         } else {
             // Not in current state → external retract
             removeSet.add(quad);
@@ -399,15 +397,19 @@ function emitQuad(quads, quadBuffer, removeSet, quadMap, block, subject, predica
         quadBuffer.set(quadKey, quad);
         quads.push(quad);
 
-        const unifiedSlot = createUnifiedSlot(block, meta?.entryIndex, {
-            ...meta,
-            subject,
-            predicate,
-            object,
-            polarity: remove ? '-' : '+'
-        });
+        // Create lean origin entry
+        const originEntry = {
+            blockId: block.id,
+            range: block.range,
+            carrierType: block.carrierType,
+            subject: subject.value,
+            predicate: predicate.value,
+            context: { ...block.context },
+            polarity: meta?.remove ? '-' : '+',
+            value: block.text || ''
+        };
 
-        quadMap.set(quadKey, unifiedSlot);
+        quadIndex.set(quadKey, originEntry);
     }
 }
 
@@ -437,7 +439,7 @@ const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
     const expandedType = expandIRI(typeIRI, state.ctx);
     const typeInfo = typeof entryIndex === 'object' ? entryIndex : { entryIndex, remove: false };
     emitQuad(
-        state.quads, state.quadBuffer, state.removeSet, state.origin.quadMap, block,
+        state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block,
         subject,
         state.df.namedNode(expandIRI('rdf:type', state.ctx)),
         state.df.namedNode(expandedType),
@@ -483,7 +485,7 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
         const role = determinePredicateRole(pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L);
         if (role) {
             const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-            emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadMap, block,
+            emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block,
                 role.subject, P, role.object, state.df,
                 { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex, remove: pred.remove || false }
             );
@@ -513,7 +515,7 @@ function processAnnotation(carrier, sem, state, options = {}) {
     const block = createBlock(
         S.value, sem.types, sem.predicates,
         carrier.range, carrier.attrsRange || null, carrier.valueRange || null,
-        carrier.type || null, state.ctx
+        carrier.type || null, state.ctx, carrier.text
     );
 
     const L = createLiteral(carrier.text, sem.datatype, sem.language, state.ctx, state.df);
@@ -587,7 +589,7 @@ export function parse(text, options = {}) {
         quads: [],
         quadBuffer: new Map(),
         removeSet: new Set(),
-        origin: { quadMap: new Map() },
+        origin: { quadIndex: new Map() },
         currentSubject: null,
         tokens: null,
         currentTokenIndex: -1

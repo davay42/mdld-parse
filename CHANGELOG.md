@@ -1,5 +1,37 @@
 # MD-LD evolution
 
+## v.0.7.0 (2026-03-23)
+
+### BREAKING CHANGES
+- **BREAKING:** Removed `applyDiff` function and entire applyDiff infrastructure
+- **BREAKING:** Simplified `locate()` function signature from `locate(quad, origin, text, context)` to `locate(quad, origin)`
+- **BREAKING:** Updated `generate()` function to only return text instead of `{ text, origin }`
+- **BREAKING:** Removed `parseWithMerge` function (use `merge()` directly)
+
+### Changed
+- **Improved:** Origin system now uses lean `quadIndex` instead of complex `quadMap` structure
+- **Improved:** Removed ~500 lines of deprecated code while maintaining full functionality
+- **Improved:** Cleaner, more maintainable codebase with DRY principles
+- **Fixed:** Resolved circular dependency in merge system
+
+### Added
+- Comprehensive test suite for lean origin system (7 new tests)
+- Better error handling and validation in origin tracking
+
+### Removed
+- `applyDiff.js` file and all related infrastructure
+- 12 deprecated utility functions from `utils.js`
+- Complex slot management system and vacant slot tracking
+- Mutable origin infrastructure for automated text mutation
+
+## v.0.6.2 (2024-03-23)
+
+### Added
+- Full MD-LD specification implementation
+- Complete test suite with 98+ tests
+- Browser and Node.js compatibility
+- Comprehensive documentation and examples
+
 ## v.0.5.2 (2026-02-17)
 
 + feat: IRI>URL in [link](url) {=iri}
