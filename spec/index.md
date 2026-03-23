@@ -9,8 +9,11 @@ Concise specification reference for quick lookup
 ## 📚 [CHANGELOG](../CHANGELOG.md)
 Version history and breaking changes
 
+## 🏗️ [Architecture](../docs/Architecture.md)
+Design principles, processing pipeline, and performance characteristics
+
 ## 🧪 [Test Suite](../tests/)
-Comprehensive test coverage (105 tests) with examples
+Comprehensive test coverage (105 tests) with examples and validation
 
 ## Specification Overview
 
