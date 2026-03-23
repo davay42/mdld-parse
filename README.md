@@ -70,8 +70,65 @@ Read the [FULL SPEC](./spec/Spec.md), or study [examples](./examples/index.md)
 - **Type declarations**: `.Class` for rdf:type triples
 - **Datatypes & language**: `^^xsd:date` and `@en` support
 - **Fragments**: Built-in document structuring with `{=#fragment}`
-- **Diff polarity**: Remove tokens with `-` prefix for diff authoring
+- **Polarity system**: Sophisticated diff authoring with `+` and `-` prefixes
 - **Round-trip serialization**: Markdown ↔ RDF ↔ Markdown preserves structure
+- **Origin tracking**: Complete provenance with lean quad-to-source mapping
+
+## Origin Tracking System
+
+MDLD includes a sophisticated **origin tracking system** that provides complete provenance for every RDF quad. This enables powerful use cases:
+
+- **🎯 UI Navigation** - Click-to-jump functionality in editors
+- **🔍 Better Debugging** - Full quad information available in origin tracking  
+- **📊 Enhanced Provenance** - Complete relationship tracking for knowledge graphs
+
+```javascript
+import { parse, locate } from 'mdld-parse';
+
+const result = parse(mdldText, { context: { ex: 'http://example.org/' } });
+const quad = result.quads[0];
+
+const location = locate(quad, result.origin);
+console.log(location);
+// {
+//   blockId: '4ac750c12',
+//   range: { start: 33, end: 53 },
+//   carrierType: 'blockquote',
+//   subject: 'http://example.org/alice',
+//   predicate: 'http://www.w3.org/2000/01/rdf-schema#name',
+//   context: { ex: 'http://example.org/' },
+//   value: 'Alice Smith',
+//   polarity: '+'
+// }
+```
+
+📖 **See [Origin Documentation](./docs/origin.md)** for complete details and examples.
+
+## Polarity & Retraction System
+
+MDLD includes a **sophisticated polarity system** that enables diff authoring and document evolution:
+
+- **🔄 Document Versioning** - Track changes across document versions
+- **👥 Collaborative Editing** - Multiple authors can work simultaneously
+- **📝 Template Instantiation** - Use templates with placeholder content
+- **🔧 Data Migration** - Migrate data structures with controlled transitions
+
+```javascript
+import { parse, merge } from 'mdld-parse';
+
+// Document with polarity
+const doc1 = `# Article {=ex:article}
+[Alice] {author}`;
+
+const doc2 = `# Article {=ex:article}
+[Alice] {-author}  // Retract Alice
+[Bob] {author}    // Add Bob`;
+
+const merged = merge([doc1, doc2]);
+console.log(merged.quads); // Bob is now the author
+```
+
+📖 **See [Polarity Documentation](./docs/polarity.md)** for complete diff authoring guide.
 
 ## Installation
 
@@ -415,7 +472,7 @@ Some tokens don't support remove polarity and will warn:
 
 ### `parse(markdown, options)`
 
-Parse MD-LD markdown and return RDF quads with origin tracking.
+Parse MD-LD markdown and return RDF quads with lean origin tracking.
 
 **Parameters:**
 
@@ -431,6 +488,8 @@ Parse MD-LD markdown and return RDF quads with origin tracking.
 - `origin` — Lean origin tracking object with:
   - `quadIndex` — Map of quads to origin entries for UI navigation and audit
 - `context` — Final context used (includes prefixes)
+
+**Note:** `remove` contains external retractions for multi-document scenarios. See [Polarity Documentation](./docs/polarity.md) for complete details.
 
 **Example:**
 
@@ -477,58 +536,43 @@ console.log(result2.remove);
 // ]
 ```
 
-### `applyDiff({ text, diff, origin, options })`
+### `merge(docs, options)`
 
-Apply RDF changes back to markdown with proper positioning.
+Merge multiple MDLD documents with diff polarity resolution.
 
 **Parameters:**
 
-- `text` (string) — Original markdown
-- `diff` (object) — Changes to apply:
-  - `add` (array) — Quads to add
-  - `delete` (array) — Quads to remove
-- `origin` (object) — Origin from `parse()` result
+- `docs` (array) — Array of markdown strings or ParseResult objects
 - `options` (object, optional):
-  - `context` (object) — Context for IRI shortening
+  - `context` (object) — Prefix mappings (merged with DEFAULT_CONTEXT)
 
-**Returns:** `{ text, origin }`
+**Returns:** `{ quads, remove, origin, context }`
 
-- `text` — Updated markdown
-- `origin` — Updated origin tracking vacant slots
+- `quads` — Merged array of RDF/JS Quads
+- `remove` — Array of retractions from merge process
+- `origin` — Merge origin with document chain:
+  - `documents` — Array of document metadata
+  - `quadIndex` — Combined quad index from all documents
+- `context` — Final merged context
 
 **Example:**
 
 ```javascript
-const original = `# Article {=ex:article}
+const merged = merge([
+  `# Article {=ex:article}
+  [Alice] {author}`,
+  `# Article {=ex:article}
+  [Bob] {-author}
+  [Charlie] {author}`
+], { context: { ex: 'http://example.org/' } });
 
-[Alice] {ex:author}`;
-
-const result = parse(original, { context: { ex: 'http://example.org/' } });
-
-// Add a new property
-const newQuad = {
-  subject: { termType: 'NamedNode', value: 'http://example.org/article' },
-  predicate: { termType: 'NamedNode', value: 'http://example.org/datePublished' },
-  object: { termType: 'Literal', value: '2024-01-01' }
-};
-
-const updated = applyDiff({
-  text: original,
-  diff: { add: [newQuad] },
-  origin: result.origin,
-  options: { context: result.context }
-});
-
-console.log(updated.text);
-// # Article {=ex:article}
-//
-// [Alice] {author}
-// [2024-01-01] {datePublished}
+console.log(merged.quads.length); // 2 (type + Charlie author)
+console.log(merged.remove.length); // 1 (Bob author removal)
 ```
 
 ### `generate(quads, context)`
 
-Generate deterministic MDLD from RDF quads with origin tracking.
+Generate deterministic MDLD from RDF quads.
 
 **Parameters:**
 
@@ -537,12 +581,9 @@ Generate deterministic MDLD from RDF quads with origin tracking.
   - Merged with DEFAULT_CONTEXT for proper CURIE shortening
   - Only user-defined prefixes are rendered in output
 
-**Returns:** `{ text, origin, context }`
+**Returns:** `{ text, context }`
 
 - `text` — Generated MDLD markdown
-- `origin` — Origin tracking object with:
-  - `blocks` — Map of block IDs to source locations  
-  - `quadIndex` — Map of quads to block IDs
 - `context` — Final context used (includes defaults)
 
 **Example:**
@@ -594,7 +635,7 @@ Locate the origin entry for a quad using the lean origin system.
 **Example:**
 
 ```javascript
-import { parse, locate } from './src/index.js';
+import { parse, locate } from 'mdld-parse';
 
 const result = parse(mdldText, { context: { ex: 'http://example.org/' } });
 const quad = result.quads[0]; // Find a quad to locate
@@ -604,6 +645,53 @@ const location = locate(quad, result.origin);
 console.log(location.range); // { start: 38, end: 44 }
 console.log(location.value); // "Alice"
 console.log(location.carrierType); // "blockquote"
+```
+
+📖 **See [Origin Documentation](./docs/origin.md)** for complete origin system details and advanced usage.
+
+### `render(quads, options)`
+
+Render RDF quads as HTML+RDFa for web display.
+
+**Parameters:**
+
+- `quads` (array) — Array of RDF/JS Quads to render
+- `options` (object, optional):
+  - `context` (object) — Prefix mappings for CURIE shortening
+  - `baseIRI` (string) — Base IRI for resolving relative references
+
+**Returns:** `{ html, context }`
+
+- `html` — HTML string with RDFa annotations
+- `context` — Context used for rendering
+
+**Example:**
+
+```javascript
+import { parse, render } from 'mdld-parse';
+
+const result = parse(mdldText);
+const rendered = render(result.quads, { ex: 'http://example.org/' });
+
+console.log(rendered.html);
+// <div typeof="ex:Article">
+//   <span property="ex:author">Alice</span>
+// </div>
+```
+
+### Utility Functions
+
+The following utility functions are also exported:
+
+```javascript
+import {
+  DEFAULT_CONTEXT,    // Default prefix mappings
+  DataFactory,        // RDF/JS DataFactory instance
+  hash,              // String hashing function
+  expandIRI,         // IRI expansion with context
+  shortenIRI,        // IRI shortening with context
+  parseSemanticBlock // Parse semantic block syntax
+} from 'mdld-parse';
 ```
 
 ## Value Carriers

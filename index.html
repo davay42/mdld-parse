@@ -209,7 +209,11 @@
             <div
                 style="display: flex; flex-flow: wrap; grid-template-columns: minmax(360px, 1.2fr) minmax(360px, 1fr) minmax(360px, 1fr); gap: 1rem; margin-bottom: 1rem; align-items: start;">
                 <div style="min-width: 100%;">
-                    <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">MD-LD Input</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">MD-LD Input</h3>
+                        <span id="parse-stats"
+                            style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+                    </div>
                     <textarea id="input" class="language-markdown"
                         style="width: 100%; height: 250px; padding: .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-family: var(--font-mono); font-size: 13px; resize: vertical; background: var(--bg-light); color: var(--text-code);"
                         placeholder="Write your MD-LD here...
@@ -226,8 +230,7 @@ Examples showcase real-world scenarios:
 Title: [My Document] {label}
 Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                 </div>
-                <span id="parse-stats"
-                    style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+
 
                 <div style="min-width: 0;">
                     <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Quads
