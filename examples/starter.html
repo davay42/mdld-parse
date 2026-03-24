@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MDLD Todo List</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/uno.global.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "vue": "https://esm.sh/vue@3.5.30/dist/vue.esm-browser.prod.js",
+                "mdld-parse": "https://esm.sh/mdld-parse@0.7.0",
+                "n3": "https://esm.sh/n3@2.0.1"
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <div id="app" class="p-8 max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">{{ message }}</h1>
+            <div v-if="currentUser" class="flex items-center gap-4">
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium">{{ currentUser.name }}</span>
+                    <span class="text-gray-400">({{ currentUser.email }})</span>
+                </div>
+                <button @click="accountDialog = true" class="text-blue-500 hover:text-blue-700 text-sm">
+                    Change Account
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Todo List Interface -->
+            <div class="space-y-4">
+                <div class="flex gap-2 mb-4">
+                    <input v-model="newTask.title" @keyup.enter="addTask" placeholder="New task title..."
+                        class="flex-1 p-2 border rounded">
+                    <select v-model="newTask.priority" class="p-2 border rounded">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                    <button @click="addTask" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Add Task
+                    </button>
+                </div>
+
+                <div class="space-y-2">
+                    <div v-for="task in tasks" :key="task.id" class="p-3 border rounded-lg" :class="getTaskClass(task)">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" :checked="task.status === 'completed'"
+                                    @change="toggleTask(task.id)" class="w-4 h-4">
+                                <span :class="{ 'line-through text-gray-500': task.status === 'completed' }">
+                                    {{ task.title }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs px-2 py-1 rounded" :class="getPriorityClass(task.priority)">
+                                    {{ task.priority }}
+                                </span>
+                                <button @click="deleteTask(task.id)" class="text-red-500 hover:text-red-700">
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-4">
+                    <button @click="exportTasks" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Export MDLD
+                    </button>
+                    <button @click="importDialog = true"
+                        class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                        Import MDLD
+                    </button>
+                    <button @click="clearAll" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            <!-- MDLD Editor -->
+            <div class="space-y-4">
+                <h2 class="text-xl font-semibold">MDLD Document</h2>
+                <textarea v-model="mdldText" @input="updateFromMdld"
+                    class="w-full h-96 p-3 border rounded-lg font-mono text-sm"
+                    placeholder="MDLD format will appear here..."></textarea>
+                <div class="text-xs text-gray-600">
+                    <p>Tasks: {{ tasks.length }} | Completed: {{ completedCount }} | Pending: {{ pendingCount }}</p>
+                    <p>Document: Append-only provenance log</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Dialog -->
+        <div v-if="importDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg max-w-2xl w-full mx-4">
+                <h3 class="text-lg font-semibold mb-4">Import MDLD Document</h3>
+                <textarea v-model="importText" class="w-full h-48 p-3 border rounded-lg font-mono text-sm"
+                    placeholder="Paste MDLD document here..."></textarea>
+                <div class="flex gap-2 mt-4">
+                    <button @click="performImport" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Import
+                    </button>
+                    <button @click="importDialog = false; importText = ''"
+                        class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Setup Dialog -->
+        <div v-if="accountDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+                <h3 class="text-lg font-semibold mb-4">Setup Your Todo List</h3>
+                <p class="text-gray-600 mb-4">Enter your email to create your personal task management space.</p>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Email Address</label>
+                        <input v-model="userEmail" type="email" placeholder="your@email.com"
+                            class="w-full p-2 border rounded" @keyup.enter="setupAccount">
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        <p>This creates your personal namespace using RFC 4151 tag URIs.</p>
+                        <p>Your tasks will be stored as: tag:your@email.com,2026:task123</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-6">
+                    <button @click="setupAccount" :disabled="!userEmail.trim()"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-300">
+                        Setup Account
+                    </button>
+                    <button @click="userEmail = ''; accountDialog = false"
+                        class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createApp, ref, computed, watch } from 'vue'
+        import { parse, generate } from 'mdld-parse'
+
+        createApp({
+            setup() {
+                const message = ref('MDLD Todo List - Personal Task Management');
+                const tasks = ref([]);
+                const mdldText = ref('');
+                const newTask = ref({ title: '', priority: 'medium' });
+                const importDialog = ref(false);
+                const importText = ref('');
+
+                // Account management
+                const accountDialog = ref(false);
+                const userEmail = ref('');
+                const userDomain = ref('');
+                const currentUser = ref(null);
+                const baseIRI = ref('tag:alice@example.org,2026:');
+
+                // Account management functions
+                const generateTagIRI = (email) => {
+                    // RFC 4151 tag URI: tag:authority,date:
+                    const date = new Date().getFullYear();
+                    return `tag:${email},${date}:`;
+                };
+
+                const setupAccount = () => {
+                    if (!userEmail.value.trim()) return;
+
+                    // Generate tag IRI from email
+                    baseIRI.value = generateTagIRI(userEmail.value);
+                    currentUser.value = {
+                        email: userEmail.value,
+                        iri: baseIRI.value + 'user',
+                        name: userEmail.value.split('@')[0]
+                    };
+
+                    // Reset document with new authority
+                    mdldText.value = '';
+                    tasks.value = [];
+                    initializeDocument();
+
+                    accountDialog.value = false;
+                };
+
+                const checkAccountExists = () => {
+                    // Parse current document to see if user is already defined
+                    if (mdldText.value.trim()) {
+                        try {
+                            const result = parse(mdldText.value);
+                            const userQuads = result.quads.filter(q =>
+                                q.object.value === 'http://www.w3.org/ns/prov#Agent' ||
+                                q.object.value === 'http://www.w3.org/ns/prov#Person'
+                            );
+
+                            if (userQuads.length > 0) {
+                                const userSubject = userQuads[0].subject.value;
+                                const emailMatch = userSubject.match(/tag:([^,]+),/);
+                                if (emailMatch) {
+                                    userEmail.value = emailMatch[1];
+                                    baseIRI.value = generateTagIRI(userEmail.value);
+                                    currentUser.value = {
+                                        email: userEmail.value,
+                                        iri: userSubject,
+                                        name: userEmail.value.split('@')[0]
+                                    };
+                                    return true;
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Failed to check existing account:', e);
+                        }
+                    }
+                    return false;
+                };
+
+                // Core MDLD State Management
+                const loadFromStorage = () => {
+                    const stored = localStorage.getItem('mdld-todos');
+                    if (stored) {
+                        try {
+                            mdldText.value = stored;
+                            if (!checkAccountExists()) {
+                                // No account found, show setup dialog
+                                accountDialog.value = true;
+                            } else {
+                                updateFromMdld();
+                            }
+                        } catch (e) {
+                            console.error('Failed to load from storage:', e);
+                        }
+                    } else {
+                        // No document, show setup dialog
+                        accountDialog.value = true;
+                    }
+                };
+
+                const saveToStorage = () => {
+                    localStorage.setItem('mdld-todos', mdldText.value);
+                };
+
+                const updateFromMdld = () => {
+                    tasks.value = parseMdld(mdldText.value);
+                };
+
+                // Initialize with clean base document
+                const initializeDocument = () => {
+                    if (!mdldText.value.trim()) {
+                        const userName = currentUser.value?.name || 'User';
+                        mdldText.value = `[todo] <${baseIRI.value}>
+[prov] <http://www.w3.org/ns/prov#>
+[xsd] <http://www.w3.org/2001/XMLSchema#>
+
+# Todo List {=todo:list .prov:Entity label}
+
+A personal task management system with complete provenance tracking.
+
+Each mutation is recorded as a PROV-O activity using MDLD's polarity system.
+
+## ${userName} {=todo:user .prov:Person label}
+
+The primary user who owns and manages this todo list.
+
+[${currentUser.value?.email || 'user@example.com'}] {todo:email}
+[${new Date().toISOString()}] {todo:createdAt ^^xsd:dateTime}
+
+`;
+                        saveToStorage();
+                    }
+                };
+
+                // Core MDLD Pattern: Append-only provenance with polarity
+                const appendActivity = (type, description, changes = []) => {
+                    const timestamp = new Date().toISOString();
+                    const activityId = `activity${Date.now()}`;
+
+                    // PROV-O Activity header
+                    let activityMdld = `\n---\n\n## ${type} {=todo:${activityId} .prov:Activity label}\n`;
+                    activityMdld += `[${timestamp}] {prov:startedAtTime ^^xsd:dateTime}\n`;
+                    activityMdld += `[${timestamp}] {prov:endedAtTime ^^xsd:dateTime}\n`;
+                    activityMdld += `[User] {+todo:user ?prov:wasAssociatedWith .prov:Agent}\n`;
+                    activityMdld += `[${description}] {comment}\n`;
+                    activityMdld += `[Todo List] {+todo:list ?prov:used}\n`;
+
+                    // Group changes by entity for proper MDLD structure
+                    const entityChanges = {};
+                    changes.forEach(change => {
+                        if (!entityChanges[change.entity]) {
+                            entityChanges[change.entity] = [];
+                        }
+                        entityChanges[change.entity].push(change);
+                    });
+
+                    // Generate MDLD for each entity using three core patterns
+                    Object.entries(entityChanges).forEach(([entityId, entityChangeList]) => {
+                        const isCreation = entityChangeList.every(change => change.polarity === '+');
+                        const isDeletion = entityChangeList.every(change => change.polarity === '-');
+
+                        if (isCreation) {
+                            // Pattern 1: Creation - subject with type and label
+                            const label = entityChangeList.find(c => c.property === 'rdfs:label')?.value || entityId;
+                            activityMdld += `\n\`${label}\` {=todo:${entityId} .todo:Task label}\n`;
+
+                            // Add properties without polarity
+                            entityChangeList.forEach(change => {
+                                if (change.property !== 'rdfs:label' && change.property !== 'rdf:type') {
+                                    activityMdld += `[${change.value}] {todo:${change.property.replace('todo:', '')}}\n`;
+                                }
+                            });
+
+                        } else if (isDeletion) {
+                            // Pattern 2: Deletion - subject with negative polarity
+                            const label = entityChangeList.find(c => c.property === 'rdfs:label')?.value || entityId;
+                            activityMdld += `\n\`${label}\` {=todo:${entityId} -.todo:Task -label}\n`;
+
+                            // Add other properties with negative polarity
+                            entityChangeList.forEach(change => {
+                                if (change.property !== 'rdfs:label' && change.property !== 'rdf:type') {
+                                    activityMdld += `[${change.value}] {-todo:${change.property.replace('todo:', '')}}\n`;
+                                }
+                            });
+
+                        } else {
+                            // Pattern 3: Modification - subject with mixed polarity
+                            activityMdld += `\n{=todo:${entityId}}\n`;
+
+                            entityChangeList.forEach(change => {
+                                if (change.polarity === '+') {
+                                    // Positive changes use normal syntax
+                                    if (change.property !== 'rdf:type') {
+                                        activityMdld += `[${change.value}] {todo:${change.property.replace('todo:', '')}}\n`;
+                                    }
+                                } else {
+                                    // Negative changes use polarity syntax
+                                    activityMdld += `[${change.value}] {-todo:${change.property.replace('todo:', '')}}\n`;
+                                }
+                            });
+                        }
+                    });
+
+                    activityMdld += '\n';
+
+                    // Append to document and reconstruct state
+                    mdldText.value += activityMdld;
+                    saveToStorage();
+                    tasks.value = parseMdld(mdldText.value);
+                };
+
+                // Parse MDLD to reconstruct state from append-only log
+                const parseMdld = (text) => {
+                    try {
+                        const result = parse(text);
+                        const tasks = {};
+
+                        // Process all quads to reconstruct current task state
+                        result.quads.forEach(quad => {
+                            const subject = quad.subject.value;
+                            const predicate = quad.predicate.value;
+                            const object = quad.object.value;
+
+                            // Handle task subjects with dynamic base IRI
+                            if (subject.startsWith(baseIRI.value + 'task')) {
+                                const taskId = subject.split(':').pop();
+
+                                // Initialize task if not exists
+                                if (!tasks[taskId]) {
+                                    tasks[taskId] = {
+                                        id: taskId,
+                                        title: '',
+                                        priority: 'medium',
+                                        status: 'pending',
+                                        createdAt: new Date().toISOString()
+                                    };
+                                }
+
+                                // Set task properties from RDF predicates
+                                if (predicate === 'http://www.w3.org/2000/01/rdf-schema#label') {
+                                    tasks[taskId].title = object;
+                                } else if (predicate === baseIRI.value + 'priority') {
+                                    tasks[taskId].priority = object;
+                                } else if (predicate === baseIRI.value + 'status') {
+                                    tasks[taskId].status = object;
+                                } else if (predicate === baseIRI.value + 'createdAt') {
+                                    tasks[taskId].createdAt = object;
+                                }
+                            }
+                        });
+
+                        // Return only tasks with titles (complete tasks)
+                        return Object.values(tasks).filter(task => task.title);
+                    } catch (e) {
+                        console.error('Failed to parse MDLD:', e);
+                        return [];
+                    }
+                };
+
+                // Update MDLD display when it changes (but don't regenerate from tasks)
+                watch(mdldText, () => {
+                    saveToStorage();
+                });
+
+                // Task operations using MDLD provenance patterns
+                const addTask = () => {
+                    if (!newTask.value.title.trim()) return;
+
+                    const taskId = `task${Date.now()}`;
+                    const timestamp = new Date().toISOString();
+
+                    // Pattern: Task Creation with positive polarity
+                    appendActivity('Task Creation', `Added task: ${newTask.value.title}`, [
+                        { polarity: '+', entity: taskId, property: 'rdfs:label', value: newTask.value.title },
+                        { polarity: '+', entity: taskId, property: 'rdf:type', value: 'todo:Task' },
+                        { polarity: '+', entity: taskId, property: 'todo:priority', value: newTask.value.priority },
+                        { polarity: '+', entity: taskId, property: 'todo:status', value: 'pending' },
+                        { polarity: '+', entity: taskId, property: 'todo:createdAt', value: timestamp }
+                    ]);
+
+                    newTask.value.title = '';
+                    newTask.value.priority = 'medium';
+                };
+
+                const toggleTask = (taskId) => {
+                    const task = tasks.value.find(t => t.id === taskId);
+                    if (task) {
+                        const oldStatus = task.status;
+                        const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+
+                        // Pattern: Status Change with mixed polarity (-old, +new)
+                        appendActivity('Status Change', `Changed ${task.title} status from ${oldStatus} to ${newStatus}`, [
+                            { polarity: '-', entity: taskId, property: 'todo:status', value: oldStatus },
+                            { polarity: '+', entity: taskId, property: 'todo:status', value: newStatus }
+                        ]);
+                    }
+                };
+
+                const deleteTask = (taskId) => {
+                    const task = tasks.value.find(t => t.id === taskId);
+                    if (task) {
+                        // Pattern: Task Deletion with negative polarity
+                        appendActivity('Task Deletion', `Deleted task: ${task.title}`, [
+                            { polarity: '-', entity: taskId, property: 'rdf:type', value: 'todo:Task' },
+                            { polarity: '-', entity: taskId, property: 'rdfs:label', value: task.title },
+                            { polarity: '-', entity: taskId, property: 'todo:priority', value: task.priority },
+                            { polarity: '-', entity: taskId, property: 'todo:status', value: task.status },
+                            { polarity: '-', entity: taskId, property: 'todo:createdAt', value: task.createdAt }
+                        ]);
+                    }
+                };
+
+                const clearAll = () => {
+                    if (confirm('Clear all tasks and reset document?')) {
+                        // Pattern: Complete state reset - clear localStorage and reinitialize
+                        localStorage.removeItem('mdld-todos');
+                        mdldText.value = '';
+                        tasks.value = [];
+                        initializeDocument();
+                    }
+                };
+
+                // Import/Export
+                const exportTasks = () => {
+                    navigator.clipboard.writeText(mdldText.value).then(() => {
+                        alert('MDLD document copied to clipboard!');
+                    });
+                };
+
+                const performImport = () => {
+                    try {
+                        mdldText.value = importText.value;
+                        updateFromMdld();
+                        importDialog.value = false;
+                        importText.value = '';
+                    } catch (e) {
+                        alert('Failed to import MDLD document');
+                    }
+                };
+
+                // UI helpers
+                const getTaskClass = (task) => {
+                    if (task.status === 'completed') return 'bg-gray-100 opacity-75';
+                    if (task.priority === 'high') return 'bg-red-50 border-red-200';
+                    if (task.priority === 'medium') return 'bg-yellow-50 border-yellow-200';
+                    return 'bg-green-50 border-green-200';
+                };
+
+                const getPriorityClass = (priority) => {
+                    switch (priority) {
+                        case 'high': return 'bg-red-500 text-white';
+                        case 'medium': return 'bg-yellow-500 text-white';
+                        case 'low': return 'bg-green-500 text-white';
+                        default: return 'bg-gray-500 text-white';
+                    }
+                };
+
+                const completedCount = computed(() =>
+                    tasks.value.filter(t => t.status === 'completed').length
+                );
+
+                const pendingCount = computed(() =>
+                    tasks.value.filter(t => t.status !== 'completed').length
+                );
+
+                // Initialize
+                loadFromStorage();
+                initializeDocument();
+
+                return {
+                    message,
+                    tasks,
+                    mdldText,
+                    newTask,
+                    importDialog,
+                    importText,
+                    accountDialog,
+                    userEmail,
+                    currentUser,
+                    setupAccount,
+                    addTask,
+                    toggleTask,
+                    deleteTask,
+                    clearAll,
+                    exportTasks,
+                    performImport,
+                    updateFromMdld,
+                    getTaskClass,
+                    getPriorityClass,
+                    completedCount,
+                    pendingCount
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+
+</html>
