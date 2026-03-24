@@ -7,28 +7,46 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css" />
 
     <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/uno.global.js"></script>
+    <script>
+        // Enable dark mode detection for UnoCSS
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark')
+        }
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (e.matches) {
+                document.documentElement.classList.add('dark')
+            } else {
+                document.documentElement.classList.remove('dark')
+            }
+        })
+    </script>
     <script type="importmap">
         {
             "imports": {
                 "vue": "https://esm.sh/vue@3.5.30/dist/vue.esm-browser.prod.js",
                 "mdld-parse": "https://esm.sh/mdld-parse@0.7.0",
-                "n3": "https://esm.sh/n3@2.0.1"
+                "n3": "https://esm.sh/n3@2.0.1",
+                "@unocss/runtime": "https://esm.sh/@unocss/runtime@66.6.7"
             }
         }
     </script>
 </head>
 
-<body>
+<body class="dark:bg-gray-900 dark:text-white">
 
     <div id="app" class="p-8 max-w-4xl mx-auto">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">{{ message }}</h1>
+            <div>
+                <h1 class="text-2xl font-bold">{{ message }}</h1>
+                <h2 v-if="subtitle" class="text-xl opacity-75">{{ subtitle }}</h2>
+            </div>
             <div v-if="currentUser" class="flex items-center gap-4">
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-gray-600 dark:text-gray-400">
                     <span class="font-medium">{{ currentUser.name }}</span>
-                    <span class="text-gray-400">({{ currentUser.email }})</span>
+                    <span class="text-gray-400 dark:text-gray-500">({{ currentUser.email }})</span>
                 </div>
-                <button @click="accountDialog = true" class="text-blue-500 hover:text-blue-700 text-sm">
+                <button @click="openAccountDialog" class="text-blue-500 hover:text-blue-700 text-sm">
                     Change Account
                 </button>
             </div>
@@ -39,13 +57,15 @@
             <div class="space-y-4">
                 <div class="flex gap-2 mb-4">
                     <input v-model="newTask.title" @keyup.enter="addTask" placeholder="New task title..."
-                        class="flex-1 p-2 border rounded">
-                    <select v-model="newTask.priority" class="p-2 border rounded">
+                        class="flex-1 p-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white">
+                    <select v-model="newTask.priority"
+                        class="p-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white">
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                     </select>
-                    <button @click="addTask" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    <button @click="addTask"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700">
                         Add Task
                     </button>
                 </div>
@@ -64,7 +84,8 @@
                                 <span class="text-xs px-2 py-1 rounded" :class="getPriorityClass(task.priority)">
                                     {{ task.priority }}
                                 </span>
-                                <button @click="deleteTask(task.id)" class="text-red-500 hover:text-red-700">
+                                <button @click="deleteTask(task.id)"
+                                    class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
                                     ×
                                 </button>
                             </div>
@@ -73,14 +94,20 @@
                 </div>
 
                 <div class="flex gap-2 mt-4">
-                    <button @click="exportTasks" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    <button @click="exportTasks"
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700">
                         Export MDLD
                     </button>
+                    <button @click="exportCompact"
+                        class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 dark:bg-teal-600 dark:hover:bg-teal-700">
+                        Export Compact
+                    </button>
                     <button @click="importDialog = true"
-                        class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                        class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700">
                         Import MDLD
                     </button>
-                    <button @click="clearAll" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    <button @click="clearAll"
+                        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700">
                         Clear All
                     </button>
                 </div>
@@ -90,9 +117,9 @@
             <div class="space-y-4">
                 <h2 class="text-xl font-semibold">MDLD Document</h2>
                 <textarea v-model="mdldText" @input="updateFromMdld"
-                    class="w-full h-96 p-3 border rounded-lg font-mono text-sm"
+                    class="w-full h-96 p-3 border rounded-lg font-mono text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                     placeholder="MDLD format will appear here..."></textarea>
-                <div class="text-xs text-gray-600">
+                <div class="text-xs text-gray-600 dark:text-gray-400">
                     <p>Tasks: {{ tasks.length }} | Completed: {{ completedCount }} | Pending: {{ pendingCount }}</p>
                     <p>Document: Append-only provenance log</p>
                 </div>
@@ -101,16 +128,18 @@
 
         <!-- Import Dialog -->
         <div v-if="importDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div class="bg-white p-6 rounded-lg max-w-2xl w-full mx-4">
-                <h3 class="text-lg font-semibold mb-4">Import MDLD Document</h3>
-                <textarea v-model="importText" class="w-full h-48 p-3 border rounded-lg font-mono text-sm"
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-2xl w-full mx-4">
+                <h3 class="text-lg font-semibold mb-4 dark:text-white">Import MDLD Document</h3>
+                <textarea v-model="importText"
+                    class="w-full h-48 p-3 border rounded-lg font-mono text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     placeholder="Paste MDLD document here..."></textarea>
                 <div class="flex gap-2 mt-4">
-                    <button @click="performImport" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    <button @click="performImport"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700">
                         Import
                     </button>
                     <button @click="importDialog = false; importText = ''"
-                        class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700">
                         Cancel
                     </button>
                 </div>
@@ -121,8 +150,14 @@
         <div v-if="accountDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
                 <h3 class="text-lg font-semibold mb-4">Setup Your Todo List</h3>
-                <p class="text-gray-600 mb-4">Enter your email to create your personal task management space.</p>
+                <p class="text-gray-600 mb-4">Enter your email and display name to create your personal task management
+                    space.</p>
                 <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Display Name</label>
+                        <input v-model="userDisplayName" type="text" placeholder="Your name"
+                            class="w-full p-2 border rounded" @keyup.enter="setupAccount">
+                    </div>
                     <div>
                         <label class="block text-sm font-medium mb-1">Email Address</label>
                         <input v-model="userEmail" type="email" placeholder="your@email.com"
@@ -134,11 +169,11 @@
                     </div>
                 </div>
                 <div class="flex gap-2 mt-6">
-                    <button @click="setupAccount" :disabled="!userEmail.trim()"
+                    <button @click="setupAccount" :disabled="!userEmail.trim() || !userDisplayName.trim()"
                         class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-300">
                         Setup Account
                     </button>
-                    <button @click="userEmail = ''; accountDialog = false"
+                    <button @click="userEmail = ''; userDisplayName = ''; accountDialog = false"
                         class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
                         Cancel
                     </button>
@@ -153,7 +188,8 @@
 
         createApp({
             setup() {
-                const message = ref('MDLD Todo List - Personal Task Management');
+                const message = ref('MDLD Todo List');
+                const subtitle = ref('Personal Task Management');
                 const tasks = ref([]);
                 const mdldText = ref('');
                 const newTask = ref({ title: '', priority: 'medium' });
@@ -163,6 +199,7 @@
                 // Account management
                 const accountDialog = ref(false);
                 const userEmail = ref('');
+                const userDisplayName = ref('');
                 const userDomain = ref('');
                 const currentUser = ref(null);
                 const baseIRI = ref('tag:alice@example.org,2026:');
@@ -174,15 +211,36 @@
                     return `tag:${email},${date}:`;
                 };
 
+                const openAccountDialog = () => {
+                    if (currentUser.value) {
+                        // Pre-populate with existing user info
+                        userEmail.value = currentUser.value.email;
+                        userDisplayName.value = currentUser.value.name;
+                    } else {
+                        // Clear for new user setup
+                        userEmail.value = '';
+                        userDisplayName.value = '';
+                    }
+                    accountDialog.value = true;
+                };
+
                 const setupAccount = () => {
-                    if (!userEmail.value.trim()) return;
+                    if (!userEmail.value.trim() || !userDisplayName.value.trim()) return;
+
+                    // Check if this is an existing user updating their info
+                    if (currentUser.value && currentUser.value.email === userEmail.value && currentUser.value.name !== userDisplayName.value) {
+                        // Existing user changing their name
+                        updateUserName(userDisplayName.value);
+                        accountDialog.value = false;
+                        return;
+                    }
 
                     // Generate tag IRI from email
                     baseIRI.value = generateTagIRI(userEmail.value);
                     currentUser.value = {
                         email: userEmail.value,
                         iri: baseIRI.value + 'user',
-                        name: userEmail.value.split('@')[0]
+                        name: userDisplayName.value
                     };
 
                     // Reset document with new authority
@@ -209,10 +267,20 @@
                                 if (emailMatch) {
                                     userEmail.value = emailMatch[1];
                                     baseIRI.value = generateTagIRI(userEmail.value);
+
+                                    // Extract user's display name from todo:name property
+                                    const nameQuads = result.quads.filter(q =>
+                                        q.subject.value === userSubject &&
+                                        q.predicate.value === baseIRI.value + 'name'
+                                    );
+
+                                    // Get the most recent name (last in array due to append-only nature)
+                                    const displayName = nameQuads.length > 0 ? nameQuads[nameQuads.length - 1].object.value : userEmail.value.split('@')[0];
+
                                     currentUser.value = {
                                         email: userEmail.value,
                                         iri: userSubject,
-                                        name: userEmail.value.split('@')[0]
+                                        name: displayName
                                     };
                                     return true;
                                 }
@@ -257,103 +325,19 @@
                 const initializeDocument = () => {
                     if (!mdldText.value.trim()) {
                         const userName = currentUser.value?.name || 'User';
+                        const timestamp = new Date().toISOString();
                         mdldText.value = `[todo] <${baseIRI.value}>
 [prov] <http://www.w3.org/ns/prov#>
 [xsd] <http://www.w3.org/2001/XMLSchema#>
 
-# Todo List {=todo:list .prov:Entity label}
+# Todo List {=todo:list .prov:Plan label}
 
-A personal task management system with complete provenance tracking.
+> A personal task management system with complete provenance tracking.Each mutation is recorded as a PROV-O activity using MDLD's polarity system. {comment}
 
-Each mutation is recorded as a PROV-O activity using MDLD's polarity system.
-
-## ${userName} {=todo:user .prov:Person label}
-
-The primary user who owns and manages this todo list.
-
-[${currentUser.value?.email || 'user@example.com'}] {todo:email}
-[${new Date().toISOString()}] {todo:createdAt ^^xsd:dateTime}
-
+The primary user who owns and manages this todo list is **${userName}** {=todo:user .prov:Person todo:name ?todo:owner}. Joined at [${timestamp}] {todo:started ^^xsd:dateTime} with an email **${currentUser.value?.email || 'user@example.com'}** {todo:email}
 `;
                         saveToStorage();
                     }
-                };
-
-                // Core MDLD Pattern: Append-only provenance with polarity
-                const appendActivity = (type, description, changes = []) => {
-                    const timestamp = new Date().toISOString();
-                    const activityId = `activity${Date.now()}`;
-
-                    // PROV-O Activity header
-                    let activityMdld = `\n---\n\n## ${type} {=todo:${activityId} .prov:Activity label}\n`;
-                    activityMdld += `[${timestamp}] {prov:startedAtTime ^^xsd:dateTime}\n`;
-                    activityMdld += `[${timestamp}] {prov:endedAtTime ^^xsd:dateTime}\n`;
-                    activityMdld += `[User] {+todo:user ?prov:wasAssociatedWith .prov:Agent}\n`;
-                    activityMdld += `[${description}] {comment}\n`;
-                    activityMdld += `[Todo List] {+todo:list ?prov:used}\n`;
-
-                    // Group changes by entity for proper MDLD structure
-                    const entityChanges = {};
-                    changes.forEach(change => {
-                        if (!entityChanges[change.entity]) {
-                            entityChanges[change.entity] = [];
-                        }
-                        entityChanges[change.entity].push(change);
-                    });
-
-                    // Generate MDLD for each entity using three core patterns
-                    Object.entries(entityChanges).forEach(([entityId, entityChangeList]) => {
-                        const isCreation = entityChangeList.every(change => change.polarity === '+');
-                        const isDeletion = entityChangeList.every(change => change.polarity === '-');
-
-                        if (isCreation) {
-                            // Pattern 1: Creation - subject with type and label
-                            const label = entityChangeList.find(c => c.property === 'rdfs:label')?.value || entityId;
-                            activityMdld += `\n\`${label}\` {=todo:${entityId} .todo:Task label}\n`;
-
-                            // Add properties without polarity
-                            entityChangeList.forEach(change => {
-                                if (change.property !== 'rdfs:label' && change.property !== 'rdf:type') {
-                                    activityMdld += `[${change.value}] {todo:${change.property.replace('todo:', '')}}\n`;
-                                }
-                            });
-
-                        } else if (isDeletion) {
-                            // Pattern 2: Deletion - subject with negative polarity
-                            const label = entityChangeList.find(c => c.property === 'rdfs:label')?.value || entityId;
-                            activityMdld += `\n\`${label}\` {=todo:${entityId} -.todo:Task -label}\n`;
-
-                            // Add other properties with negative polarity
-                            entityChangeList.forEach(change => {
-                                if (change.property !== 'rdfs:label' && change.property !== 'rdf:type') {
-                                    activityMdld += `[${change.value}] {-todo:${change.property.replace('todo:', '')}}\n`;
-                                }
-                            });
-
-                        } else {
-                            // Pattern 3: Modification - subject with mixed polarity
-                            activityMdld += `\n{=todo:${entityId}}\n`;
-
-                            entityChangeList.forEach(change => {
-                                if (change.polarity === '+') {
-                                    // Positive changes use normal syntax
-                                    if (change.property !== 'rdf:type') {
-                                        activityMdld += `[${change.value}] {todo:${change.property.replace('todo:', '')}}\n`;
-                                    }
-                                } else {
-                                    // Negative changes use polarity syntax
-                                    activityMdld += `[${change.value}] {-todo:${change.property.replace('todo:', '')}}\n`;
-                                }
-                            });
-                        }
-                    });
-
-                    activityMdld += '\n';
-
-                    // Append to document and reconstruct state
-                    mdldText.value += activityMdld;
-                    saveToStorage();
-                    tasks.value = parseMdld(mdldText.value);
                 };
 
                 // Parse MDLD to reconstruct state from append-only log
@@ -361,12 +345,23 @@ The primary user who owns and manages this todo list.
                     try {
                         const result = parse(text);
                         const tasks = {};
+                        let documentLabel = '';
+                        let documentComment = '';
 
                         // Process all quads to reconstruct current task state
                         result.quads.forEach(quad => {
                             const subject = quad.subject.value;
                             const predicate = quad.predicate.value;
                             const object = quad.object.value;
+
+                            // Extract document label and comment
+                            if (subject === baseIRI.value + 'list') {
+                                if (predicate === 'http://www.w3.org/2000/01/rdf-schema#label') {
+                                    documentLabel = object;
+                                } else if (predicate === 'http://www.w3.org/2000/01/rdf-schema#comment') {
+                                    documentComment = object;
+                                }
+                            }
 
                             // Handle task subjects with dynamic base IRI
                             if (subject.startsWith(baseIRI.value + 'task')) {
@@ -396,6 +391,12 @@ The primary user who owns and manages this todo list.
                             }
                         });
 
+                        // Update message with document info
+                        if (documentLabel) {
+                            message.value = documentLabel;
+                            subtitle.value = documentComment || '';
+                        }
+
                         // Return only tasks with titles (complete tasks)
                         return Object.values(tasks).filter(task => task.title);
                     } catch (e) {
@@ -409,24 +410,58 @@ The primary user who owns and manages this todo list.
                     saveToStorage();
                 });
 
-                // Task operations using MDLD provenance patterns
+                // Task operations using direct MDLD authoring
                 const addTask = () => {
                     if (!newTask.value.title.trim()) return;
 
-                    const taskId = `task${Date.now()}`;
+                    const taskId = `task${Math.floor(Date.now() / 1000)}`;
                     const timestamp = new Date().toISOString();
+                    const activityId = `activity${Math.floor(Date.now() / 1000)}`;
 
-                    // Pattern: Task Creation with positive polarity
-                    appendActivity('Task Creation', `Added task: ${newTask.value.title}`, [
-                        { polarity: '+', entity: taskId, property: 'rdfs:label', value: newTask.value.title },
-                        { polarity: '+', entity: taskId, property: 'rdf:type', value: 'todo:Task' },
-                        { polarity: '+', entity: taskId, property: 'todo:priority', value: newTask.value.priority },
-                        { polarity: '+', entity: taskId, property: 'todo:status', value: 'pending' },
-                        { polarity: '+', entity: taskId, property: 'todo:createdAt', value: timestamp }
-                    ]);
+                    // Direct MDLD authoring for task creation
+                    const activityMdld = `
+{=}
+
+Task **${newTask.value.title}** {=todo:${taskId} .todo:Task .prov:Entity label} with a priority of [${newTask.value.priority}] {todo:priority} and [pending] {todo:status} status was created at [${timestamp}] {todo:createdAt}. 
+
+**Created** {=todo:${activityId} .prov:Activity .prov:Generation ?prov:entity} by [${currentUser.value.name}] {+todo:user ?prov:wasAssociatedWith} at [${timestamp}] {prov:startedAtTime prov:endedAtTime ^^xsd:dateTime} via *Todo List* {+todo:list ?prov:used}.
+
+`;
+
+                    mdldText.value += activityMdld;
+                    saveToStorage();
+                    tasks.value = parseMdld(mdldText.value);
 
                     newTask.value.title = '';
                     newTask.value.priority = 'medium';
+                };
+
+                const updateUserName = (newName) => {
+                    if (!newName.trim() || !currentUser.value) return;
+
+                    const timestamp = new Date().toISOString();
+                    const activityId = `activity${Date.now()}`;
+                    const oldName = currentUser.value.name;
+
+                    // Direct MDLD authoring for user name update
+                    const activityMdld = `
+{=}
+
+[${oldName}] {=todo:user -todo:name} changes to [${newName}] {todo:name}
+
+**Name Change** {=todo:${activityId} .prov:Activity !prov:wasAssociatedWith label} by [${oldName}] {+todo:user ?prov:wasAssociatedWith .prov:Agent} who [Changed display name from ${oldName} to ${newName}] {comment} via [Todo List] {+todo:list ?prov:used} at [${timestamp}] {prov:startedAtTime prov:endedAtTime ^^xsd:dateTime}.
+
+`;
+
+                    // Append the activity to document first
+                    mdldText.value += activityMdld;
+                    saveToStorage();
+
+                    // Update current user object immediately for UI responsiveness
+                    currentUser.value.name = newName;
+
+                    // Then update tasks from parsed result
+                    tasks.value = parseMdld(mdldText.value);
                 };
 
                 const toggleTask = (taskId) => {
@@ -434,26 +469,44 @@ The primary user who owns and manages this todo list.
                     if (task) {
                         const oldStatus = task.status;
                         const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+                        const timestamp = new Date().toISOString();
+                        const activityId = `activity${Date.now()}`;
 
-                        // Pattern: Status Change with mixed polarity (-old, +new)
-                        appendActivity('Status Change', `Changed ${task.title} status from ${oldStatus} to ${newStatus}`, [
-                            { polarity: '-', entity: taskId, property: 'todo:status', value: oldStatus },
-                            { polarity: '+', entity: taskId, property: 'todo:status', value: newStatus }
-                        ]);
+                        // Direct MDLD authoring for status change
+                        const activityMdld = `
+{=}
+
+[${oldStatus}] {=todo:${taskId} -todo:status} changes to [${newStatus}] {todo:status} 
+
+**Status Change** {=todo:${activityId} .prov:Activity label} by [${currentUser.value.name}] {+todo:user ?prov:wasAssociatedWith .prov:Agent} who [Changed ${task.title} status from ${oldStatus} to ${newStatus}] {comment} via [Todo List] {+todo:list ?prov:used} at [${timestamp}] {prov:startedAtTime prov:endedAtTime ^^xsd:dateTime}.
+
+`;
+
+                        mdldText.value += activityMdld;
+                        saveToStorage();
+                        tasks.value = parseMdld(mdldText.value);
                     }
                 };
 
                 const deleteTask = (taskId) => {
                     const task = tasks.value.find(t => t.id === taskId);
                     if (task) {
-                        // Pattern: Task Deletion with negative polarity
-                        appendActivity('Task Deletion', `Deleted task: ${task.title}`, [
-                            { polarity: '-', entity: taskId, property: 'rdf:type', value: 'todo:Task' },
-                            { polarity: '-', entity: taskId, property: 'rdfs:label', value: task.title },
-                            { polarity: '-', entity: taskId, property: 'todo:priority', value: task.priority },
-                            { polarity: '-', entity: taskId, property: 'todo:status', value: task.status },
-                            { polarity: '-', entity: taskId, property: 'todo:createdAt', value: task.createdAt }
-                        ]);
+                        const timestamp = new Date().toISOString();
+                        const activityId = `activity${Date.now()}`;
+
+                        // Direct MDLD authoring for task deletion
+                        const activityMdld = `
+{=}
+
+**${task.title}** {=todo:${taskId} -.todo:Task -label} with a [${task.priority}] {-todo:priority} and [${task.status}] {-todo:status} that was created at [${task.createdAt}] {-todo:createdAt} is deleted
+
+**Task Deletion** {=todo:${activityId} .prov:Activity .prov:Invalidation ?prov:entity label} activity performed by [${currentUser.value.name}] {+todo:user ?prov:wasAssociatedWith} using [Todo List] {+todo:list ?prov:used} with a [Deleted task: ${task.title}] {comment} comment at [${timestamp}] {prov:startedAtTime prov:endedAtTime ^^xsd:dateTime}.
+
+`;
+
+                        mdldText.value += activityMdld;
+                        saveToStorage();
+                        tasks.value = parseMdld(mdldText.value);
                     }
                 };
 
@@ -487,10 +540,10 @@ The primary user who owns and manages this todo list.
 
                 // UI helpers
                 const getTaskClass = (task) => {
-                    if (task.status === 'completed') return 'bg-gray-100 opacity-75';
-                    if (task.priority === 'high') return 'bg-red-50 border-red-200';
-                    if (task.priority === 'medium') return 'bg-yellow-50 border-yellow-200';
-                    return 'bg-green-50 border-green-200';
+                    if (task.status === 'completed') return 'bg-gray-100 opacity-75 dark:bg-gray-800 dark:opacity-75';
+                    if (task.priority === 'high') return 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800';
+                    if (task.priority === 'medium') return 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800';
+                    return 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800';
                 };
 
                 const getPriorityClass = (priority) => {
@@ -516,6 +569,7 @@ The primary user who owns and manages this todo list.
 
                 return {
                     message,
+                    subtitle,
                     tasks,
                     mdldText,
                     newTask,
@@ -523,8 +577,11 @@ The primary user who owns and manages this todo list.
                     importText,
                     accountDialog,
                     userEmail,
+                    userDisplayName,
                     currentUser,
+                    openAccountDialog,
                     setupAccount,
+                    updateUserName,
                     addTask,
                     toggleTask,
                     deleteTask,
