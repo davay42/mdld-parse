@@ -28,8 +28,14 @@ Subject declaration and context management
 ### 🏛️ [Architecture](./Architecture.md)
 Design principles, processing pipeline, and performance characteristics
 
+### ⚙️ [Parser Architecture](./Parser.md)
+Core parser structures, token processing, and implementation details
+
+### 📊 [Performance Benchmark](./perf.md)
+Comprehensive performance analysis and optimization results
+
 ### 🧪 [Testing](../tests/)
-Comprehensive test suite with 105 tests covering all functionality
+Comprehensive test suite with 109 tests covering all functionality
 
 ## 🎯 Real-World Applications
 

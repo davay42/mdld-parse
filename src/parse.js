@@ -210,6 +210,12 @@ function createCarrier(type, text, attrs, attrsRange, valueRange, range, pos, ex
     return { type, text, attrs, attrsRange, valueRange, range, pos, ...extra };
 }
 
+// Pre-compiled carrier patterns for better performance
+const CARRIER_PATTERN_ARRAY = [
+    ['EMPHASIS', /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y],
+    ['CODE_SPAN', /``(.+?)``\s*\{([^}]+)\}/y]
+];
+
 function extractInlineCarriers(text, baseOffset = 0) {
     const carriers = [];
     let pos = 0;
@@ -243,7 +249,8 @@ function extractInlineCarriers(text, baseOffset = 0) {
         const extractor = CARRIER_EXTRACTORS[text[pos]];
         if (extractor) return extractor(text, pos, baseOffset);
 
-        for (const [type, pattern] of Object.entries(INLINE_CARRIER_PATTERNS)) {
+        // Use pre-compiled patterns instead of Object.entries()
+        for (const [type, pattern] of CARRIER_PATTERN_ARRAY) {
             pattern.lastIndex = pos;
             const match = pattern.exec(text);
             if (match) {
@@ -400,14 +407,14 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
         // Detect rdf:Statement pattern during single-pass parsing
         detectStatementPatternSinglePass(quad, dataFactory, meta, statements, statementCandidates);
 
-        // Create lean origin entry
+        // Create lean origin entry - avoid spread operator for better performance
         const originEntry = {
             blockId: block.id,
             range: block.range,
             carrierType: block.carrierType,
             subject: subject.value,
             predicate: predicate.value,
-            context: { ...block.context },
+            context: block.context, // Direct reference instead of spread
             polarity: meta?.remove ? '-' : '+',
             value: block.text || ''
         };
@@ -474,8 +481,10 @@ function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = 
 
 const resolveFragment = (fragment, state) => {
     if (!state.currentSubject) return null;
-    const baseIRI = state.currentSubject.value.split('#')[0];
-    return state.df.namedNode(`${baseIRI}#${fragment}`);
+    const subjectValue = state.currentSubject.value;
+    const hashIndex = subjectValue.indexOf('#');
+    const baseIRI = hashIndex > -1 ? subjectValue.slice(0, hashIndex) : subjectValue;
+    return state.df.namedNode(baseIRI + '#' + fragment);
 };
 
 function resolveSubject(sem, state) {
@@ -660,18 +669,21 @@ export function parse(text, options = {}) {
 
     state.tokens = scanTokens(text);
 
-    state.tokens.filter(t => t.type === 'prefix').forEach(t => {
-        let resolvedIri = t.iri;
-        if (t.iri.includes(':')) {
-            const colonIndex = t.iri.indexOf(':');
-            const potentialPrefix = t.iri.substring(0, colonIndex);
-            const reference = t.iri.substring(colonIndex + 1);
-            if (state.ctx[potentialPrefix] && potentialPrefix !== '@vocab') {
-                resolvedIri = state.ctx[potentialPrefix] + reference;
+    // Single loop instead of filter+forEach for better performance
+    for (const token of state.tokens) {
+        if (token.type === 'prefix') {
+            let resolvedIri = token.iri;
+            if (token.iri.includes(':')) {
+                const colonIndex = token.iri.indexOf(':');
+                const potentialPrefix = token.iri.substring(0, colonIndex);
+                const reference = token.iri.substring(colonIndex + 1);
+                if (state.ctx[potentialPrefix] && potentialPrefix !== '@vocab') {
+                    resolvedIri = state.ctx[potentialPrefix] + reference;
+                }
             }
+            state.ctx[token.prefix] = resolvedIri;
         }
-        state.ctx[t.prefix] = resolvedIri;
-    });
+    }
 
     for (let i = 0; i < state.tokens.length; i++) {
         const token = state.tokens[i];
@@ -679,18 +691,20 @@ export function parse(text, options = {}) {
         TOKEN_PROCESSORS[token.type]?.(token, state);
     }
 
-    // Convert removeSet to array and ensure hard invariant: quads ∩ remove = ∅
-    const removeArray = Array.from(state.removeSet);
+    // Optimize array operations - avoid Array.from() and filter()
     const quadKeys = new Set();
-    state.quads.forEach(q => {
-        quadKeys.add(quadIndexKey(q.subject, q.predicate, q.object));
-    });
+    for (const quad of state.quads) {
+        quadKeys.add(quadIndexKey(quad.subject, quad.predicate, quad.object));
+    }
 
-    // Filter removeArray to ensure no overlap with quads
-    const filteredRemove = removeArray.filter(quad => {
+    // Direct iteration instead of Array.from() + filter()
+    const filteredRemove = [];
+    for (const quad of state.removeSet) {
         const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
-        return !quadKeys.has(key);
-    });
+        if (!quadKeys.has(key)) {
+            filteredRemove.push(quad);
+        }
+    }
 
     return { quads: state.quads, remove: filteredRemove, statements: state.statements, origin: state.origin, context: state.ctx };
 }

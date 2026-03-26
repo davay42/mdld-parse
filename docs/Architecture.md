@@ -20,6 +20,19 @@ Document processing follows this pipeline:
 4. **Annotation processing** - Semantic block evaluation
 5. **Quad emission** - RDF triple generation
 
+### Core Parser Structures
+
+For detailed documentation of parser internals, see **[Parser Architecture](./Parser.md)** which covers:
+
+- Parser state management and data structures
+- Token processing pipeline and types
+- Semantic block processing system
+- Carrier extraction mechanisms
+- Elevated statements detection
+- Origin tracking implementation
+- Performance optimizations
+- Extensibility points
+
 ### Tokenization Phase
 
 The parser processes documents in a single pass with these token types:
