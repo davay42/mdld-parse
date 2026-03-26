@@ -34,13 +34,14 @@ function normalizeInput(input, options, docContext) {
  * Merges multiple MDLD documents with diff polarity resolution
  * @param {Array<string|ParseResult>} docs 
  * @param {Object} options
- * @returns {Object}
+ * @returns {Object} Merge result with quads, remove, statements, origin, and context
  */
 export function merge(docs, options = {}) {
     const sessionBuffer = new Map(); // Use Map instead of Set for proper quad storage
     const sessionRemoveSet = new Set();
     const allDocuments = [];
     const quadIndex = new Map();
+    const allStatements = []; // Collect statements from all documents
 
     // Process each document in order
     for (let i = 0; i < docs.length; i++) {
@@ -57,9 +58,15 @@ export function merge(docs, options = {}) {
             index: i,
             input: typeof input === 'string' ? 'string' : 'ParseResult',
             origin: doc.origin,
-            context: doc.context
+            context: doc.context,
+            statementsCount: doc.statements?.length || 0 // Track statements count
         };
         allDocuments.push(documentOrigin);
+
+        // Collect statements from this document
+        if (doc.statements && doc.statements.length > 0) {
+            allStatements.push(...doc.statements);
+        }
 
         // Fold assertions into session buffer
         for (const quad of doc.quads) {
@@ -125,6 +132,7 @@ export function merge(docs, options = {}) {
     return {
         quads: filteredQuads,
         remove: filteredRemove,
+        statements: allStatements, // Include all collected statements
         origin: mergeOrigin,
         context: finalContext
     };
