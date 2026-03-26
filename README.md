@@ -56,6 +56,7 @@ console.log(result.quads);
 - **🧩 Fragments** - Document structuring with `{=#fragment}`
 - **⚡ Polarity system** - Sophisticated diff authoring with `+` and `-` prefixes
 - **📍 Origin tracking** - Complete provenance with lean quad-to-source mapping
+- **🎯 Elevated statements** - Automatic rdf:Statement pattern detection for "golden" graph extraction
 
 ## 🌟 What is MD-LD?
 
@@ -122,7 +123,24 @@ Each predicate form determines the graph edge:
 | `?p`  | S → O   | `[NASA] {=ex:nasa ?org}`     | object property  |
 | `!p` | O → S    | `[Parent] {=ex:p !hasPart}`  | reverse object   |
 
-## 🎨 Syntax Quick Reference
+## � Elevated Statements
+
+MD-LD automatically detects `rdf:Statement` patterns during parsing and extracts elevated SPO quads for convenient consumption by applications.
+
+### Pattern Detection
+
+When the parser encounters a complete `rdf:Statement` pattern with `rdf:subject`, `rdf:predicate`, and `rdf:object`, it automatically adds the corresponding SPO quad to the `statements` array:
+
+```markdown
+[ex] <http://example.org/>
+
+## Elevated statement {=ex:stmt1 .rdf:Statement}
+**Alice** {+ex:alice ?rdf:subject} *knows* {+ex:knows ?rdf:predicate} **Bob** {+ex:bob ?rdf:object}
+
+Direct statement:**Alice** {=ex:alice} knows **Bob** {?ex:knows +ex:bob} 
+``
+
+## �🎨 Syntax Quick Reference
 
 ### Subject Declaration
 Set current subject (emits no quads):
@@ -180,10 +198,11 @@ Parse MD-LD markdown and return RDF quads with lean origin tracking.
   - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
   - `dataFactory` (object) — Custom RDF/JS DataFactory
 
-**Returns:** `{ quads, remove, origin, context }`
+**Returns:** `{ quads, remove, statements, origin, context }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
+- `statements` — Array of elevated RDF/JS Quads extracted from rdf:Statement patterns
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
 

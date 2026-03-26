@@ -2,6 +2,9 @@
 
 ## 🎯 Core Documentation
 
+### 🎯 [Elevated Statements](./statements.md)
+Automatic rdf:Statement pattern detection for "golden graph" extraction
+
 ### 📍 [Origin System](./origin.md)
 Complete guide to lean origin tracking for UI navigation and provenance
 
@@ -42,6 +45,7 @@ Practical examples and applications across different domains:
 
 ## Key Features
 
+- **🎯 Elevated statements** - Automatic rdf:Statement pattern detection for "golden graph" extraction
 - **📍 Origin tracking** - Complete provenance with lean quad-to-source mapping
 - **⚡ Polarity system** - Sophisticated diff authoring with `+` and `-` prefixes
 - **📝 Rich syntax** - Multiple carrier types and predicate forms

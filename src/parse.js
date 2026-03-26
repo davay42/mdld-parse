@@ -364,7 +364,7 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
     };
 }
 
-function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null) {
+function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null, statements = null, statementCandidates = null) {
     if (!subject || !predicate || !object) return;
 
     const quad = dataFactory.quad(subject, predicate, object);
@@ -397,6 +397,9 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
         quadBuffer.set(quadKey, quad);
         quads.push(quad);
 
+        // Detect rdf:Statement pattern during single-pass parsing
+        detectStatementPatternSinglePass(quad, dataFactory, meta, statements, statementCandidates);
+
         // Create lean origin entry
         const originEntry = {
             blockId: block.id,
@@ -410,6 +413,63 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
         };
 
         quadIndex.set(quadKey, originEntry);
+    }
+}
+
+function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = null, statementCandidates = null) {
+    // Skip if not called from parse context (for testing compatibility)
+    if (!statements || !statementCandidates) return;
+
+    const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+    const RDF_STATEMENT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement';
+    const RDF_SUBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#subject';
+    const RDF_PREDICATE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate';
+    const RDF_OBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#object';
+
+    // Check if this quad starts a new rdf:Statement pattern
+    if (quad.predicate.value === RDF_TYPE && quad.object.value === RDF_STATEMENT) {
+        statementCandidates.set(quad.subject.value, { spo: {} });
+        return;
+    }
+
+    // Check if this quad completes part of an existing rdf:Statement pattern
+    const candidate = statementCandidates.get(quad.subject.value);
+    if (candidate) {
+        switch (quad.predicate.value) {
+            case RDF_SUBJECT:
+                candidate.spo.subject = quad.object;
+                break;
+            case RDF_PREDICATE:
+                candidate.spo.predicate = quad.object;
+                break;
+            case RDF_OBJECT:
+                candidate.spo.object = quad.object;
+                // Store the original quad for potential literal extraction
+                candidate.objectQuad = quad;
+                break;
+        }
+
+        // Check if pattern is complete and create elevated SPO quad
+        if (candidate.spo.subject && candidate.spo.predicate && candidate.spo.object) {
+            // For elevated statements, we need to determine if the rdf:object refers to a literal
+            // by checking if there's a corresponding literal quad in the parsing context
+            let finalObject = candidate.spo.object;
+
+            // If we have the objectQuad, check if it's a literal with datatype/language
+            if (candidate.objectQuad && meta && meta.value) {
+                // This is a literal from the current annotation
+                finalObject = candidate.objectQuad.object;
+            }
+
+            const spoQuad = dataFactory.quad(
+                candidate.spo.subject,
+                candidate.spo.predicate,
+                finalObject
+            );
+            statements.push(spoQuad);
+            // Clean up candidate to avoid duplicate detection
+            statementCandidates.delete(quad.subject.value);
+        }
     }
 }
 
@@ -444,7 +504,8 @@ const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
         state.df.namedNode(expandIRI('rdf:type', state.ctx)),
         state.df.namedNode(expandedType),
         state.df,
-        { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex: typeInfo.entryIndex, remove: typeInfo.remove }
+        { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex: typeInfo.entryIndex, remove: typeInfo.remove },
+        state.statements, state.statementCandidates
     );
 };
 
@@ -487,7 +548,8 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
             const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
             emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block,
                 role.subject, P, role.object, state.df,
-                { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex, remove: pred.remove || false }
+                { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex, remove: pred.remove || false },
+                state.statements, state.statementCandidates
             );
         }
     });
@@ -592,7 +654,9 @@ export function parse(text, options = {}) {
         origin: { quadIndex: new Map() },
         currentSubject: null,
         tokens: null,
-        currentTokenIndex: -1
+        currentTokenIndex: -1,
+        statements: [],
+        statementCandidates: new Map() // Track incomplete rdf:Statement patterns
     };
 
     state.tokens = scanTokens(text);
@@ -629,5 +693,5 @@ export function parse(text, options = {}) {
         return !quadKeys.has(key);
     });
 
-    return { quads: state.quads, remove: filteredRemove, origin: state.origin, context: state.ctx };
+    return { quads: state.quads, remove: filteredRemove, statements: state.statements, origin: state.origin, context: state.ctx };
 }

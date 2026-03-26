@@ -2,12 +2,14 @@ import { parseTests } from './parse.tests.js';
 import { locateTests } from './locate.tests.js';
 import { mergeTests } from './merge.tests.js';
 import { originLeanTests } from './origin-lean.tests.js';
+import { elevatedStatementTests } from './elevated-statements.tests.js';
 
 const tests = [
     ...parseTests,
     ...locateTests,
     ...mergeTests,
     ...originLeanTests,
+    ...elevatedStatementTests,
 ];
 
 let passed = 0;
