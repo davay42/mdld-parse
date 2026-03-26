@@ -416,60 +416,59 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
     }
 }
 
+// Extract RDF constants once at module level for efficiency
+const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+const RDF_STATEMENT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement';
+const RDF_SUBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#subject';
+const RDF_PREDICATE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate';
+const RDF_OBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#object';
+
 function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = null, statementCandidates = null) {
     // Skip if not called from parse context (for testing compatibility)
     if (!statements || !statementCandidates) return;
 
-    const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-    const RDF_STATEMENT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement';
-    const RDF_SUBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#subject';
-    const RDF_PREDICATE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate';
-    const RDF_OBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#object';
+    const predicate = quad.predicate.value;
+
+    // Early filter: only process rdf:Statement related predicates
+    if (predicate !== RDF_TYPE &&
+        predicate !== RDF_SUBJECT &&
+        predicate !== RDF_PREDICATE &&
+        predicate !== RDF_OBJECT) {
+        return;
+    }
 
     // Check if this quad starts a new rdf:Statement pattern
-    if (quad.predicate.value === RDF_TYPE && quad.object.value === RDF_STATEMENT) {
+    if (predicate === RDF_TYPE && quad.object.value === RDF_STATEMENT) {
         statementCandidates.set(quad.subject.value, { spo: {} });
         return;
     }
 
     // Check if this quad completes part of an existing rdf:Statement pattern
     const candidate = statementCandidates.get(quad.subject.value);
-    if (candidate) {
-        switch (quad.predicate.value) {
-            case RDF_SUBJECT:
-                candidate.spo.subject = quad.object;
-                break;
-            case RDF_PREDICATE:
-                candidate.spo.predicate = quad.object;
-                break;
-            case RDF_OBJECT:
-                candidate.spo.object = quad.object;
-                // Store the original quad for potential literal extraction
-                candidate.objectQuad = quad;
-                break;
-        }
+    if (!candidate) return;
 
-        // Check if pattern is complete and create elevated SPO quad
-        if (candidate.spo.subject && candidate.spo.predicate && candidate.spo.object) {
-            // For elevated statements, we need to determine if the rdf:object refers to a literal
-            // by checking if there's a corresponding literal quad in the parsing context
-            let finalObject = candidate.spo.object;
+    // Direct property assignment instead of switch for better performance
+    if (predicate === RDF_SUBJECT) {
+        candidate.spo.subject = quad.object;
+    } else if (predicate === RDF_PREDICATE) {
+        candidate.spo.predicate = quad.object;
+    } else if (predicate === RDF_OBJECT) {
+        candidate.spo.object = quad.object;
+        // Store the original quad for potential literal extraction
+        candidate.objectQuad = quad;
+    }
 
-            // If we have the objectQuad, check if it's a literal with datatype/language
-            if (candidate.objectQuad && meta && meta.value) {
-                // This is a literal from the current annotation
-                finalObject = candidate.objectQuad.object;
-            }
-
-            const spoQuad = dataFactory.quad(
-                candidate.spo.subject,
-                candidate.spo.predicate,
-                finalObject
-            );
-            statements.push(spoQuad);
-            // Clean up candidate to avoid duplicate detection
-            statementCandidates.delete(quad.subject.value);
-        }
+    // Check if pattern is complete and create elevated SPO quad
+    if (candidate.spo.subject && candidate.spo.predicate && candidate.spo.object) {
+        // Use the object directly - literal detection happens at parse time
+        const spoQuad = dataFactory.quad(
+            candidate.spo.subject,
+            candidate.spo.predicate,
+            candidate.spo.object
+        );
+        statements.push(spoQuad);
+        // Clean up candidate to avoid duplicate detection
+        statementCandidates.delete(quad.subject.value);
     }
 }
 
