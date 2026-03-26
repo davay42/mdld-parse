@@ -28,7 +28,7 @@
 </head>
 
 <body class="dark:bg-gray-900 dark:text-white bg-gray-50 text-gray-900">
-    <div class="container max-w-4xl mx-auto p-4">
+    <main class="container max-w-4xl mx-auto p-4">
         <header class="text-center mb-8 pb-4 border-b border-gray-300 dark:border-gray-600">
             <div class="text-6xl">
                 <span class="opacity-50">{</span><span class="text-orange-600 dark:text-orange-400">=+ .?!</span><span
@@ -41,14 +41,14 @@
                 Linked Data</h2>
             <p class="text-xl text-orange-600 dark:text-orange-400 mb-4">Human-friendly knowledge
                 graph authoring</p>
-            <div class="flex gap-2 justify-center flex-wrap mb-4">
+            <nav class="flex gap-2 justify-center flex-wrap mb-4">
                 <a href="https://github.com/davay42/mdld-parse" target="blank"
                     class="link-hover text-orange-600 dark:text-orange-400 no-underline py-1 px-3 border border-gray-600 dark:border-gray-400 rounded text-sm transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:border-orange-500">📦
                     GitHub</a>
                 <a href="https://www.npmjs.com/package/mdld-parse" target="blank"
                     class="link-hover text-orange-600 dark:text-orange-400 no-underline py-1 px-3 border border-gray-600 dark:border-gray-400 rounded text-sm transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:border-orange-500">📦
                     npm</a>
-            </div>
+            </nav>
         </header>
 
         <section id="format" class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 mb-4">
@@ -58,26 +58,26 @@
                 documents while embedding structured RDF data.</p>
 
             <div class="flex flex-wrap gap-2">
-                <div class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                <article class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📝 Natural Syntax
                     </h4>
                     <p class="text-gray-600 dark:text-gray-400 text-xs">Write semantic data in familiar Markdown</p>
-                </div>
-                <div class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                </article>
+                <article class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔗 RDF Output
                     </h4>
                     <p class="text-gray-600 dark:text-gray-400 text-xs">Parse to standard RDF triples</p>
-                </div>
-                <div class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                </article>
+                <article class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">⚡ Zero
                         Dependencies</h4>
                     <p class="text-gray-600 dark:text-gray-400 text-xs">Lightweight parser</p>
-                </div>
-                <div class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                </article>
+                <article class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔄 Bidirectional
                     </h4>
                     <p class="text-gray-600 dark:text-gray-400 text-xs">Parse & serialize round-trip</p>
-                </div>
+                </article>
             </div>
         </section>
 
@@ -86,43 +86,43 @@
             </h3>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
-                <div onclick="loadExample('minimal')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                <button onclick="loadExample('minimal')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🍌 Minimal viable
                     </h4>
                     <p class="text-xs text-gray-600 dark:text-gray-400">Smallest example of knowledge authoring</p>
-                </div>
-                <div onclick="loadExample('journal')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                </button>
+                <button onclick="loadExample('journal')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📔 Personal
                         Journal</h4>
                     <p class="text-xs text-gray-600 dark:text-gray-400">Mood, location, people</p>
-                </div>
-                <div onclick="loadExample('recipe')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                </button>
+                <button onclick="loadExample('recipe')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🍳 Recipe</h4>
                     <p class="text-xs text-gray-600 dark:text-gray-400">Ingredients & instructions</p>
-                </div>
-                <div onclick="loadExample('project')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                </button>
+                <button onclick="loadExample('project')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📋 Project</h4>
                     <p class="text-xs text-gray-600 dark:text-gray-400">Tasks & relationships</p>
-                </div>
-                <div onclick="loadExample('apollo')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                </button>
+                <button onclick="loadExample('apollo')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🚀 Apollo Mission
                     </h4>
                     <p class="text-xs text-gray-600 dark:text-gray-400">Prefix folding & nested lists</p>
-                </div>
-                <div onclick="loadExample('research')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                </button>
+                <button onclick="loadExample('research')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
                     <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔬 Research Paper
                     </h4>
                     <p class="text-xs text-gray-600 dark:text-gray-400">Angle-bracket URLs & datasets</p>
-                </div>
+                </button>
             </div>
-            <div class="flex flex-wrap  gap-4 mb-4 items-start">
-                <div class="w-full">
+            <div class="flex flex-wrap gap-4 mb-4 items-start">
+                <section class="w-full">
                     <div class="flex justify-between items-center">
                         <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">MD-LD Input</h3>
                         <span id="parse-stats"
@@ -143,106 +143,105 @@ Examples showcase real-world scenarios:
 ## Document {=ex:doc}
 Title: [My Document] {label}
 Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
-                </div>
+                </section>
 
-
-                <div class="flex-1 min-w-0">
+                <section class="flex-1 min-w-0">
                     <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">Quads
                     </h3>
-                    <div id="output"
+                    <article id="output"
                         class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded p-3 h-64 font-mono text-sm whitespace-pre-wrap overflow-auto text-gray-900 dark:text-gray-100">
-                        Quads will appear here...</div>
-                </div>
+                        Quads will appear here...</article>
+                </section>
 
                 <pre class="w-full max-h-72 overflow-y-auto">
                     <code id="ttl" class="language-turtle text-sm block">
                         TTL loading...</code>
-                    </pre>
+                </pre>
 
-                <div class="flex-1 min-w-0" id="rendered-section" style="display: none;">
+                <section class="flex-1 min-w-0" id="rendered-section" style="display: none;">
                     <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">Rendered HTML+RDFa
                     </h3>
-                    <div id="rendered-output"
+                    <article id="rendered-output"
                         class="bg-gray-200 dark:bg-gray-800 border border-gray-600 dark:border-gray-500 rounded p-3 h-64 font-mono text-sm overflow-auto text-gray-900 dark:text-gray-100">
-                        Rendered HTML will appear here...</div>
-                </div>
+                        Rendered HTML will appear here...</article>
+                </section>
             </div>
 
-    </div>
-
-
-    </section>
-
-    <section class="max-w-4xl mx-auto p-4 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4" id="tests">
-        <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">🧪 Test Suite</h3>
-        <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
-            <button onclick="runAllTests()"
-                class="btn-hover bg-green-600 hover:bg-green-700 text-white border-none py-2 px-4 rounded cursor-pointer font-medium text-sm transition-all duration-200 hover:-translate-y-px">▶
-                Run Tests</button>
-            <button onclick="clearTests()"
-                class="btn-hover bg-gray-600 hover:bg-gray-700 text-white border-none py-2 px-4 rounded cursor-pointer font-medium text-sm transition-all duration-200 hover:-translate-y-px">🗑️
-                Clear</button>
-            <span id="test-status" class="flex gap-4 text-sm text-gray-600 dark:text-gray-400 ml-auto"></span>
-        </div>
-        <div id="test-progress" class="h-1 bg-gray-600 dark:bg-gray-500 rounded-sm overflow-hidden mb-2 hidden">
-            <div id="test-progress-bar" class="h-full bg-green-600 transition-all duration-300"></div>
-        </div>
-        <div id="test-stats" class="grid grid-cols-4 gap-2 mb-2 hidden">
-            <div
-                class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
-                <div id="passed-count" class="text-xl font-bold mb-1 text-green-600 dark:text-green-400">
-                    0</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Passed</div>
             </div>
-            <div
-                class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
-                <div id="failed-count" class="text-xl font-bold mb-1 text-red-600 dark:text-red-400">
-                    0</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Failed</div>
-            </div>
-            <div
-                class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
-                <div id="total-count" class="text-xl font-bold mb-1 text-blue-600 dark:text-blue-400">0
-                </div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Total</div>
-            </div>
-            <div
-                class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
-                <div id="duration" class="text-xl font-bold mb-1">0ms</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Duration</div>
-            </div>
-        </div>
-        <div id="test-list" class="max-h-80 overflow-y-auto">
-            <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on
-                page
-                load...</p>
-        </div>
-    </section>
 
-    <section class="max-w-4xl mx-auto p-4 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4" id="spec">
-        <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium"><a href="/spec/Spec.md"
-                class="no-underline">📋 MD-LD Specification </a></h3>
-        <div class="flex gap-2 mb-2 items-center">
-            <span id="spec-status" class="flex gap-4 text-sm text-gray-600 dark:text-gray-400 ml-auto"></span>
-        </div>
-        <div id="spec-content"
-            class="max-h-96 overflow-y-scroll bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded p-4 font-sans leading-relaxed text-gray-900 dark:text-gray-100">
-            <p class="text-center text-gray-600 dark:text-gray-400 p-8">
-                Loading specification...</p>
-        </div>
-    </section>
-    </div>
+        </section>
+
+        <section class="max-w-4xl mx-auto p-4 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4" id="tests">
+            <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">🧪 Test Suite</h3>
+            <div class="flex gap-2 mb-2 items-center">
+                <button onclick="runAllTests()"
+                    class="btn-hover bg-green-600 hover:bg-green-700 text-white border-none py-2 px-4 rounded cursor-pointer font-medium text-sm transition-all duration-200 hover:-translate-y-px">▶
+                    Run Tests</button>
+                <button onclick="clearTests()"
+                    class="btn-hover bg-gray-600 hover:bg-gray-700 text-white border-none py-2 px-4 rounded cursor-pointer font-medium text-sm transition-all duration-200 hover:-translate-y-px">🗑️
+                    Clear</button>
+                <span id="test-status" class="flex gap-4 text-sm text-gray-600 dark:text-gray-400 ml-auto"></span>
+            </div>
+            <div id="test-progress" class="h-1 bg-gray-600 dark:bg-gray-500 rounded-sm overflow-hidden mb-2 hidden">
+                <progress id="test-progress-bar" class="h-full bg-green-600 transition-all duration-300"
+                    role="progressbar" aria-label="Test progress"></progress>
+            </div>
+            <div id="test-stats" class="grid grid-cols-4 gap-2 mb-2 hidden">
+                <article
+                    class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
+                    <div id="passed-count" class="text-xl font-bold mb-1 text-green-600 dark:text-green-400">
+                        0</div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">Passed</div>
+                </article>
+                <article
+                    class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
+                    <div id="failed-count" class="text-xl font-bold mb-1 text-red-600 dark:text-red-400">
+                        0</div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">Failed</div>
+                </article>
+                <article
+                    class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
+                    <div id="total-count" class="text-xl font-bold mb-1 text-blue-600 dark:text-blue-400">0
+                    </div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                </article>
+                <article
+                    class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
+                    <div id="duration" class="text-xl font-bold mb-1">0ms</div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">Duration</div>
+                </article>
+            </div>
+            <div id="test-list" class="max-h-80 overflow-y-auto">
+                <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on
+                    page
+                    load...</p>
+            </div>
+        </section>
+
+        <section class="max-w-4xl mx-auto p-4 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4" id="spec">
+            <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium"><a href="/spec/Spec.md"
+                    class="no-underline">📋 MD-LD Specification </a></h3>
+            <div class="flex gap-2 mb-2 items-center">
+                <span id="spec-status" class="flex gap-4 text-sm text-gray-600 dark:text-gray-400 ml-auto"></span>
+            </div>
+            <article id="spec-content"
+                class="max-h-96 overflow-y-scroll bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded p-4 font-sans leading-relaxed text-gray-900 dark:text-gray-100">
+                <p class="text-center text-gray-600 dark:text-gray-400 p-8">
+                    Loading specification...</p>
+            </article>
+        </section>
+    </main>
 
     <script type="importmap">
-  {
-    "imports": {
-      "./index.js": "./index.js",
-      "./tests.js": "./tests.js",
-      "n3": "https://esm.sh/n3@2.0.1",
-      "markdown-it": "https://esm.sh/markdown-it@14.1.0"
-    }
-  }
-  </script>
+        {
+            "imports": {
+                "./index.js": "./index.js",
+                "./tests.js": "./tests.js",
+                "n3": "https://esm.sh/n3@2.0.1",
+                "markdown-it": "https://esm.sh/markdown-it@14.1.0"
+            }
+        }
+    </script>
 
     <script type="module">
         import { parse, shortenIRI } from './src/index.js';
