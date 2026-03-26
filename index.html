@@ -7,215 +7,129 @@
     <title>MD-LD - Markdown Linked Data Parser</title>
     <meta name="description"
         content="MD-LD: Human-friendly RDF authoring format. Write semantic data in natural Markdown. Parse to RDF triples. Zero dependencies.">
-    <style>
-        :root {
-            --bg-light: #f8f9fa;
-            --text-dark: #374151;
-            --accent-orange: #af540f;
-            --accent-orange-light: #d9711f;
-            --border-dark: #374151;
-            --bg-code: #e2e2e2;
-            --text-code: #1d1d1d;
-            --text-muted: #525253;
-            --bg-feature: rgb(255, 254, 248);
-            --text-feature: #181818;
-            --bg-hover: rgb(227, 222, 218);
-            --border-focus: #60a5fa;
-            --bg-button-primary: #6a9962;
-            --bg-button-primary-hover: #2563eb;
-            --bg-button-secondary: #4b5563;
-            --bg-button-secondary-hover: #6b7280;
-            --bg-button-danger: #ef4444;
-            --bg-button-danger-hover: #dc2626;
-            --bg-input: #d2d2d2;
-            --border-chip-default: #334155;
-            --bg-chip-default: #7e7e7f;
-            --text-chip-key: #94a3b8;
-            --border-chip-subject: #1e3a8a;
-            --bg-chip-subject: #dbd9d9;
-            --text-chip-subject: #0c4587;
-            --border-chip-predicate: #334155;
-            --bg-chip-predicate: #cfd1d5;
-            --text-chip-predicate: #313335;
-            --border-chip-object: #3f3f46;
-            --bg-chip-object: #b8cfc0;
-            --text-chip-object: #0d361e;
-            --border-chip-literal: #44403c;
-            --bg-chip-literal: #b4c1b3;
-            --text-chip-literal: #bfc6be;
-            --text-separator: #64748b;
-            --color-success: #10b981;
-            --color-error: #ef4444;
-            --color-info: #60a5fa;
-            --text-pill: #cbd5e1;
-            --bg-table-header: #111827;
-            --text-table-header: #cbd5e1;
-            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-        }
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css" />
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box
+    <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/uno.global.js"></script>
+    <script>
+        // Enable dark mode detection for UnoCSS
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark')
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
-            line-height: 1.5;
-            color: var(--text-dark);
-            background: var(--bg-light);
-        }
-
-        code {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace
-        }
-
-        .container {
-            max-width: 65ch;
-            margin: 0 auto;
-            padding: 1rem
-        }
-
-        .hidden {
-            display: none
-        }
-
-        .link-hover:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-orange);
-        }
-
-        .example-hover:hover {
-            border-color: var(--border-focus);
-        }
-
-        .btn-hover:hover {
-            transform: translateY(-1px);
-        }
-
-        @media (max-width: 900px) {
-            .playground {
-                grid-template-columns: 1fr !important
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (e.matches) {
+                document.documentElement.classList.add('dark')
+            } else {
+                document.documentElement.classList.remove('dark')
             }
-        }
-
-        @media (max-width: 768px) {
-            .stats {
-                grid-template-columns: repeat(2, 1fr) !important
-            }
-        }
-    </style>
+        })
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism.min.css">
 </head>
 
-<body>
-    <div class="container">
-        <header
-            style="text-align: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-dark);">
-            <div style="font-size: 4em;">
-                <span style="opacity:50%">{</span><span style="color: var(--accent-orange)">=+ .?!</span><span
-                    style="opacity:50%">}</span>
+<body class="dark:bg-gray-900 dark:text-white bg-gray-50 text-gray-900">
+    <div class="container max-w-4xl mx-auto p-4">
+        <header class="text-center mb-8 pb-4 border-b border-gray-300 dark:border-gray-600">
+            <div class="text-6xl">
+                <span class="opacity-50">{</span><span class="text-orange-600 dark:text-orange-400">=+ .?!</span><span
+                    class="opacity-50">}</span>
             </div>
             <h1
-                style="font-size: 3.5rem; font-weight: 700; margin-bottom: .5rem; background: linear-gradient(135deg, var(--accent-orange-light), var(--accent-orange)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                class="text-5xl font-bold mb-2 bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
                 MD-LD</h1>
-            <h2 style="font-size: 1.5rem; font-weight: 500; margin-bottom: .5rem; color: var(--text-dark);">Markdown
+            <h2 class="text-2xl font-medium mb-2 text-gray-700 dark:text-gray-300">Markdown
                 Linked Data</h2>
-            <p style="font-size: 1.2rem; color: var(--accent-orange); margin-bottom: 1rem;">Human-friendly knowledge
+            <p class="text-xl text-orange-600 dark:text-orange-400 mb-4">Human-friendly knowledge
                 graph authoring</p>
-            <div style="display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
-                <a href="https://github.com/davay42/mdld-parse" target="_blank" class="link-hover"
-                    style="color: var(--accent-orange); text-decoration: none; padding: .25rem .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-size: .875rem; transition: all .2s;">📦
+            <div class="flex gap-2 justify-center flex-wrap mb-4">
+                <a href="https://github.com/davay42/mdld-parse" target="blank"
+                    class="link-hover text-orange-600 dark:text-orange-400 no-underline py-1 px-3 border border-gray-600 dark:border-gray-400 rounded text-sm transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:border-orange-500">📦
                     GitHub</a>
-                <a href="https://www.npmjs.com/package/mdld-parse" target="_blank" class="link-hover"
-                    style="color: var(--accent-orange); text-decoration: none; padding: .25rem .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-size: .875rem; transition: all .2s;">📦
+                <a href="https://www.npmjs.com/package/mdld-parse" target="blank"
+                    class="link-hover text-orange-600 dark:text-orange-400 no-underline py-1 px-3 border border-gray-600 dark:border-gray-400 rounded text-sm transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:border-orange-500">📦
                     npm</a>
             </div>
         </header>
 
-        <section id="format"
-            style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
-            <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">📖 What is MD-LD?</h3>
-            <p style="color: var(--text-muted); font-size: .875rem; margin-bottom: .5rem;">MD-LD extends Markdown with
-                semantic annotations using <code>{...}</code> blocks. Write natural language
+        <section id="format" class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 mb-4">
+            <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">📖 What is MD-LD?</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">MD-LD extends Markdown with
+                semantic annotations using <code class="font-mono text-sm">{...}</code> blocks. Write natural language
                 documents while embedding structured RDF data.</p>
 
-            <div style="display: flex; flex-wrap: wrap; gap: .5rem;">
-                <div style="background: var(--bg-feature); border-radius: 0.5em; padding: .5rem; flex: 1">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">📝 Natural Syntax
+            <div class="flex flex-wrap gap-2">
+                <div class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📝 Natural Syntax
                     </h4>
-                    <p style="color: var(--text-muted); font-size: .75rem;">Write semantic data in familiar Markdown</p>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs">Write semantic data in familiar Markdown</p>
                 </div>
-                <div style="background: var(--bg-feature); border-radius: 0.5em; padding: .5rem; flex: 1">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🔗 RDF Output
+                <div class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔗 RDF Output
                     </h4>
-                    <p style="color: var(--text-muted); font-size: .75rem;">Parse to standard RDF triples</p>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs">Parse to standard RDF triples</p>
                 </div>
-                <div style="background: var(--bg-feature);  border-radius: .5em; padding: .5rem; flex: 1;">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">⚡ Zero
+                <div class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">⚡ Zero
                         Dependencies</h4>
-                    <p style="color: var(--text-muted); font-size: .75rem;">Lightweight parser</p>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs">Lightweight parser</p>
                 </div>
-                <div style="background: var(--bg-feature); border-radius: .5em; padding: .5rem; flex: 1;">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🔄 Bidirectional
+                <div class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔄 Bidirectional
                     </h4>
-                    <p style="color: var(--text-muted); font-size: .75rem;">Parse & serialize round-trip</p>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs">Parse & serialize round-trip</p>
                 </div>
             </div>
         </section>
 
-        <section id="playground"
-            style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
-            <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🎮 Interactive Playground
+        <section id="playground" class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 mb-4">
+            <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">🎮 Interactive Playground
             </h3>
 
-            <div
-                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .5rem; margin-bottom: 1rem;">
-                <div onclick="loadExample('minimal')" class="example-hover"
-                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🍌 Minimal viable
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
+                <div onclick="loadExample('minimal')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🍌 Minimal viable
                     </h4>
-                    <p style="font-size: .75rem; color: var(--text-muted);">Smallest example of knowledge authoring</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Smallest example of knowledge authoring</p>
                 </div>
-                <div onclick="loadExample('journal')" class="example-hover"
-                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">📔 Personal
+                <div onclick="loadExample('journal')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📔 Personal
                         Journal</h4>
-                    <p style="font-size: .75rem; color: var(--text-muted);">Mood, location, people</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Mood, location, people</p>
                 </div>
-                <div onclick="loadExample('recipe')" class="example-hover"
-                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🍳 Recipe</h4>
-                    <p style="font-size: .75rem; color: var(--text-muted);">Ingredients & instructions</p>
+                <div onclick="loadExample('recipe')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🍳 Recipe</h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Ingredients & instructions</p>
                 </div>
-                <div onclick="loadExample('project')" class="example-hover"
-                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">📋 Project</h4>
-                    <p style="font-size: .75rem; color: var(--text-muted);">Tasks & relationships</p>
+                <div onclick="loadExample('project')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📋 Project</h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Tasks & relationships</p>
                 </div>
-                <div onclick="loadExample('apollo')" class="example-hover"
-                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🚀 Apollo Mission
+                <div onclick="loadExample('apollo')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🚀 Apollo Mission
                     </h4>
-                    <p style="font-size: .75rem; color: var(--text-muted);">Prefix folding & nested lists</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Prefix folding & nested lists</p>
                 </div>
-                <div onclick="loadExample('research')" class="example-hover"
-                    style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; cursor: pointer; transition: all .2s;">
-                    <h4 style="margin-bottom: .25rem; color: var(--text-feature); font-size: .875rem;">🔬 Research Paper
+                <div onclick="loadExample('research')"
+                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔬 Research Paper
                     </h4>
-                    <p style="font-size: .75rem; color: var(--text-muted);">Angle-bracket URLs & datasets</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Angle-bracket URLs & datasets</p>
                 </div>
             </div>
-            <div
-                style="display: flex; flex-flow: wrap; grid-template-columns: minmax(360px, 1.2fr) minmax(360px, 1fr) minmax(360px, 1fr); gap: 1rem; margin-bottom: 1rem; align-items: start;">
-                <div style="min-width: 100%;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">MD-LD Input</h3>
+            <div class="flex flex-wrap  gap-4 mb-4 items-start">
+                <div class="w-full">
+                    <div class="flex justify-between items-center">
+                        <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">MD-LD Input</h3>
                         <span id="parse-stats"
-                            style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+                            class="flex gap-4 text-sm text-gray-600 dark:text-gray-400 ml-auto"></span>
                     </div>
-                    <textarea id="input" class="language-markdown"
-                        style="width: 100%; height: 250px; padding: .75rem; border: 1px solid var(--border-dark); border-radius: 4px; font-family: var(--font-mono); font-size: 13px; resize: vertical; background: var(--bg-light); color: var(--text-code);"
+                    <textarea id="input"
+                        class="language-markdown w-full h-64 p-3 border border-gray-600 dark:border-gray-500 rounded font-mono text-sm resize-vertical bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                         placeholder="Write your MD-LD here...
 
 Examples showcase real-world scenarios:
@@ -232,24 +146,24 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                 </div>
 
 
-                <div style="min-width: 0;">
-                    <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Quads
+                <div class="flex-1 min-w-0">
+                    <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">Quads
                     </h3>
                     <div id="output"
-                        style="background: var(--bg-light); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; overflow: auto; color: var(--text-code);">
+                        class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded p-3 h-64 font-mono text-sm whitespace-pre-wrap overflow-auto text-gray-900 dark:text-gray-100">
                         Quads will appear here...</div>
                 </div>
 
-                <pre style="width:100%; max-height:280px;overflow-y: scroll;">
-                    <code id="ttl" class="language-turtle" style="font-size:0.8em;display:block">
+                <pre class="w-full max-h-72 overflow-y-auto">
+                    <code id="ttl" class="language-turtle text-sm block">
                         TTL loading...</code>
                     </pre>
 
-                <div style="min-width: 0;" id="rendered-section" style="display: none;">
-                    <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">Rendered HTML+RDFa
+                <div class="flex-1 min-w-0" id="rendered-section" style="display: none;">
+                    <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">Rendered HTML+RDFa
                     </h3>
                     <div id="rendered-output"
-                        style="background: var(--bg-code); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; height: 250px; font-family: var(--font-mono); font-size: 13px; overflow: auto; color: var(--text-code);">
+                        class="bg-gray-200 dark:bg-gray-800 border border-gray-600 dark:border-gray-500 rounded p-3 h-64 font-mono text-sm overflow-auto text-gray-900 dark:text-gray-100">
                         Rendered HTML will appear here...</div>
                 </div>
             </div>
@@ -259,71 +173,61 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
 
     </section>
 
-    <section class="container" id="tests"
-        style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
-        <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;">🧪 Test Suite</h3>
+    <section class="max-w-4xl mx-auto p-4 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4" id="tests">
+        <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">🧪 Test Suite</h3>
         <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
-            <button onclick="runAllTests()" class="btn-hover btn-hover-primary"
-                style="background: var(--bg-button-primary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem; transition: all .2s;">▶
+            <button onclick="runAllTests()"
+                class="btn-hover bg-green-600 hover:bg-green-700 text-white border-none py-2 px-4 rounded cursor-pointer font-medium text-sm transition-all duration-200 hover:-translate-y-px">▶
                 Run Tests</button>
-            <button onclick="clearTests()" class="btn-hover btn-hover-secondary"
-                style="background: var(--bg-button-secondary); color: #fff; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: .875rem; transition: all .2s;">🗑️
+            <button onclick="clearTests()"
+                class="btn-hover bg-gray-600 hover:bg-gray-700 text-white border-none py-2 px-4 rounded cursor-pointer font-medium text-sm transition-all duration-200 hover:-translate-y-px">🗑️
                 Clear</button>
-            <span id="test-status"
-                style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+            <span id="test-status" class="flex gap-4 text-sm text-gray-600 dark:text-gray-400 ml-auto"></span>
         </div>
-        <div id="test-progress"
-            style="height: 3px; background: var(--border-dark); border-radius: 2px; overflow: hidden; margin-bottom: .5rem; display: none;">
-            <div id="test-progress-bar"
-                style="height: 100%; background: var(--bg-button-primary); transition: width .3s ease;"></div>
+        <div id="test-progress" class="h-1 bg-gray-600 dark:bg-gray-500 rounded-sm overflow-hidden mb-2 hidden">
+            <div id="test-progress-bar" class="h-full bg-green-600 transition-all duration-300"></div>
         </div>
-        <div id="test-stats"
-            style="display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .5rem; display: none;">
+        <div id="test-stats" class="grid grid-cols-4 gap-2 mb-2 hidden">
             <div
-                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
-                <div id="passed-count"
-                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-success);">
+                class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
+                <div id="passed-count" class="text-xl font-bold mb-1 text-green-600 dark:text-green-400">
                     0</div>
-                <div style="font-size: .75rem; color: var(--text-muted);">Passed</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Passed</div>
             </div>
             <div
-                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
-                <div id="failed-count"
-                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-error);">
+                class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
+                <div id="failed-count" class="text-xl font-bold mb-1 text-red-600 dark:text-red-400">
                     0</div>
-                <div style="font-size: .75rem; color: var(--text-muted);">Failed</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Failed</div>
             </div>
             <div
-                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
-                <div id="total-count"
-                    style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; color: var(--color-info);">0
+                class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
+                <div id="total-count" class="text-xl font-bold mb-1 text-blue-600 dark:text-blue-400">0
                 </div>
-                <div style="font-size: .75rem; color: var(--text-muted);">Total</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Total</div>
             </div>
             <div
-                style="background: var(--bg-feature); padding: .5rem; border-radius: 4px; text-align: center; border: 1px solid var(--border-dark);">
-                <div id="duration" style="font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem;">0ms</div>
-                <div style="font-size: .75rem; color: var(--text-muted);">Duration</div>
+                class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
+                <div id="duration" class="text-xl font-bold mb-1">0ms</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Duration</div>
             </div>
         </div>
-        <div id="test-list" style="max-height: 300px; overflow-y: auto;">
-            <p style="text-align: center; color: var(--text-muted); padding: 1rem;">Tests will run automatically on
+        <div id="test-list" class="max-h-80 overflow-y-auto">
+            <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on
                 page
                 load...</p>
         </div>
     </section>
 
-    <section class="container" id="spec"
-        style="background: var(--bg-code); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
-        <h3 style="margin-bottom: .5rem; color: var(--text-feature); font-size: 1rem;"><a href="/spec/Spec.md"
-                style="text-decoration: none;">📋 MD-LD Specification </a></h3>
-        <div style="display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center;">
-            <span id="spec-status"
-                style="display: flex; gap: 1rem; font-size: .875rem; color: var(--text-muted); margin-left: auto;"></span>
+    <section class="max-w-4xl mx-auto p-4 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4" id="spec">
+        <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium"><a href="/spec/Spec.md"
+                class="no-underline">📋 MD-LD Specification </a></h3>
+        <div class="flex gap-2 mb-2 items-center">
+            <span id="spec-status" class="flex gap-4 text-sm text-gray-600 dark:text-gray-400 ml-auto"></span>
         </div>
         <div id="spec-content"
-            style="max-height: 80svh; overflow-y: scroll; background: var(--bg-light); border: 1px solid var(--border-dark); border-radius: 4px; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: var(--text-dark);">
-            <p style="text-align: center; color: var(--text-muted); padding: 2rem; ">
+            class="max-h-96 overflow-y-scroll bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded p-4 font-sans leading-relaxed text-gray-900 dark:text-gray-100">
+            <p class="text-center text-gray-600 dark:text-gray-400 p-8">
                 Loading specification...</p>
         </div>
     </section>
@@ -421,30 +325,23 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
             const d = escapeHtml(displayValue);
             const t = escapeHtml(clipTitle(fullValue, displayValue));
 
-            let borderColor = 'var(--border-chip-default)';
-            let bgColor = 'var(--bg-chip-default)';
-            let keyColor = 'var(--text-chip-key)';
+            let chipClass = 'inline-flex items-center gap-1 max-w-full border rounded px-1 py-0.5 text-xs ';
+            let innerClass = 'inline-block max-w-48 overflow-hidden text-ellipsis whitespace-nowrap ';
 
             if (extraClass === 'q-s') {
-                borderColor = 'var(--border-chip-subject)';
-                bgColor = 'var(--bg-chip-subject)';
-                keyColor = 'var(--text-chip-subject)';
+                chipClass += 'border-blue-700 dark:border-blue-300 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100';
             } else if (extraClass === 'q-p') {
-                borderColor = 'var(--border-chip-predicate)';
-                bgColor = 'var(--bg-chip-predicate)';
-                keyColor = 'var(--text-chip-predicate)';
+                chipClass += 'border-gray-600 dark:border-gray-400 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100';
             } else if (extraClass === 'q-o') {
-                borderColor = 'var(--border-chip-object)';
-                bgColor = 'var(--bg-chip-object)';
-                keyColor = 'var(--text-chip-object)';
+                chipClass += 'border-green-700 dark:border-green-300 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100';
             } else if (extraClass === 'q-lit') {
-                borderColor = 'var(--border-chip-literal)';
-                bgColor = 'var(--bg-chip-literal)';
-                keyColor = 'var(--text-chip-literal)';
+                chipClass += 'border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100';
+            } else {
+                chipClass += 'border-gray-500 dark:border-gray-400 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
             }
 
-            return `<span style="display: inline-flex; align-items: center; gap: .35rem; max-width: 100%; border: 1px solid ${borderColor}; background: ${bgColor}; border-radius: 6px; padding: .12rem .4rem;">
-                <span style="display: inline-block; max-width: 48ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${t}">${d}</span></span>`;
+            return `<span class="${chipClass}">
+                <span class="${innerClass}" title="${t}">${d}</span></span>`;
         }
 
 
@@ -523,7 +420,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                 // Display rendered HTML+RDFa (only if enabled)
                 if (ENABLE_RDFA_RENDER) {
                     const renderedResult = render(input);
-                    rendered.innerHTML = `<div style="background: white; padding: 1rem; border-radius: 4px;">${renderedResult.html}</div>`;
+                    rendered.innerHTML = `<div class="bg-white dark:bg-gray-800 p-4 rounded">${renderedResult.html}</div>`;
                 }
 
                 // Convert quads to readable format
@@ -542,7 +439,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
         };
 
         function quadsToHtml(quads) {
-            if (!quads || quads.length === 0) return '<div style="color: var(--text-muted);"># No quads generated</div>';
+            if (!quads || quads.length === 0) return '<div class="text-gray-600 dark:text-gray-400"># No quads generated</div>';
             return quads.map(q => {
                 const ctx = lastParse?.result?.context || {};
                 const sFull = q.subject.value;
@@ -562,7 +459,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                     o = chip('O', oFull, oDisp, 'q-o');
                 }
 
-                return `<div style="display: flex; gap: .4rem; align-items: center; padding: .2rem 0; border-bottom: 1px dashed var(--border-dark); min-width: 0;">${s}<span style="color: var(--text-separator);">→</span>${p}<span style="color: var(--text-separator);">→</span>${o}</div>`;
+                return `<div class="flex gap-1 items-center py-0.5 border-b border-dashed border-gray-600 dark:border-gray-400 min-w-0">${s}<span class="text-gray-500 dark:text-gray-400">→</span>${p}<span class="text-gray-500 dark:text-gray-400">→</span>${o}</div>`;
             }).join('');
         }
 
@@ -599,7 +496,6 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
 
         // Run all tests
         window.runAllTests = async function () {
-            const startTime = performance.now();
             currentTestResults = [];
 
             const progress = document.getElementById('test-progress');
@@ -615,6 +511,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
 
             let passed = 0;
             let failed = 0;
+            let totalTestTime = 0; // Track actual test execution time only
 
             for (let i = 0; i < tests.length; i++) {
                 const test = tests[i];
@@ -623,6 +520,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                 try {
                     const result = test.fn();
                     const duration = Math.round(performance.now() - testStart);
+                    totalTestTime += duration; // Accumulate actual test time
 
                     currentTestResults.push({
                         name: test.name,
@@ -635,6 +533,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                     addTestItem(test.name, 'passed', duration, result);
                 } catch (error) {
                     const duration = Math.round(performance.now() - testStart);
+                    totalTestTime += duration; // Accumulate actual test time
 
                     currentTestResults.push({
                         name: test.name,
@@ -657,8 +556,8 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                 await new Promise(resolve => setTimeout(resolve, 5));
             }
 
-            const totalDuration = Math.round(performance.now() - startTime);
-            document.getElementById('duration').textContent = `${totalDuration}ms`;
+            // Display only the actual test execution time, excluding UI delays
+            document.getElementById('duration').textContent = `${Math.round(totalTestTime)}ms`;
 
             setTimeout(() => {
                 progress.style.display = 'none';
@@ -671,35 +570,35 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
             const testList = document.getElementById('test-list');
             const item = document.createElement('div');
 
-            let borderLeft = 'none';
+            let borderClass = '';
             if (status === 'passed') {
-                borderLeft = '3px solid var(--color-success)';
+                borderClass = 'border-l-4 border-l-green-600 dark:border-l-green-400';
             } else if (status === 'failed') {
-                borderLeft = '3px solid var(--color-error)';
+                borderClass = 'border-l-4 border-l-red-600 dark:border-l-red-400';
             }
 
-            item.style.cssText = `background: var(--bg-feature); border: 1px solid var(--border-dark); border-radius: 4px; padding: .75rem; margin-bottom: .25rem; transition: all .2s; border-left: ${borderLeft};`;
+            item.className = `bg-yellow-50 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 mb-1 transition-all duration-200 ${borderClass}`;
 
             const icon = status === 'passed' ? '✅' : '❌';
 
             item.innerHTML = `
-        <div style="display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem;">
-          <span style="font-size: 1rem;">${icon}</span>
-          <span style="flex: 1; font-weight: 500; font-size: .875rem; font-family: var(--font);">${name}</span>
-          <span style="font-size: .75rem; color: var(--text-muted);">${duration}ms</span>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-base">${icon}</span>
+          <span class="flex-1 font-medium text-sm">${name}</span>
+          <span class="text-xs text-gray-600 dark:text-gray-400">${duration}ms</span>
         </div>
-        <div style="margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--border-dark); display: none;" id="details-${name.replace(/\s+/g, '-')}">
+        <div class="mt-2 pt-2 border-t border-gray-600 dark:border-gray-400 hidden" id="details-${name.replace(/\s+/g, '-')}">
           ${result ? `
-            <div style="background: var(--bg-input); padding: .5rem; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; white-space: pre-wrap; max-height: 150px; overflow-y: auto; margin-bottom: .5rem; color: var(--text-code); user-select: text;">${result.input}</div>
-            <div style="background: var(--bg-input); padding: .5rem; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; white-space: pre-wrap; max-height: 150px; overflow-y: auto; margin-bottom: .5rem; color: var(--text-code); user-select: text;">${(result.output.quads || []).map(q => `${q.subject.value} -> ${q.predicate.value} -> ${q.object.termType === 'Literal' ? formatLiteral(q.object) : `<${q.object.value}>`}`).join('\n')}</div>
+            <div class="bg-gray-200 dark:bg-gray-800 p-2 rounded font-mono text-xs whitespace-pre-wrap max-h-36 overflow-y-auto mb-2 text-gray-900 dark:text-gray-100 select-text">${result.input}</div>
+            <div class="bg-gray-200 dark:bg-gray-800 p-2 rounded font-mono text-xs whitespace-pre-wrap max-h-36 overflow-y-auto mb-2 text-gray-900 dark:text-gray-100 select-text">${(result.output.quads || []).map(q => `${q.subject.value} -> ${q.predicate.value} -> ${q.object.termType === 'Literal' ? formatLiteral(q.object) : `<${q.object.value}>`}`).join('\n')}</div>
           ` : ''}
-          ${error ? `<div style="color: var(--color-error); font-family: var(--font-mono); font-size: 11px;">${error}</div>` : ''}
+          ${error ? `<div class="text-red-600 dark:text-red-400 font-mono text-xs">${error}</div>` : ''}
         </div>
       `;
 
             item.addEventListener('click', () => {
                 const details = item.querySelector(`#details-${name.replace(/\s+/g, '-')}`);
-                details.style.display = details.style.display === 'none' ? 'block' : 'none';
+                details.classList.toggle('hidden');
             });
 
             testList.appendChild(item);
@@ -708,9 +607,9 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
         // Clear tests
         window.clearTests = function () {
             currentTestResults = [];
-            document.getElementById('test-list').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 1rem;">Click "Run Tests" to see results</p>';
-            document.getElementById('test-stats').style.display = 'none';
-            document.getElementById('test-progress').style.display = 'none';
+            document.getElementById('test-list').innerHTML = '<p class="text-center text-gray-600 dark:text-gray-400 p-4">Click "Run Tests" to see results</p>';
+            document.getElementById('test-stats').classList.add('hidden');
+            document.getElementById('test-progress').classList.add('hidden');
             document.getElementById('test-status').textContent = '';
         };
 
@@ -753,7 +652,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
             const specStatus = document.getElementById('spec-status');
 
             specStatus.textContent = `Loading ${filePath}...`;
-            specContent.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading markdown...</p>';
+            specContent.innerHTML = '<p class="text-center text-gray-600 dark:text-gray-400 p-8">Loading markdown...</p>';
 
             try {
                 const response = await fetch(filePath);
@@ -767,23 +666,36 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                 // Apply custom styling and intercept links
                 specContent.innerHTML = `
                     <style>
-                        #spec-content h1 { color: var(--accent-orange); border-bottom: 2px solid var(--border-dark); padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0; }
-                        #spec-content h2 { color: var(--text-feature); border-bottom: 1px solid var(--border-dark); padding-bottom: 0.25rem; margin: 1.25rem 0 0.75rem 0; }
-                        #spec-content h3 { color: var(--text-feature); margin: 1rem 0 0.5rem 0; }
-                        #spec-content h4 { color: var(--text-muted); margin: 0.75rem 0 0.25rem 0; }
+                        #spec-content h1 { color: #dc2626; border-bottom: 2px solid #374151; padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0; }
+                        #spec-content h2 { color: #1f2937; border-bottom: 1px solid #374151; padding-bottom: 0.25rem; margin: 1.25rem 0 0.75rem 0; }
+                        #spec-content h3 { color: #1f2937; margin: 1rem 0 0.5rem 0; }
+                        #spec-content h4 { color: #6b7280; margin: 0.75rem 0 0.25rem 0; }
                         #spec-content p { margin-bottom: 0.75rem; }
                         #spec-content ul, #spec-content ol { margin: 0.5rem 0 0.75rem 1.5rem; }
                         #spec-content li { margin-bottom: 0.25rem; }
-                        #spec-content code { background: var(--bg-input); padding: 0.125rem 0.25rem; border-radius: 3px; font-family: var(--font-mono); font-size: 0.875em; }
-                        #spec-content pre { background: var(--bg-input); padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.75rem 0; }
+                        #spec-content code { background: #d1d5db; padding: 0.125rem 0.25rem; border-radius: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 0.875em; }
+                        #spec-content pre { background: #d1d5db; padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.75rem 0; }
                         #spec-content pre code { background: none; padding: 0; }
-                        #spec-content blockquote { border-left: 3px solid var(--accent-orange); padding-left: 1rem; margin: 0.75rem 0; color: var(--text-muted); font-style: italic; }
-                        #spec-content a { color: var(--accent-orange); text-decoration: none; }
+                        #spec-content blockquote { border-left: 3px solid #dc2626; padding-left: 1rem; margin: 0.75rem 0; color: #6b7280; font-style: italic; }
+                        #spec-content a { color: #dc2626; text-decoration: none; }
                         #spec-content a:hover { text-decoration: underline; }
                         #spec-content table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
-                        #spec-content th, #spec-content td { border: 1px solid var(--border-dark); padding: 0.5rem; text-align: left; }
-                        #spec-content th { background: var(--bg-table-header); color: var(--text-table-header); font-weight: 600; }
-                        #spec-content hr { border: none; border-top: 1px solid var(--border-dark); margin: 1.5rem 0; }
+                        #spec-content th, #spec-content td { border: 1px solid #374151; padding: 0.5rem; text-align: left; }
+                        #spec-content th { background: #111827; color: #cbd5e1; font-weight: 600; }
+                        #spec-content hr { border: none; border-top: 1px solid #374151; margin: 1.5rem 0; }
+                        @media (prefers-color-scheme: dark) {
+                            #spec-content h1 { color: #f87171; border-bottom-color: #9ca3af; }
+                            #spec-content h2 { color: #f3f4f6; border-bottom-color: #9ca3af; }
+                            #spec-content h3 { color: #f3f4f6; }
+                            #spec-content h4 { color: #9ca3af; }
+                            #spec-content code { background: #4b5563; }
+                            #spec-content pre { background: #4b5563; }
+                            #spec-content blockquote { border-left-color: #f87171; color: #9ca3af; }
+                            #spec-content a { color: #f87171; }
+                            #spec-content th, #spec-content td { border-color: #9ca3af; }
+                            #spec-content th { background: #111827; color: #cbd5e1; }
+                            #spec-content hr { border-top-color: #9ca3af; }
+                        }
                     </style>
                     ${html}
                 `;
