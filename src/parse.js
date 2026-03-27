@@ -1,5 +1,4 @@
 import {
-    DEFAULT_CONTEXT,
     DataFactory,
     expandIRI,
     parseSemanticBlock,
@@ -7,18 +6,7 @@ import {
     createLiteral,
     hash
 } from './utils.js';
-
-const URL_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
-const FENCE_REGEX = /^(`{3,}|~{3,})(.*)/;
-const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
-const HEADING_REGEX = /^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
-const UNORDERED_LIST_REGEX = /^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
-const BLOCKQUOTE_REGEX = /^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
-const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
-const INLINE_CARRIER_PATTERNS = {
-    EMPHASIS: /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y,
-    CODE_SPAN: /``(.+?)``\s*\{([^}]+)\}/y
-};
+import { DEFAULT_CONTEXT, URL_REGEX, FENCE_REGEX, PREFIX_REGEX, HEADING_REGEX, UNORDERED_LIST_REGEX, BLOCKQUOTE_REGEX, STANDALONE_SUBJECT_REGEX, INLINE_CARRIER_PATTERNS } from './shared.js';
 
 // Cache for fence regex patterns to avoid recreation
 const FENCE_CLOSE_PATTERNS = new Map();

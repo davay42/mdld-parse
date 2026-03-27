@@ -1,4 +1,5 @@
-import { shortenIRI, expandIRI, DEFAULT_CONTEXT, DataFactory } from './utils.js';
+import { shortenIRI, expandIRI, DataFactory } from './utils.js';
+import { DEFAULT_CONTEXT } from './shared.js';
 
 // Helper functions for cleaner term type checking
 function isLiteral(term) {

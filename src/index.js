@@ -3,8 +3,8 @@ export { merge } from './merge.js';
 export { generate } from './generate.js';
 export { locate } from './locate.js';
 export { render } from './render.js';
+export { DEFAULT_CONTEXT } from './shared.js';
 export {
-    DEFAULT_CONTEXT,
     DataFactory,
     hash,
     expandIRI,

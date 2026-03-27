@@ -3,10 +3,17 @@
  * Ensures DRY code and consistent CommonMark processing
  */
 
-import { DEFAULT_CONTEXT } from './utils.js';
+export const DEFAULT_CONTEXT = {
+    '@vocab': "http://www.w3.org/2000/01/rdf-schema#",
+    rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+    xsd: 'http://www.w3.org/2001/XMLSchema#',
+    sh: "http://www.w3.org/ns/shacl#",
+    prov: 'http://www.w3.org/ns/prov#'
+};
 
 // CommonMark patterns - shared between parser and renderer
-export const URL_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+export const URL_REGEX = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file|urn:uuid):/;
 export const FENCE_REGEX = /^(`{3,}|~{3,})(.*)/;
 export const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
 export const HEADING_REGEX = /^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
@@ -92,11 +99,11 @@ export function parseSemCached(attrs) {
 // Indentation utilities - shared for list processing
 export function getIndentLevel(block, sourceText) {
     if (!block.range || !sourceText) return 0;
-    
+
     const text = sourceText.substring(block.range.start, block.range.end);
     const indentMatch = text.match(/^(\s*)/);
     const indentSpaces = indentMatch ? indentMatch[1].length : 0;
-    
+
     // CommonMark: 4 spaces or 1 tab = one level
     // We'll use 2 spaces for better readability (configurable)
     return Math.floor(indentSpaces / 2);
@@ -105,32 +112,32 @@ export function getIndentLevel(block, sourceText) {
 // Content extraction utilities - shared between parser and renderer
 export function extractContentFromRange(sourceText, range, attrsRange = null) {
     if (!range || !sourceText) return '';
-    
+
     let text = sourceText.substring(range[0], range[1]);
-    
+
     // Remove MD-LD annotations, preserve content
     if (attrsRange) {
         const beforeAttrs = text.substring(0, attrsRange[0] - range[0]);
         const afterAttrs = text.substring(attrsRange[1] - range[0]);
         text = beforeAttrs + afterAttrs;
     }
-    
+
     return text.trim();
 }
 
 // List marker utilities - shared for advanced list processing
 export function getListMarker(block, sourceText) {
     if (!block.range) return null;
-    
+
     const text = sourceText.substring(block.range.start, block.range.end);
     const markerMatch = text.match(/^(\s*)([-*+]|\d+\[\.|\])\s+/);
-    
+
     if (!markerMatch) return null;
-    
+
     return {
         type: markerMatch[2].startsWith('-') ? 'dash' :
-              markerMatch[2].startsWith('*') ? 'asterisk' :
-              markerMatch[2].startsWith('+') ? 'plus' : 'ordered',
+            markerMatch[2].startsWith('*') ? 'asterisk' :
+                markerMatch[2].startsWith('+') ? 'plus' : 'ordered',
         marker: markerMatch[2],
         indent: markerMatch[1].length
     };
@@ -176,19 +183,19 @@ export function expandAndShortenIRI(iri, ctx) {
 // Subject resolution utilities - shared between parser and renderer
 export function resolveSubjectType(subjectDecl) {
     if (!subjectDecl) return 'none';
-    
+
     if (subjectDecl.startsWith('=#')) {
         return 'fragment';
     }
-    
+
     if (subjectDecl.startsWith('+')) {
         return 'soft-object';
     }
-    
+
     if (subjectDecl === 'RESET') {
         return 'reset';
     }
-    
+
     return 'full-iri';
 }
 

@@ -1,11 +1,4 @@
-export const DEFAULT_CONTEXT = {
-    '@vocab': "http://www.w3.org/2000/01/rdf-schema#",
-    rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-    rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
-    xsd: 'http://www.w3.org/2001/XMLSchema#',
-    sh: "http://www.w3.org/ns/shacl#",
-    prov: 'http://www.w3.org/ns/prov#'
-};
+import { URL_REGEX, DEFAULT_CONTEXT } from './shared.js';
 
 // Base Term class for RDF/JS compatibility
 export class Term {
@@ -258,7 +251,7 @@ export function expandIRI(term, ctx) {
     const t = raw.trim();
     let result;
 
-    if (t.match(/^https?:/)) {
+    if (t.match(URL_REGEX)) {
         result = t;
     } else if (t.includes(':')) {
         const [prefix, ref] = t.split(':', 2);
