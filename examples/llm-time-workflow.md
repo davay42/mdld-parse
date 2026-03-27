@@ -1,6 +1,4 @@
-[prov] <http://www.w3.org/ns/prov#>
 [llm] <tag:llm.time-query.example,2026:>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
 
 # LLM Time Query Workflow {=llm:workflow .prov:Entity}
 

@@ -1,7 +1,4 @@
-
-[prov] <http://www.w3.org/ns/prov#>
 [wf] <tag:mdld.workflow.example,2026:>
-[sh] <http://www.w3.org/ns/shacl#>
 
 # MDLD Minimal Research Workflow {=wf:workflow .prov:Entity}
 

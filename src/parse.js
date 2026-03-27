@@ -349,6 +349,150 @@ function determineCarrierType(url) {
     return { carrierType: 'span', resourceIRI: null };
 }
 
+function createBlockEntry(token, state) {
+    const blockId = token._blockId || hash(`${token.type}:${token.range?.[0]}:${token.range?.[1]}`);
+    token._blockId = blockId; // Store for later reference
+
+    const cleanText = extractCleanText(token);
+
+    const blockEntry = {
+        id: blockId,
+        type: token.type,
+        range: token.range,
+        text: cleanText,
+        subject: null,
+        types: [],
+        predicates: [],
+        carriers: [],
+        listLevel: token.indent || 0,
+        parentBlockId: state.blockStack.length > 0 ? state.blockStack[state.blockStack.length - 1] : null,
+        quadKeys: [] // Will be populated during quad emission
+    };
+
+    // Store block and add to document structure
+    state.origin.blocks.set(blockId, blockEntry);
+    state.origin.documentStructure.push(blockEntry);
+
+    return blockEntry;
+}
+
+function extractCleanText(token) {
+    if (!token.text) return '';
+
+    let text = token.text;
+
+    // Remove semantic annotations
+    if (token.attrsRange) {
+        const beforeAttrs = text.substring(0, token.attrsRange[0] - (token.range?.[0] || 0));
+        const afterAttrs = text.substring(token.attrsRange[1] - (token.range?.[0] || 0));
+        text = beforeAttrs + afterAttrs;
+    }
+
+    // Clean based on token type
+    switch (token.type) {
+        case 'heading':
+            return text.replace(/^#+\s*/, '').trim();
+        case 'list':
+            return text.replace(/^[-*+]\s*/, '').trim();
+        case 'blockquote':
+            return text.replace(/^>\s*/, '').trim();
+        default:
+            return text.trim();
+    }
+}
+
+function enrichBlockFromAnnotation(blockEntry, sem, carrier, state) {
+    // Update subject if available
+    if (sem.subject && sem.subject !== 'RESET') {
+        const resolvedSubject = resolveSubject(sem, state);
+        if (resolvedSubject) {
+            blockEntry.subject = resolvedSubject.value;
+        }
+    }
+
+    // Add types
+    if (sem.types && sem.types.length > 0) {
+        sem.types.forEach(t => {
+            const typeIRI = typeof t === 'string' ? t : t.iri;
+            const expanded = expandIRI(typeIRI, state.ctx);
+            if (!blockEntry.types.includes(expanded)) {
+                blockEntry.types.push(expanded);
+            }
+        });
+    }
+
+    // Add predicates
+    if (sem.predicates && sem.predicates.length > 0) {
+        sem.predicates.forEach(pred => {
+            const expandedPred = {
+                iri: expandIRI(pred.iri, state.ctx),
+                form: pred.form || '',
+                object: null // Will be filled during quad emission
+            };
+            blockEntry.predicates.push(expandedPred);
+        });
+    }
+
+    // Add carrier information
+    if (carrier) {
+        const carrierInfo = {
+            type: carrier.type,
+            range: carrier.range,
+            text: carrier.text,
+            subject: null,
+            predicates: []
+        };
+
+        // Extract carrier-specific semantics
+        if (carrier.attrs) {
+            const carrierSem = parseSemCached(carrier.attrs);
+            if (carrierSem.types) {
+                carrierInfo.predicates = carrierSem.predicates || [];
+            }
+        }
+
+        blockEntry.carriers.push(carrierInfo);
+    }
+}
+
+function processAnnotationWithBlockTracking(carrier, sem, state, options = {}) {
+    const { preserveGlobalSubject = false, implicitSubject = null } = options;
+
+    if (sem.subject === 'RESET') {
+        state.currentSubject = null;
+        return;
+    }
+
+    const previousSubject = state.currentSubject;
+    const newSubject = resolveSubject(sem, state);
+    const localObject = resolveObject(sem, state);
+
+    const effectiveSubject = implicitSubject || (newSubject && !preserveGlobalSubject ? newSubject : previousSubject);
+    if (newSubject && !preserveGlobalSubject && !implicitSubject) {
+        state.currentSubject = newSubject;
+    }
+    const S = preserveGlobalSubject ? (newSubject || previousSubject) : (implicitSubject || state.currentSubject);
+    if (!S) return;
+
+    const block = createBlock(
+        S.value, sem.types, sem.predicates,
+        carrier.range, carrier.attrsRange || null, carrier.valueRange || null,
+        carrier.type || null, state.ctx, carrier.text
+    );
+
+    const L = createLiteral(carrier.text, sem.datatype, sem.language, state.ctx, state.df);
+    const carrierO = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
+    const newSubjectOrCarrierO = newSubject || carrierO;
+
+    // Enrich current block with semantic information
+    if (state.currentBlock) {
+        enrichBlockFromAnnotation(state.currentBlock, sem, carrier, state);
+    }
+
+    processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier);
+    processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier);
+}
+
 function createBlock(subject, types, predicates, range, attrsRange, valueRange, carrierType, ctx, text) {
     const expanded = {
         subject,
@@ -371,7 +515,7 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
     };
 }
 
-function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null, statements = null, statementCandidates = null) {
+function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null, statements = null, statementCandidates = null, state = null) {
     if (!subject || !predicate || !object) return;
 
     const quad = dataFactory.quad(subject, predicate, object);
@@ -420,6 +564,14 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
         };
 
         quadIndex.set(quadKey, originEntry);
+
+        // Link block to this quad for reverse lookup during rendering
+        if (state.currentBlock && block.id === state.currentBlock.id) {
+            if (!state.currentBlock.quadKeys) {
+                state.currentBlock.quadKeys = [];
+            }
+            state.currentBlock.quadKeys.push(quadKey);
+        }
     }
 }
 
@@ -513,7 +665,8 @@ const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
         state.df.namedNode(expandedType),
         state.df,
         { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex: typeInfo.entryIndex, remove: typeInfo.remove },
-        state.statements, state.statementCandidates
+        state.statements, state.statementCandidates,
+        state
     );
 };
 
@@ -557,43 +710,16 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
             emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block,
                 role.subject, P, role.object, state.df,
                 { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex, remove: pred.remove || false },
-                state.statements, state.statementCandidates
+                state.statements, state.statementCandidates,
+                state
             );
         }
     });
 }
 
 function processAnnotation(carrier, sem, state, options = {}) {
-    const { preserveGlobalSubject = false, implicitSubject = null } = options;
-
-    if (sem.subject === 'RESET') {
-        state.currentSubject = null;
-        return;
-    }
-
-    const previousSubject = state.currentSubject;
-    const newSubject = resolveSubject(sem, state);
-    const localObject = resolveObject(sem, state);
-
-    const effectiveSubject = implicitSubject || (newSubject && !preserveGlobalSubject ? newSubject : previousSubject);
-    if (newSubject && !preserveGlobalSubject && !implicitSubject) {
-        state.currentSubject = newSubject;
-    }
-    const S = preserveGlobalSubject ? (newSubject || previousSubject) : (implicitSubject || state.currentSubject);
-    if (!S) return;
-
-    const block = createBlock(
-        S.value, sem.types, sem.predicates,
-        carrier.range, carrier.attrsRange || null, carrier.valueRange || null,
-        carrier.type || null, state.ctx, carrier.text
-    );
-
-    const L = createLiteral(carrier.text, sem.datatype, sem.language, state.ctx, state.df);
-    const carrierO = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
-    const newSubjectOrCarrierO = newSubject || carrierO;
-
-    processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier);
-    processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier);
+    // Use the enhanced block tracking version
+    processAnnotationWithBlockTracking(carrier, sem, state, options);
 }
 
 
@@ -635,20 +761,60 @@ function processStandaloneSubject(token, state) {
 
 const TOKEN_PROCESSORS = {
     heading: (token, state) => {
+        const blockEntry = createBlockEntry(token, state);
+        state.currentBlock = blockEntry;
+        state.blockStack.push(blockEntry.id);
+
         processTokenAnnotations(token, state, token.type);
+
+        state.blockStack.pop();
+        state.currentBlock = state.blockStack.length > 0 ?
+            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
     },
     code: (token, state) => {
+        const blockEntry = createBlockEntry(token, state);
+        state.currentBlock = blockEntry;
+        state.blockStack.push(blockEntry.id);
+
         processTokenAnnotations(token, state, token.type);
+
+        state.blockStack.pop();
+        state.currentBlock = state.blockStack.length > 0 ?
+            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
     },
     blockquote: (token, state) => {
+        const blockEntry = createBlockEntry(token, state);
+        state.currentBlock = blockEntry;
+        state.blockStack.push(blockEntry.id);
+
         processTokenAnnotations(token, state, token.type);
+
+        state.blockStack.pop();
+        state.currentBlock = state.blockStack.length > 0 ?
+            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
     },
     para: (token, state) => {
+        const blockEntry = createBlockEntry(token, state);
+        state.currentBlock = blockEntry;
+        state.blockStack.push(blockEntry.id);
+
         processStandaloneSubject(token, state);
         processTokenAnnotations(token, state, token.type);
+
+        state.blockStack.pop();
+        state.currentBlock = state.blockStack.length > 0 ?
+            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
     },
     list: (token, state) => {
+        const blockEntry = createBlockEntry(token, state);
+        state.currentBlock = blockEntry;
+        state.blockStack.push(blockEntry.id);
+
         processTokenAnnotations(token, state, token.type);
+
+        state.blockStack.pop();
+        state.currentBlock = state.blockStack.length > 0 ?
+            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
     },
 };
 
@@ -659,12 +825,18 @@ export function parse(text, options = {}) {
         quads: [],
         quadBuffer: new Map(),
         removeSet: new Set(),
-        origin: { quadIndex: new Map() },
+        origin: {
+            quadIndex: new Map(),
+            blocks: new Map(),
+            documentStructure: []
+        },
         currentSubject: null,
         tokens: null,
         currentTokenIndex: -1,
         statements: [],
-        statementCandidates: new Map() // Track incomplete rdf:Statement patterns
+        statementCandidates: new Map(), // Track incomplete rdf:Statement patterns
+        currentBlock: null,
+        blockStack: []
     };
 
     state.tokens = scanTokens(text);

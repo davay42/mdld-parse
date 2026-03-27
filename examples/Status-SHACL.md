@@ -1,6 +1,4 @@
 [ex] <http://example.org/>
-[rdf] <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-[sh] <http://www.w3.org/ns/shacl#>
 
 # Status {=ex:Status .Class label}
 
