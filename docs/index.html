@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MDLD Documentation Browser</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/uno.global.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "vue": "https://esm.sh/vue@3.5.30/dist/vue.esm-browser.prod.js",
+                "mdld-parse": "https://esm.sh/mdld-parse@0.7.2",
+                "n3": "https://esm.sh/n3@2.0.3",
+                "markdown-it": "https://esm.sh/markdown-it@14.1.0"
+            }
+        }
+    </script>
+
+    <style>
+        .prose {
+            max-width: 100%;
+
+            & a {
+                color: #2563eb;
+                text-decoration: none;
+
+                &:hover {
+                    text-decoration: underline;
+                }
+            }
+        }
+
+        .prose h1 {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app" class="min-h-screen bg-gray-50">
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-4xl mx-auto px-6 py-4">
+                <h1 class="text-2xl font-bold text-gray-900">MDLD Documentation Browser</h1>
+            </div>
+        </header>
+
+        <main class="max-w-4xl mx-auto px-6 py-8">
+            <div v-if="loading" class="text-center py-8">
+                <p class="text-gray-600">Loading documentation...</p>
+            </div>
+
+            <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p class="text-red-800">{{ error }}</p>
+            </div>
+
+            <article v-else class="prose prose-gray max-w-none" v-html="renderedContent"></article>
+        </main>
+    </div>
+
+    <script type="module">
+        import { createApp, ref, onMounted } from 'vue'
+        import MarkdownIt from 'markdown-it'
+        import { parse, render } from 'mdld-parse'
+
+        createApp({
+            setup() {
+                const loading = ref(true)
+                const error = ref(null)
+                const content = ref('')
+                const md = new MarkdownIt()
+                const renderedContent = ref('')
+                const fetchDocumentation = async () => {
+                    try {
+                        loading.value = true
+                        error.value = null
+                        const response = await fetch('./index.md')
+                        content.value = await response.text()
+                        console.log(md.parse(content.value))
+                        renderedContent.value = md.render(content.value)
+
+                    } catch (err) {
+                        error.value = err.message
+                        console.error('Error loading documentation:', err)
+                    } finally {
+                        loading.value = false
+                    }
+                }
+
+                onMounted(() => {
+                    fetchDocumentation()
+                })
+
+                return {
+                    loading,
+                    error,
+                    renderedContent
+                }
+            }
+        }).mount('#app')
+    </script>
+
+</body>
+
+</html>

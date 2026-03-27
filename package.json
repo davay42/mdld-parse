@@ -38,5 +38,8 @@
 	"homepage": "https://mdld.js.org",
 	"bugs": {
 		"url": "https://github.com/davay42/mdld-parse/issues"
+	},
+	"dependencies": {
+		"rdfa-parse": "^1.0.1"
 	}
 }
