@@ -2,11 +2,7 @@ import { shortenIRI, expandIRI, DataFactory } from './utils.js';
 import { DEFAULT_CONTEXT } from './constants.js';
 import {
     isLiteral,
-    isNamedNode,
-    isRdfType,
-    getPrefixFromIRI,
     collectUsedPrefixes,
-    XSD_STRING,
     sortQuadsByPredicate,
     generatePrefixDeclaration,
     generateLiteralText,
