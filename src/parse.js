@@ -1,7 +1,6 @@
 import {
     DataFactory,
     expandIRI,
-    parseSemanticBlock,
     quadIndexKey,
     createLiteral,
     hash
@@ -16,6 +15,10 @@ import {
     BLOCKQUOTE_REGEX,
     STANDALONE_SUBJECT_REGEX,
     CARRIER_PATTERN_ARRAY,
+
+} from './constants.js';
+import {
+
     getFenceClosePattern,
     calcRangeInfo,
     calcAttrsRange,
@@ -43,6 +46,71 @@ import {
     processTokenWithBlockTracking
 } from './shared.js';
 
+
+export function parse(text, options = {}) {
+    const state = {
+        ctx: { ...DEFAULT_CONTEXT, ...(options.context || {}) },
+        df: options.dataFactory || DataFactory,
+        quads: [],
+        quadBuffer: new Map(),
+        removeSet: new Set(),
+        origin: {
+            quadIndex: new Map(),
+            blocks: new Map(),
+            documentStructure: []
+        },
+        currentSubject: null,
+        tokens: null,
+        currentTokenIndex: -1,
+        statements: [],
+        statementCandidates: new Map(),
+        currentBlock: null,
+        blockStack: []
+    };
+
+    state.tokens = scanTokens(text);
+
+    // Single-pass processing: resolve prefixes AND process tokens together
+    for (let i = 0; i < state.tokens.length; i++) {
+        const token = state.tokens[i];
+        state.currentTokenIndex = i;
+
+        // Handle prefix tokens immediately during main pass
+        if (token.type === 'prefix') {
+            let resolvedIri = token.iri;
+            if (token.iri.includes(':')) {
+                const colonIndex = token.iri.indexOf(':');
+                const potentialPrefix = token.iri.substring(0, colonIndex);
+                const reference = token.iri.substring(colonIndex + 1);
+                if (state.ctx[potentialPrefix] && potentialPrefix !== '@vocab') {
+                    resolvedIri = state.ctx[potentialPrefix] + reference;
+                }
+            }
+            state.ctx[token.prefix] = resolvedIri;
+            continue; // Skip token processor for prefixes
+        }
+
+        // Process all other tokens
+        TOKEN_PROCESSORS[token.type]?.(token, state);
+    }
+
+    // Optimized quad filtering - use Set.has() instead of array.includes()
+    const quadKeys = new Set();
+    for (const quad of state.quads) {
+        quadKeys.add(quadIndexKey(quad.subject, quad.predicate, quad.object));
+    }
+
+    // Direct Set iteration - more efficient than filter()
+    const filteredRemove = [];
+    for (const quad of state.removeSet) {
+        const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
+        if (!quadKeys.has(key)) {
+            filteredRemove.push(quad);
+        }
+    }
+
+    return { quads: state.quads, remove: filteredRemove, statements: state.statements, origin: state.origin, context: state.ctx };
+}
 
 
 // Cache for fence regex patterns - using shared utility
@@ -580,66 +648,3 @@ const TOKEN_PROCESSORS = {
     para: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry, [processStandaloneSubject]),
     list: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
 };
-
-export function parse(text, options = {}) {
-    const state = {
-        ctx: { ...DEFAULT_CONTEXT, ...(options.context || {}) },
-        df: options.dataFactory || DataFactory,
-        quads: [],
-        quadBuffer: new Map(),
-        removeSet: new Set(),
-        origin: {
-            quadIndex: new Map(),
-            blocks: new Map(),
-            documentStructure: []
-        },
-        currentSubject: null,
-        tokens: null,
-        currentTokenIndex: -1,
-        statements: [],
-        statementCandidates: new Map(), // Track incomplete rdf:Statement patterns
-        currentBlock: null,
-        blockStack: []
-    };
-
-    state.tokens = scanTokens(text);
-
-    // Single loop instead of filter+forEach for better performance
-    for (const token of state.tokens) {
-        if (token.type === 'prefix') {
-            let resolvedIri = token.iri;
-            if (token.iri.includes(':')) {
-                const colonIndex = token.iri.indexOf(':');
-                const potentialPrefix = token.iri.substring(0, colonIndex);
-                const reference = token.iri.substring(colonIndex + 1);
-                if (state.ctx[potentialPrefix] && potentialPrefix !== '@vocab') {
-                    resolvedIri = state.ctx[potentialPrefix] + reference;
-                }
-            }
-            state.ctx[token.prefix] = resolvedIri;
-        }
-    }
-
-    for (let i = 0; i < state.tokens.length; i++) {
-        const token = state.tokens[i];
-        state.currentTokenIndex = i;
-        TOKEN_PROCESSORS[token.type]?.(token, state);
-    }
-
-    // Optimize array operations - avoid Array.from() and filter()
-    const quadKeys = new Set();
-    for (const quad of state.quads) {
-        quadKeys.add(quadIndexKey(quad.subject, quad.predicate, quad.object));
-    }
-
-    // Direct iteration instead of Array.from() + filter()
-    const filteredRemove = [];
-    for (const quad of state.removeSet) {
-        const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
-        if (!quadKeys.has(key)) {
-            filteredRemove.push(quad);
-        }
-    }
-
-    return { quads: state.quads, remove: filteredRemove, statements: state.statements, origin: state.origin, context: state.ctx };
-}

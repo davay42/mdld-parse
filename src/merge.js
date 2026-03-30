@@ -1,5 +1,6 @@
 import { parse } from './parse.js';
-import { DEFAULT_CONTEXT, quadIndexKey } from './shared.js';
+import { quadIndexKey } from './shared.js';
+import { DEFAULT_CONTEXT } from './constants.js';
 
 /**
  * Creates a unique key for quad identity matching - using shared utility

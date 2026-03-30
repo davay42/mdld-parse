@@ -1,4 +1,4 @@
-import { URL_REGEX, DEFAULT_CONTEXT } from './shared.js';
+import { URL_REGEX, DEFAULT_CONTEXT } from './constants.js';
 
 // Base Term class for RDF/JS compatibility
 export class Term {

@@ -1,6 +1,6 @@
 import { shortenIRI, expandIRI, DataFactory } from './utils.js';
+import { DEFAULT_CONTEXT } from './constants.js';
 import {
-    DEFAULT_CONTEXT,
     isLiteral,
     isNamedNode,
     isRdfType,

@@ -1,33 +1,5 @@
-/**
- * Shared utilities for MD-LD Parser and Renderer
- * Ensures DRY code and consistent CommonMark processing
- */
-
+import { DEFAULT_CONTEXT, STANDALONE_SUBJECT_REGEX, FENCE_REGEX, PREFIX_REGEX, HEADING_REGEX, UNORDERED_LIST_REGEX, BLOCKQUOTE_REGEX } from './constants.js';
 import { parseSemanticBlock, expandIRI, shortenIRI } from './utils.js';
-
-export const DEFAULT_CONTEXT = {
-    '@vocab': "http://www.w3.org/2000/01/rdf-schema#",
-    rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-    rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
-    xsd: 'http://www.w3.org/2001/XMLSchema#',
-    sh: "http://www.w3.org/ns/shacl#",
-    prov: 'http://www.w3.org/ns/prov#'
-};
-
-// CommonMark patterns - shared between parser and renderer
-export const URL_REGEX = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file|urn:uuid):/;
-export const FENCE_REGEX = /^(`{3,}|~{3,})(.*)/;
-export const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
-export const HEADING_REGEX = /^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
-export const UNORDERED_LIST_REGEX = /^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
-export const BLOCKQUOTE_REGEX = /^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
-export const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
-
-// Pre-compiled carrier patterns for performance
-export const CARRIER_PATTERN_ARRAY = [
-    ['EMPHASIS', /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y],
-    ['CODE_SPAN', /``(.+?)``\s*\{([^}]+)\}/y]
-];
 
 // Cache for fence regex patterns
 export const FENCE_CLOSE_PATTERNS = new Map();
@@ -432,20 +404,19 @@ export function resolveSubjectType(subjectDecl) {
     return 'full-iri';
 }
 
-// Constants - shared across modules
+// Constants - shared across modules (bundle-size optimized)
 export const XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string';
 
-// Sorting utilities - common patterns
+// Optimized sorting utilities - inline for better minification
 export function sortQuadsByPredicate(quads) {
     return quads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
 }
 
-// Text generation utilities - common MDLD patterns
-export function generatePrefixDeclaration(prefix, namespace) {
-    return `[${prefix}] <${namespace}>\n`;
-}
+// Optimized text generation - template literals for smaller bundle
+export const generatePrefixDeclaration = (prefix, namespace) => `[${prefix}] <${namespace}>\n`;
 
-export function generateLiteralAnnotation(quad, context, predShort) {
+export function generateLiteralText(quad, context) {
+    const predShort = shortenIRI(quad.predicate.value, context);
     let annotation = predShort;
 
     if (quad.object.language) {
@@ -454,28 +425,28 @@ export function generateLiteralAnnotation(quad, context, predShort) {
         annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
     }
 
-    return annotation;
-}
-
-export function generateLiteralText(quad, context) {
-    const predShort = shortenIRI(quad.predicate.value, context);
-    const annotation = generateLiteralAnnotation(quad, context, predShort);
     return `[${quad.object.value}] {${annotation}}\n`;
 }
 
-export function generateObjectText(quad, context) {
+export const generateObjectText = (quad, context) => {
     const objShort = shortenIRI(quad.object.value, context);
     const predShort = shortenIRI(quad.predicate.value, context);
     return `[${objShort}] {+${objShort} ?${predShort}}\n`;
-}
+};
 
-// Quad filtering utilities - common patterns
+// Optimized quad filtering - destructuring for smaller minified output
 export function filterQuadsByType(subjectQuads) {
-    return {
-        types: subjectQuads.filter(q => isRdfType(q.predicate)),
-        literals: subjectQuads.filter(q => isLiteral(q.object) && !isRdfType(q.predicate)),
-        objects: subjectQuads.filter(q => isNamedNode(q.object) && !isRdfType(q.predicate))
-    };
+    const types = [], literals = [], objects = [];
+    for (const q of subjectQuads) {
+        if (isRdfType(q.predicate)) {
+            types.push(q);
+        } else if (isLiteral(q.object)) {
+            literals.push(q);
+        } else if (isNamedNode(q.object)) {
+            objects.push(q);
+        }
+    }
+    return { types, literals, objects };
 }
 
 // Predicate processing utilities - common RDFa patterns
@@ -502,22 +473,57 @@ export function processPredicates(predicates, ctx) {
     return { literalProps, objectProps, reverseProps };
 }
 
-// RDFa attribute generation utilities
-export function generateRDFaAttribute(name, values) {
-    return values.length > 0 ? ` ${name}="${escapeHtml(values.join(' '))}"` : '';
+// Deterministic sorting utilities - ensure consistent output
+export function sortDeterministic(array, keyFn) {
+    return array.sort((a, b) => {
+        const keyA = keyFn(a);
+        const keyB = keyFn(b);
+        return keyA.localeCompare(keyB);
+    });
 }
 
-export function generateRDFaAttributes(literalProps, objectProps, reverseProps) {
-    let attrs = '';
-    if (literalProps.length > 0) {
-        attrs += generateRDFaAttribute('property', literalProps);
-    }
-    if (objectProps.length > 0) {
-        attrs += generateRDFaAttribute('rel', objectProps);
-    }
-    if (reverseProps.length > 0) {
-        attrs += generateRDFaAttribute('rev', reverseProps);
-    }
-    return attrs;
+export function sortQuadsDeterministically(quads) {
+    return quads.sort((a, b) => {
+        // Deterministic sorting: subject -> predicate -> object
+        const sComp = a.subject.value.localeCompare(b.subject.value);
+        if (sComp !== 0) return sComp;
+        const pComp = a.predicate.value.localeCompare(b.predicate.value);
+        if (pComp !== 0) return pComp;
+        const oA = isLiteral(a.object) ? a.object.value : a.object.value;
+        const oB = isLiteral(b.object) ? b.object.value : b.object.value;
+        return oA.localeCompare(oB);
+    });
 }
 
+// Optimized deterministic prefix generation
+export function generateDeterministicPrefixes(context, usedPrefixes) {
+    const sortedEntries = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
+    let text = '';
+
+    for (const [prefix, namespace] of sortedEntries) {
+        if (prefix !== '@vocab' && !prefix.startsWith('@') && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) {
+            text += generatePrefixDeclaration(prefix, namespace);
+        }
+    }
+
+    return text;
+}
+
+// Memory-efficient block creation
+export function createOptimizedBlockEntry(token, state) {
+    const id = hash(`${token.range[0]}-${token.range[1]}-${token.text.slice(0, 50)}`);
+    const block = {
+        id,
+        type: token.type,
+        carrierType: token.type,
+        range: token.range,
+        text: token.text,
+        carriers: [],
+        predicates: [],
+        subject: state.currentSubject,
+        context: { ...state.ctx }
+    };
+
+    state.origin.blocks.set(id, block);
+    return block;
+}

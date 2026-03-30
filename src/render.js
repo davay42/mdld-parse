@@ -7,12 +7,11 @@ import {
     hash
 } from './utils.js';
 import {
-    DEFAULT_CONTEXT,
     escapeHtml,
     getIndentLevel,
-    processPredicates,
-    generateRDFaAttributes
+    processPredicates
 } from './shared.js';
+import { DEFAULT_CONTEXT } from './constants.js';
 
 /**
  * Render MD-LD to HTML+RDFa
@@ -406,7 +405,16 @@ function buildRDFaAttrsFromBlock(block, ctx) {
     // Predicates using shared utility
     if (block.predicates && block.predicates.length > 0) {
         const { literalProps, objectProps, reverseProps } = processPredicates(block.predicates, ctx);
-        attrs.push(generateRDFaAttributes(literalProps, objectProps, reverseProps).trim());
+
+        if (literalProps.length > 0) {
+            attrs.push(`property="${escapeHtml(literalProps.join(' '))}"`);
+        }
+        if (objectProps.length > 0) {
+            attrs.push(`rel="${escapeHtml(objectProps.join(' '))}"`);
+        }
+        if (reverseProps.length > 0) {
+            attrs.push(`rev="${escapeHtml(reverseProps.join(' '))}"`);
+        }
     }
 
     return attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
