@@ -6,7 +6,9 @@ import {
     createLiteral,
     hash
 } from './utils.js';
-import { DEFAULT_CONTEXT, URL_REGEX, FENCE_REGEX, PREFIX_REGEX, HEADING_REGEX, UNORDERED_LIST_REGEX, BLOCKQUOTE_REGEX, STANDALONE_SUBJECT_REGEX, INLINE_CARRIER_PATTERNS } from './shared.js';
+import { DEFAULT_CONTEXT, URL_REGEX, FENCE_REGEX, PREFIX_REGEX, HEADING_REGEX, UNORDERED_LIST_REGEX, BLOCKQUOTE_REGEX, STANDALONE_SUBJECT_REGEX, CARRIER_PATTERN_ARRAY } from './shared.js';
+
+
 
 // Cache for fence regex patterns to avoid recreation
 const FENCE_CLOSE_PATTERNS = new Map();
@@ -197,12 +199,6 @@ function scanTokens(text) {
 function createCarrier(type, text, attrs, attrsRange, valueRange, range, pos, extra = {}) {
     return { type, text, attrs, attrsRange, valueRange, range, pos, ...extra };
 }
-
-// Pre-compiled carrier patterns for better performance
-const CARRIER_PATTERN_ARRAY = [
-    ['EMPHASIS', /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y],
-    ['CODE_SPAN', /``(.+?)``\s*\{([^}]+)\}/y]
-];
 
 function extractInlineCarriers(text, baseOffset = 0) {
     const carriers = [];

@@ -21,12 +21,6 @@ export const UNORDERED_LIST_REGEX = /^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}
 export const BLOCKQUOTE_REGEX = /^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
 export const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
 
-// Inline carrier patterns - shared extraction logic
-export const INLINE_CARRIER_PATTERNS = {
-    EMPHASIS: /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y,
-    CODE_SPAN: /``(.+?)``\s*\{([^}]+)\}/y
-};
-
 // Pre-compiled carrier patterns for performance
 export const CARRIER_PATTERN_ARRAY = [
     ['EMPHASIS', /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y],
