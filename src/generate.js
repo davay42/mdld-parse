@@ -1,6 +1,17 @@
 import { shortenIRI, expandIRI, DataFactory } from './utils.js';
 import { DEFAULT_CONTEXT } from './shared.js';
 
+// Helper function to extract prefix from IRI
+function getPrefixFromIRI(iri, context) {
+    if (!iri) return null;
+
+    const shortened = shortenIRI(iri, context);
+    if (shortened.includes(':')) {
+        return shortened.split(':')[0];
+    }
+    return null;
+}
+
 // Helper functions for cleaner term type checking
 function isLiteral(term) {
     return term?.termType === 'Literal';
@@ -15,7 +26,17 @@ function isRdfType(term) {
 }
 
 
-function extractLocalName(iri) {
+export function extractLocalName(iri, ctx = {}) {
+    if (!iri) return iri;
+
+    // Check for exact prefix matches first
+    for (const [prefix, namespace] of Object.entries(ctx)) {
+        if (iri.startsWith(namespace) || iri.startsWith(namespace.slice(0, -1))) {
+            return iri.substring(namespace.length);
+        }
+    }
+
+    // Fallback to original logic for local names
     const separators = ['#', '/', ':'];
     for (const sep of separators) {
         const lastSep = iri.lastIndexOf(sep);
@@ -83,12 +104,38 @@ function groupQuadsBySubject(quads) {
 
 function buildDeterministicMDLD(subjectGroups, context) {
     let text = '';
+    const usedPrefixes = new Set();
+
+    // First pass: collect all prefixes used in content
+    for (const subjectQuads of subjectGroups.values()) {
+        for (const quad of subjectQuads) {
+            // Check subject prefix
+            const subjectPrefix = getPrefixFromIRI(quad.subject.value, context);
+            if (subjectPrefix) usedPrefixes.add(subjectPrefix);
+
+            // Check predicate prefix
+            const predicatePrefix = getPrefixFromIRI(quad.predicate.value, context);
+            if (predicatePrefix) usedPrefixes.add(predicatePrefix);
+
+            // Check object prefix if it's a named node
+            if (quad.object.termType === 'NamedNode') {
+                const objectPrefix = getPrefixFromIRI(quad.object.value, context);
+                if (objectPrefix) usedPrefixes.add(objectPrefix);
+            }
+
+            // Check datatype prefix if present
+            if (quad.object.datatype && quad.object.datatype.value) {
+                const datatypePrefix = getPrefixFromIRI(quad.object.datatype.value, context);
+                if (datatypePrefix) usedPrefixes.add(datatypePrefix);
+            }
+        }
+    }
 
     // Add prefixes first (deterministic order), but exclude default context prefixes
     const sortedPrefixes = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
     for (const [prefix, namespace] of sortedPrefixes) {
         // Skip default context prefixes - they're implicit in MDLD
-        if (prefix !== '@vocab' && !prefix.startsWith('@') && !DEFAULT_CONTEXT[prefix]) {
+        if (prefix !== '@vocab' && !prefix.startsWith('@') && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) {
             const prefixDecl = `[${prefix}] <${namespace}>\n`;
             text += prefixDecl;
         }
@@ -111,12 +158,12 @@ function buildDeterministicMDLD(subjectGroups, context) {
         const objects = subjectQuads.filter(q => isNamedNode(q.object) && !isRdfType(q.predicate));
 
         // Generate heading
-        const localSubjectName = extractLocalName(subjectIRI);
+        const localSubjectName = extractLocalName(subjectIRI, context);
         const typeAnnotations = types.length > 0
-            ? ' ' + types.map(t => '.' + extractLocalName(t.object.value)).sort().join(' ')
+            ? ' ' + types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
             : '';
 
-        const headingText = `# ${localSubjectName} {=${shortSubject}${typeAnnotations}}\n\n`;
+        const headingText = `# ${localSubjectName} {=${shortSubject}${typeAnnotations}}\n`;
 
         text += headingText;
 

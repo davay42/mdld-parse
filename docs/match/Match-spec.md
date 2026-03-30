@@ -71,6 +71,7 @@ that would produce quads has a direct match equivalent.
 ### Subject wildcard
 
 ```md
+
 [anything] {=*}          # match any subject
 ```
 Sets `pattern.s = *`. Does not update `state.currentSubject`.
@@ -79,6 +80,7 @@ Subsequent annotations in the same block still see the previous subject.
 ### Named subject (ground)
 
 ```md
+[ex] <http://example.org/>
 [Alice] {=ex:alice} knows [who] {?ex:knows +*}?
 ```
 Sets `pattern.s = ex:alice` (fully expanded IRI). Ground constraint.
@@ -86,16 +88,17 @@ Sets `pattern.s = ex:alice` (fully expanded IRI). Ground constraint.
 ### Predicate wildcard
 
 ```md
-{=ex:alice ?* +ex:bob}   # any predicate connecting alice to bob
-{=* *}                   # any literal predicate on any subject
+How [Alice] {=ex:alice} relates to [Bob] {?* +ex:bob}   # any predicate connecting alice to bob
+All about all subjects [*] {=* *}                   # any literal predicate on any subject
 ```
 
 ### Object wildcard
 
 ```md
-{=* ?rdf:type +*}        # all type assertions — any subject, any class
-{=ex:alice [*] ex:name}  # all literal values of ex:name for alice
-{=* ?* +*}               # all object-property triples in the document
+[ex] <http://example.org/>
+[All types] {=* .*}        # all type assertions — any subject, any class
+[*] {=ex:alice ex:name}  # all literal values of ex:name for alice
+[Everyone] {=*} and [everything] {?* +*}               # all object-property triples in the document
 ```
 
 ### Chained patterns
@@ -105,10 +108,11 @@ subsequent patterns inherit `ex:alice` as their ground subject unless
 `{=*}` explicitly wildcards it.
 
 ```md
+[ex] <http://example.org/>
 ## Alice {=ex:alice .ex:Person ex:name}
 
-What does she know? {=* ?ex:knows +*}
-What are her names? {=* [*] ex:name}
+What does she [know] {?ex:knows +*}
+What are her names? [*] {ex:name}
 ```
 
 Both patterns above inherit `ex:alice` as subject — the `{=*}` wildcards
@@ -122,10 +126,11 @@ inherits the current subject as a ground constraint.
 ### Pattern without explicit subject
 
 ```md
+[ex] <http://example.org/>
 ## Alice {=ex:alice .ex:Person ex:name}
 
 [knows] {?* +*}          # match: (ex:alice, *, *) — current subject, any pred, any IRI obj
-[name] {[*] *}           # match: (ex:alice, *, *) — current subject, any pred, any literal obj
+[*] {*}           # match: (ex:alice, *, *) — current subject, any pred, any literal obj
 ```
 
 When no subject wildcard is present, the pattern inherits the current
@@ -183,35 +188,18 @@ attaches their already-existing origin entries.
 
 ---
 
-## 7. Multiple Patterns
-
-Any number of patterns can be active simultaneously. Each emitted quad
-is tested against all registered patterns in sequence. Cost is O(P) per
-quad where P is the number of registered patterns — constant relative
-to document size.
-
-```md
-{=* ?rdf:type +*}           ← pattern A: all type assertions
-[*] {=* ex:name}            ← pattern B: all names
-{=ex:alice} all [info] {?* +*} ← pattern C: all IRI edges from alice
-```
-
-All three fire for every subsequent quad. A quad matching multiple
-patterns appears in each pattern's results independently.
-
----
-
 ## 8. Chained Pattern Groups
 
 The most common real use: set a subject with a normal annotation,
 attach patterns for what you want from it.
 
 ```md
+[ex] <http://example.org/>
 ## Alice {=ex:alice .ex:Person ex:name}
 
-{?ex:knows +*}         # who alice knows
-[*] {ex:email}         # alice's email values
-{.*}         # alice's types
+[who she knows] {?ex:knows +*}
+Her emails [*] {ex:email}
+And [types] {.*}
 ```
 
 These three patterns share `ex:alice` as their ground subject (inherited
@@ -222,24 +210,6 @@ A pair of patterns can chain results: the first collects subjects, the
 second filters by them. This is the Tier 3 semi-join expressed through
 the callback API rather than through syntax — the spec does not need
 to formalise it further. Keep it in userland.
-
----
-
-## 9. What Cannot Be Expressed
-
-These require post-parse SPARQL over the completed quadstore:
-
-- **Negation** — absence of a triple is unknowable mid-stream
-- **Joins across subjects** — `?x knows ?y . ?y type :Person` needs two passes
-- **OPTIONAL** — null bindings require stream completion
-- **Aggregation as output** — counts are available post-parse only
-- **Property paths** — transitivity requires materialised graph traversal
-- **ORDER BY / DISTINCT** — require full result materialisation
-
-The pattern system answers: "give me these specific triples as they appear."
-SPARQL answers: "compute this over the complete graph."
-Both are available. Use each for what it is good at.
-
 ---
 
 ## 10. Parser Integration Points
