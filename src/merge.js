@@ -1,15 +1,13 @@
 import { parse } from './parse.js';
-import { DEFAULT_CONTEXT } from './shared.js';
+import { DEFAULT_CONTEXT, quadIndexKey } from './shared.js';
 
 /**
- * Creates a unique key for quad identity matching
+ * Creates a unique key for quad identity matching - using shared utility
  * @param {Quad} quad 
  * @returns {string}
  */
 function quadKey(quad) {
-    const datatype = quad.object.datatype?.value || '';
-    const language = quad.object.language || '';
-    return `${quad.subject.value}|${quad.predicate.value}|${quad.object.value}|${datatype}|${language}`;
+    return quadIndexKey(quad.subject, quad.predicate, quad.object);
 }
 
 /**

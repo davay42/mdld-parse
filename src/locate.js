@@ -18,21 +18,6 @@ export function locate(quad, origin) {
         return null;
     }
 
-    // Find the origin entry in quadIndex
-    const entry = origin.quadIndex.get(quadKey);
-    if (!entry) {
-        return null;
-    }
-
-    // Return the lean origin entry structure
-    return {
-        blockId: entry.blockId,
-        range: entry.range,
-        carrierType: entry.carrierType,
-        subject: entry.subject,
-        predicate: entry.predicate,
-        context: entry.context,
-        value: entry.value,
-        polarity: entry.polarity
-    };
+    // Return the origin entry directly - no need to create new object
+    return origin.quadIndex.get(quadKey) || null;
 }

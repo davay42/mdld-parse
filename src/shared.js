@@ -3,6 +3,8 @@
  * Ensures DRY code and consistent CommonMark processing
  */
 
+import { parseSemanticBlock, expandIRI, shortenIRI } from './utils.js';
+
 export const DEFAULT_CONTEXT = {
     '@vocab': "http://www.w3.org/2000/01/rdf-schema#",
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
@@ -150,6 +152,172 @@ export const PROCESSORS = [
     { test: line => true, process: null } // Default: paragraph
 ];
 
+// Token scanning processors - shared between parser and renderer
+export const TOKEN_PROCESSORS = [
+    { type: 'fence', test: line => FENCE_REGEX.test(line.trim()), process: null }, // Will be overridden in parse.js
+    { type: 'content', test: line => false, process: null }, // Will be overridden in parse.js  
+    { type: 'prefix', test: line => PREFIX_REGEX.test(line), process: null }, // Will be overridden in parse.js
+    { type: 'heading', test: line => HEADING_REGEX.test(line), process: null }, // Will be overridden in parse.js
+    { type: 'list', test: line => UNORDERED_LIST_REGEX.test(line), process: null }, // Will be overridden in parse.js
+    { type: 'blockquote', test: line => BLOCKQUOTE_REGEX.test(line), process: null }, // Will be overridden in parse.js
+    { type: 'para', test: line => line.trim(), process: null } // Will be overridden in parse.js
+];
+
+// Language and attributes parsing
+export function parseLangAndAttrs(langAndAttrs) {
+    const spaceIndex = langAndAttrs.indexOf(' ');
+    const braceIndex = langAndAttrs.indexOf('{');
+    const langEnd = Math.min(
+        spaceIndex > -1 ? spaceIndex : Infinity,
+        braceIndex > -1 ? braceIndex : Infinity
+    );
+    return {
+        lang: langAndAttrs.substring(0, langEnd),
+        attrsText: langAndAttrs.substring(langEnd).match(/\{[^{}]*\}/)?.[0] || null
+    };
+}
+
+// Carrier extraction utilities
+export function findMatchingBracket(text, bracketStart) {
+    let bracketDepth = 1;
+    let bracketEnd = bracketStart + 1;
+
+    while (bracketEnd < text.length && bracketDepth > 0) {
+        if (text[bracketEnd] === '[') bracketDepth++;
+        else if (text[bracketEnd] === ']') bracketDepth--;
+        bracketEnd++;
+    }
+
+    return bracketDepth > 0 ? null : bracketEnd;
+}
+
+export function extractUrlFromBrackets(text, bracketEnd) {
+    let url = null;
+    let spanEnd = bracketEnd;
+
+    if (text[spanEnd] === '(') {
+        const parenEnd = text.indexOf(')', spanEnd);
+        if (parenEnd !== -1) {
+            url = text.substring(spanEnd + 1, parenEnd);
+            spanEnd = parenEnd + 1;
+        }
+    }
+
+    return { url, spanEnd };
+}
+
+export function extractAttributesFromText(text, spanEnd, baseOffset) {
+    let attrs = null;
+    let attrsRange = null;
+    const remaining = text.substring(spanEnd);
+
+    const wsMatch = remaining.match(/^\s+/);
+    const attrsStart = wsMatch ? wsMatch[0].length : 0;
+
+    if (remaining[attrsStart] === '{') {
+        const braceEnd = remaining.indexOf('}', attrsStart);
+        if (braceEnd !== -1) {
+            attrs = remaining.substring(attrsStart, braceEnd + 1);
+            const absStart = baseOffset + spanEnd + attrsStart;
+            attrsRange = [absStart, absStart + attrs.length];
+            spanEnd += braceEnd + 1;
+        }
+    }
+
+    return { attrs, attrsRange, finalSpanEnd: spanEnd };
+}
+
+export function determineCarrierType(url) {
+    if (url && !url.startsWith('=')) {
+        return { carrierType: 'link', resourceIRI: url };
+    }
+    return { carrierType: 'span', resourceIRI: null };
+}
+
+export function calcCarrierRanges(match, baseOffset, matchStart) {
+    const valueStart = baseOffset + matchStart + match[0].indexOf(match[1]);
+    const valueEnd = valueStart + match[1].length;
+    const attrsStart = baseOffset + matchStart + match[0].indexOf('{');
+    const attrsEnd = attrsStart + match[2].length + 2; // +2 for { and }
+    return {
+        valueRange: [valueStart, valueEnd],
+        attrsRange: [attrsStart + 1, attrsEnd - 1], // Exclude braces
+        range: [baseOffset + matchStart, attrsEnd],
+        pos: matchStart + match[0].length // pos should be relative to current text, not document
+    };
+}
+
+// Clean text extraction utilities
+export function extractCleanText(token) {
+    if (!token.text) return '';
+
+    let text = token.text;
+
+    // Remove semantic annotations
+    if (token.attrsRange) {
+        const beforeAttrs = text.substring(0, token.attrsRange[0] - (token.range?.[0] || 0));
+        const afterAttrs = text.substring(token.attrsRange[1] - (token.range?.[0] || 0));
+        text = beforeAttrs + afterAttrs;
+    }
+
+    // Clean based on token type
+    switch (token.type) {
+        case 'heading':
+            return text.replace(/^#+\s*/, '').trim();
+        case 'list':
+            return text.replace(/^[-*+]\s*/, '').trim();
+        case 'blockquote':
+            return text.replace(/^>\s*/, '').trim();
+        default:
+            return text.trim();
+    }
+}
+
+// Quad emission utilities
+export const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+export const RDF_STATEMENT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement';
+export const RDF_SUBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#subject';
+export const RDF_PREDICATE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate';
+export const RDF_OBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#object';
+
+export function createLeanOriginEntry(block, subject, predicate, meta = null) {
+    return {
+        blockId: block.id,
+        range: block.range,
+        carrierType: block.carrierType,
+        subject: subject.value,
+        predicate: predicate.value,
+        context: block.context, // Direct reference instead of spread
+        polarity: meta?.remove ? '-' : '+',
+        value: block.text || ''
+    };
+}
+
+// Fragment resolution utilities
+export function resolveFragment(fragment, currentSubject, dataFactory) {
+    if (!currentSubject) return null;
+    const subjectValue = currentSubject.value;
+    const hashIndex = subjectValue.indexOf('#');
+    const baseIRI = hashIndex > -1 ? subjectValue.slice(0, hashIndex) : subjectValue;
+    return dataFactory.namedNode(baseIRI + '#' + fragment);
+}
+
+export function resolveSubject(sem, state) {
+    if (!sem.subject) return null;
+    if (sem.subject === 'RESET') {
+        state.currentSubject = null;
+        return null;
+    }
+    if (sem.subject.startsWith('=#')) return resolveFragment(sem.subject.substring(2), state.currentSubject, state.df);
+    return state.df.namedNode(expandIRI(sem.subject, state.ctx));
+}
+
+export function resolveObject(sem, state) {
+    if (!sem.object) return null;
+    if (sem.object.startsWith('#')) return resolveFragment(sem.object.substring(1), state.currentSubject, state.df);
+    return state.df.namedNode(expandIRI(sem.object, state.ctx));
+}
+
 // HTML escaping - shared utility
 export function escapeHtml(text) {
     if (!text) return '';
@@ -159,6 +327,77 @@ export function escapeHtml(text) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#x27;');
+}
+
+// RDF term type checking utilities - shared across modules
+export function isLiteral(term) {
+    return term?.termType === 'Literal';
+}
+
+export function isNamedNode(term) {
+    return term?.termType === 'NamedNode';
+}
+
+export function isRdfType(term) {
+    return term?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+}
+
+// IRI prefix extraction utility
+export function getPrefixFromIRI(iri, context) {
+    if (!iri) return null;
+    const shortened = shortenIRI(iri, context);
+    if (shortened.includes(':')) {
+        return shortened.split(':')[0];
+    }
+    return null;
+}
+
+// Prefix collection utility - used by generate.js
+export function collectUsedPrefixes(subjectGroups, context) {
+    const usedPrefixes = new Set();
+
+    for (const subjectQuads of subjectGroups.values()) {
+        for (const quad of subjectQuads) {
+            // Check subject prefix
+            const subjectPrefix = getPrefixFromIRI(quad.subject.value, context);
+            if (subjectPrefix) usedPrefixes.add(subjectPrefix);
+
+            // Check predicate prefix
+            const predicatePrefix = getPrefixFromIRI(quad.predicate.value, context);
+            if (predicatePrefix) usedPrefixes.add(predicatePrefix);
+
+            // Check object prefix if it's a named node
+            if (isNamedNode(quad.object)) {
+                const objectPrefix = getPrefixFromIRI(quad.object.value, context);
+                if (objectPrefix) usedPrefixes.add(objectPrefix);
+            }
+
+            // Check datatype prefix if present
+            if (quad.object.datatype && quad.object.datatype.value) {
+                const datatypePrefix = getPrefixFromIRI(quad.object.datatype.value, context);
+                if (datatypePrefix) usedPrefixes.add(datatypePrefix);
+            }
+        }
+    }
+
+    return usedPrefixes;
+}
+
+// Token processing utility - eliminates duplication in TOKEN_PROCESSORS
+export function processTokenWithBlockTracking(token, state, processAnnotations, createBlockEntry, additionalProcessors = []) {
+    const blockEntry = createBlockEntry(token, state);
+    state.currentBlock = blockEntry;
+    state.blockStack.push(blockEntry.id);
+
+    // Run any additional processors first
+    additionalProcessors.forEach(processor => processor(token, state));
+
+    // Process annotations
+    processAnnotations(token, state, token.type);
+
+    state.blockStack.pop();
+    state.currentBlock = state.blockStack.length > 0 ?
+        state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
 }
 
 // Quad key generation - shared between parser and renderer
@@ -193,14 +432,92 @@ export function resolveSubjectType(subjectDecl) {
     return 'full-iri';
 }
 
-// Fragment resolution - shared logic
-export function resolveFragment(fragment, currentSubject) {
-    if (!currentSubject) {
-        throw new Error('Fragment requires current subject');
-    }
-    const fragmentName = fragment.substring(2); // Remove =#
-    const baseIRI = currentSubject.value;
-    const hashIndex = baseIRI.indexOf('#');
-    const base = hashIndex > -1 ? baseIRI.slice(0, hashIndex) : baseIRI;
-    return base + '#' + fragmentName;
+// Constants - shared across modules
+export const XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string';
+
+// Sorting utilities - common patterns
+export function sortQuadsByPredicate(quads) {
+    return quads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
 }
+
+// Text generation utilities - common MDLD patterns
+export function generatePrefixDeclaration(prefix, namespace) {
+    return `[${prefix}] <${namespace}>\n`;
+}
+
+export function generateLiteralAnnotation(quad, context, predShort) {
+    let annotation = predShort;
+
+    if (quad.object.language) {
+        annotation += ` @${quad.object.language}`;
+    } else if (quad.object.datatype.value !== XSD_STRING) {
+        annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
+    }
+
+    return annotation;
+}
+
+export function generateLiteralText(quad, context) {
+    const predShort = shortenIRI(quad.predicate.value, context);
+    const annotation = generateLiteralAnnotation(quad, context, predShort);
+    return `[${quad.object.value}] {${annotation}}\n`;
+}
+
+export function generateObjectText(quad, context) {
+    const objShort = shortenIRI(quad.object.value, context);
+    const predShort = shortenIRI(quad.predicate.value, context);
+    return `[${objShort}] {+${objShort} ?${predShort}}\n`;
+}
+
+// Quad filtering utilities - common patterns
+export function filterQuadsByType(subjectQuads) {
+    return {
+        types: subjectQuads.filter(q => isRdfType(q.predicate)),
+        literals: subjectQuads.filter(q => isLiteral(q.object) && !isRdfType(q.predicate)),
+        objects: subjectQuads.filter(q => isNamedNode(q.object) && !isRdfType(q.predicate))
+    };
+}
+
+// Predicate processing utilities - common RDFa patterns
+export function processPredicates(predicates, ctx) {
+    const literalProps = [];
+    const objectProps = [];
+    const reverseProps = [];
+
+    predicates.forEach(pred => {
+        const iri = typeof pred === 'string' ? pred : pred.iri;
+        const expanded = expandIRI(iri, ctx);
+        const shortened = shortenIRI(expanded, ctx);
+        const form = typeof pred === 'string' ? '' : (pred.form || '');
+
+        if (form === '!') {
+            reverseProps.push(shortened);
+        } else if (form === '?') {
+            objectProps.push(shortened);
+        } else {
+            literalProps.push(shortened);
+        }
+    });
+
+    return { literalProps, objectProps, reverseProps };
+}
+
+// RDFa attribute generation utilities
+export function generateRDFaAttribute(name, values) {
+    return values.length > 0 ? ` ${name}="${escapeHtml(values.join(' '))}"` : '';
+}
+
+export function generateRDFaAttributes(literalProps, objectProps, reverseProps) {
+    let attrs = '';
+    if (literalProps.length > 0) {
+        attrs += generateRDFaAttribute('property', literalProps);
+    }
+    if (objectProps.length > 0) {
+        attrs += generateRDFaAttribute('rel', objectProps);
+    }
+    if (reverseProps.length > 0) {
+        attrs += generateRDFaAttribute('rev', reverseProps);
+    }
+    return attrs;
+}
+

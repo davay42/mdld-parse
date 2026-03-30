@@ -6,7 +6,13 @@ import {
     parseSemanticBlock,
     hash
 } from './utils.js';
-import { DEFAULT_CONTEXT } from './shared.js';
+import {
+    DEFAULT_CONTEXT,
+    escapeHtml,
+    getIndentLevel,
+    processPredicates,
+    generateRDFaAttributes
+} from './shared.js';
 
 /**
  * Render MD-LD to HTML+RDFa
@@ -303,17 +309,6 @@ function parseMarkdownList(markdownList, blocks, state) {
 }
 
 /**
- * Get indent level from source text
- */
-function getIndentLevel(block, sourceText) {
-    if (!block.range || !sourceText) return 0;
-
-    const text = sourceText.substring(block.range.start, block.range.end);
-    const indentMatch = text.match(/^(\s*)/);
-    return indentMatch ? indentMatch[1].length : 0;
-}
-
-/**
  * Render a single block
  */
 function renderBlock(block, state) {
@@ -408,36 +403,10 @@ function buildRDFaAttrsFromBlock(block, ctx) {
         attrs.push(`typeof="${escapeHtml(types)}"`);
     }
 
-    // Predicates
+    // Predicates using shared utility
     if (block.predicates && block.predicates.length > 0) {
-        const literalProps = [];
-        const objectProps = [];
-        const reverseProps = [];
-
-        block.predicates.forEach(pred => {
-            const iri = typeof pred === 'string' ? pred : pred.iri;
-            const expanded = expandIRI(iri, ctx);
-            const shortened = shortenIRI(expanded, ctx);
-            const form = typeof pred === 'string' ? '' : (pred.form || '');
-
-            if (form === '!') {
-                reverseProps.push(shortened);
-            } else if (form === '?') {
-                objectProps.push(shortened);
-            } else {
-                literalProps.push(shortened);
-            }
-        });
-
-        if (literalProps.length > 0) {
-            attrs.push(`property="${escapeHtml(literalProps.join(' '))}"`);
-        }
-        if (objectProps.length > 0) {
-            attrs.push(`rel="${escapeHtml(objectProps.join(' '))}"`);
-        }
-        if (reverseProps.length > 0) {
-            attrs.push(`rev="${escapeHtml(reverseProps.join(' '))}"`);
-        }
+        const { literalProps, objectProps, reverseProps } = processPredicates(block.predicates, ctx);
+        attrs.push(generateRDFaAttributes(literalProps, objectProps, reverseProps).trim());
     }
 
     return attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
@@ -473,18 +442,4 @@ function wrapWithRDFaContext(html, ctx) {
     const vocabDecl = generateVocabDeclaration(ctx);
 
     return `<div${prefixDecl}${vocabDecl}>${html}</div>`;
-}
-
-/**
- * Escape HTML special characters
- */
-function escapeHtml(text) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-    };
-    return String(text || '').replace(/[&<>"']/g, m => map[m]);
 }

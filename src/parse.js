@@ -6,90 +6,57 @@ import {
     createLiteral,
     hash
 } from './utils.js';
-import { DEFAULT_CONTEXT, URL_REGEX, FENCE_REGEX, PREFIX_REGEX, HEADING_REGEX, UNORDERED_LIST_REGEX, BLOCKQUOTE_REGEX, STANDALONE_SUBJECT_REGEX, CARRIER_PATTERN_ARRAY } from './shared.js';
+import {
+    DEFAULT_CONTEXT,
+    URL_REGEX,
+    FENCE_REGEX,
+    PREFIX_REGEX,
+    HEADING_REGEX,
+    UNORDERED_LIST_REGEX,
+    BLOCKQUOTE_REGEX,
+    STANDALONE_SUBJECT_REGEX,
+    CARRIER_PATTERN_ARRAY,
+    getFenceClosePattern,
+    calcRangeInfo,
+    calcAttrsRange,
+    createToken,
+    createCarrier,
+    createListToken,
+    parseSemCached,
+    EMPTY_SEM,
+    parseLangAndAttrs,
+    findMatchingBracket,
+    extractUrlFromBrackets,
+    extractAttributesFromText,
+    determineCarrierType,
+    calcCarrierRanges,
+    extractCleanText,
+    RDF_TYPE,
+    RDF_STATEMENT,
+    RDF_SUBJECT,
+    RDF_PREDICATE,
+    RDF_OBJECT,
+    createLeanOriginEntry,
+    resolveFragment,
+    resolveSubject,
+    resolveObject,
+    processTokenWithBlockTracking
+} from './shared.js';
 
 
 
-// Cache for fence regex patterns to avoid recreation
-const FENCE_CLOSE_PATTERNS = new Map();
-
-function getFenceClosePattern(fenceChar) {
-    if (!FENCE_CLOSE_PATTERNS.has(fenceChar)) {
-        FENCE_CLOSE_PATTERNS.set(fenceChar, new RegExp(`^(${fenceChar}{3,})`));
-    }
-    return FENCE_CLOSE_PATTERNS.get(fenceChar);
-}
-
-function parseLangAndAttrs(langAndAttrs) {
-    const spaceIndex = langAndAttrs.indexOf(' ');
-    const braceIndex = langAndAttrs.indexOf('{');
-    const langEnd = Math.min(
-        spaceIndex > -1 ? spaceIndex : Infinity,
-        braceIndex > -1 ? braceIndex : Infinity
-    );
-    return {
-        lang: langAndAttrs.substring(0, langEnd),
-        attrsText: langAndAttrs.substring(langEnd).match(/\{[^{}]*\}/)?.[0] || null
-    };
-}
-
-const semCache = {};
-const EMPTY_SEM = Object.freeze({ predicates: [], types: [], subject: null });
-
-function parseSemCached(attrs) {
-    if (!attrs) return EMPTY_SEM;
-    let sem = semCache[attrs];
-    if (!sem) {
-        sem = Object.freeze(parseSemanticBlock(attrs));
-        semCache[attrs] = sem;
-    }
-    return sem;
-}
-
-function calcRangeInfo(line, attrs, lineStart, prefixLength, valueLength) {
-    const wsLength = prefixLength < line.length && line[prefixLength] === ' ' ? 1 :
-        line.slice(prefixLength).match(/^\s+/)?.[0]?.length || 0;
-    const valueStartInLine = prefixLength + wsLength;
-    return {
-        valueRange: [lineStart + valueStartInLine, lineStart + valueStartInLine + valueLength],
-        attrsRange: calcAttrsRange(line, attrs, lineStart)
-    };
-}
-
-function calcAttrsRange(line, attrs, lineStart) {
-    if (!attrs) return null;
-    const attrsStartInLine = line.lastIndexOf(attrs);
-    return attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrs.length] : null;
-}
-
-function createToken(type, range, text, attrs = null, attrsRange = null, valueRange = null, extra = {}) {
-    const token = { type, range, text, attrs, attrsRange, valueRange, ...extra };
-    Object.defineProperty(token, '_carriers', {
-        enumerable: false, writable: true, value: null
-    });
-    return token;
-}
+// Cache for fence regex patterns - using shared utility
 
 function getCarriers(token) {
     if (token.type === 'code') return [];
     return token._carriers || (token._carriers = extractInlineCarriers(token.text, token.range[0]));
 }
 
-const createListToken = (type, line, lineStart, pos, match) => {
-    const attrs = match[4] || null;
-    const prefix = match[1].length + (match[2] ? match[2].length : 0);
-    const rangeInfo = calcRangeInfo(line, attrs, lineStart, prefix, match[3].length);
-    return createToken(type, [lineStart, pos - 1], match[3].trim(), attrs,
-        rangeInfo.attrsRange, rangeInfo.valueRange, { indent: match[1].length });
-};
-
 function scanTokens(text) {
     const tokens = [];
     const lines = text.split('\n');
     let pos = 0;
     let codeBlock = null;
-
-    // Direct lookup instead of linear search
     const PROCESSORS = [
         { type: 'fence', test: line => FENCE_REGEX.test(line.trim()), process: handleFence },
         { type: 'content', test: () => codeBlock, process: line => codeBlock.content.push(line) },
@@ -196,10 +163,6 @@ function scanTokens(text) {
     return tokens;
 }
 
-function createCarrier(type, text, attrs, attrsRange, valueRange, range, pos, extra = {}) {
-    return { type, text, attrs, attrsRange, valueRange, range, pos, ...extra };
-}
-
 function extractInlineCarriers(text, baseOffset = 0) {
     const carriers = [];
     let pos = 0;
@@ -264,74 +227,6 @@ function extractInlineCarriers(text, baseOffset = 0) {
     return carriers;
 }
 
-function calcCarrierRanges(match, baseOffset, matchStart) {
-    const valueStart = baseOffset + matchStart + match[0].indexOf(match[1]);
-    const valueEnd = valueStart + match[1].length;
-    const attrsStart = baseOffset + matchStart + match[0].indexOf('{');
-    const attrsEnd = attrsStart + match[2].length + 2; // +2 for { and }
-    return {
-        valueRange: [valueStart, valueEnd],
-        attrsRange: [attrsStart + 1, attrsEnd - 1], // Exclude braces
-        range: [baseOffset + matchStart, attrsEnd],
-        pos: matchStart + match[0].length // pos should be relative to current text, not document
-    };
-}
-
-function findMatchingBracket(text, bracketStart) {
-    let bracketDepth = 1;
-    let bracketEnd = bracketStart + 1;
-
-    while (bracketEnd < text.length && bracketDepth > 0) {
-        if (text[bracketEnd] === '[') bracketDepth++;
-        else if (text[bracketEnd] === ']') bracketDepth--;
-        bracketEnd++;
-    }
-
-    return bracketDepth > 0 ? null : bracketEnd;
-}
-
-function extractUrlFromBrackets(text, bracketEnd) {
-    let url = null;
-    let spanEnd = bracketEnd;
-
-    if (text[spanEnd] === '(') {
-        const parenEnd = text.indexOf(')', spanEnd);
-        if (parenEnd !== -1) {
-            url = text.substring(spanEnd + 1, parenEnd);
-            spanEnd = parenEnd + 1;
-        }
-    }
-
-    return { url, spanEnd };
-}
-
-function extractAttributesFromText(text, spanEnd, baseOffset) {
-    let attrs = null;
-    let attrsRange = null;
-    const remaining = text.substring(spanEnd);
-
-    const wsMatch = remaining.match(/^\s+/);
-    const attrsStart = wsMatch ? wsMatch[0].length : 0;
-
-    if (remaining[attrsStart] === '{') {
-        const braceEnd = remaining.indexOf('}', attrsStart);
-        if (braceEnd !== -1) {
-            attrs = remaining.substring(attrsStart, braceEnd + 1);
-            const absStart = baseOffset + spanEnd + attrsStart;
-            attrsRange = [absStart, absStart + attrs.length];
-            spanEnd += braceEnd + 1;
-        }
-    }
-
-    return { attrs, attrsRange, finalSpanEnd: spanEnd };
-}
-
-function determineCarrierType(url) {
-    if (url && !url.startsWith('=')) {
-        return { carrierType: 'link', resourceIRI: url };
-    }
-    return { carrierType: 'span', resourceIRI: null };
-}
 
 function createBlockEntry(token, state) {
     const blockId = token._blockId || hash(`${token.type}:${token.range?.[0]}:${token.range?.[1]}`);
@@ -358,31 +253,6 @@ function createBlockEntry(token, state) {
     state.origin.documentStructure.push(blockEntry);
 
     return blockEntry;
-}
-
-function extractCleanText(token) {
-    if (!token.text) return '';
-
-    let text = token.text;
-
-    // Remove semantic annotations
-    if (token.attrsRange) {
-        const beforeAttrs = text.substring(0, token.attrsRange[0] - (token.range?.[0] || 0));
-        const afterAttrs = text.substring(token.attrsRange[1] - (token.range?.[0] || 0));
-        text = beforeAttrs + afterAttrs;
-    }
-
-    // Clean based on token type
-    switch (token.type) {
-        case 'heading':
-            return text.replace(/^#+\s*/, '').trim();
-        case 'list':
-            return text.replace(/^[-*+]\s*/, '').trim();
-        case 'blockquote':
-            return text.replace(/^>\s*/, '').trim();
-        default:
-            return text.trim();
-    }
 }
 
 function enrichBlockFromAnnotation(blockEntry, sem, carrier, state) {
@@ -535,17 +405,8 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
         // Detect rdf:Statement pattern during single-pass parsing
         detectStatementPatternSinglePass(quad, dataFactory, meta, statements, statementCandidates);
 
-        // Create lean origin entry - avoid spread operator for better performance
-        const originEntry = {
-            blockId: block.id,
-            range: block.range,
-            carrierType: block.carrierType,
-            subject: subject.value,
-            predicate: predicate.value,
-            context: block.context, // Direct reference instead of spread
-            polarity: meta?.remove ? '-' : '+',
-            value: block.text || ''
-        };
+        // Create lean origin entry using shared utility
+        const originEntry = createLeanOriginEntry(block, subject, predicate, meta);
 
         quadIndex.set(quadKey, originEntry);
 
@@ -558,13 +419,6 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
         }
     }
 }
-
-// Extract RDF constants once at module level for efficiency
-const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-const RDF_STATEMENT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement';
-const RDF_SUBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#subject';
-const RDF_PREDICATE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate';
-const RDF_OBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#object';
 
 function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = null, statementCandidates = null) {
     // Skip if not called from parse context (for testing compatibility)
@@ -613,30 +467,6 @@ function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = 
         // Clean up candidate to avoid duplicate detection
         statementCandidates.delete(quad.subject.value);
     }
-}
-
-const resolveFragment = (fragment, state) => {
-    if (!state.currentSubject) return null;
-    const subjectValue = state.currentSubject.value;
-    const hashIndex = subjectValue.indexOf('#');
-    const baseIRI = hashIndex > -1 ? subjectValue.slice(0, hashIndex) : subjectValue;
-    return state.df.namedNode(baseIRI + '#' + fragment);
-};
-
-function resolveSubject(sem, state) {
-    if (!sem.subject) return null;
-    if (sem.subject === 'RESET') {
-        state.currentSubject = null;
-        return null;
-    }
-    if (sem.subject.startsWith('=#')) return resolveFragment(sem.subject.substring(2), state);
-    return state.df.namedNode(expandIRI(sem.subject, state.ctx));
-}
-
-function resolveObject(sem, state) {
-    if (!sem.object) return null;
-    if (sem.object.startsWith('#')) return resolveFragment(sem.object.substring(1), state);
-    return state.df.namedNode(expandIRI(sem.object, state.ctx));
 }
 
 const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
@@ -744,62 +574,11 @@ function processStandaloneSubject(token, state) {
 }
 
 const TOKEN_PROCESSORS = {
-    heading: (token, state) => {
-        const blockEntry = createBlockEntry(token, state);
-        state.currentBlock = blockEntry;
-        state.blockStack.push(blockEntry.id);
-
-        processTokenAnnotations(token, state, token.type);
-
-        state.blockStack.pop();
-        state.currentBlock = state.blockStack.length > 0 ?
-            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
-    },
-    code: (token, state) => {
-        const blockEntry = createBlockEntry(token, state);
-        state.currentBlock = blockEntry;
-        state.blockStack.push(blockEntry.id);
-
-        processTokenAnnotations(token, state, token.type);
-
-        state.blockStack.pop();
-        state.currentBlock = state.blockStack.length > 0 ?
-            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
-    },
-    blockquote: (token, state) => {
-        const blockEntry = createBlockEntry(token, state);
-        state.currentBlock = blockEntry;
-        state.blockStack.push(blockEntry.id);
-
-        processTokenAnnotations(token, state, token.type);
-
-        state.blockStack.pop();
-        state.currentBlock = state.blockStack.length > 0 ?
-            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
-    },
-    para: (token, state) => {
-        const blockEntry = createBlockEntry(token, state);
-        state.currentBlock = blockEntry;
-        state.blockStack.push(blockEntry.id);
-
-        processStandaloneSubject(token, state);
-        processTokenAnnotations(token, state, token.type);
-
-        state.blockStack.pop();
-        state.currentBlock = state.blockStack.length > 0 ?
-            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
-    },
-    list: (token, state) => {
-        const blockEntry = createBlockEntry(token, state);
-        state.currentBlock = blockEntry;
-        state.blockStack.push(blockEntry.id);
-
-        processTokenAnnotations(token, state, token.type);
-
-        state.blockStack.pop();
-        state.currentBlock = state.blockStack.length > 0 ?
-            state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
-    },
+    heading: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
+    code: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
+    blockquote: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
+    para: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry, [processStandaloneSubject]),
+    list: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
 };
 
 export function parse(text, options = {}) {

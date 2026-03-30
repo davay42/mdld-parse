@@ -1,30 +1,18 @@
 import { shortenIRI, expandIRI, DataFactory } from './utils.js';
-import { DEFAULT_CONTEXT } from './shared.js';
-
-// Helper function to extract prefix from IRI
-function getPrefixFromIRI(iri, context) {
-    if (!iri) return null;
-
-    const shortened = shortenIRI(iri, context);
-    if (shortened.includes(':')) {
-        return shortened.split(':')[0];
-    }
-    return null;
-}
-
-// Helper functions for cleaner term type checking
-function isLiteral(term) {
-    return term?.termType === 'Literal';
-}
-
-function isNamedNode(term) {
-    return term?.termType === 'NamedNode';
-}
-
-function isRdfType(term) {
-    return term?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-}
-
+import {
+    DEFAULT_CONTEXT,
+    isLiteral,
+    isNamedNode,
+    isRdfType,
+    getPrefixFromIRI,
+    collectUsedPrefixes,
+    XSD_STRING,
+    sortQuadsByPredicate,
+    generatePrefixDeclaration,
+    generateLiteralText,
+    generateObjectText,
+    filterQuadsByType
+} from './shared.js';
 
 export function extractLocalName(iri, ctx = {}) {
     if (!iri) return iri;
@@ -104,40 +92,14 @@ function groupQuadsBySubject(quads) {
 
 function buildDeterministicMDLD(subjectGroups, context) {
     let text = '';
-    const usedPrefixes = new Set();
-
-    // First pass: collect all prefixes used in content
-    for (const subjectQuads of subjectGroups.values()) {
-        for (const quad of subjectQuads) {
-            // Check subject prefix
-            const subjectPrefix = getPrefixFromIRI(quad.subject.value, context);
-            if (subjectPrefix) usedPrefixes.add(subjectPrefix);
-
-            // Check predicate prefix
-            const predicatePrefix = getPrefixFromIRI(quad.predicate.value, context);
-            if (predicatePrefix) usedPrefixes.add(predicatePrefix);
-
-            // Check object prefix if it's a named node
-            if (quad.object.termType === 'NamedNode') {
-                const objectPrefix = getPrefixFromIRI(quad.object.value, context);
-                if (objectPrefix) usedPrefixes.add(objectPrefix);
-            }
-
-            // Check datatype prefix if present
-            if (quad.object.datatype && quad.object.datatype.value) {
-                const datatypePrefix = getPrefixFromIRI(quad.object.datatype.value, context);
-                if (datatypePrefix) usedPrefixes.add(datatypePrefix);
-            }
-        }
-    }
+    const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 
     // Add prefixes first (deterministic order), but exclude default context prefixes
     const sortedPrefixes = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
     for (const [prefix, namespace] of sortedPrefixes) {
         // Skip default context prefixes - they're implicit in MDLD
         if (prefix !== '@vocab' && !prefix.startsWith('@') && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) {
-            const prefixDecl = `[${prefix}] <${namespace}>\n`;
-            text += prefixDecl;
+            text += generatePrefixDeclaration(prefix, namespace);
         }
     }
 
@@ -152,10 +114,8 @@ function buildDeterministicMDLD(subjectGroups, context) {
         const subjectQuads = subjectGroups.get(subjectIRI);
         const shortSubject = shortenIRI(subjectIRI, context);
 
-        // Separate types, literals, and objects using helper functions
-        const types = subjectQuads.filter(q => isRdfType(q.predicate));
-        const literals = subjectQuads.filter(q => isLiteral(q.object) && !isRdfType(q.predicate));
-        const objects = subjectQuads.filter(q => isNamedNode(q.object) && !isRdfType(q.predicate));
+        // Separate types, literals, and objects using shared utility
+        const { types, literals, objects } = filterQuadsByType(subjectQuads);
 
         // Generate heading
         const localSubjectName = extractLocalName(subjectIRI, context);
@@ -163,36 +123,16 @@ function buildDeterministicMDLD(subjectGroups, context) {
             ? ' ' + types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
             : '';
 
-        const headingText = `# ${localSubjectName} {=${shortSubject}${typeAnnotations}}\n`;
+        text += `# ${localSubjectName} {=${shortSubject}${typeAnnotations}}\n`;
 
-        text += headingText;
+        // Add literals and objects using shared utilities
+        sortQuadsByPredicate(literals).forEach(quad => {
+            text += generateLiteralText(quad, context);
+        });
 
-        // Add literals (deterministic order)
-        const sortedLiterals = literals.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
-        for (const quad of sortedLiterals) {
-            const predShort = shortenIRI(quad.predicate.value, context);
-            let annotation = predShort;
-
-            // Use DataFactory XSD constants for datatype comparison
-            const xsdString = 'http://www.w3.org/2001/XMLSchema#string';
-            if (quad.object.language) {
-                annotation += ` @${quad.object.language}`;
-            } else if (quad.object.datatype.value !== xsdString) {
-                annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
-            }
-
-            const literalText = `[${quad.object.value}] {${annotation}}\n`;
-            text += literalText;
-        }
-
-        // Add objects (deterministic order)
-        const sortedObjects = objects.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
-        for (const quad of sortedObjects) {
-            const objShort = shortenIRI(quad.object.value, context);
-            const predShort = shortenIRI(quad.predicate.value, context);
-            const objectText = `[${objShort}] {+${objShort} ?${predShort}}\n`;
-            text += objectText;
-        }
+        sortQuadsByPredicate(objects).forEach(quad => {
+            text += generateObjectText(quad, context);
+        });
 
         text += '\n';
     }
