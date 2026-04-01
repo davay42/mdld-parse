@@ -1,5 +1,5 @@
 import { parse } from './parse.js';
-import { quadIndexKey } from './shared.js';
+import { quadToKeyForOrigin } from './utils.js';
 import { DEFAULT_CONTEXT } from './constants.js';
 
 /**
@@ -8,7 +8,7 @@ import { DEFAULT_CONTEXT } from './constants.js';
  * @returns {string}
  */
 function quadKey(quad) {
-    return quadIndexKey(quad.subject, quad.predicate, quad.object);
+    return quadToKeyForOrigin(quad);
 }
 
 /**
@@ -41,6 +41,7 @@ export function merge(docs, options = {}) {
     const allDocuments = [];
     const quadIndex = new Map();
     const allStatements = []; // Collect statements from all documents
+    const accumulatedContext = new Map(); // Track all unique prefixes across documents
 
     // Process each document in order
     for (let i = 0; i < docs.length; i++) {
@@ -51,6 +52,16 @@ export function merge(docs, options = {}) {
 
         // Normalize input to ParseResult
         const doc = normalizeInput(input, options, docContext);
+
+        // Accumulate context from this document
+        if (doc.context) {
+            for (const [prefix, namespace] of Object.entries(doc.context)) {
+                // Don't override default context entries unless explicitly provided in options
+                if (!accumulatedContext.has(prefix) && !DEFAULT_CONTEXT[prefix]) {
+                    accumulatedContext.set(prefix, namespace);
+                }
+            }
+        }
 
         // Create document origin
         const documentOrigin = {
@@ -73,14 +84,12 @@ export function merge(docs, options = {}) {
             sessionBuffer.set(key, quad);
 
             // Create quad origin with document index and polarity
-            const existingOrigin = doc.origin.quadIndex.get(quadKey(quad));
-            if (existingOrigin) {
-                quadIndex.set(quadKey(quad), {
-                    ...existingOrigin,
-                    documentIndex: i,
-                    polarity: '+'
-                });
-            }
+            const existingOrigin = doc.origin.quadIndex.get(key);
+            quadIndex.set(key, {
+                ...(existingOrigin || {}),
+                documentIndex: i,
+                polarity: '+'
+            });
         }
 
         // Fold retractions
@@ -96,14 +105,12 @@ export function merge(docs, options = {}) {
             }
 
             // Create quad origin for remove quads
-            const existingOrigin = doc.origin.quadIndex.get(quadKey(quad));
-            if (existingOrigin) {
-                quadIndex.set(quadKey(quad), {
-                    ...existingOrigin,
-                    documentIndex: i,
-                    polarity: '-'
-                });
-            }
+            const existingOrigin = doc.origin.quadIndex.get(key);
+            quadIndex.set(key, {
+                ...(existingOrigin || {}),
+                documentIndex: i,
+                polarity: '-'
+            });
         }
     }
 
@@ -118,7 +125,11 @@ export function merge(docs, options = {}) {
     };
 
     // Build final context (union of all contexts)
-    const finalContext = { ...DEFAULT_CONTEXT, ...options.context };
+    const finalContext = {
+        ...DEFAULT_CONTEXT,
+        ...options.context,
+        ...Object.fromEntries(accumulatedContext)
+    };
 
     // Enforce hard invariant
     const quadKeys = new Set(finalQuads.map(quadKey));

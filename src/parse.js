@@ -26,7 +26,6 @@ import {
     createCarrier,
     createListToken,
     parseSemCached,
-    EMPTY_SEM,
     parseLangAndAttrs,
     findMatchingBracket,
     extractUrlFromBrackets,
@@ -40,7 +39,6 @@ import {
     RDF_PREDICATE,
     RDF_OBJECT,
     createLeanOriginEntry,
-    resolveFragment,
     resolveSubject,
     resolveObject,
     processTokenWithBlockTracking

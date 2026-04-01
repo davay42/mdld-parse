@@ -9,7 +9,7 @@
         content="MD-LD: Human-friendly RDF authoring format. Write semantic data in natural Markdown. Parse to RDF triples. Zero dependencies.">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css" />
 
-    <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/uno.global.js"></script>
+    <script src="uno.global.js"></script>
     <script>
         // Enable dark mode detection for UnoCSS
         if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -51,76 +51,9 @@
             </nav>
         </header>
 
-        <section id="format" class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 mb-4">
-            <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">📖 What is MD-LD?</h3>
-            <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">MD-LD extends Markdown with
-                semantic annotations using <code class="font-mono text-sm">{...}</code> blocks. Write natural language
-                documents while embedding structured RDF data.</p>
 
-            <div class="flex flex-wrap gap-2">
-                <article class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📝 Natural Syntax
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-xs">Write semantic data in familiar Markdown</p>
-                </article>
-                <article class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔗 RDF Output
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-xs">Parse to standard RDF triples</p>
-                </article>
-                <article class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">⚡ Zero
-                        Dependencies</h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-xs">Lightweight parser</p>
-                </article>
-                <article class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔄 Bidirectional
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-xs">Parse & serialize round-trip</p>
-                </article>
-            </div>
-        </section>
 
         <section id="playground" class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 mb-4">
-            <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">🎮 Interactive Playground
-            </h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
-                <button onclick="loadExample('minimal')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🍌 Minimal viable
-                    </h4>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">Smallest example of knowledge authoring</p>
-                </button>
-                <button onclick="loadExample('journal')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📔 Personal
-                        Journal</h4>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">Mood, location, people</p>
-                </button>
-                <button onclick="loadExample('recipe')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🍳 Recipe</h4>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">Ingredients & instructions</p>
-                </button>
-                <button onclick="loadExample('project')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📋 Project</h4>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">Tasks & relationships</p>
-                </button>
-                <button onclick="loadExample('apollo')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🚀 Apollo Mission
-                    </h4>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">Prefix folding & nested lists</p>
-                </button>
-                <button onclick="loadExample('research')"
-                    class="example-hover cursor-pointer transition-all duration-200 hover:border-blue-500 bg-gray-200 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 text-left">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔬 Research Paper
-                    </h4>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">Angle-bracket URLs & datasets</p>
-                </button>
-            </div>
             <div class="flex flex-wrap gap-4 mb-4 items-start">
                 <section class="w-full">
                     <div class="flex justify-between items-center">
@@ -169,6 +102,36 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
 
             </div>
 
+        </section>
+
+        <section id="format" class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 mb-4">
+            <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">📖 What is MD-LD?</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">MD-LD extends Markdown with
+                semantic annotations using <code class="font-mono text-sm">{...}</code> blocks. Write natural language
+                documents while embedding structured RDF data.</p>
+
+            <div class="flex flex-wrap gap-2">
+                <article class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📝 Natural Syntax
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs">Write semantic data in familiar Markdown</p>
+                </article>
+                <article class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔗 RDF Output
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs">Parse to standard RDF triples</p>
+                </article>
+                <article class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">⚡ Zero
+                        Dependencies</h4>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs">Lightweight parser</p>
+                </article>
+                <article class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
+                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔄 Bidirectional
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs">Parse & serialize round-trip</p>
+                </article>
+            </div>
         </section>
 
         <section class="max-w-4xl mx-auto p-4 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4" id="tests">
@@ -393,6 +356,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
 
                 lastParse = { input, result };
                 const { quads, context } = result
+                console.log(quads)
                 delete context['@vocab']
 
                 const writer = new Writer({

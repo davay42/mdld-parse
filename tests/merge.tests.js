@@ -279,5 +279,29 @@ export const mergeTests = [
             assert(result.origin.documents[0].statementsCount === 1, 'Document 1 should have 1 statement');
             assert(result.origin.documents[1].statementsCount === 1, 'Document 2 should have 1 statement');
         }
+    },
+
+    {
+        name: 'Context accumulation across documents',
+        fn: () => {
+            const doc1 = `[ex1] <http://example.org/1/>
+# Person {=ex1:alice}
+[Alice] {ex1:name}`;
+
+            const doc2 = `[ex2] <http://example.org/2/>
+# Person {=ex2:bob}
+[Bob] {ex2:name}`;
+
+            const result = merge([doc1, doc2]);
+
+            // Should have both prefixes in context
+            assert(result.context.ex1 === 'http://example.org/1/',
+                `Should have ex1 prefix, got ${JSON.stringify(result.context)}`);
+            assert(result.context.ex2 === 'http://example.org/2/',
+                `Should have ex2 prefix, got ${JSON.stringify(result.context)}`);
+
+            // Should have both quads
+            assert(result.quads.length === 2, `Should have 2 quads, got ${result.quads.length}`);
+        }
     }
 ];
