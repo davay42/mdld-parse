@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rdf-graph</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#020408}
+rdf-graph{display:block;width:100vw;height:100vh}
+/* scanlines overlay */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 4px);pointer-events:none;z-index:9999}
+</style>
+</head>
+<body>
+<rdf-graph id="g"></rdf-graph>
+
+<script>
+/**
+ * <rdf-graph> — RDF Quad Force Graph Web Component
+ * W3C Custom Elements v1 · Shadow DOM · SVG · No deps
+ * API: el.quads = Array<{subject,predicate,object,termType}>
+ */
+customElements.define('rdf-graph', class extends HTMLElement {
+
+  connectedCallback() {
+    const sh = this.attachShadow({ mode: 'open' });
+    sh.innerHTML = `<style>
+:host{display:block;width:100%;height:100%;overflow:hidden}
+svg{width:100%;height:100%;font-family:'Courier New',monospace}
+.node{cursor:grab}.node:active{cursor:grabbing}
+</style>
+<svg id="v" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- glow for nodes -->
+  <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="3" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <!-- arrowhead for regular links -->
+  <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5"
+          orient="auto" markerUnits="userSpaceOnUse">
+    <path d="M0,1 L7,3.5 L0,6z" fill="#2a4a7a"/>
+  </marker>
+  <!-- arrowhead for type links -->
+  <marker id="tarr" markerWidth="5" markerHeight="5" refX="4" refY="2.5"
+          orient="auto" markerUnits="userSpaceOnUse">
+    <path d="M0,0.5 L5,2.5 L0,4.5z" fill="#102030"/>
+  </marker>
+</defs>
+<!-- CRT grid -->
+<g id="grid" opacity="1"></g>
+<!-- layer: links behind nodes -->
+<g id="ll"></g>
+<!-- layer: nodes on top -->
+<g id="nn"></g>
+<!-- HUD corner text -->
+<text id="hud" x="8" y="14" fill="#1a3a2a" font-size="8" font-family="'Courier New',monospace">rdf-graph v1</text>
+</svg>`;
+
+    this._v  = sh.getElementById('v');
+    this._ll = sh.getElementById('ll');
+    this._nn = sh.getElementById('nn');
+    this._gr = sh.getElementById('grid');
+    this._hud= sh.getElementById('hud');
+
+    this._initDrag();
+
+    new ResizeObserver(() => this._onResize()).observe(this);
+
+    if (this._q) this._build(this._q);
+  }
+
+  /* ── public API ───────────────────────────────────────────── */
+  set quads(q) { this._q = q; if (this._v) this._build(q); }
+
+  /* ── drag ─────────────────────────────────────────────────── */
+  _initDrag() {
+    let drag = null;
+    this._v.addEventListener('pointerdown', e => {
+      const g = e.composedPath().find(el => el.dataset?.i !== undefined);
+      if (!g) return;
+      drag = { i: +g.dataset.i };
+      g.setPointerCapture(e.pointerId);
+    });
+    this._v.addEventListener('pointermove', e => {
+      if (drag === null) return;
+      const n = this._na[drag.i];
+      const r = this._v.getBoundingClientRect();
+      const vb = this._v.viewBox.baseVal;
+      n.x += e.movementX * (vb.width  / r.width);
+      n.y += e.movementY * (vb.height / r.height);
+      n.vx = n.vy = 0;
+      n.pinned = true;
+    });
+    this._v.addEventListener('pointerup', () => {
+      if (drag !== null && this._na[drag.i]) this._na[drag.i].pinned = false;
+      drag = null;
+    });
+  }
+
+  /* ── resize ───────────────────────────────────────────────── */
+  _onResize() {
+    const W = this.clientWidth  || 800;
+    const H = this.clientHeight || 600;
+    this._W = W; this._H = H;
+    this._v.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    this._drawGrid(W, H);
+    if (this._na && !this._built) {
+      // first resize after build → relax center
+      const cx = W/2, cy = H/2;
+      for (const n of this._na) { n.x += cx - W/2; n.y += cy - H/2; }
+    }
+  }
+
+  /* ── grid ─────────────────────────────────────────────────── */
+  _drawGrid(W, H) {
+    const step = 44;
+    let s = '';
+    for (let x = 0; x <= W; x += step)
+      s += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#0b1f30" stroke-width=".5"/>`;
+    for (let y = 0; y <= H; y += step)
+      s += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#0b1f30" stroke-width=".5"/>`;
+    // crosshair at center
+    s += `<circle cx="${W/2|0}" cy="${H/2|0}" r="2" fill="none" stroke="#0f2840" stroke-width=".5"/>`;
+    s += `<line x1="${W/2|0}" y1="${H/2-6|0}" x2="${W/2|0}" y2="${H/2+6|0}" stroke="#0f2840" stroke-width=".5"/>`;
+    s += `<line x1="${W/2-6|0}" y1="${H/2|0}" x2="${W/2+6|0}" y2="${H/2|0}" stroke="#0f2840" stroke-width=".5"/>`;
+    this._gr.innerHTML = s;
+  }
+
+  /* ── utils ────────────────────────────────────────────────── */
+  _hash(s) {
+    // djb2 variant
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = (h * 33 ^ s.charCodeAt(i)) >>> 0;
+    return h;
+  }
+  _shorten(u) {
+    // last segment after # / : for readable labels
+    const m = u.match(/[#\/:]([^#\/:?]+)(?:[?#].*)?$/);
+    const s = (m ? m[1] : u).replace(/[^\w\-\.]/g, '');
+    return s.slice(0, 18) || u.slice(-8);
+  }
+
+  /* ── build graph from quads ───────────────────────────────── */
+  _build(quads) {
+    const TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+    const idx = Object.create(null);  // iri → node index
+    const na  = [];                   // node array
+    const la  = [];                   // link array
+    const types = Object.create(null);// subject iri → type iri
+
+    const getNode = iri => {
+      if (iri in idx) return idx[iri];
+      const i = na.length;
+      idx[iri] = i;
+      na.push({ id: iri, r: 9, vx: 0, vy: 0, pinned: false });
+      return i;
+    };
+
+    // pass 1: collect rdf:type declarations
+    for (const q of quads)
+      if (q.predicate.value === TYPE && q.object.termType === 'NamedNode')
+        types[q.subject.value] = q.object.value;
+
+    // pass 2: build nodes + links
+    for (const q of quads) {
+      const si = getNode(q.subject.value);
+      if (q.object.termType === 'Literal') {
+        // literals → grow subject node
+        na[si].r = Math.min(na[si].r + 1.4, 24);
+      } else if (q.object.termType === 'NamedNode') {
+        const oi = getNode(q.object.value);
+        la.push({
+          s: si,
+          o: oi,
+          p: this._shorten(q.predicate.value),
+          isType: q.predicate.value === TYPE
+        });
+      }
+    }
+
+    // pass 3: colour by type, label
+    for (let i = 0; i < na.length; i++) {
+      const n = na[i];
+      const t = types[n.id];
+      const h = this._hash(t || n.id) % 360;
+      if (t) {
+        n.color  = `hsl(${h},75%,52%)`;
+        n.glow   = `hsl(${h},90%,72%)`;
+        n.stroke = `hsl(${h},60%,70%)`;
+      } else {
+        n.color  = `hsl(${h},18%,32%)`;
+        n.glow   = `hsl(${h},30%,55%)`;
+        n.stroke = `hsl(${h},25%,48%)`;
+      }
+      n.label = this._shorten(n.id);
+    }
+
+    const W = this.clientWidth  || 800;
+    const H = this.clientHeight || 600;
+    this._W = W; this._H = H;
+    this._v.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    this._drawGrid(W, H);
+
+    // scatter initial positions in a spiral
+    const R = Math.min(W, H) * 0.28;
+    na.forEach((n, i) => {
+      const a = (i / na.length) * 2 * Math.PI;
+      const jit = (Math.sin(i * 7919) * 0.5 + 0.5) * 30;
+      n.x = W / 2 + Math.cos(a) * (R + jit);
+      n.y = H / 2 + Math.sin(a) * (R + jit);
+    });
+
+    this._na = na;
+    this._la = la;
+    this._built = false;
+    this._tick  = 0;
+
+    this._mkEls();
+    if (this._raf) cancelAnimationFrame(this._raf);
+    this._sim();
+
+    // update hud
+    this._hud.textContent =
+      `rdf-graph · ${na.length} nodes · ${la.length} links`;
+  }
+
+  /* ── create SVG elements (once) ───────────────────────────── */
+  _mkEls() {
+    const NS = 'http://www.w3.org/2000/svg';
+    this._ll.innerHTML = '';
+    this._nn.innerHTML = '';
+    this._le = [];
+    this._ne = [];
+
+    // links
+    for (let i = 0; i < this._la.length; i++) {
+      const l = this._la[i];
+      const g    = document.createElementNS(NS, 'g');
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('stroke',       l.isType ? '#0e1e2e' : '#1e3e6e');
+      line.setAttribute('stroke-width', l.isType ? '.5' : '1');
+      line.setAttribute('stroke-dasharray', l.isType ? '3 4' : 'none');
+      if (!l.isType)
+        line.setAttribute('marker-end', 'url(#arr)');
+      const txt = document.createElementNS(NS, 'text');
+      txt.setAttribute('fill',             '#1a4a6a');
+      txt.setAttribute('font-size',        '6.5');
+      txt.setAttribute('text-anchor',      'middle');
+      txt.setAttribute('dominant-baseline','middle');
+      txt.setAttribute('pointer-events',   'none');
+      txt.textContent = l.isType ? '' : l.p;
+      g.append(line, txt);
+      this._ll.appendChild(g);
+      this._le.push({ line, txt });
+    }
+
+    // nodes
+    for (let i = 0; i < this._na.length; i++) {
+      const n = this._na[i];
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class',  'node');
+      g.setAttribute('data-i', i);
+      g.setAttribute('filter', 'url(#glow)');
+
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('r',            n.r);
+      c.setAttribute('fill',         n.color);
+      c.setAttribute('stroke',       n.stroke);
+      c.setAttribute('stroke-width', '1');
+
+      // inner cross (demo-scene detail)
+      const lx = document.createElementNS(NS, 'line');
+      lx.setAttribute('x1', -n.r * .4); lx.setAttribute('x2', n.r * .4);
+      lx.setAttribute('y1', '0');        lx.setAttribute('y2', '0');
+      lx.setAttribute('stroke', n.glow); lx.setAttribute('stroke-width', '.5');
+      lx.setAttribute('pointer-events', 'none');
+      const ly = document.createElementNS(NS, 'line');
+      ly.setAttribute('x1', '0'); ly.setAttribute('x2', '0');
+      ly.setAttribute('y1', -n.r * .4); ly.setAttribute('y2', n.r * .4);
+      ly.setAttribute('stroke', n.glow); ly.setAttribute('stroke-width', '.5');
+      ly.setAttribute('pointer-events', 'none');
+
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('fill',             'rgba(190,220,255,.75)');
+      t.setAttribute('font-size',        '6');
+      t.setAttribute('text-anchor',      'middle');
+      t.setAttribute('dominant-baseline','hanging');
+      t.setAttribute('y',                n.r + 2);
+      t.setAttribute('pointer-events',   'none');
+      t.textContent = n.label;
+
+      g.append(c, lx, ly, t);
+      this._nn.appendChild(g);
+      this._ne.push({ g, c });
+    }
+  }
+
+  /* ── force simulation (Euler integration) ─────────────────── */
+  _sim() {
+    const na = this._na, la = this._la;
+    const step = () => {
+      const W  = this._W, H = this._H;
+      const cx = W / 2,   cy = H / 2;
+      const n  = na.length;
+      let energy = 0;
+
+      // ── repulsion (O n²) ──
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const a = na[i], b = na[j];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          const d2 = dx * dx + dy * dy + 1;
+          const d  = Math.sqrt(d2);
+          const f  = Math.min(2200 / d2, 10);
+          const nx = dx / d, ny = dy / d;
+          if (!a.pinned) { a.vx -= f * nx; a.vy -= f * ny; }
+          if (!b.pinned) { b.vx += f * nx; b.vy += f * ny; }
+          // collision resolve
+          const sep = a.r + b.r + 5;
+          if (d < sep) {
+            const push = (sep - d) * .45;
+            if (!a.pinned) { a.x -= nx * push; a.y -= ny * push; }
+            if (!b.pinned) { b.x += nx * push; b.y += ny * push; }
+          }
+        }
+      }
+
+      // ── spring attraction ──
+      for (const l of la) {
+        const a = na[l.s], b = na[l.o];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        const d  = Math.sqrt(dx * dx + dy * dy) || 1;
+        const rest = l.isType ? 95 : 68;
+        const k    = l.isType ? .022 : .042;
+        const f    = (d - rest) * k;
+        const nx = dx / d, ny = dy / d;
+        if (!a.pinned) { a.vx += f * nx; a.vy += f * ny; }
+        if (!b.pinned) { b.vx -= f * nx; b.vy -= f * ny; }
+      }
+
+      // ── center gravity + damping + clamp ──
+      for (const nd of na) {
+        if (nd.pinned) continue;
+        nd.vx += (cx - nd.x) * .005;
+        nd.vy += (cy - nd.y) * .005;
+        nd.vx *= .80; nd.vy *= .80;
+        nd.x  += nd.vx; nd.y += nd.vy;
+        nd.x = Math.max(nd.r + 2, Math.min(W - nd.r - 2, nd.x));
+        nd.y = Math.max(nd.r + 2, Math.min(H - nd.r - 2, nd.y));
+        energy += nd.vx * nd.vx + nd.vy * nd.vy;
+      }
+
+      // ── DOM update ──
+      for (let i = 0; i < n; i++) {
+        const nd = na[i], el = this._ne[i];
+        el.g.setAttribute('transform', `translate(${nd.x | 0} ${nd.y | 0})`);
+      }
+      for (let i = 0; i < la.length; i++) {
+        const l  = la[i], el = this._le[i];
+        const a  = na[l.s], b = na[l.o];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d  = Math.sqrt(dx * dx + dy * dy) || 1;
+        const nx = dx / d, ny = dy / d;
+        const x1 = a.x + nx * (a.r + 1);
+        const y1 = a.y + ny * (a.r + 1);
+        // pull arrow tip back from circle edge
+        const tip = b.r + (l.isType ? 2 : 9);
+        const x2  = b.x - nx * tip;
+        const y2  = b.y - ny * tip;
+        // skip degenerate lines
+        if ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) < 4) continue;
+        el.line.setAttribute('x1', x1 | 0); el.line.setAttribute('y1', y1 | 0);
+        el.line.setAttribute('x2', x2 | 0); el.line.setAttribute('y2', y2 | 0);
+        el.txt.setAttribute('x', ((x1 + x2) / 2) | 0);
+        el.txt.setAttribute('y', ((y1 + y2) / 2) | 0);
+      }
+
+      this._tick++;
+      if (energy > .03 || this._tick < 400)
+        this._raf = requestAnimationFrame(step);
+      else
+        this._built = true;
+    };
+    this._raf = requestAnimationFrame(step);
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   DEMO DATA  — remove / replace with your own quads
+   ═══════════════════════════════════════════════════════════ */
+const RDF    = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+const RDFS   = 'http://www.w3.org/2000/01/rdf-schema#';
+const PROV   = 'http://www.w3.org/ns/prov#';
+const SCHEMA = 'http://schema.org/';
+const ME     = 'tag:me@example.com,2026:';
+
+const nn  = v  => ({ termType: 'NamedNode', value: v });
+const lit = v  => ({ termType: 'Literal',   value: v });
+const q   = (s,p,o) => ({ termType:'Quad', subject:nn(s), predicate:nn(p), object:o });
+
+const quads = [
+  // ── day ──
+  q(ME+'day-2024-07-18', RDF+'type',          nn(PROV+'Activity')),
+  q(ME+'day-2024-07-18', RDFS+'label',        lit('2024-07-18 — A good day')),
+  q(ME+'day-2024-07-18', RDFS+'comment',      lit('Productive and enjoyable.')),
+  q(ME+'day-2024-07-18', PROV+'startedAtTime',lit('2024-07-18T00:00:00Z')),
+  q(ME+'day-2024-07-18', PROV+'endedAtTime',  lit('2024-07-18T23:59:59Z')),
+  q(ME+'day-2024-07-18', PROV+'wasAssociatedWith', nn(ME+'person-alice')),
+
+  // ── people ──
+  q(ME+'person-alice', RDF+'type',      nn(SCHEMA+'Person')),
+  q(ME+'person-alice', SCHEMA+'name',   lit('Alice')),
+  q(ME+'person-alice', SCHEMA+'email',  lit('alice@example.com')),
+  q(ME+'person-alice', SCHEMA+'knows',  nn(ME+'person-bob')),
+  q(ME+'person-alice', SCHEMA+'memberOf', nn(ME+'org-acme')),
+
+  q(ME+'person-bob',   RDF+'type',      nn(SCHEMA+'Person')),
+  q(ME+'person-bob',   SCHEMA+'name',   lit('Bob')),
+  q(ME+'person-bob',   SCHEMA+'knows',  nn(ME+'person-carol')),
+  q(ME+'person-bob',   SCHEMA+'memberOf', nn(ME+'org-acme')),
+
+  q(ME+'person-carol', RDF+'type',      nn(SCHEMA+'Person')),
+  q(ME+'person-carol', SCHEMA+'name',   lit('Carol')),
+  q(ME+'person-carol', SCHEMA+'memberOf', nn(ME+'org-beta')),
+
+  // ── orgs ──
+  q(ME+'org-acme', RDF+'type',       nn(SCHEMA+'Organization')),
+  q(ME+'org-acme', SCHEMA+'name',    lit('ACME Corp')),
+  q(ME+'org-acme', SCHEMA+'subOrganization', nn(ME+'org-beta')),
+
+  q(ME+'org-beta', RDF+'type',       nn(SCHEMA+'Organization')),
+  q(ME+'org-beta', SCHEMA+'name',    lit('Beta Division')),
+
+  // ── activities / tasks ──
+  q(ME+'task-run', RDF+'type',              nn(PROV+'Activity')),
+  q(ME+'task-run', RDFS+'label',            lit('Morning run')),
+  q(ME+'task-run', PROV+'wasInfluencedBy',  nn(ME+'day-2024-07-18')),
+  q(ME+'task-run', PROV+'wasAssociatedWith',nn(ME+'person-alice')),
+
+  q(ME+'task-meet', RDF+'type',              nn(SCHEMA+'Event')),
+  q(ME+'task-meet', RDFS+'label',            lit('Team standup')),
+  q(ME+'task-meet', SCHEMA+'attendee',       nn(ME+'person-alice')),
+  q(ME+'task-meet', SCHEMA+'attendee',       nn(ME+'person-bob')),
+  q(ME+'task-meet', SCHEMA+'attendee',       nn(ME+'person-carol')),
+  q(ME+'task-meet', PROV+'wasInfluencedBy',  nn(ME+'day-2024-07-18')),
+  q(ME+'task-meet', SCHEMA+'isPartOf',       nn(ME+'project-x')),
+
+  q(ME+'task-review', RDF+'type',             nn(PROV+'Activity')),
+  q(ME+'task-review', RDFS+'label',           lit('Code review')),
+  q(ME+'task-review', PROV+'wasAssociatedWith',nn(ME+'person-bob')),
+  q(ME+'task-review', SCHEMA+'isPartOf',      nn(ME+'project-x')),
+
+  // ── project ──
+  q(ME+'project-x', RDF+'type',          nn(SCHEMA+'Project')),
+  q(ME+'project-x', SCHEMA+'name',       lit('Project X')),
+  q(ME+'project-x', SCHEMA+'description',lit('Strategic initiative for Q3.')),
+  q(ME+'project-x', SCHEMA+'member',     nn(ME+'person-alice')),
+  q(ME+'project-x', SCHEMA+'member',     nn(ME+'person-bob')),
+  q(ME+'project-x', PROV+'wasAttributedTo', nn(ME+'org-acme')),
+
+  // ── dataset provenance ──
+  q(ME+'dataset-01', RDF+'type',           nn(PROV+'Entity')),
+  q(ME+'dataset-01', RDFS+'label',         lit('Sales dataset')),
+  q(ME+'dataset-01', PROV+'wasGeneratedBy',nn(ME+'task-review')),
+  q(ME+'dataset-01', PROV+'wasAttributedTo',nn(ME+'person-bob')),
+];
+
+document.getElementById('g').quads = quads;
+</script>
+</body>
+</html>
