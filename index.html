@@ -7,27 +7,1306 @@
     <title>MD-LD - Markdown Linked Data Parser</title>
     <meta name="description"
         content="MD-LD: Human-friendly RDF authoring format. Write semantic data in natural Markdown. Parse to RDF triples. Zero dependencies.">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css" />
-
-    <script src="uno.global.js"></script>
-    <script>
-        // Enable dark mode detection for UnoCSS
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark')
-        }
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (e.matches) {
-                document.documentElement.classList.add('dark')
-            } else {
-                document.documentElement.classList.remove('dark')
-            }
-        })
-    </script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism.min.css">
-
-    <!-- RDF Graph Viewer Styles -->
     <style>
+        /* CSS Reset - Base styles */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            line-height: 1.15;
+            -webkit-text-size-adjust: 100%;
+            tab-size: 4;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        }
+
+        /* Dark mode variables and base styles */
+        :root {
+            --color-primary: #f97316;
+            --color-primary-dark: #fb923c;
+            --bg-primary: #ffffff;
+            --bg-primary-dark: #111827;
+            --bg-secondary: #f9fafb;
+            --bg-secondary-dark: #1f2937;
+            --bg-tertiary: #f3f4f6;
+            --bg-tertiary-dark: #374151;
+            --text-primary: #111827;
+            --text-primary-dark: #f9fafb;
+            --text-secondary: #6b7280;
+            --text-secondary-dark: #9ca3af;
+            --text-tertiary: #9ca3af;
+            --text-tertiary-dark: #6b7280;
+            --border-primary: #d1d5db;
+            --border-primary-dark: #4b5563;
+            --border-secondary: #e5e7eb;
+            --border-secondary-dark: #6b7280;
+            --border-tertiary: #9ca3af;
+            --border-tertiary-dark: #9ca3af;
+            --success: #16a34a;
+            --success-dark: #22c55e;
+            --error: #dc2626;
+            --error-dark: #ef4444;
+            --warning: #ca8a04;
+            --warning-dark: #f59e0b;
+            --info: #2563eb;
+            --info-dark: #3b82f6;
+        }
+
+        /* Dark mode support - only apply when .dark class is present */
+        .dark {
+            --bg-primary: var(--bg-primary-dark);
+            --bg-secondary: var(--bg-secondary-dark);
+            --bg-tertiary: var(--bg-tertiary-dark);
+            --text-primary: var(--text-primary-dark);
+            --text-secondary: var(--text-secondary-dark);
+            --text-tertiary: var(--text-tertiary-dark);
+            --border-primary: var(--border-primary-dark);
+            --border-secondary: var(--border-secondary-dark);
+            --border-tertiary: var(--border-tertiary-dark);
+        }
+
+        /* Semantic Component Classes */
+        .main-content {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-secondary);
+        }
+
+        .logo {
+            font-size: 6rem;
+            font-weight: 700;
+            margin: 2rem 0;
+        }
+
+        .title {
+            font-size: 3.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, var(--color-primary), var(--color-primary-dark));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .tagline {
+            font-size: 1.25rem;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+
+        .nav {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .nav-link {
+            color: var(--color-primary);
+            text-decoration: none;
+            padding: 0.25rem 0.75rem;
+            border: 1px solid var(--border-primary);
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: all 200ms;
+        }
+
+        .nav-link:hover {
+            background-color: var(--bg-tertiary);
+            border-color: var(--color-primary);
+        }
+
+        .section {
+            background-color: var(--bg-tertiary);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .feature-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .feature-card {
+            background-color: var(--bg-secondary);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            flex: 1;
+        }
+
+        .feature-title {
+            font-weight: 500;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .feature-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .playground {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .button {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 200ms;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+        }
+
+        .button.primary {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .button.primary:hover {
+            background-color: var(--success-dark);
+        }
+
+        .button.secondary {
+            background-color: var(--info);
+            color: white;
+        }
+
+        .button.secondary:hover {
+            background-color: var(--info-dark);
+        }
+
+        .textarea {
+            width: 100%;
+            min-height: 40svh;
+            padding: 0.75rem;
+            border: 1px solid var(--border-primary);
+            border-radius: 0.25rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 0.875rem;
+            resize: vertical;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .details {
+            background-color: var(--bg-secondary);
+            border-radius: 0.5rem;
+        }
+
+        .details summary {
+            cursor: pointer;
+            user-select: none;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 1rem;
+            background-color: var(--bg-secondary);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+
+        .details summary:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        .details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .details summary::before {
+            content: '▶';
+            display: inline-block;
+            margin-right: 0.5rem;
+            transition: transform 200ms;
+        }
+
+        .details[open] summary::before {
+            transform: rotate(90deg);
+        }
+
+        .output {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            height: 24rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            overflow: auto;
+            color: var(--text-primary);
+        }
+
+        .output.small {
+            height: auto;
+            max-height: 9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stats {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .test-item {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            margin-bottom: 0.25rem;
+            transition: all 200ms;
+        }
+
+        .test-item.passed {
+            border-left: 4px solid var(--success);
+        }
+
+        .test-item.failed {
+            border-left: 4px solid var(--error);
+        }
+
+        .dark .test-item.passed {
+            border-left-color: var(--success-dark);
+        }
+
+        .dark .test-item.failed {
+            border-left-color: var(--error-dark);
+        }
+
+        .spec-content {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 0.25rem;
+            padding: 1rem;
+            max-height: 24rem;
+            overflow-y: scroll;
+            font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.625;
+            color: var(--text-primary);
+        }
+
+        .test-list {
+            max-height: 20rem;
+            overflow-y: auto;
+        }
+
+        .test-progress {
+            height: 0.25rem;
+            background-color: var(--border-primary);
+            border-radius: 0.125rem;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .test-progress-bar {
+            height: 100%;
+            background-color: var(--success);
+            transition: all 300ms;
+        }
+
+        /* Utility classes */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .max-w-4xl {
+            max-width: 896px;
+        }
+
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .mb-8 {
+            margin-bottom: 2rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-1 {
+            margin-bottom: 0.25rem;
+        }
+
+        .pb-4 {
+            padding-bottom: 1rem;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .font-medium {
+            font-weight: 500;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+        .text-xs {
+            font-size: 0.75rem;
+            line-height: 1rem;
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+        }
+
+        .text-2xl {
+            font-size: 1.5rem;
+            line-height: 2rem;
+        }
+
+        .text-6xl {
+            font-size: 3.75rem;
+            line-height: 1;
+        }
+
+        .text-8xl {
+            font-size: 6rem;
+            line-height: 1;
+        }
+
+        .my-8 {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .bg-gradient-to-r {
+            background-image: linear-gradient(to right, var(--tw-gradient-stops));
+        }
+
+        .from-orange-500 {
+            --tw-gradient-from: #f97316;
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(251 146 60 / 0));
+        }
+
+        .to-orange-600 {
+            --tw-gradient-to: #ea580c;
+        }
+
+        .bg-clip-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+        }
+
+        .text-transparent {
+            color: transparent;
+        }
+
+        .border-b {
+            border-bottom-width: 1px;
+        }
+
+        .border-gray-300 {
+            border-color: #d1d5db;
+        }
+
+        .dark .border-gray-300 {
+            border-color: #4b5563;
+        }
+
+        .dark\:border-gray-600 {
+            border-color: #4b5563;
+        }
+
+        .dark\:border-gray-500 {
+            border-color: #6b7280;
+        }
+
+        .dark\:border-gray-400 {
+            border-color: #9ca3af;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+
+        .flex-1 {
+            flex: 1 1 0%;
+        }
+
+        .flex-auto {
+            flex: 1 1 auto;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .gap-1 {
+            gap: 0.25rem;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
+
+        .rounded {
+            border-radius: 0.25rem;
+        }
+
+        .rounded-full {
+            border-radius: 9999px;
+        }
+
+        .bg-gray-200 {
+            background-color: #e5e7eb;
+        }
+
+        .bg-gray-50 {
+            background-color: #f9fafb;
+        }
+
+        .bg-gray-100 {
+            background-color: #f3f4f6;
+        }
+
+        .bg-yellow-50 {
+            background-color: #f9fafb;
+        }
+
+        .bg-amber-100 {
+            background-color: #f3f4f6;
+        }
+
+        .dark .bg-gray-200 {
+            background-color: #111827;
+        }
+
+        .dark .bg-gray-50 {
+            background-color: #111827;
+        }
+
+        .dark .bg-gray-100 {
+            background-color: #374151;
+        }
+
+        .dark .bg-yellow-50 {
+            background-color: #111827;
+        }
+
+        .dark .bg-amber-100 {
+            background-color: #374151;
+        }
+
+        .bg-gray-600 {
+            background-color: #4b5563;
+        }
+
+        .bg-gray-700 {
+            background-color: #374151;
+        }
+
+        .bg-green-600 {
+            background-color: #16a34a;
+        }
+
+        .bg-blue-600 {
+            background-color: #2563eb;
+        }
+
+        .hover\:bg-gray-200:hover {
+            background-color: #e5e7eb;
+        }
+
+        .hover\:bg-gray-700:hover {
+            background-color: #374151;
+        }
+
+        .hover\:bg-green-700:hover {
+            background-color: #15803d;
+        }
+
+        .hover\:bg-blue-700:hover {
+            background-color: #1d4ed8;
+        }
+
+        .hover\:bg-gray-300:hover {
+            background-color: #d1d5db;
+        }
+
+        .hover\:bg-gray-800:hover {
+            background-color: #1f2937;
+        }
+
+        .hover\:border-orange-500:hover {
+            border-color: #f97316;
+        }
+
+        .text-gray-900 {
+            color: #111827;
+        }
+
+        .text-gray-800 {
+            color: #1f2937;
+        }
+
+        .text-gray-700 {
+            color: #374151;
+        }
+
+        .text-gray-600 {
+            color: #4b5563;
+        }
+
+        .text-orange-600 {
+            color: #ea580c;
+        }
+
+        .dark .text-gray-900 {
+            color: #f9fafb;
+        }
+
+        .dark .text-gray-800 {
+            color: #f3f4f6;
+        }
+
+        .dark .text-gray-700 {
+            color: #d1d5db;
+        }
+
+        .dark .text-gray-600 {
+            color: #9ca3af;
+        }
+
+        .dark .text-orange-600 {
+            color: #fb923c;
+        }
+
+        .dark\:text-white {
+            color: #ffffff;
+        }
+
+        .dark\:text-gray-100 {
+            color: #f3f4f6;
+        }
+
+        .dark\:text-gray-200 {
+            color: #e5e7eb;
+        }
+
+        .dark\:text-gray-300 {
+            color: #d1d5db;
+        }
+
+        .dark\:text-gray-400 {
+            color: #9ca3af;
+        }
+
+        .dark\:text-orange-400 {
+            color: #fb923c;
+        }
+
+        .dark\:text-green-400 {
+            color: #4ade80;
+        }
+
+        .dark\:text-red-400 {
+            color: #f87171;
+        }
+
+        .dark\:text-blue-400 {
+            color: #60a5fa;
+        }
+
+        .dark\:bg-gray-800 {
+            background-color: #1f2937;
+        }
+
+        .dark\:bg-gray-900 {
+            background-color: #111827;
+        }
+
+        .dark\:bg-gray-700 {
+            background-color: #374151;
+        }
+
+        .dark\:bg-blue-900 {
+            background-color: #1e3a8a;
+        }
+
+        .dark\:bg-green-900 {
+            background-color: #14532d;
+        }
+
+        .dark\:bg-amber-900 {
+            background-color: #1f2937;
+        }
+
+        .dark\:bg-amber-800 {
+            background-color: #374151;
+        }
+
+        .dark\:border-l-green-400 {
+            border-left-color: #4ade80;
+        }
+
+        .dark\:border-l-red-400 {
+            border-left-color: #f87171;
+        }
+
+        .opacity-50 {
+            opacity: 0.5;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .h-96 {
+            height: 24rem;
+        }
+
+        .h-1 {
+            height: 0.25rem;
+        }
+
+        .min-h-40svh {
+            min-height: 40svh;
+        }
+
+        .min-w-0 {
+            min-width: 0px;
+        }
+
+        .max-h-96 {
+            max-height: 24rem;
+        }
+
+        .max-h-80 {
+            max-height: 20rem;
+        }
+
+        .max-h-72 {
+            max-height: 18rem;
+        }
+
+        .max-h-36 {
+            max-height: 9rem;
+        }
+
+        .max-w-full {
+            max-width: 100%;
+        }
+
+        .max-w-48 {
+            max-width: 12rem;
+        }
+
+        .border {
+            border-width: 1px;
+        }
+
+        .border-gray-600 {
+            border-color: #4b5563;
+        }
+
+        .border-gray-500 {
+            border-color: #6b7280;
+        }
+
+        .border-blue-700 {
+            border-color: #1d4ed8;
+        }
+
+        .border-blue-300 {
+            border-color: #93c5fd;
+        }
+
+        .border-green-700 {
+            border-color: #15803d;
+        }
+
+        .border-green-300 {
+            border-color: #86efac;
+        }
+
+        .border-amber-700 {
+            border-color: #6b7280;
+        }
+
+        .border-amber-300 {
+            border-color: #d1d5db;
+        }
+
+        .border-l-4 {
+            border-left-width: 4px;
+        }
+
+        .border-l-green-600 {
+            border-left-color: #16a34a;
+        }
+
+        .border-l-red-600 {
+            border-left-color: #dc2626;
+        }
+
+        .border-dashed {
+            border-style: dashed;
+        }
+
+        .border-t {
+            border-top-width: 1px;
+        }
+
+        .rounded-sm {
+            border-radius: 0.125rem;
+        }
+
+        .rounded-t {
+            border-top-left-radius: 0.25rem;
+            border-top-right-radius: 0.25rem;
+        }
+
+        .rounded-b {
+            border-bottom-left-radius: 0.25rem;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .py-1 {
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .py-0\.5 {
+            padding-top: 0.125rem;
+            padding-bottom: 0.125rem;
+        }
+
+        .px-1 {
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
+
+        .px-2 {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .px-3 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .p-2 {
+            padding: 0.5rem;
+        }
+
+        .p-3 {
+            padding: 0.75rem;
+        }
+
+        .pt-2 {
+            padding-top: 0.5rem;
+        }
+
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+
+        .ml-2 {
+            margin-left: 0.5rem;
+        }
+
+        .m-2 {
+            margin: 0.5rem;
+        }
+
+        .mb-1 {
+            margin-bottom: 0.25rem;
+        }
+
+        .overflow-auto {
+            overflow: auto;
+        }
+
+        .overflow-y-auto {
+            overflow-y: auto;
+        }
+
+        .overflow-y-scroll {
+            overflow-y: scroll;
+        }
+
+        .overflow-hidden {
+            overflow: hidden;
+        }
+
+        .whitespace-pre-wrap {
+            white-space: pre-wrap;
+        }
+
+        .whitespace-nowrap {
+            white-space: nowrap;
+        }
+
+        .text-ellipsis {
+            text-overflow: ellipsis;
+        }
+
+        .font-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        .font-sans {
+            font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        }
+
+        .leading-relaxed {
+            line-height: 1.625;
+        }
+
+        .select-text {
+            user-select: text;
+        }
+
+        .resize-vertical {
+            resize: vertical;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .cursor-default {
+            cursor: default;
+        }
+
+        .cursor-grab {
+            cursor: grab;
+        }
+
+        .cursor-grabbing {
+            cursor: grabbing;
+        }
+
+        .no-underline {
+            text-decoration: none;
+        }
+
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+
+        .transition {
+            transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+
+        .duration-200 {
+            transition-duration: 200ms;
+        }
+
+        .duration-300 {
+            transition-duration: 300ms;
+        }
+
+        .duration-500 {
+            transition-duration: 500ms;
+        }
+
+        .hover\:-translate-y-px:hover {
+            transform: translateY(-1px);
+        }
+
+        .hover\:shadow-lg:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+
+        .shadow-xs {
+            box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .grid {
+            display: grid;
+        }
+
+        .grid-cols-4 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .lg\:col-span-1 {
+            grid-column: span 1 / span 1;
+        }
+
+        .inline-flex {
+            display: inline-flex;
+        }
+
+        .fixed {
+            position: fixed;
+        }
+
+        .top-4 {
+            top: 1rem;
+        }
+
+        .right-4 {
+            right: 1rem;
+        }
+
+        .z-50 {
+            z-index: 50;
+        }
+
+        .bg-blue-600 {
+            background-color: #2563eb;
+        }
+
+        .bg-red-600 {
+            background-color: #dc2626;
+        }
+
+        .bg-green-600 {
+            background-color: #16a34a;
+        }
+
+        .text-white {
+            color: #ffffff;
+        }
+
+        .text-red-600 {
+            color: #dc2626;
+        }
+
+        .text-green-600 {
+            color: #16a34a;
+        }
+
+        .text-blue-600 {
+            color: #2563eb;
+        }
+
+        .text-base {
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+
+        .border-none {
+            border-style: none;
+        }
+
+        .border-l {
+            border-left-width: 1px;
+        }
+
+        .border-t {
+            border-top-width: 1px;
+        }
+
+        .block {
+            display: block;
+        }
+
+        .relative {
+            position: relative;
+        }
+
+        .absolute {
+            position: absolute;
+        }
+
+        .top-8 {
+            top: 2rem;
+        }
+
+        .right-8 {
+            right: 2rem;
+        }
+
+        .text-gray-500 {
+            color: #6b7280;
+        }
+
+        .dark .text-gray-500 {
+            color: #6b7280;
+        }
+
+        .py-0\.5 {
+            padding-top: 0.125rem;
+            padding-bottom: 0.125rem;
+        }
+
+        .bg-gray-300 {
+            background-color: #d1d5db;
+        }
+
+        .bg-blue-100 {
+            background-color: #dbeafe;
+        }
+
+        .bg-green-100 {
+            background-color: #dcfce7;
+        }
+
+        .bg-amber-100 {
+            background-color: #f3f4f6;
+        }
+
+        .dark .bg-gray-300 {
+            background-color: #4b5563;
+        }
+
+        .dark .bg-blue-100 {
+            background-color: #1e3a8a;
+        }
+
+        .dark .bg-green-100 {
+            background-color: #14532d;
+        }
+
+        .dark .bg-amber-100 {
+            background-color: #374151;
+        }
+
+        .text-blue-900 {
+            color: #1e3a8a;
+        }
+
+        .text-green-900 {
+            color: #14532d;
+        }
+
+        .text-amber-900 {
+            color: #111827;
+        }
+
+        .dark .text-blue-900 {
+            color: #dbeafe;
+        }
+
+        .dark .text-green-900 {
+            color: #dcfce7;
+        }
+
+        .dark .text-amber-900 {
+            color: #fef3c7;
+        }
+
+        .text-gray-700 {
+            color: #374151;
+        }
+
+        .dark .text-gray-700 {
+            color: #d1d5db;
+        }
+
+        /* Component-specific styles */
+        .link-hover {
+            color: #ea580c;
+            text-decoration: none;
+            padding: 0.25rem 0.75rem;
+            border: 1px solid #4b5563;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: all 200ms;
+        }
+
+        .dark .link-hover {
+            color: #fb923c;
+            border-color: #9ca3af;
+        }
+
+        .link-hover:hover {
+            background-color: #e5e7eb;
+            border-color: #f97316;
+        }
+
+        .dark .link-hover:hover {
+            background-color: #374151;
+            border-color: #f97316;
+        }
+
+        .btn-hover {
+            background-color: #4b5563;
+            color: #ffffff;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 200ms;
+        }
+
+        .btn-hover:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-hover.bg-green-600:hover {
+            background-color: #15803d;
+        }
+
+        .btn-hover.bg-gray-600:hover {
+            background-color: #374151;
+        }
+
+        .btn-hover.bg-blue-600:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn-hover.bg-green-600:hover {
+            background-color: #15803d;
+        }
+
+        .btn-hover.bg-green-600:hover {
+            background-color: #15803d;
+        }
+
+        details summary {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details summary::before {
+            content: '▶';
+            display: inline-block;
+            margin-right: 0.5rem;
+            transition: transform 200ms;
+        }
+
+        details[open] summary::before {
+            transform: rotate(90deg);
+        }
+
+        /* RDF Graph Viewer Styles */
         rdf-graph {
             display: block;
             width: 100%;
@@ -95,68 +1374,222 @@
             border-color: var(--color-border-tertiary, #4b5563);
             background: var(--color-background-secondary, #374151)
         }
+
+        /* Custom scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-secondary);
+        }
+
+        /* Focus styles */
+        :focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        /* Selection styles */
+        ::selection {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .dark ::selection {
+            background-color: var(--color-primary-dark);
+            color: white;
+        }
+
+        /* PrismJS syntax highlighting styles */
+        .token.comment,
+        .token.prolog,
+        .token.doctype,
+        .token.cdata {
+            color: #6a737d;
+        }
+
+        .token.punctuation {
+            color: #586069;
+        }
+
+        .token.property,
+        .token.tag,
+        .token.boolean,
+        .token.number,
+        .token.constant,
+        .token.symbol,
+        .token.deleted {
+            color: #005cc5;
+        }
+
+        .token.selector,
+        .token.attr-name,
+        .token.string,
+        .token.char,
+        .token.builtin,
+        .token.inserted {
+            color: #032f62;
+        }
+
+        .token.operator,
+        .token.entity,
+        .token.url,
+        .language-css .token.string,
+        .style .token.string {
+            color: #d73a49;
+        }
+
+        .token.atrule,
+        .token.attr-value,
+        .token.keyword {
+            color: #6f42c1;
+        }
+
+        .token.function,
+        .token.class-name {
+            color: #6f42c1;
+        }
+
+        .token.regex,
+        .token.important,
+        .token.variable {
+            color: #e36209;
+        }
+
+        .dark .token.comment,
+        .dark .token.prolog,
+        .dark .token.doctype,
+        .dark .token.cdata {
+            color: #6a737d;
+        }
+
+        .dark .token.punctuation {
+            color: #e1e4e8;
+        }
+
+        .dark .token.property,
+        .dark .token.tag,
+        .dark .token.boolean,
+        .dark .token.number,
+        .dark .token.constant,
+        .dark .token.symbol,
+        .dark .token.deleted {
+            color: #79c0ff;
+        }
+
+        .dark .token.selector,
+        .dark .token.attr-name,
+        .dark .token.string,
+        .dark .token.char,
+        .dark .token.builtin,
+        .dark .token.inserted {
+            color: #a5d6ff;
+        }
+
+        .dark .token.operator,
+        .dark .token.entity,
+        .dark .token.url,
+        .dark .language-css .token.string,
+        .dark .style .token.string {
+            color: #ff7b72;
+        }
+
+        .dark .token.atrule,
+        .dark .token.attr-value,
+        .dark .token.keyword {
+            color: #ff7b72;
+        }
+
+        .dark .token.function,
+        .dark .token.class-name {
+            color: #d2a8ff;
+        }
+
+        .dark .token.regex,
+        .dark .token.important,
+        .dark .token.variable {
+            color: #ffa657;
+        }
     </style>
+
+    <script>
+        // Enable dark mode detection - check system preference first
+        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (e.matches) {
+                document.documentElement.classList.add('dark')
+            } else {
+                document.documentElement.classList.remove('dark')
+            }
+        })
+    </script>
 </head>
 
-<body class="dark:bg-gray-900 dark:text-white bg-gray-50 text-gray-900">
+<body class="main-content">
     <main class="container max-w-4xl mx-auto p-4">
-        <header class="text-center mb-8 pb-4 border-b border-gray-300 dark:border-gray-600">
-            <div class="text-8xl font-bold my-8">
+        <header class="header">
+            <div class="logo">
                 <span class="opacity-50">{</span><span class="text-orange-600 dark:text-orange-400">=+ .?!</span><span
                     class="opacity-50">}</span>
             </div>
-            <h1
-                class="text-6xl font-bold mb-2 bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
-                MD-LD</h1>
-            <h2 class="text-2xl font-medium mb-2 text-gray-700 dark:text-gray-300">Markdown
-                Linked Data</h2>
-            <p class="text-xl text-orange-600 dark:text-orange-400 mb-4">Human-friendly knowledge
-                graph authoring</p>
-            <nav class="flex gap-2 justify-center flex-wrap mb-4">
-                <a href="https://github.com/davay42/mdld-parse" target="blank"
-                    class="link-hover text-orange-600 dark:text-orange-400 no-underline py-1 px-3 border border-gray-600 dark:border-gray-400 rounded text-sm transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:border-orange-500">📦
-                    GitHub</a>
-                <a href="https://www.npmjs.com/package/mdld-parse" target="blank"
-                    class="link-hover text-orange-600 dark:text-orange-400 no-underline py-1 px-3 border border-gray-600 dark:border-gray-400 rounded text-sm transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:border-orange-500">📦
-                    npm</a>
+            <h1 class="title">MD-LD</h1>
+            <h2 class="subtitle">Markdown Linked Data</h2>
+            <p class="tagline">Human-friendly knowledge graph authoring</p>
+            <nav class="nav">
+                <a href="https://github.com/davay42/mdld-parse" target="blank" class="nav-link">📦 GitHub</a>
+                <a href="https://www.npmjs.com/package/mdld-parse" target="blank" class="nav-link">📦 npm</a>
             </nav>
         </header>
 
-        <section id="format" class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 mb-4">
-            <h3 class="mb-2 text-gray-800 dark:text-gray-200 text-base font-medium">📖 What is MD-LD?</h3>
+        <section id="format" class="section">
+            <h3 class="section-title">📖 What is MD-LD?</h3>
             <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">MD-LD extends Markdown with
                 semantic annotations using <code class="font-mono text-sm">{...}</code> blocks. Write natural language
                 documents while embedding structured RDF data.</p>
 
-            <div class="flex flex-wrap gap-2">
-                <article class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">📝 Natural Syntax
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-xs">Write semantic data in familiar Markdown</p>
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <h4 class="feature-title">📝 Natural Syntax</h4>
+                    <p class="feature-desc">Write semantic data in familiar Markdown</p>
                 </article>
-                <article class="bg-yellow-50 dark:bg-gray-700 rounded-lg p-2 flex-1">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔗 RDF Output
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-xs">Parse to standard RDF triples</p>
+                <article class="feature-card">
+                    <h4 class="feature-title">🔗 RDF Output</h4>
+                    <p class="feature-desc">Parse to standard RDF triples</p>
                 </article>
-                <article class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">⚡ Zero
-                        Dependencies</h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-xs">Lightweight parser</p>
+                <article class="feature-card">
+                    <h4 class="feature-title">⚡ Zero Dependencies</h4>
+                    <p class="feature-desc">Lightweight parser</p>
                 </article>
-                <article class="bg-amber-100 dark:bg-gray-700 rounded-lg p-2 flex-1">
-                    <h4 class="mb-1 text-gray-800 dark:text-gray-200 text-sm font-medium">🔄 Bidirectional
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-xs">Parse & serialize round-trip</p>
+                <article class="feature-card">
+                    <h4 class="feature-title">🔄 Bidirectional</h4>
+                    <p class="feature-desc">Parse & serialize round-trip</p>
                 </article>
             </div>
         </section>
 
 
-        <section id="playground" class="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 mb-4">
+        <section id="playground" class="section">
             <!-- MD-LD Input Section -->
             <div class="mb-4">
-                <div class="flex justify-between items-center mb-2">
+                <div class="controls">
                     <h3 class="font-bold text-xl">MD-LD Playground</h3>
                     <div class="flex gap-2 items-center">
                         <select id="example-selector" onchange="loadExample(this.value)"
@@ -169,16 +1602,12 @@
                             <option value="apollo">Space Mission</option>
                             <option value="research">Research</option>
                         </select>
-                        <button onclick="clearPlayground()"
-                            class="btn-hover bg-gray-600 hover:bg-gray-700 text-white border-none py-1 px-2 rounded cursor-pointer text-xs transition-all duration-200 hover:-translate-y-px">
+                        <button onclick="clearPlayground()" class="button">
                             🗑️ Clear
                         </button>
-
                     </div>
                 </div>
-                <textarea id="input"
-                    class="language-markdown w-full min-h-40svh p-3 border border-gray-600 dark:border-gray-500 rounded font-mono text-sm resize-vertical bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    placeholder="Write your MD-LD here...
+                <textarea id="input" class="textarea" placeholder="Write your MD-LD here...
 
 Examples showcase real-world scenarios:
 - Recipe: Simple lists with ingredients & equipment
@@ -194,18 +1623,16 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
             </div>
 
             <!-- Preview Section with Graph and Quads -->
-            <div class="flex flex-col gap-4">
+            <div class="playground">
 
-                <details class="bg-amber-100 dark-bg-amber-800" open>
-                    <summary
-                        class="text-gray-800 dark:text-gray-200 text-base font-bold p-4 bg-gray-100 dark:bg-gray-800 cursor-pointer shadow-sm hover-shadow-lg">
+                <details class="details" open>
+                    <summary class="font-bold p-4  cursor-pointer shadow-sm hover-shadow-lg">
                         Interactive Graph
                     </summary>
                     <!-- Interactive Graph (Primary) -->
                     <div class="flex-auto w-full p-2">
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="text-gray-800 dark:text-gray-200 text-base font-medium"></h3>
-
                         </div>
                         <div class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded"
                             style="height: 400px;">
@@ -215,40 +1642,29 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                 </details>
 
                 <!-- Quads Display -->
-                <details class="bg-amber-100 dark-bg-amber-800">
-                    <summary
-                        class="text-gray-800 dark:text-gray-200 text-base font-bold p-4 bg-gray-100 dark:bg-gray-800 cursor-pointer shadow-sm hover-shadow-lg">
+                <details class="details">
+                    <summary class="font-bold p-4 cursor-pointer shadow-sm hover-shadow-lg">
                         <span> Quads</span>
-                        <span id="parse-stats" class="text-sm text-gray-600 dark:text-gray-400"></span>
+                        <span id="parse-stats" class="stats"></span>
                     </summary>
                     <div class="lg:col-span-1 m-2">
-                        <div id="output"
-                            class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded p-3 h-96 font-mono text-sm whitespace-pre-wrap overflow-auto text-gray-900 dark:text-gray-100">
-                            Quads will appear here...</div>
+                        <div id="output" class="output">Quads will appear here...</div>
                     </div>
                 </details>
 
-                <details class="bg-amber-100 dark-bg-amber-800">
-                    <summary
-                        class="text-gray-800 dark:text-gray-200 text-base font-bold p-4 bg-gray-100 dark:bg-gray-800 cursor-pointer shadow-sm hover-shadow-lg w-full">
+                <details class="details">
+                    <summary class="font-bold p-4 cursor-pointer shadow-sm hover-shadow-lg w-full">
                         <span>Turtle Output</span>
-
-                        <button id="copy-ttl-btn"
-                            class="btn-hover bg-blue-600 hover:bg-blue-700 text-white border-none py-1 px-2 rounded cursor-pointer text-xs transition-all duration-200 hover:-translate-y-px"
-                            title="Copy TTL to clipboard">
+                        <button id="copy-ttl-btn" class="button secondary" title="Copy TTL to clipboard">
                             📋 Copy TTL
                         </button>
-                        <button id="download-ttl-btn"
-                            class="btn-hover bg-green-600 hover:bg-green-700 text-white border-none py-1 px-2 rounded cursor-pointer text-xs transition-all duration-200 hover:-translate-y-px"
-                            title="Download TTL file">
+                        <button id="download-ttl-btn" class="button primary" title="Download TTL file">
                             💾 Download
                         </button>
                     </summary>
                     <!-- TTL Output Section (Collapsible) -->
                     <div class="m-2 flex flex-col">
-                        <div class="flex gap-2">
-
-                        </div>
+                        <div class="flex gap-2"></div>
                         <pre
                             class="w-full min-h-32 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded">
                     <code id="ttl" class="language-turtle text-xs block">
@@ -264,74 +1680,52 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
 
 
 
-        <details
-            class="max-w-4xl mx-auto p-4 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4 shadow-xs hover-shadow-lg transition"
-            id="spec">
-            <summary class="font-bold text-xl cursor-pointer ">
+        <details class="details max-w-4xl mx-auto" id="spec">
+            <summary class="font-bold text-xl cursor-pointer">
                 <span>MD-LD Specification</span>
-                <span id="spec-status" class="text-sm text-gray-600 dark:text-gray-400"></span>
+                <span id="spec-status" class="stats"></span>
             </summary>
 
-            <div class="flex gap-2 mb-2 items-center">
-
-            </div>
-            <article id="spec-content"
-                class="max-h-96 overflow-y-scroll bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded p-4 font-sans leading-relaxed text-gray-900 dark:text-gray-100">
-                <p class="text-center text-gray-600 dark:text-gray-400 p-8">
-                    Loading specification...</p>
+            <div class="flex gap-2 mb-2 items-center"></div>
+            <article id="spec-content" class="max-h-96 overflow-y-scroll  rounded p-4 ">
+                <p class="text-center text-gray-600 dark:text-gray-400 p-8">Loading specification...</p>
             </article>
         </details>
 
-        <details
-            class="flex flex-col gap-2 mx-auto bg-gray-200 dark-bg-gray-800 rounded-lg mb-4 shadow-xs hover-shadow-lg transition"
-            id="tests">
-
+        <details class="details mx-auto" id="tests">
             <summary class="p-4 text-xl font-bold cursor-pointer">
                 <span>Test Suite</span>
-                <span id="test-status" class="text-sm text-gray-600 dark-text-gray-400"></span>
+                <span id="test-status" class="stats"></span>
             </summary>
             <div class="p-2">
                 <div class="flex gap-2 m-2 items-center">
-                    <button onclick="runAllTests()"
-                        class="btn-hover bg-green-600 hover:bg-green-700 text-white border-none py-2 px-4 rounded cursor-pointer font-medium text-sm transition-all duration-200 hover:-translate-y-px">▶
-                        Run Tests</button>
-                    <button onclick="clearTests()"
-                        class="btn-hover bg-gray-600 hover:bg-gray-700 text-white border-none py-2 px-4 rounded cursor-pointer font-medium text-sm transition-all duration-200 hover:-translate-y-px">🗑️
-                        Clear</button>
-
+                    <button onclick="runAllTests()" class="button primary">▶ Run Tests</button>
+                    <button onclick="clearTests()" class="button">🗑️ Clear</button>
                 </div>
                 <div id="test-progress" class="h-1 bg-gray-600 dark:bg-gray-500 rounded-sm overflow-hidden mb-2 hidden">
                     <progress id="test-progress-bar" class="h-full bg-green-600 transition-all duration-300"
                         role="progressbar" aria-label="Test progress"></progress>
                 </div>
-                <div id="test-stats" class="grid grid-cols-4 gap-2 mb-2 hidden">
-                    <article
-                        class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
-                        <div id="passed-count" class="text-xl font-bold mb-1 text-green-600 dark:text-green-400">
-                            0</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Passed</div>
+                <div id="test-stats" class="test-grid hidden">
+                    <article class="stat-card">
+                        <div id="passed-count" class="stat-number text-green-600 dark:text-green-400">0</div>
+                        <div class="stat-label">Passed</div>
                     </article>
-                    <article
-                        class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
-                        <div id="failed-count" class="text-xl font-bold mb-1 text-red-600 dark:text-red-400">
-                            0</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Failed</div>
+                    <article class="stat-card">
+                        <div id="failed-count" class="stat-number text-red-600 dark:text-red-400">0</div>
+                        <div class="stat-label">Failed</div>
                     </article>
-                    <article
-                        class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
-                        <div id="total-count" class="text-xl font-bold mb-1 text-blue-600 dark:text-blue-400">0
-                        </div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                    <article class="stat-card">
+                        <div id="total-count" class="stat-number text-blue-600 dark:text-blue-400">0</div>
+                        <div class="stat-label">Total</div>
                     </article>
-                    <article
-                        class="bg-yellow-50 dark:bg-gray-700 p-2 rounded text-center border border-gray-600 dark:border-gray-500">
-                        <div id="duration" class="text-xl font-bold mb-1">0ms</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Duration</div>
+                    <article class="stat-card">
+                        <div id="duration" class="stat-number">0ms</div>
+                        <div class="stat-label">Duration</div>
                     </article>
                 </div>
                 <div id="test-list" class="max-h-80 overflow-y-auto">
-                    <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on
-                        page
+                    <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on page
                         load...</p>
                 </div>
             </div>
@@ -574,7 +1968,7 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                     o = chip('O', oFull, oDisp, 'q-o');
                 }
 
-                return `<div class="flex gap-1 items-center py-0.5 border-b border-dashed border-gray-600 dark:border-gray-400 min-w-0">${s}<span class="text-gray-500 dark:text-gray-400">→</span>${p}<span class="text-gray-500 dark:text-gray-400">→</span>${o}</div>`;
+                return `<div class="flex gap-1 items-center py-0.5 min-w-0">${s}<span class="text-gray-500 dark:text-gray-400">→</span>${p}<span class="text-gray-500 dark:text-gray-400">→</span>${o}</div>`;
             }).join('');
         }
 
@@ -697,14 +2091,14 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
             const testList = document.getElementById('test-list');
             const item = document.createElement('div');
 
-            let borderClass = '';
+            let statusClass = '';
             if (status === 'passed') {
-                borderClass = 'border-l-4 border-l-green-600 dark:border-l-green-400';
+                statusClass = 'passed';
             } else if (status === 'failed') {
-                borderClass = 'border-l-4 border-l-red-600 dark:border-l-red-400';
+                statusClass = 'failed';
             }
 
-            item.className = `bg-yellow-50 dark:bg-gray-700 border border-gray-600 dark:border-gray-500 rounded p-3 mb-1 transition-all duration-200 ${borderClass}`;
+            item.className = `test-item ${statusClass}`;
 
             const icon = status === 'passed' ? '✅' : '❌';
 
@@ -716,8 +2110,8 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
         </div>
         <div class="mt-2 pt-2 border-t border-gray-600 dark:border-gray-400 hidden" id="details-${name.replace(/\s+/g, '-')}">
           ${result ? `
-            <div class="bg-gray-200 dark:bg-gray-800 p-2 rounded font-mono text-xs whitespace-pre-wrap max-h-36 overflow-y-auto mb-2 text-gray-900 dark:text-gray-100 select-text">${result.input}</div>
-            <div class="bg-gray-200 dark:bg-gray-800 p-2 rounded font-mono text-xs whitespace-pre-wrap max-h-36 overflow-y-auto mb-2 text-gray-900 dark:text-gray-100 select-text">${(result.output.quads || []).map(q => `${q.subject.value} -> ${q.predicate.value} -> ${q.object.termType === 'Literal' ? formatLiteral(q.object) : `<${q.object.value}>`}`).join('\n')}</div>
+            <div class="output small">${result.input}</div>
+            <div class="output small">${(result.output.quads || []).map(q => `${q.subject.value} -> ${q.predicate.value} -> ${q.object.termType === 'Literal' ? formatLiteral(q.object) : `<${q.object.value}>`}`).join('\n')}</div>
           ` : ''}
           ${error ? `<div class="text-red-600 dark:text-red-400 font-mono text-xs">${error}</div>` : ''}
         </div>
@@ -793,36 +2187,23 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                 // Apply custom styling and intercept links
                 specContent.innerHTML = `
                     <style>
-                        #spec-content h1 { color: #dc2626; border-bottom: 2px solid #374151; padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0; }
-                        #spec-content h2 { color: #1f2937; border-bottom: 1px solid #374151; padding-bottom: 0.25rem; margin: 1.25rem 0 0.75rem 0; }
-                        #spec-content h3 { color: #1f2937; margin: 1rem 0 0.5rem 0; }
-                        #spec-content h4 { color: #6b7280; margin: 0.75rem 0 0.25rem 0; }
+                        #spec-content h1 { color: var(--error, #dc2626); border-bottom: 2px solid var(--border-primary, #d1d5db); padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0; }
+                        #spec-content h2 { color: var(--text-primary, #111827); border-bottom: 1px solid var(--border-primary, #d1d5db); padding-bottom: 0.25rem; margin: 1.25rem 0 0.75rem 0; }
+                        #spec-content h3 { color: var(--text-primary, #111827); margin: 1rem 0 0.5rem 0; }
+                        #spec-content h4 { color: var(--text-secondary, #6b7280); margin: 0.75rem 0 0.25rem 0; }
                         #spec-content p { margin-bottom: 0.75rem; }
                         #spec-content ul, #spec-content ol { margin: 0.5rem 0 0.75rem 1.5rem; }
                         #spec-content li { margin-bottom: 0.25rem; }
-                        #spec-content code { background: #d1d5db; padding: 0.125rem 0.25rem; border-radius: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 0.875em; }
-                        #spec-content pre { background: #d1d5db; padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.75rem 0; }
+                        #spec-content code { background: var(--bg-tertiary, #f3f4f6); padding: 0.125rem 0.25rem; border-radius: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 0.875em; }
+                        #spec-content pre { background: var(--bg-tertiary, #f3f4f6); padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.75rem 0; }
                         #spec-content pre code { background: none; padding: 0; }
-                        #spec-content blockquote { border-left: 3px solid #dc2626; padding-left: 1rem; margin: 0.75rem 0; color: #6b7280; font-style: italic; }
-                        #spec-content a { color: #dc2626; text-decoration: none; }
+                        #spec-content blockquote { border-left: 3px solid var(--error, #dc2626); padding-left: 1rem; margin: 0.75rem 0; color: var(--text-secondary, #6b7280); font-style: italic; }
+                        #spec-content a { color: var(--error, #dc2626); text-decoration: none; }
                         #spec-content a:hover { text-decoration: underline; }
                         #spec-content table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
-                        #spec-content th, #spec-content td { border: 1px solid #374151; padding: 0.5rem; text-align: left; }
-                        #spec-content th { background: #111827; color: #cbd5e1; font-weight: 600; }
-                        #spec-content hr { border: none; border-top: 1px solid #374151; margin: 1.5rem 0; }
-                        @media (prefers-color-scheme: dark) {
-                            #spec-content h1 { color: #f87171; border-bottom-color: #9ca3af; }
-                            #spec-content h2 { color: #f3f4f6; border-bottom-color: #9ca3af; }
-                            #spec-content h3 { color: #f3f4f6; }
-                            #spec-content h4 { color: #9ca3af; }
-                            #spec-content code { background: #4b5563; }
-                            #spec-content pre { background: #4b5563; }
-                            #spec-content blockquote { border-left-color: #f87171; color: #9ca3af; }
-                            #spec-content a { color: #f87171; }
-                            #spec-content th, #spec-content td { border-color: #9ca3af; }
-                            #spec-content th { background: #111827; color: #cbd5e1; }
-                            #spec-content hr { border-top-color: #9ca3af; }
-                        }
+                        #spec-content th, #spec-content td { border: 1px solid var(--border-primary, #d1d5db); padding: 0.5rem; text-align: left; }
+                        #spec-content th { background: var(--bg-tertiary, #f3f4f6); color: var(--text-primary, #111827); font-weight: 600; }
+                        #spec-content hr { border: none; border-top: 1px solid var(--border-primary, #d1d5db); margin: 1.5rem 0; }
                     </style>
                     ${html}
                 `;
@@ -1360,10 +2741,6 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
             }, 3000);
         }
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-markdown.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-turtle.min.js"></script>
 
 </body>
 
