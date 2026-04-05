@@ -1,4 +1,4 @@
-[ex] <http://example.com/>
+[my] <tag:me@example.com,2026:>
 
-## Document {=ex:doc .ex:Document label}
-Author: [Alice] {+ex:alice .ex:Person ?ex:author ex:name}
+## Document {=my:doc .prov:Entity label}
+Author: [Alice] {+my:alice .prov:Person ?prov:wasAttributedTo label}

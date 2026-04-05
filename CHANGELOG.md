@@ -105,7 +105,6 @@ Removed `schema` vocabulary - now it's `rdfs` and pure meta position to custom o
 
 ## v.0.2.3 (2026-01-13)
 
-+ feat: community license
 + fix: no build
 + fix: proper context handling
 
