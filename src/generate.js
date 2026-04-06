@@ -119,7 +119,7 @@ function buildDeterministicMDLD(subjectGroups, context) {
             ? ' ' + types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
             : '';
 
-        text += `# ${localSubjectName} {=${shortSubject}${typeAnnotations}}\n`;
+        text += `# ${localSubjectName} {=${shortSubject}${typeAnnotations}}\n\n`;
 
         // Add literals and objects using shared utilities
         sortQuadsByPredicate(literals).forEach(quad => {
