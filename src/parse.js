@@ -49,6 +49,7 @@ export function parse(text, options = {}) {
     const state = {
         ctx: { ...DEFAULT_CONTEXT, ...(options.context || {}) },
         df: options.dataFactory || DataFactory,
+        graph: DataFactory.namedNode(options.graph) || DataFactory.defaultGraph(),
         quads: [],
         quadBuffer: new Map(),
         removeSet: new Set(),
