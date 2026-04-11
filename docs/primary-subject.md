@@ -102,6 +102,72 @@ console.log(result.primarySubjects.map(s => s.value));
 - **UI Navigation** - Provide a default focus point for document viewers
 - **Query Optimization** - Use primary subject as default query context
 
+## RDF Philosophy Alignment
+
+The Primary Subject feature aligns with core W3C/RDF principles:
+
+### Document Identity
+RDF 1.1 Named Graphs recognize the importance of document-centric RDF. Primary Subject makes document identity explicit without forcing graph-centric assumptions, supporting the document-centric approach (FOAF profiles, RSS feeds) that's part of the Linked Data ecosystem.
+
+### Provenance Tracking (PROV-O)
+The W3C PROV-O standard emphasizes tracking data origin. Primary Subject provides a deterministic way to identify what a document is "about," which is foundational for provenance chains and attribution.
+
+### Dereferenceability
+Linked Data principles emphasize that IRIs should be dereferenceable. Having a clear primary subject makes it immediately clear what IRI to dereference when encountering a document, supporting the "follow your nose" navigation pattern.
+
+### Minimal Commitment
+RDF's philosophy is about making minimal assertions. Primary Subject is lightweight metadata - it doesn't add triples to the graph, just provides a pointer to the main subject. This aligns with MDLD's "no implicit semantics" principle.
+
+### Explicit over Implicit
+The W3C encourages explicit semantics over inference. Primary Subject makes document focus explicit rather than requiring heuristic analysis of the graph to determine "what this document is about."
+
+## Grounded Documents: Long-Term Benefits
+
+Primary Subject enables a new class of semantic applications that treat documents as meaningful units in knowledge workflows:
+
+### Document-Centric Knowledge Graphs
+- Citation networks with clear document identity
+- Document versioning and evolution tracking
+- Cross-document referencing and linking
+- Entity-focused provenance chains
+
+### Semantic Search and Discovery
+- Index documents by their main entity
+- Support queries like "find all documents about X" without complex graph pattern matching
+- Entity-based relevance scoring
+
+### Incremental Graph Construction
+- Determine which documents describe the same entity (deduplication)
+- Smart merge order and priority decisions
+- Conflict resolution strategies based on entity overlap
+- Graph topology construction guidance
+
+### Collaborative Semantic Editing
+- Track which entities are being modified across authors
+- Coordinate concurrent edits at entity level
+- Detect merge conflicts at entity granularity
+- Provide contextual editing assistance
+
+### Semantic Version Control
+- Entity-level version tracking within document systems
+- Queries like "show me how entity X has changed across versions"
+- Entity-focused diff and merge operations
+- Granular change attribution
+
+### Knowledge Graph Federation
+- Identify overlapping entities across different sources
+- Determine authoritative sources for specific entities
+- Build confidence scores based on document provenance
+- Source-aware query planning
+
+### AI/LLM Integration
+- Primary subject provides clear context for document understanding
+- Entity-focused prompt engineering
+- Document retrieval by entity relevance
+- Improved fact-checking and attribution
+
+The Primary Subject feature bridges document-centric and graph-centric approaches, enabling semantic applications that treat documents as first-class citizens in knowledge workflows while respecting RDF's core principles of explicit semantics and minimal commitment.
+
 ## Complete Example
 
 ```javascript
