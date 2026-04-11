@@ -1,4 +1,4 @@
-import { parse } from '../src/index.js';
+import { parse, generate } from '../src/index.js';
 
 // Test helpers
 function assert(condition, message) {
@@ -19,6 +19,109 @@ function hasQuad(quads, s, p, o) {
 
 // Parse test suite
 export const parseTests = [
+    // §17 Primary Subject
+    {
+        name: 'Primary subject - first subject declaration',
+        fn: () => {
+            const md = `[ex] <http://example.org/>
+
+# Document {=ex:doc .ex:Article label}
+[Alice] {ex:author}`;
+            const { primarySubject } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(primarySubject !== null, 'Should have a primary subject');
+            assert(primarySubject === 'http://example.org/doc',
+                `Primary subject should be ex:doc, got ${primarySubject}`);
+        }
+    },
+
+    {
+        name: 'Primary subject - null when no subject declared',
+        fn: () => {
+            const md = `[Alice] {label}`;
+            const { primarySubject } = parse(md, { context: { schema: 'http://schema.org/' } });
+
+            assert(primarySubject === null, 'Primary subject should be null when no subject declared');
+        }
+    },
+
+    {
+        name: 'Primary subject - fragment does not become primary',
+        fn: () => {
+            const md = `[ex] <http://example.org/>
+
+# Document {=ex:doc}
+{=#summary}
+[Content] {label}`;
+            const { primarySubject } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(primarySubject !== null, 'Should have a primary subject');
+            assert(primarySubject === 'http://example.org/doc',
+                `Primary subject should be ex:doc, not fragment`);
+        }
+    },
+
+    {
+        name: 'Primary subject - reset does not clear primary',
+        fn: () => {
+            const md = `[ex] <http://example.org/>
+
+# First {=ex:first}
+[Value] {label}
+
+# Reset {=}
+
+# Second {=ex:second}
+[Value] {label}`;
+            const { primarySubject } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(primarySubject !== null, 'Should have a primary subject');
+            assert(primarySubject === 'http://example.org/first',
+                `Primary subject should remain ex:first after reset, got ${primarySubject}`);
+        }
+    },
+
+    {
+        name: 'Primary subject - first non-fragment subject wins',
+        fn: () => {
+            const md = `[ex] <http://example.org/>
+
+{=#summary}
+[Content] {label}
+
+# Document {=ex:doc}
+[Alice] {ex:author}`;
+            const { primarySubject } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            assert(primarySubject !== null, 'Should have a primary subject');
+            assert(primarySubject === 'http://example.org/doc',
+                `Primary subject should be ex:doc, not fragment`);
+        }
+    },
+
+    {
+        name: 'Primary subject - round-trip with generate()',
+        fn: () => {
+            const md = `[ex] <http://example.org/>
+
+# Document {=ex:doc .ex:Article label}
+[Alice] {ex:author}`;
+
+            const { quads, primarySubject } = parse(md, { context: { ex: 'http://example.org/' } });
+
+            // Generate with primarySubject to ensure round-trip safety
+            const generated = generate(quads, { ex: 'http://example.org/' }, primarySubject);
+
+            // Parse the generated output
+            const { primarySubject: regeneratedPrimary } = parse(generated, { context: { ex: 'http://example.org/' } });
+
+            assert(primarySubject !== null, 'Original should have primary subject');
+            assert(regeneratedPrimary !== null, 'Regenerated should have primary subject');
+            assert(primarySubject === regeneratedPrimary,
+                `Primary subject should be preserved in round-trip: ${primarySubject} vs ${regeneratedPrimary}`);
+        }
+    },
+
     // §6 Subject Declaration
     {
         name: 'Subject declaration sets context',

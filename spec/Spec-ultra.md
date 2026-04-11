@@ -50,6 +50,14 @@ Ambiguous = no output.
 {+#fragment}  # Temporary soft fragment
 ```
 
+### Primary Subject
+
+First non-fragment `{=IRI}` in document. Fixed once detected (never cleared on `{=}`).
+
+**parse()**: Returns `primarySubject` (string IRI or null)
+**merge()**: Returns `primarySubjects` array (ordered by merge)
+**generate()**: Accepts `primarySubject` string IRI to place first (round-trip safety)
+
 ## 7. Types
 
 ```

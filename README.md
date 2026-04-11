@@ -198,13 +198,14 @@ Parse MD-LD markdown and return RDF quads with lean origin tracking.
   - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
   - `dataFactory` (object) — Custom RDF/JS DataFactory
 
-**Returns:** `{ quads, remove, statements, origin, context }`
+**Returns:** `{ quads, remove, statements, origin, context, primarySubject }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
 - `statements` — Array of elevated RDF/JS Quads extracted from rdf:Statement patterns
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
+- `primarySubject` — String IRI or null (first non-fragment subject declaration)
 
 ### `merge(docs, options)`
 
@@ -215,15 +216,22 @@ Merge multiple MDLD documents with diff polarity resolution.
 - `options` (object, optional):
   - `context` (object) — Prefix mappings (merged with DEFAULT_CONTEXT)
 
-**Returns:** `{ quads, remove, origin, context }`
+**Returns:** `{ quads, remove, origin, context, primarySubjects }`
 
-### `generate(quads, context)`
+- `quads` — Array of RDF/JS Quads (final resolved graph state)
+- `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
+- `origin` — Merge origin tracking with document index and polarity
+- `context` — Final merged context
+- `primarySubjects` — Array of string IRIs (primary subjects from each document, in merge order)
+
+### `generate(quads, context, primarySubject)`
 
 Generate deterministic MDLD from RDF quads.
 
 **Parameters:**
 - `quads` (array) — Array of RDF/JS Quads to convert
 - `context` (object, optional) — Prefix mappings (default: `{}`)
+- `primarySubject` (string, optional) — String IRI to place first in output (ensures round-trip safety)
 
 **Returns:** `{ text, context }`
 

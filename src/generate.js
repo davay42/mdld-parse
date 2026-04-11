@@ -34,17 +34,17 @@ export function extractLocalName(iri, ctx = {}) {
 /**
  * Generate deterministic MDLD from RDF quads
  * Purpose: TTL→MDLD conversion with canonical structure
- * Input: RDF quads + context
+ * Input: RDF quads + context + optional primarySubject (string IRI)
  * Output: MDLD text
  */
-export function generate(quads, context = {}) {
+export function generate(quads, context = {}, primarySubject = null) {
     const fullContext = { ...DEFAULT_CONTEXT, ...context };
 
     const normalizedQuads = normalizeAndSortQuads(quads);
 
     const subjectGroups = groupQuadsBySubject(normalizedQuads);
 
-    const { text } = buildDeterministicMDLD(subjectGroups, fullContext);
+    const { text } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject);
 
     return text;
 }
@@ -86,7 +86,7 @@ function groupQuadsBySubject(quads) {
     return groups;
 }
 
-function buildDeterministicMDLD(subjectGroups, context) {
+function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
     let text = '';
     const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 
@@ -103,10 +103,16 @@ function buildDeterministicMDLD(subjectGroups, context) {
         text += '\n';
     }
 
-    // Process subjects in deterministic order
+    // Process subjects in deterministic order, with primary subject first
     const sortedSubjects = Array.from(subjectGroups.keys()).sort();
+    const primarySubjectIRI = primarySubject; // Already a string IRI
 
-    for (const subjectIRI of sortedSubjects) {
+    // If primary subject exists, place it first
+    const orderedSubjects = primarySubjectIRI
+        ? [primarySubjectIRI, ...sortedSubjects.filter(s => s !== primarySubjectIRI)]
+        : sortedSubjects;
+
+    for (const subjectIRI of orderedSubjects) {
         const subjectQuads = subjectGroups.get(subjectIRI);
         const shortSubject = shortenIRI(subjectIRI, context);
 

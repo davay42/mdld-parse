@@ -116,6 +116,23 @@ Creates a temporary fragment relative to the current subject base.
 
 The soft IRI only exists within the current annotation block.
 
+### Primary Subject
+
+The **Primary Subject** is the first non-fragment subject declaration (`{=IRI}`) in a document.
+
+**Selection rules:**
+- First non-fragment `{=IRI}` becomes primary
+- Fragments (`{=#fragment}`) excluded
+- Fixed once detected (never cleared on `{=}` reset)
+- Null if no subject declared
+
+**API returns:**
+- `parse()`: `{ ..., primarySubject: string | null }`
+- `merge()`: `{ ..., primarySubjects: string[] }` (ordered by merge)
+- `generate(quads, context, primarySubject)`: Places primary subject first for round-trip safety
+
+**Use cases:** Document identification, merge tracking, UI navigation, query optimization.
+
 ---
 
 ## 7. Types

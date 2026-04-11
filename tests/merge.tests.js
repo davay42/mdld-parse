@@ -24,6 +24,85 @@ function hasQuad(quads, subject, predicate, object) {
 }
 
 export const mergeTests = [
+    // §17 Primary Subject - Merge
+    {
+        name: 'Primary subjects - single document',
+        fn: () => {
+            const md = `[my] <tag:hr@example.com,2026:>
+# Employee {=my:emp456 .my:Employee}
+[Alice] {my:name}`;
+
+            const result = merge([md],);
+
+            assert(result.primarySubjects.length === 1,
+                `Should have 1 primary subject, got ${result.primarySubjects.length}`);
+            assert(result.primarySubjects[0] === 'tag:hr@example.com,2026:emp456',
+                `Primary subject should be my:emp456, got ${result.primarySubjects[0]}`);
+        }
+    },
+
+    {
+        name: 'Primary subjects - multiple documents',
+        fn: () => {
+            const doc1 = `[ex] <http://example.org/>
+# Doc1 {=ex:doc1}
+[Value] {label}`;
+
+            const doc2 = `[ex] <http://example.org/>
+# Doc2 {=ex:doc2}
+[Value] {label}`;
+
+            const result = merge([doc1, doc2],);
+
+            assert(result.primarySubjects.length === 2,
+                `Should have 2 primary subjects, got ${result.primarySubjects.length}`);
+            assert(result.primarySubjects[0] === 'http://example.org/doc1',
+                `First primary subject should be ex:doc1, got ${result.primarySubjects[0]}`);
+            assert(result.primarySubjects[1] === 'http://example.org/doc2',
+                `Second primary subject should be ex:doc2, got ${result.primarySubjects[1]}`);
+        }
+    },
+
+    {
+        name: 'Primary subjects - document with no primary subject',
+        fn: () => {
+            const doc1 = `[ex] <http://example.org/>
+# Doc1 {=ex:doc1}
+[Value] {label}`;
+
+            const doc2 = `[Value] {label}`;
+
+            const result = merge([doc1, doc2],);
+
+            assert(result.primarySubjects.length === 1,
+                `Should have 1 primary subject (doc2 has none), got ${result.primarySubjects.length}`);
+            assert(result.primarySubjects[0] === 'http://example.org/doc1',
+                `Primary subject should be ex:doc1, got ${result.primarySubjects[0]}`);
+        }
+    },
+
+    {
+        name: 'Primary subjects - ParseResult input',
+        fn: () => {
+            const doc1 = parse(`[ex] <http://example.org/>
+# Doc1 {=ex:doc1}
+[Value] {label}`, { context: { ex: 'http://example.org/' } });
+
+            const doc2 = parse(`[ex] <http://example.org/>
+# Doc2 {=ex:doc2}
+[Value] {label}`, { context: { ex: 'http://example.org/' } });
+
+            const result = merge([doc1, doc2],);
+
+            assert(result.primarySubjects.length === 2,
+                `Should have 2 primary subjects, got ${result.primarySubjects.length}`);
+            assert(result.primarySubjects[0] === 'http://example.org/doc1',
+                `First primary subject should be ex:doc1, got ${result.primarySubjects[0]}`);
+            assert(result.primarySubjects[1] === 'http://example.org/doc2',
+                `Second primary subject should be ex:doc2, got ${result.primarySubjects[1]}`);
+        }
+    },
+
     {
         name: 'Single document — equivalence to parse()',
         fn: () => {

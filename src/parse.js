@@ -59,6 +59,7 @@ export function parse(text, options = {}) {
             documentStructure: []
         },
         currentSubject: null,
+        primarySubject: null,
         tokens: null,
         currentTokenIndex: -1,
         statements: [],
@@ -108,7 +109,7 @@ export function parse(text, options = {}) {
         }
     }
 
-    return { quads: state.quads, remove: filteredRemove, statements: state.statements, origin: state.origin, context: state.ctx };
+    return { quads: state.quads, remove: filteredRemove, statements: state.statements, origin: state.origin, context: state.ctx, primarySubject: state.primarySubject };
 }
 
 
@@ -387,6 +388,11 @@ function processAnnotationWithBlockTracking(carrier, sem, state, options = {}) {
     const previousSubject = state.currentSubject;
     const newSubject = resolveSubject(sem, state);
     const localObject = resolveObject(sem, state);
+
+    // Track primary subject: first non-fragment subject declaration (fixed once detected)
+    if (newSubject && !state.primarySubject && !sem.subject.startsWith('=#')) {
+        state.primarySubject = newSubject.value; // Store as string IRI
+    }
 
     const effectiveSubject = implicitSubject || (newSubject && !preserveGlobalSubject ? newSubject : previousSubject);
     if (newSubject && !preserveGlobalSubject && !implicitSubject) {

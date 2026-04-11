@@ -42,6 +42,7 @@ export function merge(docs, options = {}) {
     const quadIndex = new Map();
     const allStatements = []; // Collect statements from all documents
     const accumulatedContext = new Map(); // Track all unique prefixes across documents
+    const primarySubjects = []; // Collect primary subjects from all documents
 
     // Process each document in order
     for (let i = 0; i < docs.length; i++) {
@@ -76,6 +77,11 @@ export function merge(docs, options = {}) {
         // Collect statements from this document
         if (doc.statements && doc.statements.length > 0) {
             allStatements.push(...doc.statements);
+        }
+
+        // Collect primary subject from this document (already a string IRI)
+        if (doc.primarySubject) {
+            primarySubjects.push(doc.primarySubject);
         }
 
         // Fold assertions into session buffer
@@ -144,6 +150,7 @@ export function merge(docs, options = {}) {
         remove: filteredRemove,
         statements: allStatements, // Include all collected statements
         origin: mergeOrigin,
-        context: finalContext
+        context: finalContext,
+        primarySubjects: primarySubjects // Include all collected primary subjects
     };
 }

@@ -954,7 +954,99 @@ If you need these features, use them in your application logic, not in the MD-LD
 
 ---
 
-## 17. Conformance
+## 17. Primary Subject
+
+The **Primary Subject** is the main entity described by an MD-LD document. It provides a deterministic way to identify the central focus of a document.
+
+### Selection Criteria
+
+The Primary Subject is determined by these rules:
+
+1. **First non-fragment subject declaration** - The first `{=IRI}` declaration in the document becomes the primary subject
+2. **Fragment declarations are excluded** - `{=#fragment}` declarations do not become primary subjects
+3. **Fixed once detected** - Once set, the primary subject never changes, even on `{=}` reset
+4. **No subject means no primary** - If no subject is declared, the primary subject is `null`
+
+### Examples
+
+**Simple primary subject:**
+```md
+[ex] <http://example.org/>
+
+# Document {=ex:doc .ex:Article label}
+[Alice] {ex:author}
+```
+Primary subject: `ex:doc`
+
+**Fragment does not become primary:**
+```md
+[ex] <http://example.org/>
+
+# Document {=ex:doc}
+{=#summary}
+[Content] {label}
+```
+Primary subject: `ex:doc` (fragment `#summary` is ignored)
+
+**Subject reset:**
+```md
+[ex] <http://example.org/>
+
+# First {=ex:first}
+[Value] {label}
+
+# Reset {=}
+
+# Second {=ex:second}
+[Value] {label}
+```
+Primary subject: `ex:first` (reset does not clear the primary)
+
+### API Return Values
+
+**parse() returns:**
+```javascript
+{
+  quads: [...],
+  remove: [...],
+  statements: [...],
+  origin: {...},
+  context: {...},
+  primarySubject: string | null  // NEW
+}
+```
+
+**merge() returns:**
+```javascript
+{
+  quads: [...],
+  remove: [...],
+  statements: [...],
+  origin: {...},
+  context: {...},
+  primarySubjects: string[]  // NEW - ordered by merge
+}
+```
+
+### Use Cases
+
+Primary subjects enable:
+- **Document identification** - Quickly determine what a document is about
+- **Merge tracking** - Track which entities are being merged across documents
+- **UI navigation** - Provide a default focus point for document viewers
+- **Query optimization** - Use primary subject as default query context
+
+### Conformance Requirements
+
+An MD-LD processor MUST:
+1. Track the first non-fragment subject declaration as primary subject
+2. Return `primarySubject` in parse results (or `null` if none)
+3. Return `primarySubjects` array in merge results (ordered by merge)
+4. Keep primary subject fixed once detected (never cleared on `{=}` reset)
+
+---
+
+## 18. Conformance
 
 An MD-LD processor is conformant if it follows these rules:
 
