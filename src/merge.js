@@ -33,14 +33,13 @@ function normalizeInput(input, options, docContext) {
  * Merges multiple MDLD documents with diff polarity resolution
  * @param {Array<string|ParseResult>} docs 
  * @param {Object} options
- * @returns {Object} Merge result with quads, remove, statements, origin, and context
+ * @returns {Object} Merge result with quads, remove, origin, and context
  */
 export function merge(docs, options = {}) {
     const sessionBuffer = new Map(); // Use Map instead of Set for proper quad storage
     const sessionRemoveSet = new Set();
     const allDocuments = [];
     const quadIndex = new Map();
-    const allStatements = []; // Collect statements from all documents
     const accumulatedContext = new Map(); // Track all unique prefixes across documents
     const primarySubjects = []; // Collect primary subjects from all documents
 
@@ -69,15 +68,9 @@ export function merge(docs, options = {}) {
             index: i,
             input: typeof input === 'string' ? 'string' : 'ParseResult',
             origin: doc.origin,
-            context: doc.context,
-            statementsCount: doc.statements?.length || 0 // Track statements count
+            context: doc.context
         };
         allDocuments.push(documentOrigin);
-
-        // Collect statements from this document
-        if (doc.statements && doc.statements.length > 0) {
-            allStatements.push(...doc.statements);
-        }
 
         // Collect primary subject from this document (already a string IRI)
         if (doc.primarySubject) {
@@ -148,7 +141,6 @@ export function merge(docs, options = {}) {
     return {
         quads: filteredQuads,
         remove: filteredRemove,
-        statements: allStatements, // Include all collected statements
         origin: mergeOrigin,
         context: finalContext,
         primarySubjects: primarySubjects // Include all collected primary subjects

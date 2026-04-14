@@ -3,6 +3,7 @@ export { merge } from './merge.js';
 export { generate } from './generate.js';
 export { locate } from './locate.js';
 export { render } from './render.js';
+export { extractStatements } from './extract-statements.js';
 export { DEFAULT_CONTEXT } from './constants.js';
 export {
     DataFactory,

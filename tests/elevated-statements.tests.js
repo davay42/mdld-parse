@@ -1,4 +1,4 @@
-import { parse } from '../src/index.js';
+import { parse, extractStatements } from '../src/index.js';
 
 // Test helpers
 function assert(condition, message) {
@@ -28,16 +28,17 @@ export const elevatedStatementTests = [
 `;
 
             const result = parse(markdown);
-            
-            assert(result.statements.length === 1, 'Should have 1 elevated statement');
-            
-            const elevated = result.statements[0];
+            const statements = extractStatements(result.quads);
+
+            assert(statements.length === 1, 'Should have 1 elevated statement');
+
+            const elevated = statements[0];
             assert(elevated.subject.value === 'http://example.org/alice', 'Subject should be Alice');
             assert(elevated.predicate.value === 'http://example.org/knows', 'Predicate should be knows');
             assert(elevated.object.value === 'http://example.org/bob', 'Object should be Bob');
-            
+
             // Should have the rdf:Statement pattern quads
-            const statementQuads = result.quads.filter(q => 
+            const statementQuads = result.quads.filter(q =>
                 q.subject.value === 'http://example.org/stmt1' &&
                 q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
             );
@@ -60,17 +61,18 @@ export const elevatedStatementTests = [
 `;
 
             const result = parse(markdown);
-            
-            assert(result.statements.length === 2, 'Should have 2 elevated statements');
-            
+            const statements = extractStatements(result.quads);
+
+            assert(statements.length === 2, 'Should have 2 elevated statements');
+
             // Check integer datatype
-            const ageStatement = result.statements.find(q => q.predicate.value.endsWith('hasAge'));
-            assert(ageStatement.object.datatype.value === 'http://www.w3.org/2001/XMLSchema#integer', 
-                   'Should preserve integer datatype');
+            const ageStatement = statements.find(q => q.predicate.value.endsWith('hasAge'));
+            assert(ageStatement.object.datatype.value === 'http://www.w3.org/2001/XMLSchema#integer',
+                'Should preserve integer datatype');
             assert(ageStatement.object.value === '25', 'Should preserve literal value');
-            
+
             // Check language tag
-            const nameStatement = result.statements.find(q => q.predicate.value.endsWith('hasName'));
+            const nameStatement = statements.find(q => q.predicate.value.endsWith('hasName'));
             assert(nameStatement.object.language === 'en', 'Should preserve language tag');
             assert(nameStatement.object.value === 'Alice', 'Should preserve literal value');
         }
@@ -95,10 +97,11 @@ export const elevatedStatementTests = [
 `;
 
             const result = parse(markdown);
-            
-            assert(result.statements.length === 2, 'Should have 2 elevated statements (incomplete ignored)');
-            
-            const subjects = result.statements.map(q => q.object.value);
+            const statements = extractStatements(result.quads);
+
+            assert(statements.length === 2, 'Should have 2 elevated statements (incomplete ignored)');
+
+            const subjects = statements.map(q => q.object.value);
             assert(subjects.includes('http://example.org/bob'), 'Should include Bob');
             assert(subjects.includes('http://example.org/david'), 'Should include David');
         }
@@ -128,14 +131,15 @@ Now **I** {=my:Alice} know **Claire** {+my:Claire ?foaf:knows}.
 `;
 
             const result = parse(markdown);
-            
-            assert(result.statements.length === 2, 'Should have 2 elevated statements');
-            
+            const statements = extractStatements(result.quads);
+
+            assert(statements.length === 2, 'Should have 2 elevated statements');
+
             // Verify tag: IRIs work correctly
-            const tagIRIs = result.statements.filter(q => q.subject.value.startsWith('tag:'));
+            const tagIRIs = statements.filter(q => q.subject.value.startsWith('tag:'));
             assert(tagIRIs.length === 2, 'Should have 2 tag: IRIs in elevated statements');
-            
-            const predicates = result.statements.map(q => q.predicate.value);
+
+            const predicates = statements.map(q => q.predicate.value);
             assert(predicates.includes('http://xmlns.com/foaf/0.1/name'), 'Should include FOAF name predicate');
             assert(predicates.includes('http://xmlns.com/foaf/0.1/knows'), 'Should include FOAF knows predicate');
         }

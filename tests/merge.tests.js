@@ -1,4 +1,4 @@
-import { merge, parse } from '../src/index.js';
+import { merge, parse, extractStatements } from '../src/index.js';
 
 // Test helpers
 function assert(condition, message) {
@@ -335,17 +335,18 @@ export const mergeTests = [
 **Charlie** {=ex:charlie} works with **David** {?ex:works-with +ex:david}`;
 
             const result = merge([doc1, doc2]);
+            const statements = extractStatements(result.quads);
 
-            assert(result.statements.length === 2, `Should have 2 statements, got ${result.statements.length}`);
+            assert(statements.length === 2, `Should have 2 statements, got ${statements.length}`);
 
             // Verify statement content
-            const aliceKnowsBob = result.statements.find(s =>
+            const aliceKnowsBob = statements.find(s =>
                 s.subject.value === 'http://example.org/alice' &&
                 s.predicate.value === 'http://example.org/knows' &&
                 s.object.value === 'http://example.org/bob'
             );
 
-            const charlieWorksDavid = result.statements.find(s =>
+            const charlieWorksDavid = statements.find(s =>
                 s.subject.value === 'http://example.org/charlie' &&
                 s.predicate.value === 'http://example.org/works-with' &&
                 s.object.value === 'http://example.org/david'
@@ -353,10 +354,6 @@ export const mergeTests = [
 
             assert(aliceKnowsBob, 'Should have Alice knows Bob statement');
             assert(charlieWorksDavid, 'Should have Charlie works with David statement');
-
-            // Verify origin tracking
-            assert(result.origin.documents[0].statementsCount === 1, 'Document 1 should have 1 statement');
-            assert(result.origin.documents[1].statementsCount === 1, 'Document 2 should have 1 statement');
         }
     },
 

@@ -1009,10 +1009,9 @@ Primary subject: `ex:first` (reset does not clear the primary)
 {
   quads: [...],
   remove: [...],
-  statements: [...],
   origin: {...},
   context: {...},
-  primarySubject: string | null  // NEW
+  primarySubject: string | null
 }
 ```
 
@@ -1021,10 +1020,9 @@ Primary subject: `ex:first` (reset does not clear the primary)
 {
   quads: [...],
   remove: [...],
-  statements: [...],
   origin: {...},
   context: {...},
-  primarySubjects: string[]  // NEW - ordered by merge
+  primarySubjects: string[]  // ordered by merge
 }
 ```
 
