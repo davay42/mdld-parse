@@ -25,6 +25,7 @@ export const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
 
 // Pre-compiled carrier patterns for performance
 export const CARRIER_PATTERN_ARRAY = [
-    ['EMPHASIS', /[*__`]+(.+?)[*__`]+\s*\{([^}]+)\}/y],
-    ['CODE_SPAN', /``(.+?)``\s*\{([^}]+)\}/y]
+    ['EMPHASIS', /[*__]+(.+?)[*__]+\s*\{([^}]+)\}/y],
+    ['CODE_SPAN_SINGLE', /`(.+?)`\s*\{([^}]+)\}/y],
+    ['CODE_SPAN_DOUBLE', /``(.+?)``\s*\{([^}]+)\}/y]
 ];
