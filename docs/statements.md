@@ -81,7 +81,7 @@ import { parse } from 'mdld-parse';
 
 const result = parse(markdown);
 console.log(result.quads);     // All quads including provenance
-console.log(result.statements); // Only elevated SPO quads
+console.log(result.statements); // Elevated SPO quads (detected during parsing)
 ```
 
 ### Dashboard Applications

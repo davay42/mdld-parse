@@ -125,11 +125,11 @@ Each predicate form determines the graph edge:
 
 ## 📍 Elevated Statements
 
-MD-LD supports `rdf:Statement` patterns for elevating certain facts from the semantic data. Use the `extractStatements()` function to extract elevated SPO quads from any quad set.
+MD-LD automatically detects `rdf:Statement` patterns during parsing and extracts elevated SPO quads for convenient consumption by applications.
 
 ### Pattern Detection
 
-When a document contains a complete `rdf:Statement` pattern with `rdf:subject`, `rdf:predicate`, and `rdf:object`, you can extract the corresponding SPO quad:
+When the parser encounters a complete `rdf:Statement` pattern with `rdf:subject`, `rdf:predicate`, and `rdf:object`, it automatically adds the corresponding SPO quad to the `statements` array:
 
 ```markdown
 [ex] <http://example.org/>
@@ -137,18 +137,7 @@ When a document contains a complete `rdf:Statement` pattern with `rdf:subject`, 
 ## Elevated statement {=ex:stmt1 .rdf:Statement}
 **Alice** {+ex:alice ?rdf:subject} *knows* {+ex:knows ?rdf:predicate} **Bob** {+ex:bob ?rdf:object}
 
-Direct statement:**Alice** {=ex:alice} knows **Bob** {?ex:knows +ex:bob}
-```
-
-### Extracting Statements
-
-```javascript
-import { parse, extractStatements } from 'mdld-parse';
-
-const result = parse(markdown);
-const statements = extractStatements(result.quads);
-
-// statements contains elevated SPO quads from rdf:Statement patterns
+Direct statement:**Alice** {=ex:alice} knows **Bob** {?ex:knows +ex:bob} 
 ```
 
 ## 🎨 Syntax Quick Reference
@@ -209,10 +198,11 @@ Parse MD-LD markdown and return RDF quads with lean origin tracking.
   - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
   - `dataFactory` (object) — Custom RDF/JS DataFactory
 
-**Returns:** `{ quads, remove, origin, context, primarySubject }`
+**Returns:** `{ quads, remove, statements, origin, context, primarySubject }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
+- `statements` — Array of elevated RDF/JS Quads extracted from rdf:Statement patterns
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
 - `primarySubject` — String IRI or null (first non-fragment subject declaration)
@@ -244,26 +234,6 @@ Generate deterministic MDLD from RDF quads.
 - `primarySubject` (string, optional) — String IRI to place first in output (ensures round-trip safety)
 
 **Returns:** `{ text, context }`
-
-### `extractStatements(quads, dataFactory)`
-
-Extract elevated statements from a quad set by detecting rdf:Statement patterns.
-
-**Parameters:**
-- `quads` (array) — Array of RDF/JS Quads to scan
-- `dataFactory` (object, optional) — Custom RDF/JS DataFactory (defaults to built-in)
-
-**Returns:** Array of elevated SPO quads extracted from rdf:Statement patterns
-
-**Example:**
-```javascript
-import { parse, extractStatements } from 'mdld-parse';
-
-const result = parse(markdown);
-const statements = extractStatements(result.quads);
-
-// statements contains elevated SPO quads from rdf:Statement patterns
-```
 
 ### `locate(quad, origin)`
 

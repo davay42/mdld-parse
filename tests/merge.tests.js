@@ -1,4 +1,4 @@
-import { merge, parse, extractStatements } from '../src/index.js';
+import { merge, parse } from '../src/index.js';
 
 // Test helpers
 function assert(condition, message) {
@@ -335,18 +335,17 @@ export const mergeTests = [
 **Charlie** {=ex:charlie} works with **David** {?ex:works-with +ex:david}`;
 
             const result = merge([doc1, doc2]);
-            const statements = extractStatements(result.quads);
 
-            assert(statements.length === 2, `Should have 2 statements, got ${statements.length}`);
+            assert(result.statements.length === 2, `Should have 2 statements, got ${result.statements.length}`);
 
             // Verify statement content
-            const aliceKnowsBob = statements.find(s =>
+            const aliceKnowsBob = result.statements.find(s =>
                 s.subject.value === 'http://example.org/alice' &&
                 s.predicate.value === 'http://example.org/knows' &&
                 s.object.value === 'http://example.org/bob'
             );
 
-            const charlieWorksDavid = statements.find(s =>
+            const charlieWorksDavid = result.statements.find(s =>
                 s.subject.value === 'http://example.org/charlie' &&
                 s.predicate.value === 'http://example.org/works-with' &&
                 s.object.value === 'http://example.org/david'

@@ -33,6 +33,11 @@ import {
     determineCarrierType,
     calcCarrierRanges,
     extractCleanText,
+    RDF_TYPE,
+    RDF_STATEMENT,
+    RDF_SUBJECT,
+    RDF_PREDICATE,
+    RDF_OBJECT,
     createLeanOriginEntry,
     resolveSubject,
     resolveObject,
@@ -57,6 +62,8 @@ export function parse(text, options = {}) {
         primarySubject: null,
         tokens: null,
         currentTokenIndex: -1,
+        statements: [],
+        statementCandidates: new Map(),
         currentBlock: null,
         blockStack: []
     };
@@ -102,7 +109,7 @@ export function parse(text, options = {}) {
         }
     }
 
-    return { quads: state.quads, remove: filteredRemove, origin: state.origin, context: state.ctx, primarySubject: state.primarySubject };
+    return { quads: state.quads, remove: filteredRemove, statements: state.statements, origin: state.origin, context: state.ctx, primarySubject: state.primarySubject };
 }
 
 
@@ -435,7 +442,7 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
     };
 }
 
-function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null, state = null) {
+function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null, statements = null, statementCandidates = null, state = null) {
     if (!subject || !predicate || !object) return;
 
     const quad = dataFactory.quad(subject, predicate, object);
@@ -468,6 +475,9 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
         quadBuffer.set(quadKey, quad);
         quads.push(quad);
 
+        // Detect rdf:Statement pattern during single-pass parsing
+        detectStatementPatternSinglePass(quad, dataFactory, meta, statements, statementCandidates);
+
         // Create lean origin entry using shared utility
         const originEntry = createLeanOriginEntry(block, subject, predicate, meta);
 
@@ -483,6 +493,55 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
     }
 }
 
+function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = null, statementCandidates = null) {
+    // Skip if not called from parse context (for testing compatibility)
+    if (!statements || !statementCandidates) return;
+
+    const predicate = quad.predicate.value;
+
+    // Early filter: only process rdf:Statement related predicates
+    if (predicate !== RDF_TYPE &&
+        predicate !== RDF_SUBJECT &&
+        predicate !== RDF_PREDICATE &&
+        predicate !== RDF_OBJECT) {
+        return;
+    }
+
+    // Check if this quad starts a new rdf:Statement pattern
+    if (predicate === RDF_TYPE && quad.object.value === RDF_STATEMENT) {
+        statementCandidates.set(quad.subject.value, { spo: {} });
+        return;
+    }
+
+    // Check if this quad completes part of an existing rdf:Statement pattern
+    const candidate = statementCandidates.get(quad.subject.value);
+    if (!candidate) return;
+
+    // Direct property assignment instead of switch for better performance
+    if (predicate === RDF_SUBJECT) {
+        candidate.spo.subject = quad.object;
+    } else if (predicate === RDF_PREDICATE) {
+        candidate.spo.predicate = quad.object;
+    } else if (predicate === RDF_OBJECT) {
+        candidate.spo.object = quad.object;
+        // Store the original quad for potential literal extraction
+        candidate.objectQuad = quad;
+    }
+
+    // Check if pattern is complete and create elevated SPO quad
+    if (candidate.spo.subject && candidate.spo.predicate && candidate.spo.object) {
+        // Use the object directly - literal detection happens at parse time
+        const spoQuad = dataFactory.quad(
+            candidate.spo.subject,
+            candidate.spo.predicate,
+            candidate.spo.object
+        );
+        statements.push(spoQuad);
+        // Clean up candidate to avoid duplicate detection
+        statementCandidates.delete(quad.subject.value);
+    }
+}
+
 
 const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
     const expandedType = expandIRI(typeIRI, state.ctx);
@@ -494,6 +553,7 @@ const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
         state.df.namedNode(expandedType),
         state.df,
         { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex: typeInfo.entryIndex, remove: typeInfo.remove },
+        state.statements, state.statementCandidates,
         state
     );
 };
@@ -538,6 +598,7 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
             emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block,
                 role.subject, P, role.object, state.df,
                 { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex, remove: pred.remove || false },
+                state.statements, state.statementCandidates,
                 state
             );
         }
