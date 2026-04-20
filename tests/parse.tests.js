@@ -113,7 +113,7 @@ export const parseTests = [
             const generated = generate(quads, { ex: 'http://example.org/' }, primarySubject);
 
             // Parse the generated output
-            const { primarySubject: regeneratedPrimary } = parse(generated, { context: { ex: 'http://example.org/' } });
+            const { primarySubject: regeneratedPrimary } = parse(generated.text, { context: { ex: 'http://example.org/' } });
 
             assert(primarySubject !== null, 'Original should have primary subject');
             assert(regeneratedPrimary !== null, 'Regenerated should have primary subject');

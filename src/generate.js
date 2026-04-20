@@ -46,7 +46,7 @@ export function generate(quads, context = {}, primarySubject = null) {
 
     const { text } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject);
 
-    return text;
+    return { text, context: fullContext };
 }
 
 function normalizeAndSortQuads(quads) {
