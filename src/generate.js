@@ -90,6 +90,9 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
     let text = '';
     const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 
+    // Build label lookup map for all IRIs that have rdfs:label
+    const labelLookup = buildLabelLookup(subjectGroups);
+
     // Add prefixes first (deterministic order), but exclude default context prefixes
     const sortedPrefixes = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
     for (const [prefix, namespace] of sortedPrefixes) {
@@ -133,11 +136,26 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
         });
 
         sortQuadsByPredicate(objects).forEach(quad => {
-            text += generateObjectText(quad, context);
+            text += generateObjectText(quad, context, labelLookup);
         });
 
         text += '\n';
     }
 
     return { text };
+}
+
+function buildLabelLookup(subjectGroups) {
+    const labelLookup = new Map();
+    const rdfsLabelIRI = 'http://www.w3.org/2000/01/rdf-schema#label';
+
+    for (const subjectQuads of subjectGroups.values()) {
+        for (const quad of subjectQuads) {
+            if (quad.predicate.value === rdfsLabelIRI && quad.object.termType === 'Literal') {
+                labelLookup.set(quad.subject.value, quad.object.value);
+            }
+        }
+    }
+
+    return labelLookup;
 }

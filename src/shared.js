@@ -428,10 +428,16 @@ export function generateLiteralText(quad, context) {
     return `[${quad.object.value}] {${annotation}}\n`;
 }
 
-export const generateObjectText = (quad, context) => {
+export const generateObjectText = (quad, context, labelLookup = null) => {
     const objShort = shortenIRI(quad.object.value, context);
     const predShort = shortenIRI(quad.predicate.value, context);
-    return `[${objShort}] {+${objShort} ?${predShort}}\n`;
+
+    // Use rdfs:label if available, otherwise use shortened IRI
+    const displayText = labelLookup && labelLookup.has(quad.object.value)
+        ? labelLookup.get(quad.object.value)
+        : objShort;
+
+    return `[${displayText}] {+${objShort} ?${predShort}}\n`;
 };
 
 // Optimized quad filtering - destructuring for smaller minified output
