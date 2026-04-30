@@ -122,16 +122,29 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
         // Separate types, literals, and objects using shared utility
         const { types, literals, objects } = filterQuadsByType(subjectQuads);
 
-        // Generate heading
-        const localSubjectName = extractLocalName(subjectIRI, context);
-        const typeAnnotations = types.length > 0
-            ? ' ' + types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
+        // Check if this subject has a label
+        const hasLabel = labelLookup.has(subjectIRI);
+        const displayName = hasLabel ? labelLookup.get(subjectIRI) : extractLocalName(subjectIRI, context);
+
+        // Build annotations: types + label indicator if present
+        let annotations = types.length > 0
+            ? types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
             : '';
+        if (hasLabel) {
+            annotations += (annotations ? ' ' : '') + 'label';
+        }
 
-        text += `# ${localSubjectName} {=${shortSubject}${typeAnnotations}}\n\n`;
+        const annotationStr = annotations ? ' ' + annotations : '';
+        text += `# ${displayName} {=${shortSubject}${annotationStr}}\n\n`;
 
-        // Add literals and objects using shared utilities
+        // Add literals (excluding the label used in heading) and objects
+        const rdfsLabelIRI = 'http://www.w3.org/2000/01/rdf-schema#label';
+        const headingLabel = hasLabel ? labelLookup.get(subjectIRI) : null;
         sortQuadsByPredicate(literals).forEach(quad => {
+            // Skip only the label that matches the heading display, render additional labels
+            if (quad.predicate.value === rdfsLabelIRI && quad.object.value === headingLabel) {
+                return; // Skip the heading label
+            }
             text += generateLiteralText(quad, context);
         });
 

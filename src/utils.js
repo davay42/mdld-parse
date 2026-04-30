@@ -197,12 +197,14 @@ export const DataFactory = {
             case 'DefaultGraph':
                 return DEFAULTGRAPH;
             case 'Literal':
+                // Escape quotes in value to ensure proper parsing
+                const escapedValue = String(term.value).replace(/"/g, '\\"');
                 if (term.language) {
-                    return new Literal(`"${term.value}"@${term.language}`);
+                    return new Literal(`"${escapedValue}"@${term.language}`);
                 } else if (term.datatype) {
-                    return new Literal(`"${term.value}"^^${term.datatype.value || term.datatype}`);
+                    return new Literal(`"${escapedValue}"^^${term.datatype.value || term.datatype}`);
                 } else {
-                    return new Literal(`"${term.value}"`);
+                    return new Literal(`"${escapedValue}"`);
                 }
             case 'Quad':
                 return DataFactory.fromQuad(term);

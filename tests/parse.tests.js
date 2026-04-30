@@ -1482,5 +1482,114 @@ List items:
             assert(quads.length === 1, `Should have 1 quad, got ${quads.length}`);
             assert(remove.length === 0, `Remove should be empty for intra-document cancellation, got ${remove.length}`);
         }
+    },
+
+    // Round-trip safety with visual styles and duplicate labels
+    {
+        name: 'Generate - round-trip safety with labels, numbers, dates, booleans',
+        fn: () => {
+            const quads = [
+                // Organization with label
+                {
+                    subject: { value: 'http://example.org/org', termType: 'NamedNode' },
+                    predicate: { value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', termType: 'NamedNode' },
+                    object: { value: 'http://www.w3.org/ns/prov#Organization', termType: 'NamedNode' }
+                },
+                {
+                    subject: { value: 'http://example.org/org', termType: 'NamedNode' },
+                    predicate: { value: 'http://www.w3.org/2000/01/rdf-schema#label', termType: 'NamedNode' },
+                    object: { value: 'ACME Inc.', termType: 'Literal', datatype: { value: 'http://www.w3.org/2001/XMLSchema#string' } }
+                },
+                // Person with multiple labels, various datatypes
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', termType: 'NamedNode' },
+                    object: { value: 'http://www.w3.org/ns/prov#Person', termType: 'NamedNode' }
+                },
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://www.w3.org/2000/01/rdf-schema#label', termType: 'NamedNode' },
+                    object: { value: 'Alice Smith', termType: 'Literal', datatype: { value: 'http://www.w3.org/2001/XMLSchema#string' } }
+                },
+                // Second label for same person (should survive round-trip)
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://www.w3.org/2000/01/rdf-schema#label', termType: 'NamedNode' },
+                    object: { value: 'Alicia', termType: 'Literal', datatype: { value: 'http://www.w3.org/2001/XMLSchema#string' } }
+                },
+                // Various datatypes
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://example.org/birthDate', termType: 'NamedNode' },
+                    object: { value: '1994-09-21', termType: 'Literal', datatype: { value: 'http://www.w3.org/2001/XMLSchema#date' } }
+                },
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://example.org/salary', termType: 'NamedNode' },
+                    object: { value: '75000', termType: 'Literal', datatype: { value: 'http://www.w3.org/2001/XMLSchema#integer' } }
+                },
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://example.org/rating', termType: 'NamedNode' },
+                    object: { value: '4.5', termType: 'Literal', datatype: { value: 'http://www.w3.org/2001/XMLSchema#decimal' } }
+                },
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://example.org/isActive', termType: 'NamedNode' },
+                    object: { value: 'true', termType: 'Literal', datatype: { value: 'http://www.w3.org/2001/XMLSchema#boolean' } }
+                },
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://example.org/email', termType: 'NamedNode' },
+                    object: { value: 'alice@example.com', termType: 'Literal', datatype: { value: 'http://www.w3.org/2001/XMLSchema#string' } }
+                },
+                // Object link
+                {
+                    subject: { value: 'http://example.org/person', termType: 'NamedNode' },
+                    predicate: { value: 'http://example.org/worksAt', termType: 'NamedNode' },
+                    object: { value: 'http://example.org/org', termType: 'NamedNode' }
+                }
+            ];
+
+            const context = { ex: 'http://example.org/' };
+
+            // Generate MDLD
+            const { text } = generate(quads, context);
+
+            // Parse it back
+            const result = parse(text, context);
+
+            // Verify all quads survive round-trip
+            // Two labels
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://www.w3.org/2000/01/rdf-schema#label', 'Alice Smith'),
+                'First label should survive round-trip');
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://www.w3.org/2000/01/rdf-schema#label', 'Alicia'),
+                'Second label should survive round-trip');
+
+            // Datatypes
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://example.org/birthDate', '1994-09-21'),
+                'Date should survive round-trip');
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://example.org/salary', '75000'),
+                'Integer should survive round-trip');
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://example.org/rating', '4.5'),
+                'Decimal should survive round-trip');
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://example.org/isActive', 'true'),
+                'Boolean should survive round-trip');
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://example.org/email', 'alice@example.com'),
+                'String literal should survive round-trip');
+
+            // Object link
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://example.org/worksAt', 'http://example.org/org'),
+                'Object link should survive round-trip');
+
+            // Types
+            assert(hasQuad(result.quads, 'http://example.org/org', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/ns/prov#Organization'),
+                'Organization type should survive round-trip');
+            assert(hasQuad(result.quads, 'http://example.org/person', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/ns/prov#Person'),
+                'Person type should survive round-trip');
+
+            // Count quads - should have exactly 11
+            assert(result.quads.length === 11, `Should have 11 quads after round-trip, got ${result.quads.length}`);
+        }
     }
 ];

@@ -1,5 +1,26 @@
 # MD-LD evolution
 
+## v.0.8.0 (2026-04-30)
+
+### Added
+- **Visual carrier styles** for improved readability:
+  - Numbers (integer/decimal/double/float): code spans `` `42` `` for monospace display
+  - Dates/DateTime: square brackets `[2024-01-01]` for consistency
+  - Booleans: bold **true**/**false** for visual emphasis
+  - Other literals: square brackets `[text]` (simple, readable)
+  - Multiline content: `~~~` fenced blocks with proper datatype annotations
+- **Label-in-heading enhancement**: When an entity has `rdfs:label`, the heading uses it as display text
+  - Example: `# ACME Inc. {=my:orgs/acme .prov:Organization label}`
+  - The "label" annotation indicates the heading carries the rdfs:label
+  - Label quads are excluded from body literals to avoid duplication
+- **rdfs:label for object links**: Object references use labels when available
+  - Example: `*ACME Inc.* {+my:orgs/acme ?worksAt}` instead of repeating the IRI
+- **Multiline literal escaping**: Fixed quote escaping in DataFactory for round-trip safety
+
+### Changed
+- `generate()` function now produces visually distinct output based on datatype
+- Improved round-trip safety for complex content with special characters
+
 ## v.0.7.0 (2026-03-23)
 
 ### BREAKING CHANGES

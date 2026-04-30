@@ -425,7 +425,34 @@ export function generateLiteralText(quad, context) {
         annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
     }
 
-    return `[${quad.object.value}] {${annotation}}\n`;
+    // Get clean value (handle both RDF/JS Literal objects and plain strings)
+    const rawValue = quad.object.value || quad.object;
+    const value = typeof rawValue === 'string' ? rawValue : String(rawValue);
+
+    // Get datatype for styling decisions
+    const datatype = quad.object.datatype?.value || '';
+
+    // Multiline: fenced block (safe for arbitrary content)
+    if (value.includes('\n')) {
+        return `~~~ {${annotation}}\n${value}\n~~~\n\n`;
+    }
+
+    // Numbers (integer, decimal, double, float): code spans
+    if (datatype.includes('integer') || datatype.includes('decimal') || datatype.includes('double') || datatype.includes('float')) {
+        return `\`${value}\` {${annotation}}\n`;
+    }
+
+    if (datatype.includes('date') || datatype.includes('time')) {
+        return `*${value}* {${annotation}}\n`;
+    }
+
+    // Booleans: bold (stands out visually)
+    if (datatype.includes('boolean')) {
+        return `**${value}** {${annotation}}\n`;
+    }
+
+    // Everything else (strings, dates, etc.): square brackets (simple, readable)
+    return `[${value}] {${annotation}}\n`;
 }
 
 export const generateObjectText = (quad, context, labelLookup = null) => {
@@ -437,6 +464,7 @@ export const generateObjectText = (quad, context, labelLookup = null) => {
         ? labelLookup.get(quad.object.value)
         : objShort;
 
+    // Object links: italic
     return `[${displayText}] {+${objShort} ?${predShort}}\n`;
 };
 

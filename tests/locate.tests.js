@@ -171,7 +171,7 @@ export const locateTests = [
 
             const location = locate(labelQuad, result.origin);
             assert(location, 'Should locate quad in generated MDLD');
-            assertEqual(location.carrierType, 'span');
+            assertEqual(location.carrierType, 'heading');
             assertEqual(location.value, 'Web Application');
             assertEqual(location.polarity, '+');
         }
