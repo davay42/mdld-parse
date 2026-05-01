@@ -240,6 +240,7 @@ Generate deterministic MDLD from RDF quads with visual styling.
 - Label-in-heading: Uses `rdfs:label` in subject headings when available
 - Multiple labels: First label in heading, additional labels rendered as literals
 - Round-trip safe: All data preserved through parse → generate → parse
+- Composable: `generate(parse(text))` extracts semantics; `parse(generate({quads}))` normalizes quads
 
 ### `generateNode({ quads, focusIRI, context })`
 
@@ -260,6 +261,32 @@ Generate node-centric MDLD showing all quads where a specific IRI appears in any
 **Safety rationale:** Prevents accidental rendering of entire databases on misspelled IRIs—critical for production use with LLM cost per token. Explicit emptiness signals "not found" to the caller.
 
 **Use case:** Perfect for exploring a specific node and all its relationships—where it appears as subject, object, predicate, type, or datatype. Creates an exhaustive view of everything related to the focus IRI. Ideal for node-centric knowledge graph explorers.
+
+### Composition Patterns
+
+With the named parameter API, `parse()` and `generate()` compose elegantly:
+
+```javascript
+import { parse, generate } from 'mdld-parse';
+
+// Pattern 1: Extract semantics from text (lossless round-trip)
+const extracted = generate(parse(text));
+// text → quads → normalized text (deterministic, canonical MDLD)
+
+// Pattern 2: Normalize external quads (ensures MDLD compatibility)
+const normalized = parse(generate({ quads: externalQuads, context }));
+// quads → text → validated quads (DataFactory-safe, no blank nodes)
+
+// Pattern 3: Focused node view
+const { quads } = parse(largeDocument);
+const nodeView = generateNode({ quads, focusIRI: 'http://example.org/alice' });
+// Full document → isolated node subgraph
+```
+
+**Benefits:**
+- **Extract**: `generate(parse(text))` = semantic extraction with visual styling
+- **Normalize**: `parse(generate({quads}))` = MDLD validation and DataFactory normalization
+- **Focus**: `generateNode` = safe node-centric exploration
 
 ### `locate(quad, origin)`
 

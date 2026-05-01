@@ -164,13 +164,14 @@ console.log(merged.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predi
 // ['article rdf:type Article', 'article author Bob', 'article status Published']
 ```
 
-### `generate(quads, context)`
+### `generate({ quads, context, primarySubject })`
 
-Generate deterministic MDLD from RDF quads.
+Generate deterministic MDLD from RDF quads with visual styling.
 
-**Parameters:**
-- `quads` (array) — Array of RDF/JS Quads to convert
+**Parameters (named object):**
+- `quads` (array, required) — Array of RDF/JS Quads to convert
 - `context` (object, optional) — Prefix mappings (default: `{}`)
+- `primarySubject` (string, optional) — IRI to place first in output (ensures round-trip safety)
 
 **Returns:** `{ text, context }`
 
@@ -195,8 +196,9 @@ const quads = [
   }
 ];
 
-const result = generate(quads, { 
-  ex: 'http://example.org/',
+const result = generate({ 
+  quads,
+  context: { ex: 'http://example.org/' }
 });
 
 console.log(result.text);

@@ -129,7 +129,7 @@ The **Primary Subject** is the first non-fragment subject declaration (`{=IRI}`)
 **API returns:**
 - `parse()`: `{ ..., primarySubject: string | null }`
 - `merge()`: `{ ..., primarySubjects: string[] }` (ordered by merge)
-- `generate(quads, context, primarySubject)`: Places primary subject first for round-trip safety
+- `generate({ quads, context, primarySubject })`: Places primary subject first for round-trip safety
 
 **Use cases:** Document identification, merge tracking, UI navigation, query optimization.
 

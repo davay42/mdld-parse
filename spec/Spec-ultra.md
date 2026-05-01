@@ -56,7 +56,7 @@ First non-fragment `{=IRI}` in document. Fixed once detected (never cleared on `
 
 **parse()**: Returns `primarySubject` (string IRI or null)
 **merge()**: Returns `primarySubjects` array (ordered by merge)
-**generate()**: Accepts `primarySubject` string IRI to place first (round-trip safety)
+**generate()**: Accepts `{ quads, context, primarySubject }` — places primary subject first for round-trip safety
 
 ## 7. Types
 
