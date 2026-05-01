@@ -25,7 +25,7 @@ import { DEFAULT_CONTEXT } from './constants.js';
  */
 export function render(mdld, options = {}) {
     // Phase 1: Parse MD-LD (reuse parser)
-    const parsed = parse(mdld, { context: options.context || {} });
+    const parsed = parse({ text: mdld, context: options.context || {} });
 
     // Phase 2: Build render state (includes quads for validation)
     const state = buildRenderState(parsed, options, mdld);
@@ -400,138 +400,175 @@ function renderBlock(block, state) {
 }
 
 /**
- * Render block content with inline carriers
+ * Render block content with inline carriers using position-based lookup
  */
 function renderBlockContent(block, state) {
-    if (!block.text) return;
+    if (!block.text || !block.carriers || block.carriers.length === 0) {
+        state.output.push(escapeHtml(block.text || ''));
+        return;
+    }
 
-    // Get inline carriers for this block
-    const carriers = block.carriers || [];
+    // Build position map: for each carrier, find where it appears in cleaned text
+    const carrierMap = buildCarrierPositionMap(block.text, block.carriers);
 
-    // Parse markdown with inline RDFa enrichment
-    const html = parseInlineMarkdown(block.text, carriers, state);
-
+    // Render text with carriers inserted at correct positions
+    const html = renderTextWithCarriers(block.text, carrierMap, state);
     state.output.push(html);
 }
 
 /**
- * Parse inline markdown and enrich with RDFa
+ * Build a map of carrier positions in the cleaned text
+ * Returns array of {pos, carrier} sorted by position
  */
-function parseInlineMarkdown(text, carriers, state) {
-    if (carriers.length === 0) {
-        return escapeHtml(text);
-    }
+function buildCarrierPositionMap(cleanedText, carriers) {
+    const positionMap = [];
 
-    let html = '';
-    let lastPos = 0;
+    for (const carrier of carriers) {
+        if (!carrier.text) continue;
 
-    // Sort carriers by their position in the original text
-    const sortedCarriers = carriers.sort((a, b) => a.range[0] - b.range[0]);
+        // Find where this carrier text appears in the cleaned text
+        let searchPos = 0;
+        let foundPos = cleanedText.indexOf(carrier.text, searchPos);
 
-    for (const carrier of sortedCarriers) {
-        // Find the markdown pattern for this carrier in the cleaned text
-        const pattern = getMarkdownPattern(carrier);
-        if (!pattern) continue;
-
-        const regex = new RegExp(pattern, 'g');
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-            // Check if this match corresponds to our carrier by content
-            if (match[1] === carrier.text) {
-                // Add text before the match
-                if (match.index > lastPos) {
-                    html += escapeHtml(text.substring(lastPos, match.index));
-                }
-
-                // Render the element with RDFa
-                const element = {
-                    type: carrier.type,
-                    content: carrier.text,
-                    url: carrier.url
-                };
-                html += renderMarkdownElement(element, carrier, state);
-
-                lastPos = match.index + match[0].length;
-                break; // Found the match, move to next carrier
+        // If found, record this position
+        if (foundPos !== -1) {
+            // Check if we already have this position (avoid duplicates)
+            const exists = positionMap.some(m => m.pos === foundPos && m.carrier === carrier);
+            if (!exists) {
+                positionMap.push({
+                    pos: foundPos,
+                    carrier: carrier,
+                    length: carrier.text.length
+                });
             }
         }
     }
 
+    // Sort by position to process in order
+    return positionMap.sort((a, b) => a.pos - b.pos);
+}
+
+/**
+ * Render text with carriers inserted at mapped positions
+ */
+function renderTextWithCarriers(text, carrierMap, state) {
+    if (carrierMap.length === 0) {
+        return escapeHtml(text);
+    }
+
+    let html = '';
+    let pos = 0;
+
+    for (const mapping of carrierMap) {
+        // Add text before carrier
+        if (mapping.pos > pos) {
+            html += escapeHtml(text.substring(pos, mapping.pos));
+        }
+
+        // Render carrier with RDFa
+        html += renderCarrier(mapping.carrier, state);
+
+        // Move position past carrier
+        pos = mapping.pos + mapping.length;
+    }
+
     // Add remaining text
-    if (lastPos < text.length) {
-        html += escapeHtml(text.substring(lastPos));
+    if (pos < text.length) {
+        html += escapeHtml(text.substring(pos));
     }
 
     return html;
 }
 
 /**
- * Get markdown pattern for a carrier type
+ * Parse inline markdown using carrier positions instead of regex
+ * This is more reliable since we have exact position data from parsing
  */
-function getMarkdownPattern(carrier) {
-    switch (carrier.type) {
-        case 'emphasis':
-            return /\*([^\*]+)\*/;
-        case 'strong':
-            return /\*\*([^\*]+)\*\*/;
-        case 'code':
-            return /`([^`]+)`/;
-        case 'link':
-            return /\[([^\]]+)\]\(([^)]+)\)/;
-        case 'angle-link':
-            return /<([^>]+)>/;
-        default:
-            return null;
+function parseInlineMarkdown(text, carriers, blockRange, state) {
+    if (carriers.length === 0) {
+        return escapeHtml(text);
     }
+
+    let html = '';
+    let pos = 0;
+
+    // Sort carriers by their position in the cleaned text
+    // Need to map from source range to cleaned text position
+    const sortedCarriers = carriers
+        .map(carrier => ({
+            ...carrier,
+            cleanedStart: estimateCleanedPosition(carrier, blockRange)
+        }))
+        .filter(c => c.cleanedStart !== -1)
+        .sort((a, b) => a.cleanedStart - b.cleanedStart);
+
+    for (const carrier of sortedCarriers) {
+        const start = carrier.cleanedStart;
+        const end = start + carrier.text.length;
+
+        // Add text before the carrier
+        if (start > pos) {
+            html += escapeHtml(text.substring(pos, start));
+        }
+
+        // Render the carrier with RDFa
+        html += renderCarrier(carrier, state);
+
+        pos = end;
+    }
+
+    // Add remaining text
+    if (pos < text.length) {
+        html += escapeHtml(text.substring(pos));
+    }
+
+    return html;
 }
 
 /**
- * Render markdown element with RDFa attributes
+ * Estimate where a carrier appears in the cleaned text
+ * This is approximate but avoids complex offset tracking
  */
-function renderMarkdownElement(element, carrier, state) {
-    const rdfaAttrs = carrier ? buildRDFaAttrsFromCarrier(carrier, element, state) : '';
+function estimateCleanedPosition(carrier, blockRange) {
+    // For now, assume carrier.text is still searchable in the cleaned output
+    // This works because we preserve word content, just remove annotations
+    // A more robust version would track offsets during text cleaning
+    if (!carrier.text) return -1;
+    return carrier.cleanedStart !== undefined ? carrier.cleanedStart : -1;
+}
 
-    switch (element.type) {
-        case 'code':
-            return `<code${rdfaAttrs}>${escapeHtml(element.content)}</code>`;
-        case 'link':
-            return `<a href="${escapeHtml(element.url)}"${rdfaAttrs}>${escapeHtml(element.content)}</a>`;
-        case 'angle-link':
-            return `<a href="${escapeHtml(element.url)}"${rdfaAttrs}>${escapeHtml(element.content)}</a>`;
-        case 'strong':
-            return `<strong${rdfaAttrs}>${escapeHtml(element.content)}</strong>`;
+/**
+ * Render a single carrier with RDFa and markdown formatting
+ */
+function renderCarrier(carrier, state) {
+    const rdfaAttrs = buildRDFaAttrsFromCarrier(carrier, null, state);
+
+    // Render based on carrier type
+    switch (carrier.type) {
         case 'emphasis':
-            return `<em${rdfaAttrs}>${escapeHtml(element.content)}</em>`;
+            return `<em${rdfaAttrs}>${escapeHtml(carrier.text)}</em>`;
+        case 'strong':
+            return `<strong${rdfaAttrs}>${escapeHtml(carrier.text)}</strong>`;
+        case 'code':
+            return `<code${rdfaAttrs}>${escapeHtml(carrier.text)}</code>`;
+        case 'link':
+            return `<a href="${escapeHtml(carrier.url || '')}"${rdfaAttrs}>${escapeHtml(carrier.text)}</a>`;
         default:
-            return escapeHtml(element.content);
+            return escapeHtml(carrier.text);
     }
 }
 
 /**
  * Build RDFa attributes from carrier with optional quad validation
  */
-function buildRDFaAttrsFromCarrier(carrier, element, state) {
+function buildRDFaAttrsFromCarrier(carrier, state) {
     const attrs = [];
-    const trackableQuads = []; // Track which quads we render
+    const trackableQuads = [];
 
-    // Subject resolution based on carrier type and element
-    let subject = null;
+    // Resolve subject for the carrier
+    let subject = carrier.subject || state.currentSubject;
 
-    if (element.type === 'link' || element.type === 'angle-link') {
-        // For links: explicit subject > URL > current subject
-        if (carrier.subject && carrier.subject !== 'RESET') {
-            subject = carrier.subject;
-        } else if (element.url) {
-            subject = element.url;
-        } else {
-            subject = state.currentSubject;
-        }
-    } else {
-        // For other inline: use carrier subject or current subject
-        subject = carrier.subject || state.currentSubject;
-    }
-
-    // No subject = no RDFa (dangling annotation, won't generate quads)
+    // No subject = no RDFa (dangling annotation)
     if (!subject || subject === 'RESET' || subject.startsWith('=#') || subject.startsWith('+')) {
         return '';
     }
@@ -562,19 +599,16 @@ function buildRDFaAttrsFromCarrier(carrier, element, state) {
         attrs.push(`typeof="${escapeHtml(types)}"`);
     }
 
-    // Predicates using shared utility
+    // Predicates
     if (carrier.predicates && carrier.predicates.length > 0) {
         const { literalProps, objectProps, reverseProps } = processPredicates(carrier.predicates, state.ctx);
 
         if (literalProps.length > 0) {
             // Track literal property quads
-            if (state.strict && state.quads && element.content) {
+            if (state.strict && state.quads && carrier.text) {
                 literalProps.forEach(prop => {
                     const predNode = state.df.namedNode(expandIRI(prop, state.ctx));
-                    const objNode = state.df.literal(element.content);
-                    if (quadExists(state.quads, subjectNode, predNode, objNode)) {
-                        trackableQuads.push({ subject: subjectNode, predicate: predNode, object: objNode });
-                    }
+                    const objNode = state.df.literal(carrier.text);
                 });
             }
             attrs.push(`property="${escapeHtml(literalProps.join(' '))}"`);

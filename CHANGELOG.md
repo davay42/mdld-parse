@@ -1,5 +1,28 @@
 # MD-LD evolution
 
+## v.0.9.0 (2026-05-01)
+
+### BREAKING CHANGES (with backward compatibility)
+- **Unified named parameter API** for all core functions
+  - `parse({ text, context, dataFactory, graph })` — new primary signature
+  - `generate({ quads, context, primarySubject })` — unified object pattern
+  - `generateNode({ quads, focusIRI, context })` — safe node-centric generation
+  - Legacy positional signatures still work (deprecated, removed in v1.0.0)
+
+### Added
+- **Seamless composition** via object spreading:
+  ```js
+  generate({ ...parse({ text, context }) })
+  parse({ ...generate({ quads, context }) })
+  generateNode({ ...parse({ text }), focusIRI })
+  ```
+- `generateNode()` safety-first design: returns empty on missing IRI (prevents accidental LLM costs)
+
+### Changed
+- `parse()` now accepts named parameters `{ text, context, dataFactory, graph }`
+- `generate()` and `generateNode()` use unified object parameter pattern
+- All functions return shapes that compose via `{ ...spread }`
+
 ## v.0.8.0 (2026-04-30)
 
 ### Added

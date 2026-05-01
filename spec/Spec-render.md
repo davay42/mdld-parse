@@ -36,7 +36,7 @@ The render mirrors the parser's architecture:
 
 ```javascript
 // Reuse parser output for consistency
-const parsed = parse(mdld, { context: options.context || {} });
+const parsed = parse({ text: mdld, context: options.context || {} });
 ```
 
 **Input:** Valid MD-LD text  
@@ -1280,8 +1280,8 @@ describe('MD-LD Render', () => {
 
 ```javascript
 test('round-trip preservation', () => {
-    const mdld = '# Test {=ex:test .ex:Type label}';
-    const parsed = parse(mdld);
+    const mdld = '# Test {=tag:me@example.org,2026:test .prov:Entity label}';
+    const parsed = parse({text: mdld});
     const rendered = render(mdld);
     
     // Verify RDF semantics preserved
@@ -1407,20 +1407,6 @@ function escapeHtml(text) { /* ... */ }
 ---
 
 ## 16. Future Enhancements
-
-### 16.1 Streaming Rendering
-
-```javascript
-// Future: Incremental rendering for large documents
-function* renderStream(mdld, options) {
-    const parsed = parse(mdld, options);
-    const state = buildRenderState(parsed, options, mdld);
-    
-    for (const block of sortedBlocks) {
-        yield renderBlock(block, state);
-    }
-}
-```
 
 ### 16.2 Component-Based Rendering
 

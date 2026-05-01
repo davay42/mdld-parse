@@ -45,11 +45,19 @@ import {
 } from './shared.js';
 
 
-export function parse(text, options = {}) {
+export function parse(firstArg, secondArg = {}) {
+    // Dual-mode API: backward compatible with (text, options) and new ({ text, context, ... })
+    const isNamedParams = typeof firstArg === 'object' && firstArg !== null && 'text' in firstArg;
+
+    const text = isNamedParams ? firstArg.text : firstArg;
+    const options = isNamedParams
+        ? { context: firstArg.context, dataFactory: firstArg.dataFactory, graph: firstArg.graph }
+        : secondArg;
+
     const state = {
         ctx: { ...DEFAULT_CONTEXT, ...(options.context || {}) },
         df: options.dataFactory || DataFactory,
-        graph: DataFactory.namedNode(options.graph) || DataFactory.defaultGraph(),
+        graph: options.graph ? DataFactory.namedNode(options.graph) : DataFactory.defaultGraph(),
         quads: [],
         quadBuffer: new Map(),
         removeSet: new Set(),

@@ -28,11 +28,12 @@ This article explains the Primary Subject concept in MD-LD, which allows applica
 import { parse } from 'mdld-parse';
 
 const md = `[ex] <http://example.org/>
+[schema] <http://schema.org/>
 
 # Article {=ex:article .schema:Article label}
 [Understanding Primary Subjects] {schema:headline}`;
 
-const result = parse(md, { context: { ex: 'http://example.org/', schema: 'http://schema.org/' } });
+const result = parse({ text: md });
 
 console.log(result.primarySubject);
 // Output: http://example.org/article
@@ -178,7 +179,7 @@ const doc1 = `[blog] <https://example.com/blog/>
 # My First Post {=blog:post1 .schema:BlogPosting label}
 [Hello World] {schema:headline}`;
 
-const result1 = parse(doc1, { context: { blog: 'https://example.com/blog/', schema: 'http://schema.org/' } });
+const result1 = parse({ text: doc1, context: { blog: 'https://example.com/blog/', schema: 'http://schema.org/' } });
 console.log('Primary subject:', result1.primarySubject);
 // Output: https://example.com/blog/post1
 

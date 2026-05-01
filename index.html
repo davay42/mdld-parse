@@ -177,7 +177,7 @@
 
             try {
                 const startTime = performance.now();
-                const result = parse(input);
+                const result = parse({ text: input });
                 const duration = Math.round(performance.now() - startTime);
 
                 lastParse = { input, result };

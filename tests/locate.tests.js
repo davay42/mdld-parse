@@ -18,12 +18,14 @@ export const locateTests = [
     {
         name: 'Locate - Basic quad location with origin',
         fn: () => {
-            const mdld = `# Article {=ex:article .ex:Article}
+            const mdld = `[ex] <http://example.org/>
+            
+# Article {=ex:article .ex:Article}
 
 > Alice Smith {author}
 > 2024-01-01 {datePublished}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const authorQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/article' &&
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
@@ -45,12 +47,14 @@ export const locateTests = [
     {
         name: 'Locate - Auto-parse when origin not provided',
         fn: () => {
-            const mdld = `# Person {=ex:alice .ex:Person}
+            const mdld = `[ex] <http://example.org/>
+
+# Person {=ex:alice .ex:Person}
 
 > Alice Smith {name}
 > 25 {age ^^xsd:integer}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const aliceQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/alice' &&
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#name'
@@ -68,9 +72,11 @@ export const locateTests = [
     {
         name: 'Locate - Type annotation in heading',
         fn: () => {
-            const mdld = `# Document {=ex:doc .ex:Document .rdfs:label}`;
+            const mdld = `[ex] <http://example.org/>
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+# Document {=ex:doc .ex:Document label}`;
+
+            const result = parse({ text: mdld });
             const typeQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/doc' &&
                 q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
@@ -88,11 +94,13 @@ export const locateTests = [
     {
         name: 'Locate - Object reference in blockquote',
         fn: () => {
-            const mdld = `# Article {=ex:article .ex:Article}
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
 
 > alice {+ex:alice ?author}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const objectQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/article' &&
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
@@ -110,11 +118,13 @@ export const locateTests = [
     {
         name: 'Locate - Literal with datatype',
         fn: () => {
-            const mdld = `# Person {=ex:person .ex:Person}
+            const mdld = `[ex] <http://example.org/>
+
+# Person {=ex:person .ex:Person}
 
 > 25 {age ^^xsd:integer}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const ageQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/person' &&
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#age'
@@ -132,11 +142,13 @@ export const locateTests = [
     {
         name: 'Locate - Non-existent quad returns null',
         fn: () => {
-            const mdld = `# Article {=ex:article .ex:Article}
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
 
 > Alice Smith {author}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const fakeQuad = {
                 subject: { termType: 'NamedNode', value: 'http://example.org/nonexistent' },
                 predicate: { termType: 'NamedNode', value: 'http://schema.org/fake' },
@@ -166,7 +178,7 @@ export const locateTests = [
             ];
 
             const { text } = generate({ quads, context: { ex: 'http://example.org/' } });
-            const result = parse(text, { ex: 'http://example.org/' });
+            const result = parse({ text });
             const labelQuad = result.quads.find(q => q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label');
 
             const location = locate(labelQuad, result.origin);
@@ -182,11 +194,13 @@ export const locateTests = [
         name: 'Locate - Complex few-shot example (simplified)',
         fn: () => {
             // Use inline square brackets which work correctly with locate()
-            const mdld = `# Project Alpha {=ex:ProjectAlpha .ex:Project}
+            const mdld = `[ex] <http://example.org/>
+
+# Project Alpha {=ex:ProjectAlpha .ex:Project}
 
 [Design schema] {label}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const labelQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/ProjectAlpha' &&
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label'
@@ -204,11 +218,13 @@ export const locateTests = [
     {
         name: 'Locate - Multiple parameter patterns',
         fn: () => {
-            const mdld = `# Test {=ex:test .ex:Test}
+            const mdld = `[ex] <http://example.org/>
+
+# Test {=ex:test .ex:Test}
 
 > value {property} `;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const quad = result.quads[0];
 
             // Pattern 1: All parameters (new API)
@@ -225,11 +241,13 @@ export const locateTests = [
     {
         name: 'Locate - Range precision validation',
         fn: () => {
-            const mdld = `# Article {=ex:article .ex:Article}
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
 
 [Alice Smith] {author}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const authorQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/article' &&
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'

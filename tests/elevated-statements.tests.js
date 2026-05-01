@@ -27,7 +27,7 @@ export const elevatedStatementTests = [
 **Alice** {=ex:alice} knows **Bob** {?ex:knows +ex:bob}
 `;
 
-            const result = parse(markdown);
+            const result = parse({ text: markdown });
 
             assert(result.statements.length === 1, 'Should have 1 elevated statement');
 
@@ -59,7 +59,7 @@ export const elevatedStatementTests = [
 **Alice** {+ex:alice ?rdf:subject} *has name* {+ex:hasName ?rdf:predicate} **Alice** {rdf:object @en}
 `;
 
-            const result = parse(markdown);
+            const result = parse({ text: markdown });
 
             assert(result.statements.length === 2, 'Should have 2 elevated statements');
 
@@ -94,7 +94,7 @@ export const elevatedStatementTests = [
 // Missing rdf:object - should not be elevated
 `;
 
-            const result = parse(markdown);
+            const result = parse({ text: markdown });
 
             assert(result.statements.length === 2, 'Should have 2 elevated statements (incomplete ignored)');
 
@@ -127,7 +127,7 @@ Today [I] {+my:Alice ?rdf:subject} came to office a bit earlier and [talked for 
 Now **I** {=my:Alice} know **Claire** {+my:Claire ?foaf:knows}.
 `;
 
-            const result = parse(markdown);
+            const result = parse({ text: markdown });
 
             assert(result.statements.length === 2, 'Should have 2 elevated statements');
 

@@ -84,13 +84,15 @@ export const mergeTests = [
     {
         name: 'Primary subjects - ParseResult input',
         fn: () => {
-            const doc1 = parse(`[ex] <http://example.org/>
+            const doc1 = parse({
+                text: `[ex] <http://example.org/>
 # Doc1 {=ex:doc1}
-[Value] {label}`, { context: { ex: 'http://example.org/' } });
+[Value] {label}`});
 
-            const doc2 = parse(`[ex] <http://example.org/>
+            const doc2 = parse({
+                text: `[ex] <http://example.org/>
 # Doc2 {=ex:doc2}
-[Value] {label}`, { context: { ex: 'http://example.org/' } });
+[Value] {label}`});
 
             const result = merge([doc1, doc2],);
 
@@ -231,7 +233,7 @@ export const mergeTests = [
 # Employee {=my:emp456 .my:Employee}
 [Alice] {my:name}`;
 
-            const parsed = parse(md, { context: { my: 'tag:hr@example.com,2026:' } });
+            const parsed = parse({ text: md });
             const result = merge([parsed, md], { context: { my: 'tag:hr@example.com,2026:' } });
 
             assert(result.origin.documents.length === 2, `Should have 2 documents, got ${result.origin.documents.length}`);

@@ -110,7 +110,7 @@ Locate the origin entry for a quad using the lean origin system.
 ```javascript
 import { parse, locate } from 'mdld-parse';
 
-const result = parse(mdldText, { context: { ex: 'http://example.org/' } });
+const result = parse({ text: mdldText, context: { ex: 'http://example.org/' } });
 const quad = result.quads[0];
 
 const location = locate(quad, result.origin);
@@ -263,7 +263,7 @@ The lean origin system is optimized for performance:
 
 ```javascript
 // Performance characteristics
-const origin = parse(largeMarkdown).origin;
+const origin = parse({text: largeMarkdown}).origin;
 
 // O(1) lookup by quad
 const location = locate(quad, origin);
@@ -395,7 +395,7 @@ class MDLDEditor {
   }
 
   async parse(text) {
-    const result = parse(text, { context: this.context });
+    const result = parse({ text, context: this.context });
     this.origin = result.origin;
     this.quads = result.quads;
     this.render();

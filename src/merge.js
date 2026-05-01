@@ -20,7 +20,8 @@ function quadKey(quad) {
  */
 function normalizeInput(input, options, docContext) {
     if (typeof input === 'string') {
-        return parse(input, {
+        return parse({
+            text: input,
             ...options,
             context: { ...docContext, ...options.context }
         });

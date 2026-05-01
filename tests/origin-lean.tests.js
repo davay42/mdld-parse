@@ -18,12 +18,14 @@ export const originLeanTests = [
     {
         name: 'Origin Lean - Only quadIndex present',
         fn: () => {
-            const mdld = `# Article {=ex:article .ex:Article}
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
 
 > Alice Smith {author}
 > 2024-01-01 {datePublished}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
 
             assert(result.origin, 'Origin should exist');
             assert(result.origin.quadIndex instanceof Map, 'Origin should have quadIndex Map');
@@ -36,11 +38,13 @@ export const originLeanTests = [
     {
         name: 'Origin Lean - OriginEntry structure',
         fn: () => {
-            const mdld = `# Person {=ex:alice .ex:Person}
+            const mdld = `[ex] <http://example.org/>
+
+# Person {=ex:alice .ex:Person}
 
 > Alice Smith {name}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const nameQuad = result.quads.find(q =>
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#name'
             );
@@ -81,11 +85,13 @@ export const originLeanTests = [
     {
         name: 'Origin Lean - Multiple quads same block',
         fn: () => {
-            const mdld = `# Article {=ex:article .ex:Article .ex:PublishedContent}
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article .ex:PublishedContent}
 
 [Alice Smith] {author datePublished}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const authorQuad = result.quads.find(q =>
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
             );
@@ -106,12 +112,14 @@ export const originLeanTests = [
     {
         name: 'Origin Lean - Different carrier types',
         fn: () => {
-            const mdld = `# Document {=ex:doc .ex:Document .rdfs:label}
+            const mdld = `[ex] <http://example.org/>
+
+# Document {=ex:doc .ex:Document}
 
 [Design spec] {label}
 > alice {+ex:alice ?author}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const typeQuad = result.quads.find(q =>
                 q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
             );
@@ -136,11 +144,13 @@ export const originLeanTests = [
     {
         name: 'Origin Lean - Range precision',
         fn: () => {
-            const mdld = `# Article {=ex:article .ex:Article}
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
 
 > Alice Smith {author}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const authorQuad = result.quads.find(q =>
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
             );
@@ -167,7 +177,7 @@ export const originLeanTests = [
 
 > Alice Smith {author}`;
 
-            const result = parse(mdld);
+            const result = parse({ text: mdld });
             const authorQuad = result.quads.find(q =>
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
             );
@@ -183,13 +193,15 @@ export const originLeanTests = [
     {
         name: 'Origin Lean - Value field content',
         fn: () => {
-            const mdld = `# Person {=ex:person .ex:Person}
+            const mdld = `[ex] <http://example.org/>
+
+# Person {=ex:person .ex:Person}
 
 > Alice Smith {name}
 > 25 {age ^^xsd:integer}
 > alice {+ex:alice ?knows}`;
 
-            const result = parse(mdld, { context: { ex: 'http://example.org/' } });
+            const result = parse({ text: mdld });
             const nameQuad = result.quads.find(q =>
                 q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#name'
             );

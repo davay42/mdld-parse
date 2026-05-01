@@ -79,7 +79,7 @@ Now **I** {=my:Alice} know **Claire** {+my:Claire ?foaf:knows}.
 ```javascript
 import { parse } from 'mdld-parse';
 
-const result = parse(markdown);
+const result = parse({ text: `# Test {=tag:me@example.org,2026:test .prov:Entity label}`});
 console.log(result.quads);     // All quads including provenance
 console.log(result.statements); // Elevated SPO quads (detected during parsing)
 ```
@@ -99,7 +99,7 @@ Dashboard applications can:
 import { parse } from 'mdld-parse';
 
 function displayElevatedGraph(markdown) {
-    const result = parse(markdown);
+    const result = parse({text: markdown});
     
     // Display only elevated statements
     result.statements.forEach(quad => {

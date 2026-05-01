@@ -40,7 +40,7 @@ MD-LD includes a **sophisticated polarity system** that enables diff authoring a
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.object.value} ${q.predicate.value}`));
 // ['Bob http://www.w3.org/2000/01/rdf-schema#label']
 console.log(result.remove.length); // 0 (cancelled in-stream)
@@ -60,7 +60,7 @@ console.log(result.remove.length); // 0 (cancelled in-stream)
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value.split('/').pop()}`));
 // ['doc author bob']
 console.log(result.remove.length); // 0 (cancelled in-stream)
@@ -83,7 +83,7 @@ Child is not [Bob] {+ex:bob -!ex:hasParent}, it's [Bryan] {+ex:bryan !ex:hasPare
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value.split('/').pop()}`));
 // ['alice rdf:type prov#Person', 'alice label Alice', 'bryan hasParent alice']
 console.log(result.remove.length); // 0 (cancelled in-stream)
@@ -114,7 +114,7 @@ The child is not [Bob] {+ex:bob -!ex:hasParent}, it's [Bryan] {+ex:bryan !ex:has
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} rdf:type ${q.object.value.split('/').pop()}`));
 // ['alice rdf:type prov#Person', 'alice rdf:type Unemployed']
 console.log(result.remove.length); // 0 (cancelled in-stream)
@@ -142,7 +142,7 @@ Combine add and remove operations in single annotation:
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
 // ['doc rdf:type http://example.org/Published', 'doc http://example.org/version 2.0']
 console.log(result.remove.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value}`));
@@ -164,7 +164,7 @@ When removing non-existent triples, they become external retractions:
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.object.value} ${q.predicate.value}`));
 // ['Bob http://www.w3.org/2000/01/rdf-schema#author']
 console.log(result.remove.map(q => `${q.object.value} ${q.predicate.value}`));
@@ -345,7 +345,7 @@ Build retraction chains for complex changes:
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.object.value} ${q.predicate.value}`));
 // ['Version 3 http://www.w3.org/2000/01/rdf-schema#title']
 ```
@@ -371,7 +371,7 @@ Child: [Bob] {+ex:bob !ex:hasParent}
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value.split('/').pop()}`));
 // ['john rdf:type Person', 'grandparent hasParent john']
 ```
@@ -397,7 +397,7 @@ Team: [Platform] {+org:platform !org:hasTeam}
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predicate.value} ${q.object.value.split('/').pop()}`));
 // ['jane rdf:type Person', 'research hasDepartment jane']
 ```
@@ -424,7 +424,7 @@ When positive and negative triples match exactly within the same document:
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.length);    // 2 (type + final jobTitle)
 console.log(result.remove.length);    // 0 (empty - no external retractions)
 ```
@@ -443,7 +443,7 @@ When negative triples don't find matching positives in the current document:
 
 **Result:**
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 console.log(result.quads.length);    // 2 (type + Senior Software Engineer)
 console.log(result.remove.length);    // 1 (Software Engineer retract)
 ```
@@ -476,7 +476,7 @@ console.log(merged.remove);  // [] - Empty after resolution
 The system maintains the hard invariant: **quads ∩ remove = ∅**
 
 ```javascript
-const result = parse(markdown);
+const result = parse({ text: markdown });
 
 // This is always true:
 const overlap = result.quads.some(quad =>
@@ -557,13 +557,12 @@ const migrated = merge([old, migration]);
 ## API Reference
 
 ```javascript
-const result = parse(markdown, options);
+const result = parse({ text: markdown, context, dataFactory, graph });
 
 // Final resolved graph state
 console.log(result.quads);    // Array of RDF/JS Quads
-
-// External retractions for merge resolution
-console.log(result.remove);   // Array of RDF/JS Quads
+console.log(result.remove);   // Array of RDF/JS Quads (external retractions only)
+console.log(result.origin);   // Lean origin tracking for UI navigation
 
 // Origin tracking includes polarity info
 const location = locate(quad, result.origin);

@@ -87,7 +87,8 @@ import { parse } from 'mdld-parse';
 const markdown = `# Document {=ex:doc .Article}
 [Alice] {author}`;
 
-const result = parse(markdown, {
+const result = parse({
+  text: markdown,
   context: { ex: 'http://example.org/' }
 });
 
@@ -188,17 +189,19 @@ Declare resources inline with `{=iri}`:
 
 ## 🔧 API Reference
 
-### `parse(markdown, options)`
+### `parse({ text, context, dataFactory, graph })`
 
 Parse MD-LD markdown and return RDF quads with lean origin tracking.
 
-**Parameters:**
-- `markdown` (string) — MD-LD formatted text
-- `options` (object, optional):
-  - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
-  - `dataFactory` (object) — Custom RDF/JS DataFactory
+**Parameters (named object):**
+- `text` (string, required) — MD-LD formatted text
+- `context` (object, optional) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
+- `dataFactory` (object, optional) — Custom RDF/JS DataFactory
+- `graph` (string, optional) — Named graph IRI
 
 **Returns:** `{ quads, remove, statements, origin, context, primarySubject }`
+
+> **Legacy:** `parse(text, options)` still works for backward compatibility
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
@@ -264,29 +267,29 @@ Generate node-centric MDLD showing all quads where a specific IRI appears in any
 
 ### Composition Patterns
 
-With the named parameter API, `parse()` and `generate()` compose elegantly:
+With the unified named parameter API, `parse()` and `generate()` compose seamlessly through object spreading:
 
 ```javascript
-import { parse, generate } from 'mdld-parse';
+import { parse, generate, generateNode } from 'mdld-parse';
 
-// Pattern 1: Extract semantics from text (lossless round-trip)
-const extracted = generate(parse(text));
-// text → quads → normalized text (deterministic, canonical MDLD)
+// Pattern 1: parse → generate (semantic extraction)
+const canonical = generate({ ...parse({ text, context }) });
+// text → quads → canonical MDLD (deterministic, visual styling applied)
 
-// Pattern 2: Normalize external quads (ensures MDLD compatibility)
-const normalized = parse(generate({ quads: externalQuads, context }));
-// quads → text → validated quads (DataFactory-safe, no blank nodes)
+// Pattern 2: generate → parse (normalize external RDF)
+const normalized = parse({ ...generate({ quads: externalQuads, context }) });
+// external quads → MDLD → validated quads (DataFactory-safe, no blank nodes)
 
-// Pattern 3: Focused node view
-const { quads } = parse(largeDocument);
-const nodeView = generateNode({ quads, focusIRI: 'http://example.org/alice' });
-// Full document → isolated node subgraph
+// Pattern 3: parse → generateNode (node-centric exploration)
+const nodeView = generateNode({ ...parse({ text }), focusIRI: 'http://example.org/alice' });
+// full graph → isolated node view (safe: returns empty if IRI not found)
 ```
 
-**Benefits:**
-- **Extract**: `generate(parse(text))` = semantic extraction with visual styling
-- **Normalize**: `parse(generate({quads}))` = MDLD validation and DataFactory normalization
-- **Focus**: `generateNode` = safe node-centric exploration
+**Why this works:**
+- `parse()` returns `{ quads, context, primarySubject, ... }`
+- `generate()` accepts `{ quads, context, primarySubject }`
+- `generateNode()` accepts `{ quads, context, focusIRI }` (with focusIRI override)
+- Perfect shape alignment enables elegant `{ ...spread }` composition
 
 ### `locate(quad, origin)`
 

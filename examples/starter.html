@@ -25,7 +25,7 @@
         {
             "imports": {
                 "vue": "https://esm.sh/vue@3.6.0-beta.10/dist/vue.esm-browser.prod.js",
-                "mdld-parse": "https://esm.sh/mdld-parse@0.7.0",
+                "mdld-parse": "https://esm.sh/mdld-parse@0.9.0",
                 "n3": "https://esm.sh/n3@2.0.1",
                 "@unocss/runtime": "https://esm.sh/@unocss/runtime@66.6.7"
             }
@@ -255,7 +255,7 @@
                     // Parse current document to see if user is already defined
                     if (mdldText.value.trim()) {
                         try {
-                            const result = parse(mdldText.value);
+                            const result = parse({ text: mdldText.value });
                             const userQuads = result.quads.filter(q =>
                                 q.object.value === 'http://www.w3.org/ns/prov#Agent' ||
                                 q.object.value === 'http://www.w3.org/ns/prov#Person'
@@ -343,7 +343,7 @@ The primary user who owns and manages this todo list is **${userName}** {=todo:u
                 // Parse MDLD to reconstruct state from append-only log
                 const parseMdld = (text) => {
                     try {
-                        const result = parse(text);
+                        const result = parse({ text });
                         const tasks = {};
                         let documentLabel = '';
                         let documentComment = '';

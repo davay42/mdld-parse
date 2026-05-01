@@ -4,22 +4,25 @@ Complete API documentation for MD-LD parser with tested examples.
 
 ## Core Functions
 
-### `parse(markdown, options)`
+### `parse({ text, context, dataFactory, graph })`
 
-Parse MD-LD markdown and return RDF quads with lean origin tracking.
+Parse MD-LD markdown and return RDF quads.
 
-**Parameters:**
-- `markdown` (string) — MD-LD formatted text
-- `options` (object, optional):
-  - `context` (object) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
-  - `dataFactory` (object) — Custom RDF/JS DataFactory
+**Parameters (named object):**
+- `text` (string, required) — MD-LD formatted text
+- `context` (object, optional) — Prefix mappings (default: `{}`)
+- `dataFactory` (object, optional) — Custom RDF/JS DataFactory
+- `graph` (string, optional) — Named graph IRI
 
-**Returns:** `{ quads, remove, origin, context }`
+**Returns:** `{ quads, context, primarySubject, origin, remove, statements }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
+- `primarySubject` — String IRI or null (first non-fragment subject declaration)
+
+> Legacy: `parse(text, options)` supported for backward compatibility (deprecated)
 
 #### Basic Example
 
@@ -66,13 +69,13 @@ console.log(result.quads);
 #### Polarity Example
 
 ```javascript
-const result = parse(
-  `# Article {=ex:article .ex:Article}
+const result = parse({ 
+  text: `# Article {=ex:article .ex:Article}
   
-  [Alice] {=ex:alice ?author}
-  [Bob] {-ex:author}`,  // Remove previous author
-  { context: { ex: 'http://example.org/' } }
-);
+[Bob] {+ex:bob -?ex:author} is not an author of this article, it's [Alice] {+ex:alice ?ex:author}.
+`,  // Remove previous author
+  context: { ex: 'http://example.org/' } 
+});
 
 console.log(result.quads);
 // [
@@ -95,10 +98,10 @@ console.log(result.remove);
 #### External Retraction Example
 
 ```javascript
-const result2 = parse(
+const result2 = parse({ text:
   `# Article {=ex:article}
-  [Alice] {-ex:author}`,  // External retract (Alice not in current state)
-  { context: { ex: 'http://example.org/' } }
+  [Alice] {+ex:alice -?ex:author}`,  // External retract (Alice not in current state)
+   context: { ex: 'http://example.org/' } }
 );
 
 console.log(result2.remove);
@@ -231,7 +234,7 @@ Locate the origin entry for a quad using the lean origin system.
 ```javascript
 import { parse, locate } from 'mdld-parse';
 
-const result = parse(mdldText, { context: { ex: 'http://example.org/' } });
+const result = parse({ text: mdldText,  context: { ex: 'http://example.org/' } });
 const quad = result.quads[0]; // Find a quad to locate
 
 const location = locate(quad, result.origin);
@@ -261,7 +264,7 @@ Render RDF quads as HTML+RDFa for web display.
 ```javascript
 import { parse, render } from 'mdld-parse';
 
-const result = parse(mdldText);
+const result = parse({ text: mdldText});
 const rendered = render(result.quads, { ex: 'http://example.org/' });
 
 console.log(rendered.html);
@@ -347,7 +350,7 @@ The parser provides clear error messages with line numbers:
 
 ```javascript
 try {
-  const result = parse(invalidMarkdown);
+  const result = parse({text:invalidMarkdown});
 } catch (error) {
   console.error(error.message); // "Invalid annotation at line 5: ..."
 }
