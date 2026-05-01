@@ -165,7 +165,7 @@ export const locateTests = [
                 }
             ];
 
-            const { text } = generate(quads, { ex: 'http://example.org/' });
+            const { text } = generate({ quads, context: { ex: 'http://example.org/' } });
             const result = parse(text, { ex: 'http://example.org/' });
             const labelQuad = result.quads.find(q => q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label');
 

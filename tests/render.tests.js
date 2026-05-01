@@ -50,7 +50,8 @@ const renderTests = [
   {
     name: 'Basic subject and type with valid HTML',
     fn: () => {
-      const md = `# Document {=ex:doc .Document}`;
+      const md = `[ex] <tag:me@example.org,2026:>
+# Document {=ex:doc .Document}`;
       const result = render(md);
 
       // Validate overall structure
@@ -71,7 +72,9 @@ const renderTests = [
   {
     name: 'Multiple semantic blocks with proper nesting',
     fn: () => {
-      const md = `# Document {=ex:doc .Article}
+      const md = `[ex] <http://example.org/>
+      
+# Document {=ex:doc .Article}
 
 # Section 1 {=ex:section1 .Section}
 
@@ -103,7 +106,8 @@ const renderTests = [
   {
     name: 'RDFa context completeness',
     fn: () => {
-      const md = `# Test {=ex:test .Thing}`;
+      const md = `[ex] <http://example.org/>
+# Test {=ex:test .Thing}`;
       const result = render(md);
 
       // Validate all required RDFa prefixes are present
@@ -126,7 +130,9 @@ const renderTests = [
   {
     name: 'HTML attribute quoting and escaping',
     fn: () => {
-      const md = `# "Special & Chars" {=ex:test .Thing}`;
+      const md = `[ex] <http://example.org/>
+      
+# "Special & Chars" {=ex:test .Thing}`;
       const result = render(md);
 
       // Validate HTML escaping

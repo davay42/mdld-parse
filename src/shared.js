@@ -213,7 +213,7 @@ export function calcCarrierRanges(match, baseOffset, matchStart) {
     const attrsEnd = attrsStart + match[2].length + 2; // +2 for { and }
     return {
         valueRange: [valueStart, valueEnd],
-        attrsRange: [attrsStart + 1, attrsEnd - 1], // Exclude braces
+        attrsRange: [attrsStart, attrsEnd], // Include braces
         range: [baseOffset + matchStart, attrsEnd],
         pos: matchStart + match[0].length // pos should be relative to current text, not document
     };
@@ -225,11 +225,25 @@ export function extractCleanText(token) {
 
     let text = token.text;
 
-    // Remove semantic annotations
+    // Remove block-level semantic annotations
     if (token.attrsRange) {
         const beforeAttrs = text.substring(0, token.attrsRange[0] - (token.range?.[0] || 0));
         const afterAttrs = text.substring(token.attrsRange[1] - (token.range?.[0] || 0));
         text = beforeAttrs + afterAttrs;
+    }
+
+    // Remove inline carrier annotations
+    const carriers = token._carriers || [];
+    const inlineRanges = carriers
+        .filter(carrier => carrier.attrsRange)
+        .map(carrier => carrier.attrsRange.map(pos => pos - (token.range?.[0] || 0)))
+        .filter(([start, end]) => start >= 0 && end <= text.length)
+        .sort((a, b) => b[0] - a[0]);
+
+    for (const [relativeStart, relativeEnd] of inlineRanges) {
+        const before = text.substring(0, relativeStart);
+        const after = text.substring(relativeEnd);
+        text = before + after;
     }
 
     // Clean based on token type

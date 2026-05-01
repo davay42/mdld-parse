@@ -37,14 +37,46 @@ export function extractLocalName(iri, ctx = {}) {
  * Input: RDF quads + context + optional primarySubject (string IRI)
  * Output: MDLD text
  */
-export function generate(quads, context = {}, primarySubject = null) {
+export function generate({ quads, context = {}, primarySubject = null }) {
     const fullContext = { ...DEFAULT_CONTEXT, ...context };
 
     const normalizedQuads = normalizeAndSortQuads(quads);
 
     const subjectGroups = groupQuadsBySubject(normalizedQuads);
 
-    const { text } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject);
+    // Fallback: if no primarySubject provided, use first subject from quads
+    let effectivePrimary = primarySubject;
+    if (!effectivePrimary && normalizedQuads.length > 0) {
+        effectivePrimary = normalizedQuads[0].subject.value;
+    }
+
+    const { text } = buildDeterministicMDLD(subjectGroups, fullContext, effectivePrimary);
+
+    return { text, context: fullContext };
+}
+
+/**
+ * Generate node-centric MDLD showing all quads where a specific IRI appears
+ * in any position: subject, object, predicate, type, or datatype.
+ * Perfect for exploring individual nodes and their complete relationship graph.
+ */
+export function generateNode({ quads, focusIRI, context = {} }) {
+    // Validate: must have quads and a focus IRI
+    if (!quads?.length || !focusIRI) {
+        return { text: '', context: { ...DEFAULT_CONTEXT, ...context } };
+    }
+
+    const fullContext = { ...DEFAULT_CONTEXT, ...context };
+    const normalizedQuads = normalizeAndSortQuads(quads);
+    const nodeGroups = groupQuadsByNode(normalizedQuads);
+
+    // SAFETY: If focusIRI not in graph, return empty - NEVER fall back to all data
+    // This prevents accidental rendering of entire databases on misspelled IRIs
+    if (!nodeGroups.has(focusIRI)) {
+        return { text: '', context: fullContext };
+    }
+
+    const { text } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI);
 
     return { text, context: fullContext };
 }
@@ -86,6 +118,42 @@ function groupQuadsBySubject(quads) {
     return groups;
 }
 
+function groupQuadsByNode(quads) {
+    const groups = new Map();
+    const RDFS_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+
+    const ensure = (key) => {
+        if (!groups.has(key)) groups.set(key, []);
+        return groups.get(key);
+    };
+
+    for (const quad of quads) {
+        const { subject, predicate, object } = quad;
+
+        // 1. Subject (direct properties)
+        ensure(subject.value).push(quad);
+
+        // 2. Object (reverse relations - where this IRI is pointed to)
+        if (object.termType === 'NamedNode') {
+            ensure(object.value).push(quad);
+        }
+
+        // 3. Predicate (where this IRI is used as a property)
+        ensure(predicate.value).push(quad);
+
+        // 4. Type (instances - where this IRI is the class/type)
+        if (predicate.value === RDFS_TYPE && object.termType === 'NamedNode') {
+            ensure(object.value).push(quad);
+        }
+
+        // 5. Datatype (literals using this as their type)
+        if (object.termType === 'Literal' && object.datatype) {
+            ensure(object.datatype.value || object.datatype).push(quad);
+        }
+    }
+    return groups;
+}
+
 function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
     let text = '';
     const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
@@ -117,6 +185,9 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
 
     for (const subjectIRI of orderedSubjects) {
         const subjectQuads = subjectGroups.get(subjectIRI);
+        // Skip if subject not found in groups (e.g., primarySubject provided but no quads for it)
+        if (!subjectQuads) continue;
+
         const shortSubject = shortenIRI(subjectIRI, context);
 
         // Separate types, literals, and objects using shared utility

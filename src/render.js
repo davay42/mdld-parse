@@ -19,15 +19,15 @@ import { DEFAULT_CONTEXT } from './constants.js';
  * @param {Object} options - Rendering options
  * @param {Object} options.context - Additional context prefixes
  * @param {string} options.baseIRI - Base IRI for relative URLs
- * @param {boolean} options.validate - Enable validation
+ * @param {boolean} options.strict - Enable strict quad-RDFa correspondence checking
  * @param {boolean} options.pretty - Pretty print output
- * @returns {Object} Render result with HTML and metadata
+ * @returns {Object} Render result with HTML, metadata, and optional quad mapping
  */
 export function render(mdld, options = {}) {
     // Phase 1: Parse MD-LD (reuse parser)
     const parsed = parse(mdld, { context: options.context || {} });
 
-    // Phase 2: Build render state
+    // Phase 2: Build render state (includes quads for validation)
     const state = buildRenderState(parsed, options, mdld);
 
     // Phase 3: Render blocks to HTML
@@ -36,15 +36,27 @@ export function render(mdld, options = {}) {
     // Phase 4: Wrap with RDFa context
     const wrapped = wrapWithRDFaContext(html, state.ctx);
 
-    return {
+    const result = {
         html: wrapped,
         context: state.ctx,
         metadata: {
             blockCount: parsed.origin.blocks.size,
             quadCount: parsed.quads.length,
+            renderedRDFaCount: state.renderedRDFaCount || 0,
             renderTime: Date.now()
         }
     };
+
+    // Add quad mapping if requested
+    if (options.strict) {
+        result.quadMap = state.quadMap || [];
+        result.validation = {
+            allQuadsRendered: (state.quadMap || []).length === parsed.quads.length,
+            orphanedQuads: identifyOrphanedQuads(parsed.quads, state.quadMap || [])
+        };
+    }
+
+    return result;
 }
 
 /**
@@ -63,8 +75,37 @@ function buildRenderState(parsed, options, mdld) {
         currentSubject: null,
         documentSubject: null,
         blockStack: [],
-        carrierStack: []
+        carrierStack: [],
+        // Quad tracking for 1-1 correspondence
+        quads: parsed.quads,
+        quadMap: options.strict ? [] : null, // Maps rendered RDFa to quads
+        renderedRDFaCount: 0,
+        strict: options.strict || false
     };
+}
+
+/**
+ * Helper: Check if a quad exists in the quads array
+ */
+function quadExists(quads, subject, predicate, object) {
+    return quads.some(q =>
+        q.subject.equals(subject) &&
+        q.predicate.equals(predicate) &&
+        q.object.equals(object)
+    );
+}
+
+/**
+ * Helper: Identify quads that weren't rendered
+ */
+function identifyOrphanedQuads(allQuads, renderedQuads) {
+    const renderedKeys = new Set(renderedQuads.map(qm =>
+        `${qm.subject.value}|${qm.predicate.value}|${qm.object.value}`
+    ));
+
+    return allQuads.filter(q =>
+        !renderedKeys.has(`${q.subject.value}|${q.predicate.value}|${q.object.value}`)
+    );
 }
 
 /**
@@ -311,6 +352,11 @@ function parseMarkdownList(markdownList, blocks, state) {
  * Render a single block
  */
 function renderBlock(block, state) {
+    // Update current subject context
+    if (block.subject && block.subject !== 'RESET') {
+        state.currentSubject = block.subject;
+    }
+
     const attrs = buildRDFaAttrsFromBlock(block, state.ctx);
 
     switch (block.type || block.carrierType) {
@@ -357,26 +403,197 @@ function renderBlock(block, state) {
  * Render block content with inline carriers
  */
 function renderBlockContent(block, state) {
-    // Extract text from source using range information
-    if (block.range && state.sourceText) {
-        let text = state.sourceText.substring(block.range.start, block.range.end);
+    if (!block.text) return;
 
-        // Remove semantic block annotations from the text
-        if (block.attrsRange) {
-            const beforeAttrs = text.substring(0, block.attrsRange.start - block.range.start);
-            const afterAttrs = text.substring(block.attrsRange.end - block.range.start);
-            text = beforeAttrs + afterAttrs;
-        }
+    // Get inline carriers for this block
+    const carriers = block.carriers || [];
 
-        // For headings, extract text content from the heading
-        if (block.carrierType === 'heading') {
-            // Remove heading markers (#) and trim
-            const content = text.replace(/^#+\s*/, '').trim();
-            state.output.push(escapeHtml(content));
-        } else {
-            state.output.push(escapeHtml(text.trim()));
+    // Parse markdown with inline RDFa enrichment
+    const html = parseInlineMarkdown(block.text, carriers, state);
+
+    state.output.push(html);
+}
+
+/**
+ * Parse inline markdown and enrich with RDFa
+ */
+function parseInlineMarkdown(text, carriers, state) {
+    if (carriers.length === 0) {
+        return escapeHtml(text);
+    }
+
+    let html = '';
+    let lastPos = 0;
+
+    // Sort carriers by their position in the original text
+    const sortedCarriers = carriers.sort((a, b) => a.range[0] - b.range[0]);
+
+    for (const carrier of sortedCarriers) {
+        // Find the markdown pattern for this carrier in the cleaned text
+        const pattern = getMarkdownPattern(carrier);
+        if (!pattern) continue;
+
+        const regex = new RegExp(pattern, 'g');
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            // Check if this match corresponds to our carrier by content
+            if (match[1] === carrier.text) {
+                // Add text before the match
+                if (match.index > lastPos) {
+                    html += escapeHtml(text.substring(lastPos, match.index));
+                }
+
+                // Render the element with RDFa
+                const element = {
+                    type: carrier.type,
+                    content: carrier.text,
+                    url: carrier.url
+                };
+                html += renderMarkdownElement(element, carrier, state);
+
+                lastPos = match.index + match[0].length;
+                break; // Found the match, move to next carrier
+            }
         }
     }
+
+    // Add remaining text
+    if (lastPos < text.length) {
+        html += escapeHtml(text.substring(lastPos));
+    }
+
+    return html;
+}
+
+/**
+ * Get markdown pattern for a carrier type
+ */
+function getMarkdownPattern(carrier) {
+    switch (carrier.type) {
+        case 'emphasis':
+            return /\*([^\*]+)\*/;
+        case 'strong':
+            return /\*\*([^\*]+)\*\*/;
+        case 'code':
+            return /`([^`]+)`/;
+        case 'link':
+            return /\[([^\]]+)\]\(([^)]+)\)/;
+        case 'angle-link':
+            return /<([^>]+)>/;
+        default:
+            return null;
+    }
+}
+
+/**
+ * Render markdown element with RDFa attributes
+ */
+function renderMarkdownElement(element, carrier, state) {
+    const rdfaAttrs = carrier ? buildRDFaAttrsFromCarrier(carrier, element, state) : '';
+
+    switch (element.type) {
+        case 'code':
+            return `<code${rdfaAttrs}>${escapeHtml(element.content)}</code>`;
+        case 'link':
+            return `<a href="${escapeHtml(element.url)}"${rdfaAttrs}>${escapeHtml(element.content)}</a>`;
+        case 'angle-link':
+            return `<a href="${escapeHtml(element.url)}"${rdfaAttrs}>${escapeHtml(element.content)}</a>`;
+        case 'strong':
+            return `<strong${rdfaAttrs}>${escapeHtml(element.content)}</strong>`;
+        case 'emphasis':
+            return `<em${rdfaAttrs}>${escapeHtml(element.content)}</em>`;
+        default:
+            return escapeHtml(element.content);
+    }
+}
+
+/**
+ * Build RDFa attributes from carrier with optional quad validation
+ */
+function buildRDFaAttrsFromCarrier(carrier, element, state) {
+    const attrs = [];
+    const trackableQuads = []; // Track which quads we render
+
+    // Subject resolution based on carrier type and element
+    let subject = null;
+
+    if (element.type === 'link' || element.type === 'angle-link') {
+        // For links: explicit subject > URL > current subject
+        if (carrier.subject && carrier.subject !== 'RESET') {
+            subject = carrier.subject;
+        } else if (element.url) {
+            subject = element.url;
+        } else {
+            subject = state.currentSubject;
+        }
+    } else {
+        // For other inline: use carrier subject or current subject
+        subject = carrier.subject || state.currentSubject;
+    }
+
+    // No subject = no RDFa (dangling annotation, won't generate quads)
+    if (!subject || subject === 'RESET' || subject.startsWith('=#') || subject.startsWith('+')) {
+        return '';
+    }
+
+    // Subject is valid, add about attribute
+    const expanded = expandIRI(subject, state.ctx);
+    const subjectNode = state.df.namedNode(expanded);
+    const shortened = shortenIRI(expanded, state.ctx);
+    attrs.push(`about="${escapeHtml(shortened)}"`);
+
+    // Types
+    if (carrier.types && carrier.types.length > 0) {
+        const types = carrier.types.map(t => {
+            const iri = typeof t === 'string' ? t : t.iri;
+            const expanded = expandIRI(iri, state.ctx);
+            const typeNode = state.df.namedNode(expanded);
+
+            // Track type quads in strict mode
+            if (state.strict && state.quads) {
+                const rdfType = state.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
+                if (quadExists(state.quads, subjectNode, rdfType, typeNode)) {
+                    trackableQuads.push({ subject: subjectNode, predicate: rdfType, object: typeNode });
+                }
+            }
+
+            return shortenIRI(expanded, state.ctx);
+        }).join(' ');
+        attrs.push(`typeof="${escapeHtml(types)}"`);
+    }
+
+    // Predicates using shared utility
+    if (carrier.predicates && carrier.predicates.length > 0) {
+        const { literalProps, objectProps, reverseProps } = processPredicates(carrier.predicates, state.ctx);
+
+        if (literalProps.length > 0) {
+            // Track literal property quads
+            if (state.strict && state.quads && element.content) {
+                literalProps.forEach(prop => {
+                    const predNode = state.df.namedNode(expandIRI(prop, state.ctx));
+                    const objNode = state.df.literal(element.content);
+                    if (quadExists(state.quads, subjectNode, predNode, objNode)) {
+                        trackableQuads.push({ subject: subjectNode, predicate: predNode, object: objNode });
+                    }
+                });
+            }
+            attrs.push(`property="${escapeHtml(literalProps.join(' '))}"`);
+        }
+        if (objectProps.length > 0) {
+            attrs.push(`rel="${escapeHtml(objectProps.join(' '))}"`);
+        }
+        if (reverseProps.length > 0) {
+            attrs.push(`rev="${escapeHtml(reverseProps.join(' '))}"`);
+        }
+    }
+
+    // Track rendered RDFa in strict mode
+    if (state.strict && trackableQuads.length > 0) {
+        state.quadMap.push(...trackableQuads);
+        state.renderedRDFaCount += trackableQuads.length;
+    }
+
+    return attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
 }
 
 /**

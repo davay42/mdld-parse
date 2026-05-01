@@ -26,23 +26,21 @@
             }
         })
     </script>
-
+    <script type="importmap">
+                {
+                    "imports": {
+                        "./index.js": "./index.js",
+                        "./tests.js": "./tests.js",
+                        "./visual.js": "./demo/visual.js",
+                        "n3": "https://esm.sh/n3@2.0.1",
+                        "markdown-it": "https://esm.sh/markdown-it@14.1.0"
+                    }
+                }
+            </script>
     <link rel="stylesheet" href="demo/styles.css">
 
-    <script type="importmap">
-            {
-                "imports": {
-                    "./index.js": "./index.js",
-                    "./tests.js": "./tests.js",
-                    "./visual.js": "./demo/visual.js",
-                    "n3": "https://esm.sh/n3@2.0.1",
-                    "markdown-it": "https://esm.sh/markdown-it@14.1.0"
-                }
-            }
-        </script>
-
     <script type="module">
-        import { parse, shortenIRI } from './src/index.js';
+        import { parse, shortenIRI, generate } from './src/index.js';
         import { render } from './src/render.js';
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store } from 'n3';
@@ -183,8 +181,8 @@
                 const duration = Math.round(performance.now() - startTime);
 
                 lastParse = { input, result };
-                const { quads, context } = result
-                console.log(quads)
+                const { quads, context, primarySubject } = result;
+                console.log(quads);
                 delete context['@vocab']
 
                 // Check if quads actually changed
@@ -209,6 +207,23 @@
                         currentTTL = ttlResult || '';
                     }
                 });
+
+                // Generate MDLD from quads
+                try {
+                    const { text: mdldText } = generate({ quads, context, primarySubject });
+                    const mdldDiv = document.getElementById('mdld');
+                    if (mdldDiv) {
+                        mdldDiv.textContent = mdldText || 'No MDLD output generated';
+                        currentMDLD = mdldText || '';
+                    }
+                } catch (err) {
+                    console.error('Error generating MDLD:', err);
+                    const mdldDiv = document.getElementById('mdld');
+                    if (mdldDiv) {
+                        mdldDiv.textContent = 'Error generating MDLD: ' + err.message;
+                        currentMDLD = '';
+                    }
+                }
 
                 // Update RDF graph viewer only if quads changed
                 if (quadsChanged) {
@@ -604,6 +619,7 @@
 
         // TTL Export functionality
         let currentTTL = '';
+        let currentMDLD = '';
 
         // Copy TTL to clipboard
         document.getElementById('copy-ttl-btn').addEventListener('click', async () => {
@@ -638,21 +654,62 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'mdld-export.ttl';
+            a.download = 'output.ttl';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showNotification('TTL file downloaded!', 'success');
+            showNotification('TTL file downloaded', 'success');
         });
 
-        // Show notification
+        // Copy MDLD to clipboard
+        document.getElementById('copy-mdld-btn').addEventListener('click', async () => {
+            if (!currentMDLD) {
+                showNotification('No MDLD content to copy', 'error');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(currentMDLD);
+                showNotification('MDLD copied to clipboard', 'success');
+            } catch (err) {
+                showNotification('Failed to copy MDLD: ' + err.message, 'error');
+            }
+        });
+
+        // Download MDLD file
+        document.getElementById('download-mdld-btn').addEventListener('click', () => {
+            if (!currentMDLD) {
+                showNotification('No MDLD content to download', 'error');
+                return;
+            }
+            const blob = new Blob([currentMDLD], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'output.mdld.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('MDLD file downloaded', 'success');
+        });
+
+        // Notification helper
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg text-white z-50 transition-all duration-300 ${type === 'success' ? 'bg-green-600' :
-                type === 'error' ? 'bg-red-600' :
-                    'bg-blue-600'
-                }`;
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 24px;
+                background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                border-radius: 8px;
+                font-weight: 500;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s;
+            `;
             notification.textContent = message;
             document.body.appendChild(notification);
 
@@ -770,6 +827,28 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                             class="w-full min-h-32 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
                     <code id="ttl" class="language-turtle text-xs block">
                         TTL loading...</code>
+                </pre>
+                    </div>
+                </details>
+
+                <!-- MDLD Output Section -->
+                <details class="details">
+                    <summary>
+                        <span>MDLD</span>
+                        <span style="flex: 1"></span>
+                        <button id="copy-mdld-btn" class="button secondary" title="Copy MDLD to clipboard">
+                            📋 Copy
+                        </button>
+                        <button id="download-mdld-btn" class="button primary" title="Download MDLD file">
+                            💾 Download
+                        </button>
+                    </summary>
+                    <div class="m-2 flex flex-col">
+                        <div class="flex gap-2"></div>
+                        <pre
+                            class="w-full min-h-32 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
+                    <code id="mdld" class="language-markdown text-xs block">
+                        MDLD will appear here...</code>
                 </pre>
                     </div>
                 </details>

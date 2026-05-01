@@ -300,6 +300,9 @@ function createBlockEntry(token, state) {
     const blockId = token._blockId || hash(`${token.type}:${token.range?.[0]}:${token.range?.[1]}`);
     token._blockId = blockId; // Store for later reference
 
+    // Extract inline carriers first to enable clean text extraction
+    const carriers = getCarriers(token);
+
     const cleanText = extractCleanText(token);
 
     const blockEntry = {
@@ -315,6 +318,29 @@ function createBlockEntry(token, state) {
         parentBlockId: state.blockStack.length > 0 ? state.blockStack[state.blockStack.length - 1] : null,
         quadKeys: [] // Will be populated during quad emission
     };
+
+    // Process carriers and add to block
+    for (const carrier of carriers) {
+        const carrierInfo = {
+            type: carrier.type,
+            range: carrier.range,
+            text: carrier.text,
+            subject: null,
+            predicates: [],
+            sem: null
+        };
+
+        // Extract carrier-specific semantics
+        if (carrier.attrs) {
+            const carrierSem = parseSemCached(carrier.attrs);
+            carrierInfo.sem = carrierSem; // Store full semantics
+            carrierInfo.predicates = carrierSem.predicates || [];
+            carrierInfo.subject = carrierSem.subject;
+            carrierInfo.types = carrierSem.types || [];
+        }
+
+        blockEntry.carriers.push(carrierInfo);
+    }
 
     // Store block and add to document structure
     state.origin.blocks.set(blockId, blockEntry);
@@ -368,9 +394,10 @@ function enrichBlockFromAnnotation(blockEntry, sem, carrier, state) {
         // Extract carrier-specific semantics
         if (carrier.attrs) {
             const carrierSem = parseSemCached(carrier.attrs);
-            if (carrierSem.types) {
-                carrierInfo.predicates = carrierSem.predicates || [];
-            }
+            carrierInfo.sem = carrierSem; // Store full semantics
+            carrierInfo.predicates = carrierSem.predicates || [];
+            carrierInfo.subject = carrierSem.subject;
+            carrierInfo.types = carrierSem.types || [];
         }
 
         blockEntry.carriers.push(carrierInfo);

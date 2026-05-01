@@ -20,6 +20,15 @@
 ### Changed
 - `generate()` function now produces visually distinct output based on datatype
 - Improved round-trip safety for complex content with special characters
+- `generate()` auto-fallback: Uses first subject from quads if `primarySubject` not provided
+
+### Added
+- `generateNode(quads, focusIRI, context)` — Safe node-centric MDLD generation
+  - Shows all quads where an IRI appears in any position (subject, object, predicate, type, datatype)
+  - **Safety-first design**: Returns empty if `focusIRI` not found—never falls back to rendering all data
+  - Prevents accidental LLM costs from misspelled IRIs in production environments
+  - Optimized: DRY helper, no object spreads, memory-efficient
+- Safety fix: `generate()` now gracefully handles IRIs not present as subjects (skips instead of crashing)
 
 ## v.0.7.0 (2026-03-23)
 

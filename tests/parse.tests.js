@@ -110,7 +110,7 @@ export const parseTests = [
             const { quads, primarySubject } = parse(md, { context: { ex: 'http://example.org/' } });
 
             // Generate with primarySubject to ensure round-trip safety
-            const generated = generate(quads, { ex: 'http://example.org/' }, primarySubject);
+            const generated = generate({ quads, context: { ex: 'http://example.org/' }, primarySubject });
 
             // Parse the generated output
             const { primarySubject: regeneratedPrimary } = parse(generated.text, { context: { ex: 'http://example.org/' } });
@@ -1554,7 +1554,7 @@ List items:
             const context = { ex: 'http://example.org/' };
 
             // Generate MDLD
-            const { text } = generate(quads, context);
+            const { text } = generate({ quads, context });
 
             // Parse it back
             const result = parse(text, context);

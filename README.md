@@ -224,16 +224,42 @@ Merge multiple MDLD documents with diff polarity resolution.
 - `context` — Final merged context
 - `primarySubjects` — Array of string IRIs (primary subjects from each document, in merge order)
 
-### `generate(quads, context, primarySubject)`
+### `generate({ quads, context, primarySubject })`
 
-Generate deterministic MDLD from RDF quads.
+Generate deterministic MDLD from RDF quads with visual styling.
 
-**Parameters:**
-- `quads` (array) — Array of RDF/JS Quads to convert
+**Parameters (named object):**
+- `quads` (array, required) — Array of RDF/JS Quads to convert
 - `context` (object, optional) — Prefix mappings (default: `{}`)
-- `primarySubject` (string, optional) — String IRI to place first in output (ensures round-trip safety)
+- `primarySubject` (string, optional) — String IRI to place first in output (ensures round-trip safety). If not provided, falls back to the first subject from quads.
 
 **Returns:** `{ text, context }`
+
+**Features:**
+- Visual carrier styles based on datatype (code spans for numbers, bold booleans, etc.)
+- Label-in-heading: Uses `rdfs:label` in subject headings when available
+- Multiple labels: First label in heading, additional labels rendered as literals
+- Round-trip safe: All data preserved through parse → generate → parse
+
+### `generateNode({ quads, focusIRI, context })`
+
+Generate node-centric MDLD showing all quads where a specific IRI appears in any position.
+
+**Parameters (named object):**
+- `quads` (array, required) — Array of RDF/JS Quads to search
+- `focusIRI` (string, required) — The IRI to center the view on
+- `context` (object, optional) — Prefix mappings (default: `{}`)
+
+**Returns:** `{ text, context }`
+
+**Behavior (Safety-First):**
+- If `focusIRI` is null/undefined: Returns empty text
+- If `focusIRI` not in graph: Returns empty text (never falls back to all data)
+- If `quads` is empty: Returns empty text
+
+**Safety rationale:** Prevents accidental rendering of entire databases on misspelled IRIs—critical for production use with LLM cost per token. Explicit emptiness signals "not found" to the caller.
+
+**Use case:** Perfect for exploring a specific node and all its relationships—where it appears as subject, object, predicate, type, or datatype. Creates an exhaustive view of everything related to the focus IRI. Ideal for node-centric knowledge graph explorers.
 
 ### `locate(quad, origin)`
 
