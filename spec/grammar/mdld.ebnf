@@ -1,0 +1,142 @@
+(* MD-LD EBNF Grammar (W3C/ISO 14977 compliant) *)
+(* Updated to match actual parser implementation *)
+(* Defines syntax of MD-LD annotations embedded in CommonMark Markdown *)
+
+(* 1. Lexical elements *)
+letter        = "A".."Z" | "a".."z" ;
+digit         = "0".."9" ;
+hex           = digit | "A".."F" | "a".."f" ;
+whitespace    = " " | "\t" ;
+newline       = "\n" | "\r\n" ;
+indent        = whitespace , whitespace+ ;
+vchar         = ? any visible non-whitespace character ? ;
+text          = { vchar | whitespace } ;
+
+(* 2. Context declarations *)
+contextDecl   = "[" , contextKey , "]" , whitespace , "<" , iri , ">" ;
+contextKey    = "@vocab" | prefixName ;
+prefixName    = letter , { letter | digit | "-" | "_" } ;
+
+(* 3. Attribute block *)
+attrsBlock    = "{" , whitespace* , attrsTokens? , whitespace* , "}" ;
+attrsTokens   = attrsToken , { whitespace+ , attrsToken } ;
+
+(* 4. Attribute tokens *)
+attrsToken   = 
+      subjectDecl
+    | fragmentDecl
+    | objectDecl
+    | objectFragmentDecl
+    | typeDecl
+    | predicate
+    | reversePredicate
+    | datatype
+    | language ;
+
+(* 5. Subject and object declarations *)
+subjectDecl   = "=" , iriRef ;
+fragmentDecl  = "=#" , fragment ;
+objectDecl    = "+" , iriRef ;
+objectFragmentDecl = "+#" , fragment ;
+
+(* 6. Predicates *)
+predicate          = "?"? , iriRef ;
+reversePredicate   = "!" , iriRef ;
+
+(* 7. Type declaration *)
+typeDecl      = "." , iriRef ;
+
+(* 8. Literal modifiers *)
+datatype      = "^^" , iriRef ;
+language      = "@" , langTag ;
+langTag       = letter , { letter | digit | "-" } ;
+
+(* 9. CURIEs and IRIs *)
+iriRef        = curie | iri | fragment ;
+curie         = prefixName , ":" , reference ;
+reference     = ( letter | digit ) , { letter | digit | "-" | "_" | "." } ;
+iri           = scheme , ":" , hierPart , [ "?" , query ] , [ "#" , fragment ] ;
+scheme        = letter , { letter | digit | "+" | "-" | "." } ;
+hierPart      = { vchar } ;
+query         = { vchar } ;
+fragment      = reference ;
+
+(* 10. Value carriers (Markdown attachment points) *)
+(* Note: Markdown syntax itself is abstracted *)
+
+(* 10.1 Inline carriers *)
+emphasisSpan   = "*" , text , "*" | "_" , text , "_" ;
+strongSpan     = "**" , text , "**" | "__" , text , "__" ;
+codeSpan       = "`" , text , "`" | "``" , text , "``" ;
+linkSpan       = "[" , text , "](" , text , ")" | "[" , text , "]" ;
+imageSpan      = "!" , "[" , text , "](" , text , ")" ;
+urlSpan        = "<" , iri , ">" ;
+
+inlineSpan =
+      emphasisSpan
+    | strongSpan
+    | codeSpan
+    | linkSpan
+    | imageSpan
+    | urlSpan ;
+
+(* 10.2 Block carriers *)
+heading        = "#" , { "#" } , whitespace , text ;
+paragraph      = vchar , { vchar | whitespace } ;
+blockquote     = ">" , whitespace , text ;
+codeFence      = "```" , [ text ] , newline , { text | newline } , "```" ;
+
+(* 11. Lists (pure Markdown structure) *)
+
+(* 11.1 List items (explicit annotations only) *)
+(* List items are pure Markdown structure requiring explicit annotations *)
+listItem =
+    listMarker , whitespace , text , whitespace* , attrsBlock? ;
+
+listMarker =
+      "-"
+    | "*"
+    | "+"
+    | digit , { digit } , "." ;
+
+(* 11.2 List block *)
+(* Lists are pure Markdown with no semantic propagation *)
+listBlock =
+    listItem , { newline , listItem | nestedList } ;
+
+(* 11.3 Nested list *)
+(* Nested lists have no semantic inheritance *)
+nestedList =
+    indent , listBlock ;
+
+(* 12. Standalone subject declarations *)
+standaloneSubject =
+    whitespace* , "{=" , ( iriRef | "#" , fragment ) , "}" , whitespace* ;
+
+(* 13. Annotation attachment *)
+annotation =
+      inlineSpan , whitespace* , attrsBlock
+    | heading , whitespace* , attrsBlock
+    | paragraph , whitespace* , attrsBlock
+    | listItem
+    | blockquote , whitespace* , attrsBlock
+    | codeFence , whitespace* , attrsBlock
+    | urlSpan , whitespace* , attrsBlock
+    | standaloneSubject ;
+
+(* 14. Grammar guarantees (normative) *)
+(* Attribute token order is semantically unordered *)
+(* Lists are pure Markdown structure with no semantic scope *)
+(* Nested lists establish a new semantic scope *)
+(* No implicit inheritance across list levels *)
+(* Deterministic, streaming-friendly parsing *)
+(* Round-trip safe (MD-LD ↔ RDF ↔ MD-LD) *)
+(* No semantic inference at syntax level *)
+
+(* 15. Forbidden constructs (not expressible in this grammar) *)
+(* - Blank nodes *)
+(* - Key-value pairs  *)
+(* - Nested attribute blocks *)
+(* - Implicit subjects/predicates *)
+(* - Structural inference *)
+(* - Semantic list propagation *)
