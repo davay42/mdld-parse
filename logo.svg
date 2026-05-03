@@ -1,0 +1,7 @@
+<svg width="1000" height="1000" xmlns="http://www.w3.org/2000/svg">
+  
+  <text x="500" y="500" font-family="Consolas, Menlo, Monospace, monospace" font-size="210" text-anchor="middle" style="font-weight: bold">
+    <tspan fill="gray" style="opacity:0.5">{</tspan><tspan fill="#d9711f" >=+ .?!</tspan><tspan fill="gray" style="opacity:0.5">}</tspan>
+  </text>
+  
+</svg>
