@@ -15,7 +15,7 @@
 	"scripts": {
 		"test": "node tests/index.js",
 		"dev": "vite dev",
-		"build": "vite build && vite build --config vite.config.lib.js && cp -r docs/ dist/docs/ && cp -r examples/ dist/examples/ && cp -r spec/ dist/spec/"
+		"build": "vite build && vite build --config vite.config.lib.js && cp -r docs/ dist/docs/ && cp -r examples/ dist/examples/ && cp -r spec/ dist/spec/ && cp -r README.md dist/README.md"
 	},
 	"keywords": [
 		"mdld",
