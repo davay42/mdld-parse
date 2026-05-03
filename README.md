@@ -380,7 +380,7 @@ Quads are compatible with:
 The parser includes comprehensive tests covering all spec requirements:
 
 ```bash
-npm test
+pnpm test
 ```
 
 Tests validate:
