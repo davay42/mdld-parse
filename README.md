@@ -199,7 +199,7 @@ Parse MD-LD markdown and return RDF quads with lean origin tracking.
 - `dataFactory` (object, optional) — Custom RDF/JS DataFactory
 - `graph` (string, optional) — Named graph IRI
 
-**Returns:** `{ quads, remove, statements, origin, context, primarySubject }`
+**Returns:** `{ quads, remove, statements, origin, context, primarySubject, md }`
 
 > **Legacy:** `parse(text, options)` still works for backward compatibility
 
@@ -209,6 +209,7 @@ Parse MD-LD markdown and return RDF quads with lean origin tracking.
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
 - `primarySubject` — String IRI or null (first non-fragment subject declaration)
+- `md` — Clean Markdown with all MD-LD annotations stripped (round-trip safe)
 
 ### `merge(docs, options)`
 
@@ -286,10 +287,42 @@ const nodeView = generateNode({ ...parse({ text }), focusIRI: 'http://example.or
 ```
 
 **Why this works:**
-- `parse()` returns `{ quads, context, primarySubject, ... }`
+- `parse()` returns `{ quads, context, primarySubject, md, ... }`
 - `generate()` accepts `{ quads, context, primarySubject }`
 - `generateNode()` accepts `{ quads, context, focusIRI }` (with focusIRI override)
 - Perfect shape alignment enables elegant `{ ...spread }` composition
+
+### The `md` Field — Clean Markdown Extraction
+
+Every `parse()` result includes a `md` field containing the original Markdown with all MD-LD annotations stripped:
+
+```javascript
+const result = parse({
+  text: `# Document {=ex:doc .Article}\n[Content] {ex:content}`,
+  context: { ex: 'http://example.org/' }
+});
+
+console.log(result.md);
+// # Document\nContent
+
+// Round-trip safety: re-parsing clean MD produces zero quads
+const reparsed = parse({ text: result.md });
+console.log(reparsed.quads.length); // 0
+```
+
+**Behavior:**
+- Valid MD-LD annotations (`{=...}`, `{+...}`, `{...}`) are completely removed
+- Content from value carriers (`[text]`, `**bold**`, `` `code` ``) is preserved
+- Invalid syntax (annotations not at end-of-line) is preserved as visible markers
+- Headings, lists, blockquotes, code blocks maintain their structure
+- Prefix declarations at start of line are stripped
+- Standalone subject declarations (`{=ex:subject}`) are stripped
+
+**Use cases:**
+- **Content extraction** — Get readable Markdown without semantic markup
+- **Syntax validation** — Remaining `{...}` patterns indicate invalid MD-LD syntax
+- **Round-trip testing** — `parse(md).md` should parse to zero quads
+- **Preview generation** — Show clean document before publishing
 
 ### `locate(quad, origin)`
 

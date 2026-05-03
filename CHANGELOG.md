@@ -1,5 +1,16 @@
 # MD-LD evolution
 
+## v.0.9.1 (2026-05-03)
+
+### Added
+- **`md` field in parse() result** — Clean Markdown extraction with all MD-LD annotations stripped
+  - Valid annotations (`{=...}`, `{+...}`, `{...}`) completely removed
+  - Content from value carriers preserved (`[text]`, `**bold**`, `` `code` ``)
+  - Invalid syntax preserved as visible markers for debugging
+  - Round-trip safe: re-parsing clean MD produces zero quads
+  - Enables content extraction, syntax validation, and preview generation
+- **Self-validating syntax detection** — Remaining `{...}` patterns in clean MD indicate misplaced annotations
+
 ## v.0.9.0 (2026-05-01)
 
 ### BREAKING CHANGES (with backward compatibility)
