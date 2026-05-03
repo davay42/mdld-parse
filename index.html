@@ -26,17 +26,7 @@
             }
         })
     </script>
-    <script type="importmap">
-                {
-                    "imports": {
-                        "./index.js": "./index.js",
-                        "./tests.js": "./tests.js",
-                        "./demo/visual.js": "./demo/visual.js",
-                        "n3": "https://esm.sh/n3@2.0.1",
-                        "markdown-it": "https://esm.sh/markdown-it@14.1.0"
-                    }
-                }
-            </script>
+
     <link rel="stylesheet" href="demo/styles.css">
 
     <script type="module">
@@ -45,6 +35,7 @@
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store } from 'n3';
         import MarkdownIt from 'markdown-it';
+        import { loadExample as loadExampleData } from './demo/examples.js';
 
         let currentTestResults = [];
 
@@ -60,11 +51,11 @@
             }
         });
 
-        // Load example from embedded scripts
+        // Load example from imported modules
         window.loadExample = function (name) {
-            const script = document.getElementById(`ex:${name}`);
-            if (script) {
-                document.getElementById('input').value = script.textContent;
+            const content = loadExampleData(name);
+            if (content) {
+                document.getElementById('input').value = content;
                 parseMDLD();
             } else {
                 console.warn(`Example not found: ${name}`);
@@ -1024,191 +1015,5 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
 
 
 </body>
-
-<script class="mdld-example" id="ex:minimal" type="plain/text">
-[my] <tag:alice@example.com,2026:>
-    
-# Machine Learning in Healthcare {=my:paper .prov:Entity label}
-
-Pages: [24] {my:pages ^^xsd:integer}
-DOI: [10.1234/ml.2024] {+https://doi.org/10.1234/ml.2024 ?my:doi}
-
-Created by [Dr. Alice Chen] {+my:alice .prov:Person ?prov:wasAttributedTo label}.
-
-**Attribution** {=my:attr .prov:Attribution ?prov:qualifiedAttribution label}: Created by [Dr. Alice Chen]
-{+my:alice ?prov:agent} as a [Lead Author] {+my:role .prov:Role ?prov:hadRole}.
-</script>
-
-<script class="mdld-example" id="ex:journal" type="plain/text">
-[my] <tag:alice@example.com,2026:journal:2026-07-18:>
-
-## July 18, 2026 {=my:day .prov:Activity label}
-
-Great day! Mood: [happy] {my:mood}, energy: [8/10] {my:energy ^^xsd:integer}.
-
-Location: [Central Park] {+my:park ?prov:atLocation .prov:Location label}.
-
-Feeling [peaceful] {my:feeling} today. The park was [beautiful] {my:description}.
-
-**Morning walk** {=my:walk .prov:Activity label} - 45 minutes, 2.5 miles. Used [running shoes] {+my:shoes ?prov:used}. Generated [heart rate data] {+my:hr ?prov:generated}.
-
-**Reading Dune** {=my:reading .prov:Activity label} - page [42] {my:page ^^xsd:integer} of 412. Used [book] {+my:book ?prov:used}.
-
-Met [Sam] {+my:sam .prov:Person label} for coffee. **Chat** {=my:chat .prov:Activity label} - career changes topic, 30 mins.
-
-**Coffee** {=my:coffee .prov:Activity label} at [home] {+my:home ?prov:atLocation}. Black, 12 oz.
-</script>
-
-<script class="mdld-example" id="ex:recipe" type="plain/text">
-[food] <tag:alice@example.com,2026:food/>
-
-## Apple Pie {=food:pie .prov:Entity label}
-
-Grandma Rose's recipe, documented by Alice. Cook time: [45] {food:time ^^xsd:integer} min, serves [8] {food:serves ^^xsd:integer}.
-
-**Ingredients**
-
-Flour (cups): [2.5] {+#flour ?food:ingredient .food:Ingredient food:ammount ^^food:cup} - used in crust
-
-Sugar (cups): [1] {+#sugar ?food:ingredient .food:Ingredient food:ammount ^^food:cup} used in filling  
-
-Butter: [1 cup] {+#butter ?food:ingredient .food:Ingredient food:ammount} used in crust
-
-Apples: [6] {+#apples ?food:ingredient .food:Ingredient food:ammount ^^xsd:integer} used in filling
-
-Cinnamon: [2 tsp] {+food:cinnamon ?food:ingredient .food:Ingredient} used in filling
-
-**Process**
-
-**Crust** {=food:crust .prov:Activity} mixed flour and butter, generated [dough] {+food:dough ?prov:generated}. Used [bowl] {+food:bowl ?prov:used}.
-
-**Filling** {=food:filling .prov:Activity ?prov:wasInformedBy} prepared apples with sugar and cinnamon, generated [apple mix] {+food:mix ?prov:generated}.
-
-**Baking** {=food:bake .prov:Activity ?prov:wasInformedBy} baked at 375°F for 45 min. Used [oven] {+food:oven ?prov:used}. Generated [baked pie] {+food:baked ?prov:generated}.
-
-We got the **Pie** {=food:pie}
-
-The final pie was derived from [dough] {+food:dough ?prov:wasDerivedFrom} and [apple mix] {+food:mix ?prov:wasDerivedFrom}.
-
-**Related**: Apple Crumble {+food:crumble !food:variation .food:Recipe}, Peach Pie {+food:peach !food:variation .food:Recipe}
-</script>
-
-<script class="mdld-example" id="ex:project" type="plain/text">
-[proj] <tag:alice@example.com,2026:project/>
-
-## Weekend Project {=proj:weekend .prov:Activity label}
-
-Project manager [Alice] {+proj:alice .prov:Person ?prov:wasAssociatedWith}.
-
-The project includes [kitchen cleaning] {+proj:clean .proj:Task label} with subtasks: countertops, dishes, and pantry organization. Also includes [bike repair] {+proj:bike .proj:Task label} involving tire pressure, brakes, and chain maintenance. Finally, [reading] {+proj:read .proj:Task label} covers chapters 1-6.
-
-**Delegation** {=proj:delegation .prov:Delegation ?prov:qualifiedDelegation}
-
-Resources needed: [hardware store] {+proj:hardware .proj:Resource} for screws and bike pump, and [GitHub repo] {+proj:repo .proj:Repository} for source code and documentation.
-
-Team: [Alice] {+proj:alice ?prov:agent} as project manager with planning skill, [Bob] {+proj:bob ?prov:agent .prov:Person} as helper with bike repair skill.
-
-The project has a [rain forecast] {+proj:rain !proj:blocker .proj:Blocker} blocker, with [indoor work] {+proj:indoor ?proj:alternative} as an alternative.
-</script>
-
-<script class="mdld-example" id="ex:space-mission" type="plain/text">
-[nasa] <http://nasa.gov/>
-
-# Apollo 11 Mission {=nasa:apollo11 .prov:Activity label}
-
-## METADATA
-
-Launch: [1969-07-16T13:32:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Landing: [1969-07-20T20:17:00Z] {nasa:landing ^^xsd:dateTime}
-Duration (days): [8] {nasa:durationDays ^^xsd:integer}
-Budget (B USD): [2.5] {nasa:budget ^^xsd:decimal}
-Operator: [NASA] {+nasa:agency ?prov:wasAssociatedWith .prov:Organization}
-
-## CREW
-
-**Neil Armstrong** {+nasa:armstrong .prov:Person ?nasa:crew} - Commander, 1930
-**Buzz Aldrin** {+nasa:aldrin .prov:Person ?nasa:crew} - LMP, 1930
-**Michael Collins** {+nasa:collins .prov:Person ?nasa:crew} - CMP, 1930
-
-## EQUIPMENT
-
-**Saturn V** {+nasa:saturnv .nasa:Rocket ?nasa:equipment} - Boeing, 363ft
-**LM Eagle** {+nasa:eagle .nasa:Module ?nasa:equipment} - Grumman
-**CM Columbia** {+nasa:columbia .nasa:Module ?nasa:equipment} - NAA
-
-## ACTIVITIES
-
-**Launch** {+nasa:launch .prov:Activity} - Used Saturn V, generated orbit trajectory
-
-**Lunar Landing** {+nasa:landing .prov:Activity} - Used LM Eagle, generated lunar presence and samples
-
-**EVA** {+nasa:eva .prov:Activity} - 2h 18m, 250m, 21.5kg samples collected
-
-## OBJECTIVES {=nasa:appollo11}
-
-**Land on Moon** {+nasa:goal1 .nasa:Goal} - ACHIEVED 1969-07-20
-**Return safely** {+nasa:goal2 .nasa:Goal} - ACHIEVED 1969-07-24
-**Collect samples** {+nasa:goal3 .nasa:Goal} - ACHIEVED 21.5kg
-
-## RELATIONSHIPS
-
-Preceded by: [Apollo 10] {+nasa:apollo10 !nasa:precededBy .nasa:SpaceMission}, [Gemini 8] {+nasa:gemini8 !nasa:precededBy .nasa:SpaceMission}
-
-Succeeded by: [Apollo 12] {+nasa:apollo12 ?nasa:succeededBy .nasa:SpaceMission}
-
-**Delegation** {=nasa:delegation .prov:Delegation ?prov:qualifiedDelegation}
-
-Delegate: [Mission Control] {+nasa:mcc ?prov:agent .prov:Organization}
-Responsible: [NASA Admin] {+nasa:admin ?prov:agent .prov:Person}
-</script>
-
-<script class="mdld-example" id="ex:research" type="plain/text">
-[research] <https://research.example.org/>
-[data] <https://research.example.org/datasets/>
-
-# Machine Learning in Healthcare {=research:paper .prov:Entity label}
-
-**Authors**: Dr. Sarah Martinez and Dr. James Liu, MIT CS Lab.
-
-**Abstract**
-
-This paper analyzes attention-based neural networks for medical imaging, citing prior work on deep learning in radiology.
-
-**Methodology**
-
-**Dataset** {=data:dataset .research:Dataset}
-Source: GitHub medical imaging repository
-Training: [80k] {+data:train ?research:detail .research:DatasetDetail} DICOM images, 15 classes
-Validation: [10k] {+data:val ?research:detail .research:DatasetDetail} DICOM images
-Test: [10k] {+data:test ?research:detail .research:DatasetDetail} DICOM images
-
-**Kaggle Dataset** {=data:kaggle .research:Dataset} derived from primary dataset, featuring 512x512 grayscale images with patient metadata.
-
-**Model Training** {=research:training .prov:Activity}
-Duration: Feb 1-15, 2024
-Association: Dr. James Liu as ML Engineer
-Plan: Training protocol v2.0
-Used: ML Dataset and Kaggle Dataset
-Generated: [trained model] {+research:model ?prov:generated}
-
-**Results**
-
-Statistical significance: p < 0.05, sample size: [1000] {research:n ^^xsd:integer} patients.
-
-**Accuracy Metrics** {=research:metrics .prov:Entity}
-Training: [94.5%] {research:trainAcc}
-Validation: [92.3%] {research:valAcc}
-Test: [91.8%] {research:testAcc}
-F1: [0.89] {research:f1 ^^xsd:decimal}
-AUC-ROC: [0.93] {research:auc ^^xsd:decimal}
-
-**SHACL Validation** {=research:shape .sh:NodeShape}
-Target: Scientific Paper
-Title: exactly 1 required
-Author: at least 1 required
-Citations: at least 1 required
-
-**Funding**: NASA Space Medicine Research Initiative, grant NRA-2024-12345.
-</script>
 
 </html>
