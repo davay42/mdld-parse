@@ -1,5 +1,11 @@
 (* MD-LD EBNF Grammar (W3C/ISO 14977 compliant) *)
+(* Version: 1.1 (2024-05-04) *)
 (* Updated to match actual parser implementation *)
+(* - Added remove polarity (- prefix) *)
+(* - Added subject reset (= alone) *)
+(* - Added prefix folding (CURIE in context declarations) *)
+(* - Fixed predicate/objectPredicate distinction *)
+(* - Fixed code fence matching (3+ backticks/tildes) *)
 (* Defines syntax of MD-LD annotations embedded in CommonMark Markdown *)
 
 (* 1. Lexical elements *)
@@ -13,35 +19,57 @@ vchar         = ? any visible non-whitespace character ? ;
 text          = { vchar | whitespace } ;
 
 (* 2. Context declarations *)
-contextDecl   = "[" , contextKey , "]" , whitespace , "<" , iri , ">" ;
+contextDecl   = "[" , contextKey , "]" , whitespace , "<" , contextIri , ">" ;
 contextKey    = "@vocab" | prefixName ;
 prefixName    = letter , { letter | digit | "-" | "_" } ;
+
+(* Prefix folding: IRI can be a CURIE referencing previously declared prefix *)
+contextIri    = iri | curie ;
 
 (* 3. Attribute block *)
 attrsBlock    = "{" , whitespace* , attrsTokens? , whitespace* , "}" ;
 attrsTokens   = attrsToken , { whitespace+ , attrsToken } ;
 
-(* 4. Attribute tokens *)
+(* 4. Attribute tokens (all support optional remove polarity) *)
 attrsToken   = 
-      subjectDecl
-    | fragmentDecl
-    | objectDecl
-    | objectFragmentDecl
-    | typeDecl
-    | predicate
-    | reversePredicate
-    | datatype
-    | language ;
+      modifiedSubjectDecl
+    | modifiedFragmentDecl
+    | modifiedObjectDecl
+    | modifiedObjectFragmentDecl
+    | modifiedTypeDecl
+    | modifiedPredicate
+    | modifiedObjectPredicate
+    | modifiedReversePredicate
+    | modifiedDatatype
+    | modifiedLanguage ;
+
+(* Remove polarity modifier *)
+removeMod   = "-" ;
+
+(* Modified tokens with optional remove prefix *)
+modifiedSubjectDecl      = [ removeMod ] , subjectDecl ;
+modifiedFragmentDecl     = [ removeMod ] , fragmentDecl ;
+modifiedObjectDecl       = [ removeMod ] , objectDecl ;
+modifiedObjectFragmentDecl = [ removeMod ] , objectFragmentDecl ;
+modifiedTypeDecl         = [ removeMod ] , typeDecl ;
+modifiedPredicate        = [ removeMod ] , predicate ;
+modifiedObjectPredicate  = [ removeMod ] , objectPredicate ;
+modifiedReversePredicate   = [ removeMod ] , reversePredicate ;
+modifiedDatatype         = [ removeMod ] , datatype ;
+modifiedLanguage         = [ removeMod ] , language ;
 
 (* 5. Subject and object declarations *)
-subjectDecl   = "=" , iriRef ;
+(* Empty "=" alone performs semantic reset *)
+subjectDecl   = "=" , [ iriRef | "#" , fragment ] ;
 fragmentDecl  = "=#" , fragment ;
 objectDecl    = "+" , iriRef ;
 objectFragmentDecl = "+#" , fragment ;
 
 (* 6. Predicates *)
-predicate          = "?"? , iriRef ;
-reversePredicate   = "!" , iriRef ;
+(* No prefix = literal predicate, ? prefix = object predicate *)
+predicate          = iriRef ;               (* literal: value flows to predicate *)
+objectPredicate    = "?" , iriRef ;         (* object: value is object of predicate *)
+reversePredicate   = "!" , iriRef ;         (* reverse: value is subject of predicate *)
 
 (* 7. Type declaration *)
 typeDecl      = "." , iriRef ;
@@ -84,7 +112,16 @@ inlineSpan =
 heading        = "#" , { "#" } , whitespace , text ;
 paragraph      = vchar , { vchar | whitespace } ;
 blockquote     = ">" , whitespace , text ;
-codeFence      = "```" , [ text ] , newline , { text | newline } , "```" ;
+
+(* Code fence: opening determines closing (3+ backticks or tildes) *)
+codeFence      = backtickFence | tildeFence ;
+backtickFence  = backticks , [ whitespace , infoString ] , newline , 
+                 { text | newline } , backticks ;
+backticks      = "`" , "`" , "`" , { "`" } ;     (* 3 or more backticks *)
+tildeFence     = tildes , [ whitespace , infoString ] , newline , 
+                 { text | newline } , tildes ;
+tildes         = "~" , "~" , "~" , { "~" } ;     (* 3 or more tildes *)
+infoString     = { vchar | whitespace } ;      (* language identifier, etc. *)
 
 (* 11. Lists (pure Markdown structure) *)
 
@@ -114,6 +151,8 @@ standaloneSubject =
     whitespace* , "{=" , ( iriRef | "#" , fragment ) , "}" , whitespace* ;
 
 (* 13. Annotation attachment *)
+(* Note: predicate/objectPredicate/reversePredicate are mutually exclusive *)
+(* within a single annotation (one "of" relationship per annotation) *)
 annotation =
       inlineSpan , whitespace* , attrsBlock
     | heading , whitespace* , attrsBlock

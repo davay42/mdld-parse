@@ -1,5 +1,11 @@
 ; MD-LD ABNF Grammar (RFC 5234 compliant)
+; Version: 1.1 (2024-05-04)
 ; Updated to match actual parser implementation
+; - Added remove polarity (- prefix)
+; - Added subject reset (= alone)
+; - Added prefix folding (CURIE in context declarations)
+; - Fixed predicate/object-predicate distinction
+; - Fixed code fence matching (3+ backticks/tildes)
 ; Defines syntax of MD-LD annotations embedded in CommonMark Markdown
 
 ; Core RFC 5234 conventions
@@ -17,35 +23,57 @@ VCHAR      = %x21-7E
 ; MD-LD Grammar starts here
 
 ; 1. Context declarations
-context-decl = "[" context-key "]" WSP "<" iri ">"
+context-decl = "[" context-key "]" WSP "<" context-iri ">"
 context-key  = "@" "vocab" / prefix-name
 prefix-name  = ALPHA *( ALPHA / DIGIT / "-" / "_" )
+
+; Prefix folding: IRI can be a CURIE referencing previously declared prefix
+context-iri  = iri / curie
 
 ; 2. Attribute blocks
 attrs-block = "{" *WSP [ attrs-tokens ] *WSP "}"
 attrs-tokens = attrs-token *( 1*WSP attrs-token )
 
-; 3. Attribute tokens
+; 3. Attribute tokens (all support optional remove polarity)
 attrs-token = 
-      subject-decl
-    / fragment-decl
-    / object-decl
-    / object-fragment-decl
-    / type-decl
-    / predicate
-    / reverse-predicate
-    / datatype
-    / language
+      modified-subject-decl
+    / modified-fragment-decl
+    / modified-object-decl
+    / modified-object-fragment-decl
+    / modified-type-decl
+    / modified-predicate
+    / modified-object-predicate
+    / modified-reverse-predicate
+    / modified-datatype
+    / modified-language
+
+; Remove polarity modifier (prefix to any token)
+remove-mod = "-"
+
+; Modified tokens with optional remove
+modified-subject-decl      = [ remove-mod ] subject-decl
+modified-fragment-decl     = [ remove-mod ] fragment-decl
+modified-object-decl       = [ remove-mod ] object-decl
+modified-object-fragment-decl = [ remove-mod ] object-fragment-decl
+modified-type-decl         = [ remove-mod ] type-decl
+modified-predicate         = [ remove-mod ] predicate
+modified-object-predicate  = [ remove-mod ] object-predicate
+modified-reverse-predicate = [ remove-mod ] reverse-predicate
+modified-datatype          = [ remove-mod ] datatype
+modified-language          = [ remove-mod ] language
 
 ; 4. Subject declarations
-subject-decl = "=" iri-ref
-fragment-decl = "=#" fragment
-object-decl  = "+" iri-ref
+; Empty "=" alone performs semantic reset
+subject-decl      = "=" [ iri-ref / "#" fragment ]
+fragment-decl     = "=#" fragment
+object-decl       = "+" iri-ref
 object-fragment-decl = "+#" fragment
 
 ; 5. Predicates
-predicate         = [ "?" ] iri-ref
-reverse-predicate = "!" iri-ref
+; No prefix = literal predicate, ? prefix = object predicate
+predicate         = iri-ref           ; literal: value flows to predicate
+object-predicate  = "?" iri-ref       ; object: value is object of predicate
+reverse-predicate = "!" iri-ref       ; reverse: value is subject of predicate
 
 ; 6. Type declarations
 type-decl = "." iri-ref
@@ -88,7 +116,14 @@ inline-span =
 heading         = 1*6 "#" WSP text
 paragraph       = 1*VCHAR
 blockquote      = ">" WSP text
-code-fence      = 3"`" [ text ] LF *( text / LF ) 3"`"
+
+; Code fence: opening determines closing (3+ backticks or tildes)
+code-fence      = backtick-fence / tilde-fence
+backtick-fence  = backticks [ WSP info-string ] LF *( text / LF ) backticks
+backticks       = 3*"`"                        ; 3 or more backticks
+tilde-fence    = tildes [ WSP info-string ] LF *( text / LF ) tildes
+tildes         = 3*"~"                        ; 3 or more tildes
+info-string    = *( VCHAR / WSP )             ; language identifier, etc.
 
 ; 10. Lists (pure Markdown structure)
 
@@ -109,6 +144,8 @@ nested-list = 1*WSP list-block
 standalone-subject = *WSP "{=" ( iri-ref / "#" fragment ) "}" *WSP
 
 ; 12. Annotation attachment
+; Note: predicate/object-predicate/reverse-predicate are mutually exclusive
+; within a single annotation (one "of" relationship per annotation)
 annotation =
       inline-span *WSP attrs-block
     / heading *WSP attrs-block
