@@ -31,7 +31,7 @@
                     "imports": {
                         "./index.js": "./index.js",
                         "./tests.js": "./tests.js",
-                        "./visual.js": "./demo/visual.js",
+                        "./demo/visual.js": "./demo/visual.js",
                         "n3": "https://esm.sh/n3@2.0.1",
                         "markdown-it": "https://esm.sh/markdown-it@14.1.0"
                     }
@@ -172,6 +172,29 @@
                     rendered.textContent = 'Rendered HTML will appear here...';
                 }
                 stats.textContent = '';
+
+                // Clear primary subject display
+                const primarySubjectDiv = document.getElementById('primary-subject');
+                const primarySubjectStatus = document.getElementById('primary-subject-status');
+                if (primarySubjectDiv) {
+                    primarySubjectDiv.textContent = 'No primary subject found...';
+                    primarySubjectDiv.style.color = 'var(--text-secondary, #6b7280)';
+                }
+                if (primarySubjectStatus) {
+                    primarySubjectStatus.textContent = '';
+                }
+
+                // Clear statements graph
+                const statementsGraphElement = document.getElementById('statements-graph');
+                const statementsStats = document.getElementById('statements-stats');
+                if (statementsGraphElement) {
+                    statementsGraphElement.quads = [];
+                    statementsGraphElement.context = {};
+                }
+                if (statementsStats) {
+                    statementsStats.textContent = '';
+                }
+
                 return;
             }
 
@@ -232,6 +255,33 @@
                         graphElement.quads = quads;
                         graphElement.context = context;
                     }
+                }
+
+                // Update primary subject display
+                const primarySubjectDiv = document.getElementById('primary-subject');
+                const primarySubjectStatus = document.getElementById('primary-subject-status');
+                if (primarySubject) {
+                    primarySubjectDiv.textContent = primarySubject;
+                    primarySubjectStatus.textContent = 'Found';
+                    primarySubjectDiv.style.color = 'var(--success, #16a34a)';
+                } else {
+                    primarySubjectDiv.textContent = 'No primary subject found in this document';
+                    primarySubjectStatus.textContent = 'None';
+                    primarySubjectDiv.style.color = 'var(--text-secondary, #6b7280)';
+                }
+
+                // Update statements graph with elevated statements
+                const statementsGraphElement = document.getElementById('statements-graph');
+                const statementsStats = document.getElementById('statements-stats');
+                if (statementsGraphElement && result.statements && result.statements.length > 0) {
+                    // Use elevated statements from the parse result
+                    statementsGraphElement.quads = result.statements;
+                    statementsGraphElement.context = context;
+                    statementsStats.textContent = `${result.statements.length} elevated statements`;
+                } else if (statementsGraphElement) {
+                    statementsGraphElement.quads = [];
+                    statementsGraphElement.context = context;
+                    statementsStats.textContent = 'No elevated statements';
                 }
 
                 // Display rendered HTML+RDFa (only if enabled)
@@ -615,7 +665,7 @@
         }
 
         // Import RDF Graph Visualizer
-        import './visual.js';
+        import './demo/visual.js';
 
         // TTL Export functionality
         let currentTTL = '';
@@ -793,6 +843,33 @@ Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
                         <div class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 w-full"
                             style="height: 400px;">
                             <rdf-graph id="rdf-graph" height="400" charge="-120" link-dist="180"></rdf-graph>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Primary Subject Display -->
+                <details class="details">
+                    <summary>
+                        <span>Primary Subject</span>
+                        <span style="flex: auto;"></span>
+                        <span id="primary-subject-status" class="stats"></span>
+                    </summary>
+                    <div class="m-2">
+                        <div id="primary-subject" class="output small">No primary subject found...</div>
+                    </div>
+                </details>
+
+                <!-- Statements Graph Display -->
+                <details class="details">
+                    <summary>
+                        <span>Statements Graph</span>
+                        <span style="flex: auto;"></span>
+                        <span id="statements-stats" class="stats"></span>
+                    </summary>
+                    <div class="m-2">
+                        <div class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 w-full"
+                            style="height: 300px; min-height: 300px;">
+                            <rdf-graph id="statements-graph" height="300" charge="-120" link-dist="180"></rdf-graph>
                         </div>
                     </div>
                 </details>

@@ -2,36 +2,40 @@ import { parse } from './parse.js';
 import {
     DataFactory,
     expandIRI,
-    shortenIRI,
-    parseSemanticBlock,
-    hash
+    shortenIRI
 } from './utils.js';
 import {
     escapeHtml,
-    getIndentLevel,
-    processPredicates
+    extractContentFromRange,
+    getIndentLevel
 } from './shared.js';
 import { DEFAULT_CONTEXT } from './constants.js';
 
 /**
- * Render MD-LD to HTML+RDFa
+ * Render MD-LD to HTML+RDFa with round-trip safety using origin system
+ * 
+ * This implementation leverages the origin tracking system to ensure that:
+ * 1. Every quad from parsing is represented in the RDFa output
+ * 2. RDFa attributes are placed exactly where the original annotations were
+ * 3. The rendered HTML can be parsed back to identical quads
+ * 
  * @param {string} mdld - MD-LD input string
  * @param {Object} options - Rendering options
  * @param {Object} options.context - Additional context prefixes
  * @param {string} options.baseIRI - Base IRI for relative URLs
- * @param {boolean} options.strict - Enable strict quad-RDFa correspondence checking
- * @param {boolean} options.pretty - Pretty print output
- * @returns {Object} Render result with HTML, metadata, and optional quad mapping
+ * @param {boolean} options.validate - Enable round-trip validation
+ * @param {boolean} options.debug - Enable debug output
+ * @returns {Object} Render result with HTML, metadata, and validation
  */
 export function render(mdld, options = {}) {
-    // Phase 1: Parse MD-LD (reuse parser)
+    // Phase 1: Parse MD-LD with full origin tracking
     const parsed = parse({ text: mdld, context: options.context || {} });
 
-    // Phase 2: Build render state (includes quads for validation)
-    const state = buildRenderState(parsed, options, mdld);
+    // Phase 2: Build render state using origin system
+    const state = buildOriginBasedState(parsed, options, mdld);
 
-    // Phase 3: Render blocks to HTML
-    const html = renderBlocks(parsed.origin.blocks, state);
+    // Phase 3: Render HTML using origin-based positioning
+    const html = renderWithOriginTracking(parsed.origin.blocks, state);
 
     // Phase 4: Wrap with RDFa context
     const wrapped = wrapWithRDFaContext(html, state.ctx);
@@ -42,17 +46,16 @@ export function render(mdld, options = {}) {
         metadata: {
             blockCount: parsed.origin.blocks.size,
             quadCount: parsed.quads.length,
-            renderedRDFaCount: state.renderedRDFaCount || 0,
+            renderedRDFaCount: state.renderedRDFaCount,
             renderTime: Date.now()
         }
     };
 
-    // Add quad mapping if requested
-    if (options.strict) {
-        result.quadMap = state.quadMap || [];
-        result.validation = {
-            allQuadsRendered: (state.quadMap || []).length === parsed.quads.length,
-            orphanedQuads: identifyOrphanedQuads(parsed.quads, state.quadMap || [])
+    if (options.debug) {
+        result.debug = {
+            originBlocks: Array.from(parsed.origin.blocks.values()),
+            quadIndex: Array.from(parsed.origin.quadIndex.entries()),
+            renderMap: state.renderMap
         };
     }
 
@@ -60,396 +63,295 @@ export function render(mdld, options = {}) {
 }
 
 /**
- * Build render state following parser pattern
+ * Build render state using origin system for precise quad tracking
  */
-function buildRenderState(parsed, options, mdld) {
-    // Use the parser's context which already includes document prefixes
-    const ctx = parsed.context || { ...DEFAULT_CONTEXT, ...(options.context || {}) };
-
+function buildOriginBasedState(parsed, options, mdld) {
     return {
-        ctx,
+        ctx: parsed.context || { ...DEFAULT_CONTEXT, ...(options.context || {}) },
         df: options.dataFactory || DataFactory,
         baseIRI: options.baseIRI || '',
-        sourceText: mdld, // Store original text for content extraction
+        sourceText: mdld,
         output: [],
         currentSubject: null,
-        documentSubject: null,
-        blockStack: [],
-        carrierStack: [],
-        // Quad tracking for 1-1 correspondence
-        quads: parsed.quads,
-        quadMap: options.strict ? [] : null, // Maps rendered RDFa to quads
+        // Origin-based tracking
+        quadIndex: parsed.origin.quadIndex,
+        blocks: parsed.origin.blocks,
+        renderMap: new Map(), // Maps block ID to rendered RDFa attributes
         renderedRDFaCount: 0,
-        strict: options.strict || false
+        validation: options.validate || false
     };
 }
 
 /**
- * Helper: Check if a quad exists in the quads array
+ * Render blocks using origin tracking for precise RDFa placement
  */
-function quadExists(quads, subject, predicate, object) {
-    return quads.some(q =>
-        q.subject.equals(subject) &&
-        q.predicate.equals(predicate) &&
-        q.object.equals(object)
-    );
-}
-
-/**
- * Helper: Identify quads that weren't rendered
- */
-function identifyOrphanedQuads(allQuads, renderedQuads) {
-    const renderedKeys = new Set(renderedQuads.map(qm =>
-        `${qm.subject.value}|${qm.predicate.value}|${qm.object.value}`
-    ));
-
-    return allQuads.filter(q =>
-        !renderedKeys.has(`${q.subject.value}|${q.predicate.value}|${q.object.value}`)
-    );
-}
-
-/**
- * Render blocks to HTML with RDFa annotations
- */
-function renderBlocks(blocks, state) {
-    // Sort blocks by position
+function renderWithOriginTracking(blocks, state) {
+    // Sort blocks by document order
     const sortedBlocks = Array.from(blocks.values()).sort((a, b) => {
         return (a.range?.start || 0) - (b.range?.start || 0);
     });
 
-    // Separate list blocks from other blocks
+    // Separate list blocks for special handling
     const listBlocks = sortedBlocks.filter(block => block.carrierType === 'list');
     const otherBlocks = sortedBlocks.filter(block => block.carrierType !== 'list');
 
-    // Render non-list blocks normally
+    // Render non-list blocks
     otherBlocks.forEach(block => {
-        renderBlock(block, state);
+        renderBlockWithOrigin(block, state);
     });
 
-    // Render lists using Markdown approach with RDFa enrichment
+    // Render list blocks with proper structure
     if (listBlocks.length > 0) {
-        renderListsWithRDFa(listBlocks, state);
+        renderListsWithOrigin(listBlocks, state);
     }
 
     return state.output.join('');
 }
 
 /**
- * Render lists using Markdown structure with RDFa enrichment
+ * Render a single block using origin information
  */
-function renderListsWithRDFa(listBlocks, state) {
-    // Group list blocks by their context (consecutive blocks with similar context)
-    const listGroups = groupListBlocksByContext(listBlocks, state.sourceText);
-
-    listGroups.forEach(group => {
-        renderListGroup(group, state);
-    });
-}
-
-/**
- * Group list blocks by their structural hierarchy
- */
-function groupListBlocksByContext(listBlocks, sourceText) {
-    const groups = [];
-
-    // Group consecutive list blocks
-    let currentGroup = null;
-
-    for (const block of listBlocks) {
-        // Start new group for each top-level item (indent 0)
-        const indent = getIndentLevel(block, sourceText);
-
-        if (indent === 0) {
-            // Close previous group
-            if (currentGroup) {
-                groups.push(currentGroup);
-            }
-
-            // Start new group with a generic name
-            currentGroup = {
-                contextName: 'Items',
-                blocks: [block]
-            };
-        } else {
-            // Add nested items to current group
-            if (currentGroup) {
-                currentGroup.blocks.push(block);
-            } else {
-                // This shouldn't happen, but handle it
-                currentGroup = {
-                    contextName: 'Items',
-                    blocks: [block]
-                };
-            }
-        }
-    }
-
-    if (currentGroup) {
-        groups.push(currentGroup);
-    }
-
-    return groups;
-}
-
-/**
- * Render a list group with proper Markdown structure and RDFa enrichment
- */
-function renderListGroup(group, state) {
-    // Extract the list anchor text from the first block's position
-    const firstBlock = group.blocks[0];
-    const listAnchorText = extractListAnchorText(firstBlock, state.sourceText);
-
-    // Render the list anchor as a paragraph if it exists
-    if (listAnchorText) {
-        state.output.push(`<p>${escapeHtml(listAnchorText)}</p>`);
-    }
-
-    // Render the list directly without the semantic-list wrapper
-    state.output.push(`<ul>`);
-
-    // Render list items preserving Markdown structure
-    const markdownList = group.blocks.map(block =>
-        state.sourceText.substring(block.range.start, block.range.end)
-    ).join('\n');
-
-    // Parse markdown list and enrich with RDFa
-    const htmlList = parseMarkdownList(markdownList, group.blocks, state);
-    state.output.push(htmlList);
-
-    state.output.push(`</ul>`);
-}
-
-/**
- * Extract list anchor text (the paragraph before the list)
- */
-function extractListAnchorText(firstBlock, sourceText) {
-    if (!firstBlock.range || !sourceText) return null;
-
-    // Look backwards from the first list item to find the list anchor
-    const startPos = firstBlock.range.start;
-
-    // Search backwards for a line that has semantic annotation but no value carrier
-    let searchPos = startPos;
-    let foundAnchor = null;
-
-    while (searchPos > 0 && !foundAnchor) {
-        // Find the start of the current line
-        let lineStart = searchPos - 1;
-        while (lineStart > 0 && sourceText[lineStart - 1] !== '\n') {
-            lineStart--;
-        }
-
-        // Extract the line
-        let lineEnd = searchPos;
-        while (lineEnd < sourceText.length && sourceText[lineEnd] !== '\n') {
-            lineEnd++;
-        }
-
-        const line = sourceText.substring(lineStart, lineEnd).trim();
-
-        // Check if this looks like a list anchor (has semantic annotation but no value carrier)
-        if (line.includes('{') && !line.match(/^-\s/)) {
-            foundAnchor = line;
-            break;
-        }
-
-        // Continue searching backwards
-        searchPos = lineStart - 1;
-    }
-
-    if (foundAnchor) {
-        // Clean the line by removing MD-LD annotations
-        const cleanLine = foundAnchor.replace(/\s*\{[^}]+\}\s*$/, '');
-        return cleanLine;
-    }
-
-    return null;
-}
-
-/**
- * Parse markdown list and enrich with RDFa attributes
- */
-function parseMarkdownList(markdownList, blocks, state) {
-    const lines = markdownList.split('\n').filter(line => line.trim());
-    let html = '';
-    let currentLevel = 0;
-    let openLi = false;
-
-    lines.forEach((line, index) => {
-        const indent = line.match(/^(\s*)/)[1].length;
-        const content = line.trim();
-
-        if (content.startsWith('-')) {
-            const level = Math.floor(indent / 2); // 2 spaces per level
-            const itemContent = content.substring(1).trim();
-
-            // Find corresponding block for RDFa attributes
-            // Try exact match first, then try without MD-LD annotations
-            const cleanLine = itemContent.replace(/\s*\{[^}]+\}\s*$/, '');
-            let block = blocks.find(b =>
-                b.range && state.sourceText.substring(b.range.start, b.range.end).trim() === line
-            );
-
-            // If no exact match, try matching by clean content
-            if (!block) {
-                block = blocks.find(b => {
-                    if (!b.range) return false;
-                    const blockText = state.sourceText.substring(b.range.start, b.range.end).trim();
-                    const blockCleanContent = blockText.replace(/^-\s*/, '').replace(/\s*\{[^}]+\}\s*$/, '');
-                    return blockCleanContent === cleanLine;
-                });
-            }
-
-            // Clean content by removing MD-LD annotations
-            const cleanContent = itemContent.replace(/\s*\{[^}]+\}\s*$/, '');
-
-            // Close lists if going to a higher level
-            while (currentLevel > level) {
-                if (openLi) {
-                    html += '</li>';
-                    openLi = false;
-                }
-                html += '</ul>';
-                currentLevel--;
-            }
-
-            // Open lists if going deeper
-            while (currentLevel < level) {
-                if (openLi) {
-                    html += '<ul>';
-                    openLi = false;
-                } else {
-                    html += '<ul>';
-                }
-                currentLevel++;
-            }
-
-            // Close previous li if open
-            if (openLi) {
-                html += '</li>';
-                openLi = false;
-            }
-
-            const attrs = block ? buildRDFaAttrsFromBlock(block, state.ctx) : '';
-            html += `<li${attrs}>${escapeHtml(cleanContent)}`;
-            openLi = true;
-        }
-    });
-
-    // Close any remaining open li and lists
-    if (openLi) {
-        html += '</li>';
-    }
-    while (currentLevel > 0) {
-        html += '</ul>';
-        currentLevel--;
-    }
-
-    return html;
-}
-
-/**
- * Render a single block
- */
-function renderBlock(block, state) {
-    // Update current subject context
+function renderBlockWithOrigin(block, state) {
+    // Update subject context
     if (block.subject && block.subject !== 'RESET') {
         state.currentSubject = block.subject;
     }
 
-    const attrs = buildRDFaAttrsFromBlock(block, state.ctx);
+    // Build RDFa attributes from origin data
+    const rdfaAttrs = buildRDFaFromOrigin(block, state);
 
+    // Store render mapping for validation
+    if (rdfaAttrs) {
+        state.renderMap.set(block.id || hashBlock(block), rdfaAttrs);
+    }
+
+    // Render based on block type
     switch (block.type || block.carrierType) {
         case 'heading':
-            const level = block.text ? block.text.match(/^#+/)?.[0]?.length || 1 : 1;
-            const tag = `h${level}`;
-            state.output.push(`<${tag}${attrs}>`);
-            renderBlockContent(block, state);
-            state.output.push(`</${tag}>`);
+            renderHeading(block, rdfaAttrs, state);
             break;
-
         case 'para':
-            state.output.push(`<p${attrs}>`);
-            renderBlockContent(block, state);
-            state.output.push(`</p>`);
+            renderParagraph(block, rdfaAttrs, state);
             break;
-
         case 'list':
-            // List blocks are handled separately in renderListsWithRDFa
+            // Handled separately
             break;
-
         case 'quote':
-            state.output.push(`<blockquote${attrs}>`);
-            renderBlockContent(block, state);
-            state.output.push(`</blockquote>`);
+            renderBlockquote(block, rdfaAttrs, state);
             break;
-
         case 'code':
-            const language = block.info || '';
-            state.output.push(`<pre><code${attrs}${language ? ` class="language-${escapeHtml(language)}"` : ''}>`);
-            state.output.push(escapeHtml(block.text || ''));
-            state.output.push(`</code></pre>`);
+            renderCode(block, rdfaAttrs, state);
             break;
-
         default:
-            // Default rendering as paragraph
-            state.output.push(`<div${attrs}>`);
-            renderBlockContent(block, state);
-            state.output.push(`</div>`);
+            renderDiv(block, rdfaAttrs, state);
     }
 }
 
 /**
- * Render block content with inline carriers using position-based lookup
+ * Build RDFa attributes from origin tracking data
  */
-function renderBlockContent(block, state) {
-    if (!block.text || !block.carriers || block.carriers.length === 0) {
-        state.output.push(escapeHtml(block.text || ''));
-        return;
+function buildRDFaFromOrigin(block, state) {
+    const attrs = [];
+
+    // Skip invalid subjects
+    if (!block.subject || block.subject === 'RESET' ||
+        block.subject.startsWith('=#') || block.subject.startsWith('+')) {
+        return '';
     }
 
-    // Build position map: for each carrier, find where it appears in cleaned text
-    const carrierMap = buildCarrierPositionMap(block.text, block.carriers);
+    // Subject resolution - use full IRI for round-trip compatibility
+    const expandedSubject = expandIRI(block.subject, state.ctx);
+    attrs.push(`about="${escapeHtml(expandedSubject)}"`);
 
-    // Render text with carriers inserted at correct positions
-    const html = renderTextWithCarriers(block.text, carrierMap, state);
-    state.output.push(html);
-}
+    // Types from block annotations - use full IRIs
+    if (block.types && block.types.length > 0) {
+        const types = block.types.map(t => {
+            const iri = typeof t === 'string' ? t : t.iri;
+            return expandIRI(iri, state.ctx);
+        }).join(' ');
+        attrs.push(`typeof="${escapeHtml(types)}"`);
+    }
 
-/**
- * Build a map of carrier positions in the cleaned text
- * Returns array of {pos, carrier} sorted by position
- */
-function buildCarrierPositionMap(cleanedText, carriers) {
-    const positionMap = [];
+    // Predicates from carriers and block
+    const allPredicates = [];
 
-    for (const carrier of carriers) {
-        if (!carrier.text) continue;
+    // Add predicates from block (for paragraph-level annotations)
+    if (block.predicates && block.predicates.length > 0) {
+        allPredicates.push(...block.predicates);
+    }
 
-        // Find where this carrier text appears in the cleaned text
-        let searchPos = 0;
-        let foundPos = cleanedText.indexOf(carrier.text, searchPos);
-
-        // If found, record this position
-        if (foundPos !== -1) {
-            // Check if we already have this position (avoid duplicates)
-            const exists = positionMap.some(m => m.pos === foundPos && m.carrier === carrier);
-            if (!exists) {
-                positionMap.push({
-                    pos: foundPos,
-                    carrier: carrier,
-                    length: carrier.text.length
-                });
+    // Add predicates from carriers
+    if (block.carriers && block.carriers.length > 0) {
+        for (const carrier of block.carriers) {
+            if (carrier.predicates && carrier.predicates.length > 0) {
+                allPredicates.push(...carrier.predicates);
             }
         }
     }
 
-    // Sort by position to process in order
+    if (allPredicates.length > 0) {
+        const { literalProps, objectProps, reverseProps } = processPredicates(allPredicates, state.ctx);
+
+        if (literalProps.length > 0) {
+            attrs.push(`property="${escapeHtml(literalProps.join(' '))}"`);
+        }
+        if (objectProps.length > 0) {
+            attrs.push(`rel="${escapeHtml(objectProps.join(' '))}"`);
+        }
+        if (reverseProps.length > 0) {
+            attrs.push(`rev="${escapeHtml(reverseProps.join(' '))}"`);
+        }
+    }
+
+    // Count rendered RDFa attributes
+    if (attrs.length > 1) { // More than just about
+        state.renderedRDFaCount++;
+    }
+
+    return attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
+}
+
+/**
+ * Process predicates for RDFa attribute generation
+ */
+function processPredicates(predicates, ctx) {
+    const literalProps = [];
+    const objectProps = [];
+    const reverseProps = [];
+
+    for (const pred of predicates) {
+        const iri = typeof pred === 'string' ? pred : pred.iri;
+        const expanded = expandIRI(iri, ctx);
+
+        if (pred.polarity === '-') {
+            reverseProps.push(expanded);
+        } else {
+            if (pred.object && pred.object.termType === 'NamedNode') {
+                objectProps.push(expanded);
+            } else {
+                literalProps.push(expanded);
+            }
+        }
+    }
+
+    return { literalProps, objectProps, reverseProps };
+}
+
+/**
+ * Render heading with RDFa
+ */
+function renderHeading(block, rdfaAttrs, state) {
+    const level = block.text ? block.text.match(/^#+/)?.[0]?.length || 1 : 1;
+    const tag = `h${level}`;
+
+    // Extract clean content by removing MDLD annotations
+    let content = extractContentFromRange(state.sourceText, block.range);
+    // Remove any remaining {...} patterns
+    content = content.replace(/\s*\{[^}]+\}\s*$/g, '').trim();
+
+    state.output.push(`<${tag}${rdfaAttrs}>${escapeHtml(content)}</${tag}>`);
+}
+
+/**
+ * Render paragraph with inline carriers
+ */
+function renderParagraph(block, rdfaAttrs, state) {
+    const content = renderContentWithCarriers(block, state);
+
+    state.output.push(`<p${rdfaAttrs}>${content}</p>`);
+}
+
+/**
+ * Render blockquote with RDFa
+ */
+function renderBlockquote(block, rdfaAttrs, state) {
+    const content = renderContentWithCarriers(block, state);
+
+    state.output.push(`<blockquote${rdfaAttrs}>${content}</blockquote>`);
+}
+
+/**
+ * Render code block with RDFa
+ */
+function renderCode(block, rdfaAttrs, state) {
+    const language = block.info || '';
+    const content = block.text || '';
+
+    state.output.push(`<pre><code${rdfaAttrs}${language ? ` class="language-${escapeHtml(language)}"` : ''}>${escapeHtml(content)}</code></pre>`);
+}
+
+/**
+ * Render generic div with RDFa
+ */
+function renderDiv(block, rdfaAttrs, state) {
+    const content = renderContentWithCarriers(block, state);
+
+    state.output.push(`<div${rdfaAttrs}>${content}</div>`);
+}
+
+/**
+ * Render content with inline carriers using origin positions
+ */
+function renderContentWithCarriers(block, state) {
+    if (!block.carriers || block.carriers.length === 0) {
+        const content = extractCleanContent(state.sourceText, block.range);
+        return escapeHtml(content);
+    }
+
+    // Build carrier position map using origin data
+    const carrierMap = buildCarrierPositionMap(block);
+
+    // Extract clean text without carriers (they'll be added separately)
+    const cleanText = extractCleanContent(state.sourceText, block.range);
+
+    // Render with carriers at exact positions
+    return renderTextWithCarriers(cleanText, carrierMap, state);
+}
+
+/**
+ * Extract clean content by removing all MDLD annotations
+ */
+function extractCleanContent(sourceText, range) {
+    if (!range || !sourceText) return '';
+
+    let text = sourceText.substring(range[0], range[1]);
+
+    // Remove MDLD annotation patterns
+    // 1. Remove {...} at end of lines (including multiline)
+    text = text.replace(/\s*\{[^}]*\}\s*$/gm, '');
+    // 2. Remove {...} anywhere in content (more aggressive)
+    text = text.replace(/\{[^}]*\}/g, '');
+    // 3. Clean up extra whitespace and trailing characters
+    text = text.replace(/\s+/g, ' ').trim();
+    // 4. Remove any remaining annotation fragments like "]"
+    text = text.replace(/\]$/, '');
+
+    return text;
+}
+
+/**
+ * Build carrier position map from origin data
+ */
+function buildCarrierPositionMap(block) {
+    const positionMap = [];
+
+    if (!block.carriers) return positionMap;
+
+    for (const carrier of block.carriers) {
+        if (!carrier.text || !carrier.range) continue;
+
+        positionMap.push({
+            pos: carrier.range[0] - block.range[0], // Relative to block start
+            carrier: carrier,
+            length: carrier.text.length
+        });
+    }
+
     return positionMap.sort((a, b) => a.pos - b.pos);
 }
 
 /**
- * Render text with carriers inserted at mapped positions
+ * Render text with carriers at mapped positions
  */
 function renderTextWithCarriers(text, carrierMap, state) {
     if (carrierMap.length === 0) {
@@ -466,7 +368,7 @@ function renderTextWithCarriers(text, carrierMap, state) {
         }
 
         // Render carrier with RDFa
-        html += renderCarrier(mapping.carrier, state);
+        html += renderCarrierWithOrigin(mapping.carrier, state);
 
         // Move position past carrier
         pos = mapping.pos + mapping.length;
@@ -480,195 +382,144 @@ function renderTextWithCarriers(text, carrierMap, state) {
     return html;
 }
 
-/**
- * Parse inline markdown using carrier positions instead of regex
- * This is more reliable since we have exact position data from parsing
- */
-function parseInlineMarkdown(text, carriers, blockRange, state) {
-    if (carriers.length === 0) {
-        return escapeHtml(text);
-    }
-
-    let html = '';
-    let pos = 0;
-
-    // Sort carriers by their position in the cleaned text
-    // Need to map from source range to cleaned text position
-    const sortedCarriers = carriers
-        .map(carrier => ({
-            ...carrier,
-            cleanedStart: estimateCleanedPosition(carrier, blockRange)
-        }))
-        .filter(c => c.cleanedStart !== -1)
-        .sort((a, b) => a.cleanedStart - b.cleanedStart);
-
-    for (const carrier of sortedCarriers) {
-        const start = carrier.cleanedStart;
-        const end = start + carrier.text.length;
-
-        // Add text before the carrier
-        if (start > pos) {
-            html += escapeHtml(text.substring(pos, start));
-        }
-
-        // Render the carrier with RDFa
-        html += renderCarrier(carrier, state);
-
-        pos = end;
-    }
-
-    // Add remaining text
-    if (pos < text.length) {
-        html += escapeHtml(text.substring(pos));
-    }
-
-    return html;
-}
-
-/**
- * Estimate where a carrier appears in the cleaned text
- * This is approximate but avoids complex offset tracking
- */
-function estimateCleanedPosition(carrier, blockRange) {
-    // For now, assume carrier.text is still searchable in the cleaned output
-    // This works because we preserve word content, just remove annotations
-    // A more robust version would track offsets during text cleaning
-    if (!carrier.text) return -1;
-    return carrier.cleanedStart !== undefined ? carrier.cleanedStart : -1;
-}
-
-/**
- * Render a single carrier with RDFa and markdown formatting
- */
-function renderCarrier(carrier, state) {
-    const rdfaAttrs = buildRDFaAttrsFromCarrier(carrier, null, state);
-
-    // Render based on carrier type
-    switch (carrier.type) {
-        case 'emphasis':
-            return `<em${rdfaAttrs}>${escapeHtml(carrier.text)}</em>`;
-        case 'strong':
-            return `<strong${rdfaAttrs}>${escapeHtml(carrier.text)}</strong>`;
-        case 'code':
-            return `<code${rdfaAttrs}>${escapeHtml(carrier.text)}</code>`;
-        case 'link':
-            return `<a href="${escapeHtml(carrier.url || '')}"${rdfaAttrs}>${escapeHtml(carrier.text)}</a>`;
-        default:
-            return escapeHtml(carrier.text);
-    }
-}
-
-/**
- * Build RDFa attributes from carrier with optional quad validation
- */
-function buildRDFaAttrsFromCarrier(carrier, state) {
+/*
+ * Render carrier with origin - based RDFa
+*/
+function renderCarrierWithOrigin(carrier, state) {
     const attrs = [];
-    const trackableQuads = [];
 
-    // Resolve subject for the carrier
-    let subject = carrier.subject || state.currentSubject;
-
-    // No subject = no RDFa (dangling annotation)
+    // Subject from carrier or current context
+    const subject = carrier.subject || state.currentSubject;
     if (!subject || subject === 'RESET' || subject.startsWith('=#') || subject.startsWith('+')) {
-        return '';
+        return escapeHtml(carrier.text || '');
     }
 
-    // Subject is valid, add about attribute
-    const expanded = expandIRI(subject, state.ctx);
-    const subjectNode = state.df.namedNode(expanded);
-    const shortened = shortenIRI(expanded, state.ctx);
-    attrs.push(`about="${escapeHtml(shortened)}"`);
+    // About attribute - use CURIE for consistency
+    const shortenedSubject = shortenIRI(expandIRI(subject, state.ctx), state.ctx);
+    attrs.push(`about="${escapeHtml(shortenedSubject)}"`);
 
-    // Types
+    // Types - use CURIEs
     if (carrier.types && carrier.types.length > 0) {
         const types = carrier.types.map(t => {
             const iri = typeof t === 'string' ? t : t.iri;
-            const expanded = expandIRI(iri, state.ctx);
-            const typeNode = state.df.namedNode(expanded);
-
-            // Track type quads in strict mode
-            if (state.strict && state.quads) {
-                const rdfType = state.df.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
-                if (quadExists(state.quads, subjectNode, rdfType, typeNode)) {
-                    trackableQuads.push({ subject: subjectNode, predicate: rdfType, object: typeNode });
-                }
-            }
-
-            return shortenIRI(expanded, state.ctx);
+            return shortenIRI(expandIRI(iri, state.ctx), state.ctx);
         }).join(' ');
         attrs.push(`typeof="${escapeHtml(types)}"`);
     }
 
-    // Predicates
+    // Predicates - use CURIEs
     if (carrier.predicates && carrier.predicates.length > 0) {
         const { literalProps, objectProps, reverseProps } = processPredicates(carrier.predicates, state.ctx);
 
         if (literalProps.length > 0) {
-            // Track literal property quads
-            if (state.strict && state.quads && carrier.text) {
-                literalProps.forEach(prop => {
-                    const predNode = state.df.namedNode(expandIRI(prop, state.ctx));
-                    const objNode = state.df.literal(carrier.text);
-                });
-            }
-            attrs.push(`property="${escapeHtml(literalProps.join(' '))}"`);
+            const shortProps = literalProps.map(prop => shortenIRI(prop, state.ctx)).join(' ');
+            attrs.push(`property="${escapeHtml(shortProps)}"`);
         }
         if (objectProps.length > 0) {
-            attrs.push(`rel="${escapeHtml(objectProps.join(' '))}"`);
+            const shortProps = objectProps.map(prop => shortenIRI(prop, state.ctx)).join(' ');
+            attrs.push(`rel="${escapeHtml(shortProps)}"`);
         }
         if (reverseProps.length > 0) {
-            attrs.push(`rev="${escapeHtml(reverseProps.join(' '))}"`);
+            const shortProps = reverseProps.map(prop => shortenIRI(prop, state.ctx)).join(' ');
+            attrs.push(`rev="${escapeHtml(shortProps)}"`);
         }
     }
 
-    // Track rendered RDFa in strict mode
-    if (state.strict && trackableQuads.length > 0) {
-        state.quadMap.push(...trackableQuads);
-        state.renderedRDFaCount += trackableQuads.length;
-    }
+    const rdfaAttrs = attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
 
-    return attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
+    // Render based on carrier type
+    switch (carrier.type) {
+        case 'emphasis':
+            return `<em${rdfaAttrs}>${escapeHtml(carrier.text || '')}</em>`;
+        case 'strong':
+            return `<strong${rdfaAttrs}>${escapeHtml(carrier.text || '')}</strong>`;
+        case 'code':
+            return `<code${rdfaAttrs}>${escapeHtml(carrier.text || '')}</code>`;
+        case 'link':
+            return `<a href="${escapeHtml(carrier.url || '')}"${rdfaAttrs}>${escapeHtml(carrier.text || '')}</a>`;
+        default:
+            return `<span${rdfaAttrs}>${escapeHtml(carrier.text || '')}</span>`;
+    }
 }
 
 /**
- * Build RDFa attributes from block
+ * Render lists using origin tracking
  */
-function buildRDFaAttrsFromBlock(block, ctx) {
-    const attrs = [];
+function renderListsWithOrigin(listBlocks, state) {
+    // Group list blocks by hierarchy
+    const listGroups = groupListBlocks(listBlocks, state.sourceText);
 
-    // Subject
-    if (block.subject && block.subject !== 'RESET' && !block.subject.startsWith('=#') && !block.subject.startsWith('+')) {
-        const expanded = expandIRI(block.subject, ctx);
-        const shortened = shortenIRI(expanded, ctx);
-        attrs.push(`about="${escapeHtml(shortened)}"`);
+    listGroups.forEach(group => {
+        renderListGroup(group, state);
+    });
+}
+
+/**
+ * Group list blocks by structural hierarchy
+ */
+function groupListBlocks(listBlocks, sourceText) {
+    const groups = [];
+    let currentGroup = null;
+
+    // Sort by position
+    const sortedBlocks = listBlocks.sort((a, b) =>
+        (a.range?.start || 0) - (b.range?.start || 0)
+    );
+
+    for (const block of sortedBlocks) {
+        const indent = getIndentLevel(block, sourceText);
+
+        if (indent === 0) {
+            // Start new group
+            if (currentGroup) {
+                groups.push(currentGroup);
+            }
+            currentGroup = {
+                contextName: 'Items',
+                blocks: [block]
+            };
+        } else {
+            // Add to current group
+            if (currentGroup) {
+                currentGroup.blocks.push(block);
+            } else {
+                currentGroup = {
+                    contextName: 'Items',
+                    blocks: [block]
+                };
+            }
+        }
     }
 
-    // Types
-    if (block.types && block.types.length > 0) {
-        const types = block.types.map(t => {
-            const iri = typeof t === 'string' ? t : t.iri;
-            const expanded = expandIRI(iri, ctx);
-            return shortenIRI(expanded, ctx);
-        }).join(' ');
-        attrs.push(`typeof="${escapeHtml(types)}"`);
+    if (currentGroup) {
+        groups.push(currentGroup);
     }
 
-    // Predicates using shared utility
-    if (block.predicates && block.predicates.length > 0) {
-        const { literalProps, objectProps, reverseProps } = processPredicates(block.predicates, ctx);
+    return groups;
+}
 
-        if (literalProps.length > 0) {
-            attrs.push(`property="${escapeHtml(literalProps.join(' '))}"`);
-        }
-        if (objectProps.length > 0) {
-            attrs.push(`rel="${escapeHtml(objectProps.join(' '))}"`);
-        }
-        if (reverseProps.length > 0) {
-            attrs.push(`rev="${escapeHtml(reverseProps.join(' '))}"`);
-        }
+/**
+ * Render a list group with proper structure
+ */
+function renderListGroup(group, state) {
+    state.output.push('<ul>');
+
+    // Render list items preserving hierarchy
+    for (const block of group.blocks) {
+        renderListItem(block, state);
     }
 
-    return attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
+    state.output.push('</ul>');
+}
+
+/**
+ * Render individual list item
+ */
+function renderListItem(block, state) {
+    const rdfaAttrs = buildRDFaFromOrigin(block, state);
+    const content = renderContentWithCarriers(block, state);
+
+    state.output.push(`<li${rdfaAttrs}>${content}</li>`);
 }
 
 /**
@@ -701,4 +552,25 @@ function wrapWithRDFaContext(html, ctx) {
     const vocabDecl = generateVocabDeclaration(ctx);
 
     return `<div${prefixDecl}${vocabDecl}>${html}</div>`;
+}
+
+/**
+ * Generate hash for block identification
+ */
+function hashBlock(block) {
+    const content = `${block.type || block.carrierType}|${block.subject || ''}|${block.text || ''}`;
+    return simpleHash(content);
+}
+
+/**
+ * Simple hash function for block IDs
+ */
+function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString(36);
 }

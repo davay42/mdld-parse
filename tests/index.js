@@ -3,6 +3,7 @@ import { locateTests } from './locate.tests.js';
 import { mergeTests } from './merge.tests.js';
 import { originLeanTests } from './origin-lean.tests.js';
 import { elevatedStatementTests } from './elevated-statements.tests.js';
+import { mdTests } from './md.tests.js';
 
 const tests = [
     ...parseTests,
@@ -10,6 +11,7 @@ const tests = [
     ...mergeTests,
     ...originLeanTests,
     ...elevatedStatementTests,
+    ...mdTests,
 ];
 
 let passed = 0;

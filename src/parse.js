@@ -76,7 +76,8 @@ export function parse(firstArg, secondArg = {}) {
         blockStack: []
     };
 
-    state.tokens = scanTokens(text);
+    const scanResult = scanTokens(text);
+    state.tokens = scanResult.tokens;
 
     // Single-pass processing: resolve prefixes AND process tokens together
     for (let i = 0; i < state.tokens.length; i++) {
@@ -117,7 +118,15 @@ export function parse(firstArg, secondArg = {}) {
         }
     }
 
-    return { quads: state.quads, remove: filteredRemove, statements: state.statements, origin: state.origin, context: state.ctx, primarySubject: state.primarySubject };
+    return {
+        quads: state.quads,
+        remove: filteredRemove,
+        statements: state.statements,
+        origin: state.origin,
+        context: state.ctx,
+        primarySubject: state.primarySubject,
+        md: scanResult.md
+    };
 }
 
 
@@ -130,6 +139,7 @@ function getCarriers(token) {
 
 function scanTokens(text) {
     const tokens = [];
+    const mdLines = [];
     const lines = text.split('\n');
     let pos = 0;
     let codeBlock = null;
@@ -137,6 +147,7 @@ function scanTokens(text) {
         { type: 'fence', test: line => FENCE_REGEX.test(line.trim()), process: handleFence },
         { type: 'content', test: () => codeBlock, process: line => codeBlock.content.push(line) },
         { type: 'prefix', test: line => PREFIX_REGEX.test(line), process: handlePrefix },
+        { type: 'standalone', test: line => STANDALONE_SUBJECT_REGEX.test(line), process: handleStandaloneSubject },
         { type: 'heading', test: line => HEADING_REGEX.test(line), process: handleHeading },
         { type: 'list', test: line => UNORDERED_LIST_REGEX.test(line), process: handleList },
         { type: 'blockquote', test: line => BLOCKQUOTE_REGEX.test(line), process: handleBlockquote },
@@ -162,6 +173,10 @@ function scanTokens(text) {
                 attrsRange: attrsText && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrsText.length] : null,
                 valueRangeStart: contentStart
             };
+
+            // Add stripped fence line to mdLines
+            const cleanFence = line.replace(/\s*\{[^}]+\}\s*$/, '');
+            mdLines.push(cleanFence);
         } else {
             const fenceChar = codeBlock.fence[0];
             const expectedFence = fenceChar.repeat(codeBlock.fence.length);
@@ -179,7 +194,20 @@ function scanTokens(text) {
                     attrsRange: codeBlock.attrsRange,
                     valueRange: [valueStart, valueEnd]
                 });
+
+                // Add all code content to mdLines before closing fence
+                for (const contentLine of codeBlock.content) {
+                    mdLines.push(contentLine);
+                }
+
                 codeBlock = null;
+
+                // Add closing fence to mdLines without trailing newline
+                const closingFence = line.replace(/\r?\n.*$/, '');
+                mdLines.push(closingFence);
+            } else {
+                // Code content - don't add to mdLines here, will be added when closing block
+                // No need to add individual lines as they're processed when closing
             }
         }
         return true;
@@ -188,6 +216,7 @@ function scanTokens(text) {
     function handlePrefix(line, lineStart, pos) {
         const match = PREFIX_REGEX.exec(line);
         tokens.push({ type: 'prefix', prefix: match[1], iri: match[2].trim() });
+        // Prefixes are typically stripped from clean MD
         return true;
     }
 
@@ -198,12 +227,20 @@ function scanTokens(text) {
         const rangeInfo = calcRangeInfo(line, attrs, lineStart, afterHashes, match[2].length);
         tokens.push(createToken('heading', [lineStart, pos - 1], match[2].trim(), attrs,
             rangeInfo.attrsRange, rangeInfo.valueRange, { depth: match[1].length }));
+
+        // Add stripped heading to mdLines
+        const cleanHeading = `${match[1]} ${match[2].trim()}`;
+        mdLines.push(cleanHeading);
         return true;
     }
 
     function handleList(line, lineStart, pos) {
         const match = UNORDERED_LIST_REGEX.exec(line);
         tokens.push(createListToken('list', line, lineStart, pos, match));
+
+        // Add stripped list item to mdLines
+        const cleanList = `${match[1]}${match[2]} ${match[3].trim()}`;
+        mdLines.push(cleanList);
         return true;
     }
 
@@ -215,11 +252,45 @@ function scanTokens(text) {
         tokens.push(createToken('blockquote', [lineStart, pos - 1], match[1].trim(), attrs,
             calcAttrsRange(line, attrs, lineStart),
             [lineStart + valueStartInLine, lineStart + valueEndInLine]));
+
+        // Add stripped blockquote to mdLines
+        const cleanBlockquote = `> ${match[1].trim()}`;
+        mdLines.push(cleanBlockquote);
         return true;
     }
 
     function handlePara(line, lineStart, pos) {
         tokens.push(createToken('para', [lineStart, pos - 1], line.trim()));
+
+        // Add stripped paragraph to mdLines
+        let cleanPara = line;
+
+        // Remove inline carrier annotations using existing patterns
+        for (const [patternName, regex] of CARRIER_PATTERN_ARRAY) {
+            const globalRegex = new RegExp(regex.source, 'gy');
+            cleanPara = cleanPara.replace(globalRegex, (match, content, attrs) => {
+                return content || '';
+            });
+        }
+
+        // Remove bracket-style annotations [text] {annotation}
+        cleanPara = cleanPara.replace(/\[([^\]]+)\]\s*\{[^}]+\}/g, '$1');
+
+        // Remove any remaining standalone annotations
+        cleanPara = cleanPara.replace(/\s*\{[^}]+\}\s*/g, ' ');
+
+        // Clean up extra whitespace
+        cleanPara = cleanPara.replace(/\s+/g, ' ').trim();
+
+        mdLines.push(cleanPara);
+        return true;
+    }
+
+    function handleStandaloneSubject(line, lineStart, pos) {
+        tokens.push({ type: 'standalone', text: line.trim(), range: [lineStart, pos - 1] });
+
+        // Standalone subjects are stripped from MD by default
+        // Don't add anything to mdLines
         return true;
     }
 
@@ -236,7 +307,9 @@ function scanTokens(text) {
         }
     }
 
-    return tokens;
+    // Join without trailing newline to match expected output
+    const mdContent = mdLines.join('\n');
+    return { tokens, md: mdContent };
 }
 
 function extractInlineCarriers(text, baseOffset = 0) {
@@ -688,4 +761,5 @@ const TOKEN_PROCESSORS = {
     blockquote: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
     para: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry, [processStandaloneSubject]),
     list: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
+    standalone: (token, state) => processStandaloneSubject(token, state),
 };

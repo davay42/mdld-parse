@@ -7,10 +7,8 @@ This document demonstrates various use cases for elevated statements with PROV-O
 ## Research Project Documentation
 
 [my] <tag:research@example.com,2026:>
-[prov] <http://www.w3.org/ns/prov#>
 [foaf] <http://xmlns.com/foaf/0.1/>
 [ex] <http://example.org/ontology/>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
 
 ### 2026-03-26T09:00:00Z {=my:research-project .prov:Activity prov:startedAtTime ^^xsd:dateTime}
 

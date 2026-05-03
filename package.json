@@ -13,7 +13,8 @@
 	],
 	"scripts": {
 		"test": "node tests/index.js",
-		"dev": "pnpx live-server"
+		"dev": "vite dev",
+		"build": "vite build && vite build --config vite.config.lib.js && cp -r docs/ dist/docs/ && cp -r examples/ dist/examples/ && cp -r spec/ dist/spec/"
 	},
 	"keywords": [
 		"mdld",
@@ -38,5 +39,14 @@
 	"homepage": "https://mdld.js.org",
 	"bugs": {
 		"url": "https://github.com/davay42/mdld-parse/issues"
+	},
+	"devDependencies": {
+		"@unocss/extractor-pug": "^66.6.8",
+		"@vitejs/plugin-vue": "^6.0.6",
+		"unocss": "^66.6.8",
+		"vite": "^8.0.10",
+		"vite-plugin-singlefile": "^2.3.3",
+		"markdown-it": "^14.1.1",
+		"n3": "^2.0.3"
 	}
 }

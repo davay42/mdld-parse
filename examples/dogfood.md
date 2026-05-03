@@ -92,11 +92,11 @@ Token types created during scanning:
 
 ### Processing Pipeline
 Document processing follows this pipeline: 
-1. **Line-by-line scanning** {+#line-by-line .Class label ?member} - Sequential token creation
-2. **Context resolution** {+#context-resolution .Class label ?member} - Prefix and vocabulary expansion
-3. **Subject tracking** {+#subject-tracking .Class label ?member} - Current subject management
-4. **Annotation processing** {+#annotation-processing .Class label ?member} - Semantic block evaluation
-5. **Quad emission** {+#quad-emission .Class label ?member} - RDF triple generation
+1. **Line-by-line scanning** {+#line-by-line .Class label ?member}
+2. **Context resolution** {+#context-resolution .Class label ?member}
+3. **Subject tracking** {+#subject-tracking .Class label ?member}
+4. **Annotation processing** {+#annotation-processing .Class label ?member}
+5. **Quad emission** {+#quad-emission .Class label ?member}
 
 ### Semantic Block Processing
 Annotations are parsed using cached semantic blocks: {mdld:includes .Class label}

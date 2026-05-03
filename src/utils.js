@@ -293,8 +293,8 @@ export function shortenIRI(iri, ctx) {
 
 // Token pattern definitions for semantic block parsing
 const TOKEN_PATTERNS = {
-    '=#': { kind: 'fragment', extract: t => t.substring(2) },
-    '+#': { kind: 'softFragment', extract: t => t.substring(2) },
+    '=#': { kind: 'fragment', extract: t => t.substring(2).replace('}', '') },
+    '+#': { kind: 'softFragment', extract: t => t.substring(2).replace('}', '') },
     '+': { kind: 'object', extract: t => t.substring(1) },
     '^^': { kind: 'datatype', extract: t => t.substring(2) },
     '@': { kind: 'language', extract: t => t.substring(1) },
