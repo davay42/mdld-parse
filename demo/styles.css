@@ -72,6 +72,9 @@
     }
 
     .header {
+        z-index: -2;
+        position: sticky;
+        top: 3em;
         text-align: center;
         margin-bottom: 2rem;
         padding-bottom: 1rem;

@@ -8,13 +8,13 @@ Grandma Rose's recipe, documented by Alice. Cook time: [45] {food:time ^^xsd:int
 
 Flour (cups): [2.5] {+#flour ?food:ingredient .food:Ingredient food:ammount ^^food:cup} - used in crust
 
-Sugar (cups): [1] {+#sugar ?food:ingredient .food:Ingredient food:ammount ^^food:cup} used in filling  
+Sugar (cups): `1` {+#sugar ?food:ingredient .food:Ingredient food:ammount ^^food:cup} used in filling  
 
-Butter (cups): [1] {+#butter ?food:ingredient .food:Ingredient food:ammoun ^^food:cupt} used in crust
+Butter (cups): *1* {+#butter ?food:ingredient .food:Ingredient food:ammoun ^^food:cupt} used in crust
 
-Apples: [6] {+#apples ?food:ingredient .food:Ingredient food:ammount ^^xsd:integer} used in filling
+Apples: **6** {+#apples ?food:ingredient .food:Ingredient food:ammount ^^xsd:integer} used in filling
 
-Cinnamon (tsp): [2] {+food:cinnamon ?food:ingredient .food:Ingredient ^^xsd:tsp} used in filling
+Cinnamon (tsp): __2__ {+food:cinnamon ?food:ingredient .food:Ingredient ^^xsd:tsp} used in filling
 
 **Process**
 
