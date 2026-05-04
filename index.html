@@ -36,8 +36,46 @@
         import { Writer, DataFactory as N3DataFactory, Store } from 'n3';
         import MarkdownIt from 'markdown-it';
         import { loadExample as loadExampleData } from './demo/examples.js';
+        import { CodeJar } from 'codejar';
 
         let currentTestResults = [];
+        let jar = null;
+
+        // Simple MDLD syntax highlighting
+        const highlight = (editor) => {
+            // Get the raw text content, not HTML
+            const code = jar.toString();
+
+            let highlighted = code
+                // Escape HTML first
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Apply syntax highlighting
+            highlighted = highlighted
+                // Prefix declarations
+                .replace(/^(\[[^\]]+\])\s*(<[^>]+>)/gm, '<span style="color: #3b82f6; opacity: 0.75">$1</span> <span style="color: #10b981; opacity: 0.75">$2</span>')
+                // Entity headings
+                .replace(/^(#{1,6}\s+[^{]+)(\{=[^}]+\})/gm, '$1<span style="opacity: 0.75">$2</span>')
+                // Property annotations
+                .replace(/\[([^\]]+)\]\s*(\{[^}]+\})/g, '<span style="color: orange; opacity: 0.75">[$1]</span><span style="opacity: 0.75">$2</span>')
+                // Standalone annotations
+                .replace(/\{([^}]+)\}/g, '<span style="opacity: 0.75">{$1}</span>')
+                // URLs in angle brackets
+                .replace(/&lt;([^&]+)&gt;/g, '<span style="color: #10b981; opacity: 0.75">&lt;$1&gt;</span>')
+                // Markdown headers
+                .replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, text) => {
+                    const colors = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#06b6d4'];
+                    const color = colors[hashes.length - 1] || '#6b7280';
+                    return `<span style="color: ${color}">${hashes}</span> <span style="opacity: 0.75">${text}</span>`;
+                })
+                // Bold and italic
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+            editor.innerHTML = highlighted;
+        };
 
         // Development flag to enable/disable RDFa rendering
         // Set to false for production, true for development
@@ -54,9 +92,11 @@
         // Load example from imported modules
         window.loadExample = function (name) {
             const content = loadExampleData(name);
-            if (content) {
-                document.getElementById('input').value = content;
+            if (content && jar) {
+                jar.updateCode(content);
                 parseMDLD();
+            } else if (!jar) {
+                console.warn('CodeJar editor not initialized');
             } else {
                 console.warn(`Example not found: ${name}`);
             }
@@ -150,7 +190,7 @@
 
         // Parse MD-LD
         window.parseMDLD = function () {
-            const input = document.getElementById('input').value;
+            const input = jar ? jar.toString() : '';
             const output = document.getElementById('output');
             const rendered = document.getElementById('rendered-output');
             const stats = document.getElementById('parse-stats');
@@ -196,7 +236,6 @@
 
                 lastParse = { input, result };
                 const { quads, context, primarySubject } = result;
-                console.log(quads);
                 delete context['@vocab']
 
                 // Check if quads actually changed
@@ -337,7 +376,9 @@
 
         // Clear playground
         window.clearPlayground = function () {
-            document.getElementById('input').value = '';
+            if (jar) {
+                jar.updateCode('');
+            }
             document.getElementById('output').textContent = 'Quads will appear here...';
             if (ENABLE_RDFA_RENDER) {
                 const rendered = document.getElementById('rendered-output');
@@ -483,13 +524,34 @@
         };
 
         // Auto-parse on input change
-        document.getElementById('input').addEventListener('input', () => {
-            clearTimeout(window.parseTimeout);
-            window.parseTimeout = setTimeout(parseMDLD, 300);
-        });
+        const setupAutoParse = () => {
+            if (jar) {
+                jar.onUpdate((code) => {
+                    clearTimeout(window.parseTimeout);
+                    window.parseTimeout = setTimeout(parseMDLD, 300);
+                });
+            }
+        };
 
         // Auto-run tests on page load
         window.addEventListener('load', () => {
+            // Initialize CodeJar editor
+            const editorElement = document.getElementById('editor');
+            if (editorElement) {
+                jar = CodeJar(editorElement, highlight, {
+                    tab: '  ', // 2 spaces for indentation
+                    indentOn: /[(\[{]$/,
+                    spellcheck: false,
+                    catchTab: true,
+                    preserveIdent: true,
+                    addClosing: true
+                });
+
+                // Initialize with empty content
+                jar.updateCode('');
+                setupAutoParse();
+            }
+
             // Load initial example (now instant from embedded scripts)
             loadExample('recipe');
 
@@ -806,19 +868,26 @@
                         </button>
                     </div>
                 </div>
-                <textarea id="input" class="textarea" placeholder="Write your MD-LD here...
+                <div class="editor-container" style="position: relative;">
+                    <div id="editor" class="editor"
+                        style="min-height: 400px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.5; padding: 12px; background: var(--bg-primary, white); color: var(--text-primary, #1f2937); border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+                    </div>
+                    <style>
+                        .editor {
+                            tab-size: 2;
+                        }
 
-Examples showcase real-world scenarios:
-- Recipe: Simple lists with ingredients & equipment
-- Project: Tasks, resources, and team members
-- Apollo: Prefix folding for NASA mission hierarchy
-- Research: Angle-bracket URLs for papers & datasets
+                        .editor:focus {
+                            outline: 2px solid var(--accent, #3b82f6);
+                            outline-offset: -2px;
+                        }
 
-[ex] <tag:Alice@example.com,2026:>
-
-## Document {=ex:doc}
-Title: [My Document] {label}
-Author: [Alice] {+ex:alice .Person ?ex:author label}"></textarea>
+                        .editor ::selection {
+                            background: var(--accent, #3b82f6);
+                            color: white;
+                        }
+                    </style>
+                </div>
             </div>
 
             <!-- Preview Section with Graph and Quads -->
