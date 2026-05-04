@@ -41,40 +41,158 @@
         let currentTestResults = [];
         let jar = null;
 
-        // Simple MDLD syntax highlighting
+        // MDLD Token-based syntax highlighting
+        const TOKEN_COLORS = {
+            text: '#6b7280',          // Grayscale - main text
+            marker: '#f97316',        // Orange - .?!^^@
+            retraction: '#dc2626',    // Red - whole predicate with -
+            value: '#eab308',         // Yellow - values in []
+            annotation: '#4b5563'     // Darker gray - annotation braces
+        };
+
+        // Parse an annotation token { ... }
+        const parseAnnotation = (content) => {
+            const parts = content.trim().split(/\s+/);
+            let result = '';
+            let inRetraction = false;
+
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                if (!part) continue;
+
+                // Check for subject markers (= or +)
+                if (part.startsWith('=') || part.startsWith('+')) {
+                    result += `<span style="color: ${TOKEN_COLORS.text}">${escapeHtml(part)}</span> `;
+                    continue;
+                }
+
+                // Check for retraction marker (-)
+                if (part.startsWith('-')) {
+                    inRetraction = true;
+                    result += `<span style="color: ${TOKEN_COLORS.retraction}">${escapeHtml(part)}</span> `;
+                    continue;
+                }
+
+                // Check for object markers (? or !)
+                if (part.startsWith('?') || part.startsWith('!')) {
+                    const color = inRetraction ? TOKEN_COLORS.retraction : TOKEN_COLORS.text;
+                    result += `<span style="color: ${color}">${escapeHtml(part)}</span> `;
+                    continue;
+                }
+
+                // Check for datatype markers (^^, @)
+                if (part.startsWith('^^') || part.startsWith('@')) {
+                    const color = inRetraction ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+                    result += `<span style="color: ${color}">${escapeHtml(part)}</span> `;
+                    continue;
+                }
+
+                // Check for type marker (.)
+                if (part.startsWith('.')) {
+                    const color = inRetraction ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+                    result += `<span style="color: ${color}">${escapeHtml(part)}</span> `;
+                    continue;
+                }
+
+                // Regular CURIE or IRI
+                const color = inRetraction ? TOKEN_COLORS.retraction : TOKEN_COLORS.text;
+                result += `<span style="color: ${color}">${escapeHtml(part)}</span> `;
+            }
+
+            return result.trim();
+        };
+
+        // Main highlighting function
         const highlight = (editor) => {
-            // Get the raw text content, not HTML
             const code = jar.toString();
+            let result = '';
+            let i = 0;
 
-            let highlighted = code
-                // Escape HTML first
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+            while (i < code.length) {
+                const char = code[i];
 
-            // Apply syntax highlighting
-            highlighted = highlighted
-                // Prefix declarations
-                .replace(/^(\[[^\]]+\])\s*(<[^>]+>)/gm, '<span style="color: #3b82f6; opacity: 0.75">$1</span> <span style="color: #10b981; opacity: 0.75">$2</span>')
-                // Entity headings
-                .replace(/^(#{1,6}\s+[^{]+)(\{=[^}]+\})/gm, '$1<span style="opacity: 0.75">$2</span>')
-                // Property annotations
-                .replace(/\[([^\]]+)\]\s*(\{[^}]+\})/g, '<span style="color: orange; opacity: 0.75">[$1]</span><span style="opacity: 0.75">$2</span>')
-                // Standalone annotations
-                .replace(/\{([^}]+)\}/g, '<span style="opacity: 0.75">{$1}</span>')
-                // URLs in angle brackets
-                .replace(/&lt;([^&]+)&gt;/g, '<span style="color: #10b981; opacity: 0.75">&lt;$1&gt;</span>')
-                // Markdown headers
-                .replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, text) => {
-                    const colors = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#06b6d4'];
-                    const color = colors[hashes.length - 1] || '#6b7280';
-                    return `<span style="color: ${color}">${hashes}</span> <span style="opacity: 0.75">${text}</span>`;
-                })
-                // Bold and italic
-                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                // Handle annotation blocks { ... }
+                if (char === '{') {
+                    const endIdx = code.indexOf('}', i);
+                    if (endIdx === -1) {
+                        // No closing brace, treat as regular text
+                        result += escapeHtml(char);
+                        i++;
+                        continue;
+                    }
 
-            editor.innerHTML = highlighted;
+                    const content = code.slice(i + 1, endIdx);
+                    const parsed = parseAnnotation(content);
+
+                    result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>`;
+                    result += parsed;
+                    result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span>`;
+
+                    i = endIdx + 1;
+                    continue;
+                }
+
+                // Handle value carriers [ ... ]
+                if (char === '[') {
+                    const endIdx = code.indexOf(']', i);
+                    if (endIdx === -1) {
+                        // No closing bracket, treat as regular text
+                        result += escapeHtml(char);
+                        i++;
+                        continue;
+                    }
+
+                    const content = code.slice(i + 1, endIdx);
+                    result += `<span style="color: ${TOKEN_COLORS.value}; opacity: 0.85">[${escapeHtml(content)}]</span>`;
+
+                    i = endIdx + 1;
+                    continue;
+                }
+
+                // Handle prefix declarations < ... >
+                if (char === '<') {
+                    const endIdx = code.indexOf('>', i);
+                    if (endIdx === -1) {
+                        result += escapeHtml(char);
+                        i++;
+                        continue;
+                    }
+
+                    const content = code.slice(i + 1, endIdx);
+                    result += `<span style="color: ${TOKEN_COLORS.text}; opacity: 0.6">&lt;${escapeHtml(content)}&gt;</span>`;
+
+                    i = endIdx + 1;
+                    continue;
+                }
+
+                // Handle markdown headers
+                if (char === '#') {
+                    let hashCount = 0;
+                    let j = i;
+                    while (j < code.length && code[j] === '#') {
+                        hashCount++;
+                        j++;
+                    }
+
+                    if (hashCount <= 6 && (j >= code.length || code[j] === ' ' || code[j] === '\t')) {
+                        // Find end of line
+                        const lineEnd = code.indexOf('\n', j);
+                        const endIdx = lineEnd === -1 ? code.length : lineEnd;
+                        const headerText = code.slice(j, endIdx);
+
+                        result += `<span style="color: ${TOKEN_COLORS.text}; opacity: ${0.4 + (hashCount * 0.1)}">${'#'.repeat(hashCount)}${escapeHtml(headerText)}</span>`;
+
+                        i = endIdx;
+                        continue;
+                    }
+                }
+
+                // Regular text
+                result += escapeHtml(char);
+                i++;
+            }
+
+            editor.innerHTML = result;
         };
 
         // Development flag to enable/disable RDFa rendering
