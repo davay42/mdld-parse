@@ -1,0 +1,71 @@
+{
+  "timestamp": "2026-05-04T18:26:45.534Z",
+  "document": "prov-o.md",
+  "parser": "current-hybrid",
+  "results": [
+    {
+      "scale": 1,
+      "chars": 144364,
+      "lines": 2369,
+      "annotations": 820,
+      "quads": 944,
+      "remove": 0,
+      "statements": 0,
+      "avgTime": 19.799320700000003,
+      "minTime": 15.623041,
+      "maxTime": 34.05516699999998,
+      "memoryHeap": 37962704,
+      "timePerChar": 0.13714860145188554,
+      "timePerQuad": 20.973856673728815,
+      "memoryPerQuad": 40214.72881355932
+    },
+    {
+      "scale": 2,
+      "chars": 288740,
+      "lines": 4739,
+      "annotations": 1640,
+      "quads": 1888,
+      "remove": 0,
+      "statements": 0,
+      "avgTime": 33.811568750000006,
+      "minTime": 31.178499999999985,
+      "maxTime": 35.457708000000025,
+      "memoryHeap": 86474000,
+      "timePerChar": 0.11710039741636076,
+      "timePerQuad": 17.90866988877119,
+      "memoryPerQuad": 45801.90677966102
+    },
+    {
+      "scale": 5,
+      "chars": 721868,
+      "lines": 11849,
+      "annotations": 4100,
+      "quads": 4720,
+      "remove": 0,
+      "statements": 0,
+      "avgTime": 86.94152089999996,
+      "minTime": 81.78229099999999,
+      "maxTime": 115.94841700000006,
+      "memoryHeap": -85505440,
+      "timePerChar": 0.12043963841034643,
+      "timePerQuad": 18.41981374999999,
+      "memoryPerQuad": -18115.5593220339
+    },
+    {
+      "scale": 10,
+      "chars": 1443748,
+      "lines": 23699,
+      "annotations": 8200,
+      "quads": 9440,
+      "remove": 0,
+      "statements": 0,
+      "avgTime": 166.5592582000001,
+      "minTime": 164.12962500000003,
+      "maxTime": 168.2750000000001,
+      "memoryHeap": 91524104,
+      "timePerChar": 0.1153658797795738,
+      "timePerQuad": 17.643989216101705,
+      "memoryPerQuad": 9695.35
+    }
+  ]
+}

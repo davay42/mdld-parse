@@ -7,16 +7,16 @@ import {
 } from './utils.js';
 import {
     DEFAULT_CONTEXT,
-    URL_REGEX,
-    FENCE_REGEX,
-    PREFIX_REGEX,
-    HEADING_REGEX,
-    UNORDERED_LIST_REGEX,
-    BLOCKQUOTE_REGEX,
-    STANDALONE_SUBJECT_REGEX,
-    CARRIER_PATTERN_ARRAY,
-
 } from './constants.js';
+import {
+    detectStandaloneSubject,
+    detectPrefix,
+    detectHeading,
+    detectList,
+    detectBlockquote,
+    detectFence,
+    scanInlineCarriers
+} from './tokenizers.js';
 import {
 
     getFenceClosePattern,
@@ -144,31 +144,31 @@ function scanTokens(text) {
     let pos = 0;
     let codeBlock = null;
     const PROCESSORS = [
-        { type: 'fence', test: line => FENCE_REGEX.test(line.trim()), process: handleFence },
+        { type: 'fence', test: line => detectFence(line.trim()), process: handleFence },
         { type: 'content', test: () => codeBlock, process: line => codeBlock.content.push(line) },
-        { type: 'prefix', test: line => PREFIX_REGEX.test(line), process: handlePrefix },
-        { type: 'standalone', test: line => STANDALONE_SUBJECT_REGEX.test(line), process: handleStandaloneSubject },
-        { type: 'heading', test: line => HEADING_REGEX.test(line), process: handleHeading },
-        { type: 'list', test: line => UNORDERED_LIST_REGEX.test(line), process: handleList },
-        { type: 'blockquote', test: line => BLOCKQUOTE_REGEX.test(line), process: handleBlockquote },
+        { type: 'prefix', test: line => detectPrefix(line), process: handlePrefix },
+        { type: 'standalone', test: line => detectStandaloneSubject(line), process: handleStandaloneSubject },
+        { type: 'heading', test: line => detectHeading(line), process: handleHeading },
+        { type: 'list', test: line => detectList(line), process: handleList },
+        { type: 'blockquote', test: line => detectBlockquote(line), process: handleBlockquote },
         { type: 'para', test: line => line.trim(), process: handlePara }
     ];
 
     function handleFence(line, lineStart, pos) {
         const trimmedLine = line.trim();
         if (!codeBlock) {
-            const fenceMatch = trimmedLine.match(FENCE_REGEX);
-            if (!fenceMatch) return false;
+            const fenceResult = detectFence(trimmedLine);
+            if (!fenceResult) return false;
 
-            const { lang, attrsText } = parseLangAndAttrs(fenceMatch[2]);
+            const attrsText = fenceResult.attrs;
             const attrsStartInLine = attrsText ? line.indexOf(attrsText) : -1;
             const contentStart = lineStart + line.length + 1;
 
             codeBlock = {
-                fence: fenceMatch[1],
+                fence: fenceResult.fenceChar.repeat(fenceResult.fenceLength),
                 start: lineStart,
                 content: [],
-                lang,
+                lang: fenceResult.lang,
                 attrs: attrsText,
                 attrsRange: attrsText && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrsText.length] : null,
                 valueRangeStart: contentStart
@@ -214,47 +214,50 @@ function scanTokens(text) {
     }
 
     function handlePrefix(line, lineStart, pos) {
-        const match = PREFIX_REGEX.exec(line);
-        tokens.push({ type: 'prefix', prefix: match[1], iri: match[2].trim() });
+        const result = detectPrefix(line);
+        tokens.push({ type: 'prefix', prefix: result.prefix, iri: result.iri });
         // Prefixes are typically stripped from clean MD
         return true;
     }
 
     function handleHeading(line, lineStart, pos) {
-        const match = HEADING_REGEX.exec(line);
-        const attrs = match[3] || null;
-        const afterHashes = match[1].length;
-        const rangeInfo = calcRangeInfo(line, attrs, lineStart, afterHashes, match[2].length);
-        tokens.push(createToken('heading', [lineStart, pos - 1], match[2].trim(), attrs,
-            rangeInfo.attrsRange, rangeInfo.valueRange, { depth: match[1].length }));
+        const result = detectHeading(line);
+        const attrs = result.attrs;
+        const afterHashes = result.depth;
+        const rangeInfo = calcRangeInfo(line, attrs, lineStart, afterHashes, result.content.length);
+        tokens.push(createToken('heading', [lineStart, pos - 1], result.content, attrs,
+            rangeInfo.attrsRange, rangeInfo.valueRange, { depth: result.depth }));
 
         // Add stripped heading to mdLines
-        const cleanHeading = `${match[1]} ${match[2].trim()}`;
+        const cleanHeading = `${'#'.repeat(result.depth)} ${result.content}`;
         mdLines.push(cleanHeading);
         return true;
     }
 
     function handleList(line, lineStart, pos) {
-        const match = UNORDERED_LIST_REGEX.exec(line);
+        const result = detectList(line);
+        // Create match array format expected by createListToken
+        const indentStr = ' '.repeat(result.indent);
+        const match = [line, indentStr, result.marker, result.content, result.attrs];
         tokens.push(createListToken('list', line, lineStart, pos, match));
 
         // Add stripped list item to mdLines
-        const cleanList = `${match[1]}${match[2]} ${match[3].trim()}`;
+        const cleanList = `${indentStr}${result.marker} ${result.content}`;
         mdLines.push(cleanList);
         return true;
     }
 
     function handleBlockquote(line, lineStart, pos) {
-        const match = BLOCKQUOTE_REGEX.exec(line);
-        const attrs = match[2] || null;
+        const result = detectBlockquote(line);
+        const attrs = result.attrs;
         const valueStartInLine = line.startsWith('> ') ? 2 : line.indexOf('>') + 1;
-        const valueEndInLine = valueStartInLine + match[1].length;
-        tokens.push(createToken('blockquote', [lineStart, pos - 1], match[1].trim(), attrs,
+        const valueEndInLine = valueStartInLine + result.content.length;
+        tokens.push(createToken('blockquote', [lineStart, pos - 1], result.content, attrs,
             calcAttrsRange(line, attrs, lineStart),
             [lineStart + valueStartInLine, lineStart + valueEndInLine]));
 
         // Add stripped blockquote to mdLines
-        const cleanBlockquote = `> ${match[1].trim()}`;
+        const cleanBlockquote = `> ${result.content}`;
         mdLines.push(cleanBlockquote);
         return true;
     }
@@ -265,12 +268,15 @@ function scanTokens(text) {
         // Add stripped paragraph to mdLines
         let cleanPara = line;
 
-        // Remove inline carrier annotations using existing patterns
-        for (const [patternName, regex] of CARRIER_PATTERN_ARRAY) {
-            const globalRegex = new RegExp(regex.source, 'gy');
-            cleanPara = cleanPara.replace(globalRegex, (match, content, attrs) => {
-                return content || '';
-            });
+        // Remove inline carrier annotations using character-based detection
+        const carriers = scanInlineCarriers(cleanPara, 0);
+        for (const carrier of carriers) {
+            if (carrier.attrs && (carrier.type === 'emphasis' || carrier.type === 'code')) {
+                // Replace with just the content
+                const before = cleanPara.substring(0, carrier.range[0]);
+                const after = cleanPara.substring(carrier.range[1]);
+                cleanPara = before + (carrier.text || '') + after;
+            }
         }
 
         // Remove bracket-style annotations [text] {annotation}
@@ -313,67 +319,7 @@ function scanTokens(text) {
 }
 
 function extractInlineCarriers(text, baseOffset = 0) {
-    const carriers = [];
-    let pos = 0;
-
-    const CARRIER_EXTRACTORS = {
-        '<': (text, pos, baseOffset) => {
-            const angleEnd = text.indexOf('>', pos);
-            if (angleEnd === -1) return null;
-            const url = text.slice(pos + 1, angleEnd);
-            if (!URL_REGEX.test(url)) return null;
-            const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, angleEnd + 1, baseOffset);
-            return createCarrier('link', url, attrs, attrsRange,
-                [baseOffset + pos + 1, baseOffset + angleEnd],
-                [baseOffset + pos, baseOffset + finalSpanEnd], finalSpanEnd, { url });
-        },
-        '[': (text, pos, baseOffset) => {
-            const bracketEnd = findMatchingBracket(text, pos);
-            if (!bracketEnd) return null;
-            const carrierText = text.slice(pos + 1, bracketEnd - 1);
-            const { url, spanEnd } = extractUrlFromBrackets(text, bracketEnd);
-            const { attrs, attrsRange, finalSpanEnd } = extractAttributesFromText(text, spanEnd, baseOffset);
-            const { carrierType, resourceIRI } = determineCarrierType(url);
-            if (url?.startsWith('=')) return { skip: true, pos: finalSpanEnd };
-            return createCarrier(carrierType, carrierText, attrs, attrsRange,
-                [baseOffset + pos + 1, baseOffset + bracketEnd - 1],
-                [baseOffset + pos, baseOffset + finalSpanEnd], finalSpanEnd, { url: resourceIRI });
-        }
-    };
-
-    const extractCarrier = (text, pos, baseOffset) => {
-        const extractor = CARRIER_EXTRACTORS[text[pos]];
-        if (extractor) return extractor(text, pos, baseOffset);
-
-        // Use pre-compiled patterns instead of Object.entries()
-        for (const [type, pattern] of CARRIER_PATTERN_ARRAY) {
-            pattern.lastIndex = pos;
-            const match = pattern.exec(text);
-            if (match) {
-                const ranges = calcCarrierRanges(match, baseOffset, match.index);
-                const carrierType = type === 'EMPHASIS' ? 'emphasis' : 'code';
-                return createCarrier(carrierType, match[1], `{${match[2]}}`,
-                    ranges.attrsRange, ranges.valueRange, ranges.range, ranges.pos);
-            }
-        }
-        return null;
-    };
-
-    while (pos < text.length) {
-        const carrier = extractCarrier(text, pos, baseOffset);
-        if (carrier) {
-            if (carrier.skip) {
-                pos = carrier.pos;
-            } else {
-                carriers.push(carrier);
-                pos = carrier.pos;
-            }
-        } else {
-            pos++;
-        }
-    }
-
-    return carriers;
+    return scanInlineCarriers(text, baseOffset);
 }
 
 
@@ -743,14 +689,14 @@ function processTokenAnnotations(token, state, tokenType) {
 }
 
 function processStandaloneSubject(token, state) {
-    const match = STANDALONE_SUBJECT_REGEX.exec(token.text);
-    if (!match) return;
+    const result = detectStandaloneSubject(token.text);
+    if (!result) return;
 
-    const sem = parseSemCached(`{=${match[1]}}`);
+    const sem = parseSemCached(`{=${result.content}}`);
     const attrsStart = token.range[0] + token.text.indexOf('{=');
     processAnnotation({
         type: 'standalone', text: '', range: token.range,
-        attrsRange: [attrsStart, attrsStart + (match[1] ? match[1].length : 0)],
+        attrsRange: [attrsStart, attrsStart + (result.content ? result.content.length : 0)],
         valueRange: null
     }, sem, state);
 }
