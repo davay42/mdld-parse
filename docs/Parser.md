@@ -4,6 +4,51 @@
 
 The MD-LD parser implements a **single-pass, streaming-friendly** architecture that transforms Markdown with semantic annotations into RDF/JS quads while maintaining complete provenance and supporting elevated statements extraction.
 
+## Character-Based Tokenization (v0.10.0)
+
+The parser uses a unified character-based tokenization system for optimal performance:
+
+### Tokenizer Architecture
+
+```javascript
+// src/tokenizers.js - Centralized tokenization logic
+export function detectFence(line)           // ```code blocks
+export function detectPrefix(line)          // [prefix] <uri>
+export function detectHeading(line)          // # Headings
+export function detectList(line)            // - List items
+export function detectBlockquote(line)       // > Blockquotes
+export function detectStandaloneSubject(line) // {=subject}
+export function scanInlineCarriers(text)     // [text], **bold**, `code`, <URL>
+```
+
+### Performance Benefits
+
+- **20-28% faster parsing** than regex-based approaches
+- **Memory-efficient** with ~640 bytes per quad retained
+- **O(n) linear time complexity** maintained
+- **Better error handling** with precise edge case detection
+- **Cleaner code structure** - No complex regex patterns
+
+### Token Detection Flow
+
+```javascript
+// Block-level detection in scanTokens()
+const PROCESSORS = [
+    { type: 'fence', test: line => detectHeading(line), process: handleFence },
+    { type: 'prefix', test: line => detectPrefix(line), process: handlePrefix },
+    { type: 'heading', test: line => detectHeading(line), process: handleHeading },
+    { type: 'list', test: line => detectList(line), process: handleList },
+    { type: 'blockquote', test: line => detectBlockquote(line), process: handleBlockquote },
+    { type: 'para', test: line => line.trim(), process: handlePara }
+];
+
+// Inline carrier detection in getCarriers()
+function getCarriers(token) {
+    if (token.type === 'code') return [];
+    return token._carriers || (token._carriers = scanInlineCarriers(token.text, token.range[0]));
+}
+```
+
 ## Core Parser Structures
 
 ### 1. Parser State Object

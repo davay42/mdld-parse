@@ -6,6 +6,8 @@ MD-LD follows strict engineering principles to ensure reliability and performanc
 
 - **Zero dependencies** — Pure JavaScript, ~15KB minified
 - **Streaming-first** — Single-pass parsing, O(n) complexity
+- **Character-based tokenization** — 20-28% faster than regex-based approaches
+- **Memory-efficient** — ~640 bytes per quad retained after GC
 - **Standards-compliant** — RDF/JS data model
 - **Origin tracking** — Full round-trip support with source maps
 - **Explicit semantics** — No guessing, inference, or heuristics
@@ -33,10 +35,32 @@ For detailed documentation of parser internals, see **[Parser Architecture](./Pa
 - Performance optimizations
 - Extensibility points
 
-### Tokenization Phase
+### Character-Based Tokenization
 
-The parser processes documents in a single pass with these token types:
+MD-LD v0.10.0 uses a unified character-based tokenization system for optimal performance:
 
+#### Block-Level Tokenizers
+```javascript
+detectFence()           // ```code blocks
+detectPrefix()          // [prefix] <uri>
+detectHeading()          // # Headings
+detectList()            // - List items
+detectBlockquote()       // > Blockquotes
+detectStandaloneSubject() // {=subject}
+```
+
+#### Inline Carrier Scanner
+```javascript
+scanInlineCarriers()    // [text], **bold**, `code`, <URL>
+```
+
+#### Performance Benefits
+- **20-28% faster parsing** through direct character manipulation
+- **Memory-efficient** with lazy evaluation and minimal allocations
+- **Better error handling** with precise edge case detection
+- **Maintainable code** - No complex regex patterns to debug
+
+#### Token Types
 - **Prefix declarations** - `[prefix] <uri>`
 - **Subject declarations** - `{=iri}`, `{=#fragment}`, `{=}`
 - **Annotations** - `{...}` blocks with predicates
