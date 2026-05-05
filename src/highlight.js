@@ -30,40 +30,21 @@ export const TOKEN_COLORS = {
     text: '#6b7280',          // Grayscale - main text
     marker: '#f97316',        // Orange - .?!^^@
     retraction: '#dc2626',    // Red - whole predicate with -
-    value: '#f97316',         // Yellow - values in []
+    value: '#eab308',         // Yellow - values in []
     annotation: '#4b5563'     // Darker gray - annotation braces
 };
 
 // Check if markdown formatting has following annotation
 function hasFollowingAnnotation(code, endPos) {
     let i = endPos;
-    while (i < code.length && /\s/.test(code[i])) {
+    // Skip all non-newline characters to find annotation on same line
+    while (i < code.length && code[i] !== '\n' && code[i] !== '\r') {
+        if (code[i] === '{') {
+            return true;
+        }
         i++;
     }
-    return i < code.length && code[i] === '{';
-}
-
-// Process markdown formatting in text while preserving original syntax
-export function processMarkdownFormatting(text, hasFollowingAnnotation = false) {
-    let result = escapeHtml(text);
-
-    if (hasFollowingAnnotation) {
-        // Orange for legal value carriers (with following annotation)
-        result = result.replace(/\*\*(.*?)\*\*/g, `<strong style="color: ${TOKEN_COLORS.marker}">$1</strong>`);
-        result = result.replace(/__(.*?)__/g, `<strong style="color: ${TOKEN_COLORS.marker}">$1</strong>`);
-        result = result.replace(/\*(.*?)\*/g, `<em style="color: ${TOKEN_COLORS.marker}">$1</em>`);
-        result = result.replace(/_(.*?)_/g, `<em style="color: ${TOKEN_COLORS.marker}">$1</em>`);
-        result = result.replace(/`(.*?)`/g, `<code style="color: ${TOKEN_COLORS.marker}">$1</code>`);
-    } else {
-        // Default browser styles for regular markdown spans
-        result = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        result = result.replace(/__(.*?)__/g, '<strong>$1</strong>');
-        result = result.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        result = result.replace(/_(.*?)_/g, '<em>$1</em>');
-        result = result.replace(/`(.*?)`/g, '<code>$1</code>');
-    }
-
-    return result;
+    return false;
 }
 
 // Process markdown formatting at specific position for non-bracket text
@@ -78,7 +59,7 @@ function processMarkdownFormattingAtPosition(code, startPos) {
             const hasAnnotation = hasFollowingAnnotation(code, endPos + 2);
             const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
             return {
-                html: `<strong${color}>**${escapeHtml(content)}**</strong>`,
+                html: `<span${color}>**</span><strong>${escapeHtml(content)}</strong><span${color}>**</span>`,
                 nextIndex: endPos + 2
             };
         }
@@ -92,7 +73,7 @@ function processMarkdownFormattingAtPosition(code, startPos) {
             const hasAnnotation = hasFollowingAnnotation(code, endPos + 2);
             const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
             return {
-                html: `<strong${color}>__${escapeHtml(content)}__</strong>`,
+                html: `<span${color}>__</span><strong>${escapeHtml(content)}</strong><span${color}>__</span>`,
                 nextIndex: endPos + 2
             };
         }
@@ -106,7 +87,7 @@ function processMarkdownFormattingAtPosition(code, startPos) {
             const hasAnnotation = hasFollowingAnnotation(code, endPos + 1);
             const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
             return {
-                html: `<em${color}>*${escapeHtml(content)}*</em>`,
+                html: `<span${color}>*</span><em>${escapeHtml(content)}</em><span${color}>*</span>`,
                 nextIndex: endPos + 1
             };
         }
@@ -120,7 +101,7 @@ function processMarkdownFormattingAtPosition(code, startPos) {
             const hasAnnotation = hasFollowingAnnotation(code, endPos + 1);
             const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
             return {
-                html: `<em${color}>_${escapeHtml(content)}_</em>`,
+                html: `<span${color}>_</span><em>${escapeHtml(content)}</em><span${color}>_</span>`,
                 nextIndex: endPos + 1
             };
         }
@@ -134,7 +115,7 @@ function processMarkdownFormattingAtPosition(code, startPos) {
             const hasAnnotation = hasFollowingAnnotation(code, endPos + 1);
             const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
             return {
-                html: `<code${color}>\`${escapeHtml(content)}\`</code>`,
+                html: `<span${color}>\`</span><code style="background-color:#7773">${escapeHtml(content)}</code><span${color}>\`</span>`,
                 nextIndex: endPos + 1
             };
         }
@@ -143,25 +124,73 @@ function processMarkdownFormattingAtPosition(code, startPos) {
     return null;
 }
 
-// Extract declared prefixes from code for CURIE coloring
+// IRI to color mapping with deterministic hashing and subtle tints
+export const colorCache = new Map();
+
+export function hashIRI(iri) {
+    let hash = 0;
+    for (let i = 0; i < iri.length; i++) {
+        const char = iri.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+}
+
+export function getIRIColor(iri) {
+    if (colorCache.has(iri)) {
+        return colorCache.get(iri);
+    }
+
+    const hash = hashIRI(iri);
+    // Use hue from hash, but keep saturation and lightness low for subtle tints
+    const hue = hash % 360;
+    const saturation = 15 + (hash % 10); // 15-25% saturation (very subtle)
+    const lightness = 45 + (hash % 10);  // 45-55% lightness (medium gray range)
+
+    const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    colorCache.set(iri, color);
+    return color;
+}
+
+// Extract declared prefixes with IRI resolution for CURIE coloring
 function extractPrefixes(code) {
-    const prefixes = new Set();
+    const prefixes = new Map(); // prefix -> IRI
     // Match [prefix] <...> declarations
-    const prefixRegex = /^\[(\w+)\]\s*<[^>]*>\s*$/gm;
+    const prefixRegex = /^\[(\w+)\]\s*<([^>]*)>\s*$/gm;
     let match;
     while ((match = prefixRegex.exec(code)) !== null) {
-        prefixes.add(match[1]);
+        const prefixName = match[1];
+        let iri = match[2];
+
+        // Resolve folded prefixes (check if IRI contains CURIE)
+        if (iri.includes(':')) {
+            const colonIndex = iri.indexOf(':');
+            if (colonIndex > 0) {
+                const refPrefix = iri.slice(0, colonIndex);
+                const refSuffix = iri.slice(colonIndex + 1);
+
+                // Check if referenced prefix is already declared
+                if (prefixes.has(refPrefix)) {
+                    const baseIRI = prefixes.get(refPrefix);
+                    iri = baseIRI + refSuffix;
+                }
+                // If not declared, treat as literal string (as per spec)
+            }
+        }
+
+        prefixes.set(prefixName, iri);
     }
     // Merge built-in prefixes (skip the special @vocab key)
-    for (const key of Object.keys(DEFAULT_CONTEXT)) {
-        if (key !== '@vocab') prefixes.add(key);
+    for (const [key, iri] of Object.entries(DEFAULT_CONTEXT)) {
+        if (key !== '@vocab') prefixes.set(key, iri);
     }
     return prefixes;
 }
 
-// Render a CURIE or plain term with prefix-aware coloring
+// Render a CURIE or plain term with IRI-based transitive coloring
 function renderTerm(part, isRetracted, prefixes) {
-    const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.text;
+    const baseColor = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.text;
 
     // Try to split as CURIE: prefix:local
     const colonIndex = part.indexOf(':');
@@ -169,14 +198,25 @@ function renderTerm(part, isRetracted, prefixes) {
         const prefix = part.slice(0, colonIndex);
         const local = part.slice(colonIndex + 1);
         if (prefixes.has(prefix)) {
-            return `<span style="color: ${color}">${escapeHtml(prefix)}</span>` +
+            const prefixIRI = prefixes.get(prefix);
+            const prefixColor = getIRIColor(prefixIRI);
+            const fullIRI = prefixIRI + local;
+            const localColor = getIRIColor(fullIRI);
+
+            return `<span style="color: ${prefixColor}">${escapeHtml(prefix)}</span>` +
                 `<span style="color: ${TOKEN_COLORS.marker}">:</span>` +
-                `<span style="color: ${color}">${escapeHtml(local)}</span> `;
+                `<span data-iri="${fullIRI}" style="color: ${localColor}">${escapeHtml(local)}</span> `;
         }
     }
 
-    // Plain term or unknown CURIE
-    return `<span style="color: ${color}">${escapeHtml(part)}</span> `;
+    // Plain term or unknown CURIE - try as full IRI
+    if (part.startsWith('http:') || part.startsWith('https:') || part.startsWith('tag:') || part.startsWith('urn:')) {
+        const iriColor = getIRIColor(part);
+        return `<span style="color: ${iriColor}">${escapeHtml(part)}</span> `;
+    }
+
+    // Fallback to base color
+    return `<span style="color: ${baseColor}">${escapeHtml(part)}</span> `;
 }
 
 // Parse an annotation token { ... }
@@ -286,22 +326,48 @@ export function highlightMDLD(code) {
             continue;
         }
 
-        // Handle value carriers [ ... ] and markdown formatting
+        // Handle prefix declarations [prefix] <...> (before value carriers)
         if (char === '[') {
-            const endIdx = code.indexOf(']', i);
-            if (endIdx === -1) {
-                // No closing bracket, treat as regular text
+            const endBracket = code.indexOf(']', i);
+            if (endBracket === -1) {
                 result += escapeHtml(char);
                 i++;
                 continue;
             }
 
-            const content = code.slice(i + 1, endIdx);
-            const hasAnnotation = hasFollowingAnnotation(code, endIdx + 1);
-            const processedContent = processMarkdownFormatting(content, hasAnnotation);
-            result += `<span style="color: ${TOKEN_COLORS.value}; opacity: 0.85">[${processedContent}]</span>`;
+            const prefixName = code.slice(i + 1, endBracket);
+            // Look ahead for the IRI part
+            let j = endBracket + 1;
+            while (j < code.length && /\s/.test(code[j])) j++;
 
-            i = endIdx + 1;
+            if (j < code.length && code[j] === '<') {
+                const iriEnd = code.indexOf('>', j);
+                if (iriEnd !== -1) {
+                    const iriContent = code.slice(j + 1, iriEnd);
+                    const prefixColor = prefixes.has(prefixName) ? getIRIColor(prefixes.get(prefixName)) : TOKEN_COLORS.text;
+
+                    result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">[</span>` +
+                        `<span style="color: ${prefixColor}">${escapeHtml(prefixName)}</span>` +
+                        `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">]</span> ` +
+                        `<span style="color: ${TOKEN_COLORS.text}; opacity: 0.6">&lt;${escapeHtml(iriContent)}&gt;</span>`;
+
+                    i = iriEnd + 1;
+                    continue;
+                }
+            }
+
+            // Fallback: treat as value carrier
+            const content = code.slice(i + 1, endBracket);
+            const hasAnnotation = hasFollowingAnnotation(code, endBracket + 1);
+            // Only make brackets orange if this is a legal value carrier (has following annotation)
+            const bracketColor = hasAnnotation ? TOKEN_COLORS.marker : TOKEN_COLORS.value;
+            // Content always stays default text color with full opacity, no markdown formatting coloring
+            const escapedContent = escapeHtml(content);
+            result += `<span style="color: ${bracketColor}; opacity: 0.85">[</span>` +
+                `<span style=" opacity: 1.0">${escapedContent}</span>` +
+                `<span style="color: ${bracketColor}; opacity: 0.85">]</span>`;
+
+            i = endBracket + 1;
             continue;
         }
 
@@ -313,22 +379,6 @@ export function highlightMDLD(code) {
                 i = processed.nextIndex;
                 continue;
             }
-        }
-
-        // Handle prefix declarations < ... >
-        if (char === '<') {
-            const endIdx = code.indexOf('>', i);
-            if (endIdx === -1) {
-                result += escapeHtml(char);
-                i++;
-                continue;
-            }
-
-            const content = code.slice(i + 1, endIdx);
-            result += `<span style="color: ${TOKEN_COLORS.text}; opacity: 0.6">&lt;${escapeHtml(content)}&gt;</span>`;
-
-            i = endIdx + 1;
-            continue;
         }
 
         // Handle markdown headers
@@ -376,14 +426,58 @@ export function highlightMDLD(code) {
                 // Add remaining text after last annotation (escaped)
                 processedHeaderText += escapeHtml(headerText.slice(lastIndex));
 
-                // Create HTML heading that preserves the original markdown syntax
+                // Check if heading is legal (has annotation)
+                const hasAnnotation = headerText.includes('{') && headerText.includes('}');
                 const headingTag = `h${hashCount}`;
                 const headingStyle = `margin: 0.5em 0; font-weight: 600;`;
                 const hashes = '#'.repeat(hashCount);
-                result += `<${headingTag} style="${headingStyle}"><span style="color: ${TOKEN_COLORS.marker}; opacity: 0.8">${hashes}</span> ${processedHeaderText}</${headingTag}>`;
+
+                // Only color # markers orange if heading is legal (has annotation)
+                const hashColor = hasAnnotation ? `color: ${TOKEN_COLORS.marker}; opacity: 0.8` : '';
+                result += `<${headingTag} style="${headingStyle}"><span style="${hashColor}">${hashes}</span> ${processedHeaderText}</${headingTag}>`;
 
                 i = endIdx;
                 continue;
+            }
+        }
+
+        // Handle list markers (-, *)
+        if (char === '-' || char === '*') {
+            // Check if this is a list marker (at start of line or after whitespace)
+            const prevChar = i > 0 ? code[i - 1] : '\n';
+            const isAtLineStart = prevChar === '\n' || prevChar === '\r';
+            const isAfterSpace = prevChar === ' ' || prevChar === '\t';
+
+            if (isAtLineStart || isAfterSpace) {
+                // Check if followed by space and has annotation
+                const nextChar = code[i + 1];
+                if (nextChar === ' ') {
+                    const hasAnnotation = hasFollowingAnnotation(code, i + 2);
+                    const markerColor = hasAnnotation ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : '';
+                    result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
+                    i++;
+                    continue;
+                }
+            }
+        }
+
+        // Handle blockquotes (>)
+        if (char === '>') {
+            // Check if this is a blockquote marker (at start of line or after whitespace)
+            const prevChar = i > 0 ? code[i - 1] : '\n';
+            const isAtLineStart = prevChar === '\n' || prevChar === '\r';
+            const isAfterSpace = prevChar === ' ' || prevChar === '\t';
+
+            if (isAtLineStart || isAfterSpace) {
+                // Check if followed by space and has annotation
+                const nextChar = code[i + 1];
+                if (nextChar === ' ') {
+                    const hasAnnotation = hasFollowingAnnotation(code, i + 2);
+                    const markerColor = hasAnnotation ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : '';
+                    result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
+                    i++;
+                    continue;
+                }
             }
         }
 

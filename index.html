@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="./demo/styles.css">
 
     <script type="module">
-        import { parse, shortenIRI, generate } from './src/index.js';
+        import { parse, shortenIRI, generate, getIRIColor } from './src/index.js';
         import { render } from './src/render.js';
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store } from 'n3';
@@ -113,38 +113,6 @@
             return display === full ? display : `${display}\n${full}`;
         }
 
-        function chip(kind, fullValue, displayValue, extraClass = '') {
-            const d = escapeHtml(displayValue);
-            const t = escapeHtml(clipTitle(fullValue, displayValue));
-
-            let chipClass = 'inline-flex items-center gap-1 max-w-full border rounded px-1 py-0.5 text-xs ';
-            let innerClass = 'inline-block max-w-48 overflow-hidden text-ellipsis whitespace-nowrap ';
-
-            if (extraClass === 'q-s') {
-                chipClass += 'border-blue-700 dark:border-blue-300 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100';
-            } else if (extraClass === 'q-p') {
-                chipClass += 'border-gray-600 dark:border-gray-400 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100';
-            } else if (extraClass === 'q-o') {
-                chipClass += 'border-green-700 dark:border-green-300 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100';
-            } else if (extraClass === 'q-lit') {
-                chipClass += 'border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100';
-            } else {
-                chipClass += 'border-gray-500 dark:border-gray-400 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
-            }
-
-            return `<span class="${chipClass}">
-                            <span class="${innerClass}" title="${t}">${d}</span></span>`;
-        }
-
-
-        function quadKey(quad) {
-            const o = quad.object;
-            const oKey = o.termType === 'Literal'
-                ? JSON.stringify({ t: 'L', v: o.value, lang: o.language || '', dt: o.datatype?.value || '' })
-                : JSON.stringify({ t: o.termType, v: o.value });
-            return JSON.stringify([quad.subject.value, quad.predicate.value, oKey]);
-        }
-
         function parseObjectField(raw) {
             const s = String(raw || '').trim();
             if (!s) return null;
@@ -179,13 +147,10 @@
 
                 // Clear primary subject display
                 const primarySubjectDiv = document.getElementById('primary-subject');
-                const primarySubjectStatus = document.getElementById('primary-subject-status');
+
                 if (primarySubjectDiv) {
                     primarySubjectDiv.textContent = 'No primary subject found...';
                     primarySubjectDiv.style.color = 'var(--text-secondary, #6b7280)';
-                }
-                if (primarySubjectStatus) {
-                    primarySubjectStatus.textContent = '';
                 }
 
                 // Clear statements graph
@@ -262,14 +227,12 @@
 
                 // Update primary subject display
                 const primarySubjectDiv = document.getElementById('primary-subject');
-                const primarySubjectStatus = document.getElementById('primary-subject-status');
+
                 if (primarySubject) {
                     primarySubjectDiv.textContent = primarySubject;
-                    primarySubjectStatus.textContent = 'Found';
-                    primarySubjectDiv.style.color = 'var(--success, #16a34a)';
+                    primarySubjectDiv.style.color = getIRIColor(primarySubject);
                 } else {
                     primarySubjectDiv.textContent = 'No primary subject found in this document';
-                    primarySubjectStatus.textContent = 'None';
                     primarySubjectDiv.style.color = 'var(--text-secondary, #6b7280)';
                 }
 
@@ -294,7 +257,7 @@
                 }
 
                 // Convert quads to readable format
-                output.innerHTML = quadsToHtml(result.quads);
+
                 stats.textContent = `${result.quads.length} quads • ${duration}ms${quadsChanged ? '' : ' (no change)'}`;
 
 
@@ -308,30 +271,6 @@
             }
         };
 
-        function quadsToHtml(quads) {
-            if (!quads || quads.length === 0) return '<div class="text-gray-600 dark:text-gray-400"># No quads generated</div>';
-            return quads.map(q => {
-                const ctx = lastParse?.result?.context || {};
-                const sFull = q.subject.value;
-                const pFull = q.predicate.value;
-                const sDisp = sFull; // Show raw IRI instead of shortened
-                const pDisp = pFull; // Show raw IRI instead of shortened
-
-                const s = chip('S', sFull, sDisp, 'q-s');
-                const p = chip('P', pFull, pDisp, 'q-p');
-
-                let o;
-                if (q.object.termType === 'Literal') {
-                    o = chip('L', formatLiteral(q.object), formatLiteral(q.object), 'q-lit');
-                } else {
-                    const oFull = q.object.value;
-                    const oDisp = oFull; // Show raw IRI instead of shortened
-                    o = chip('O', oFull, oDisp, 'q-o');
-                }
-
-                return `<div class="flex gap-1 items-center py-0.5 min-w-0">${s}<span class="text-gray-500 dark:text-gray-400">→</span>${p}<span class="text-gray-500 dark:text-gray-400">→</span>${o}</div>`;
-            }).join('');
-        }
 
         // Format literal with datatype/language
         function formatLiteral(literal) {
@@ -818,32 +757,25 @@
             </nav>
         </header>
 
+        <div id="example-selector" class="p-2 mb-4 flex gap-2 justify-center flex-wrap">
+            <button class="button" onclick="loadExample('minimal')">Minimal</button>
+            <button class="button" onclick="loadExample('journal')">Journal</button>
+            <button class="button" onclick="loadExample('recipe')">Recipe</button>
+            <button class="button" onclick="loadExample('project')">Project</button>
+            <button class="button" onclick="loadExample('space-mission')">Space Mission</button>
+            <button class="button" onclick="loadExample('research')">Research</button>
+            <button class="button" style="background-color: #E006;" onclick="clearPlayground()">
+                🗑️ Clear
+            </button>
+        </div>
 
 
         <section id="playground" class="section">
             <!-- MD-LD Input Section -->
-            <div style="flex: 1 0 320px;">
-                <div class="controls">
-                    <h3 class="font-bold text-xl">Playground</h3>
-                    <div class="flex gap-2 items-center">
-                        <select id="example-selector" onchange="loadExample(this.value)"
-                            class="text-sm bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded px-2 py-1 text-gray-900 dark:text-gray-100">
-                            <option value="">Choose example...</option>
-                            <option value="minimal">Minimal</option>
-                            <option value="journal">Journal</option>
-                            <option value="recipe">Recipe</option>
-                            <option value="project">Project</option>
-                            <option value="apollo">Space Mission</option>
-                            <option value="research">Research</option>
-                        </select>
-                        <button onclick="clearPlayground()" class="button">
-                            🗑️ Clear
-                        </button>
-                    </div>
-                </div>
+            <div style="flex: 1 0 220px; max-width:100%;">
                 <div class="editor-container" style="position: relative;">
                     <div id="editor" class="editor"
-                        style="max-height:90svh;min-height: 400px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.5; padding: 12px; background: var(--bg-primary, white); color: var(--text-primary, #1f2937); border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+                        style="min-width: 100%;max-height:90svh; min-height: 400px;hyphens: auto; overflow-wrap:break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.5; padding: 12px; background: var(--bg-primary, white); color: var(--text-primary, #1f2937); border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
                     </div>
                     <style>
                         .editor {
@@ -865,10 +797,13 @@
 
             <!-- Preview Section with Graph and Quads -->
             <div class="playground" style="flex: 1 0 220px;">
-
+                <div id="primary-subject" class="p-4 font-bold" style="word-break: break-all;">No
+                    primary subject found...</div>
                 <details class="details" open>
                     <summary>
-                        Interactive Graph
+                        <span>Graph</span>
+                        <span style="flex:auto;"></span>
+                        <span id="parse-stats" class="stats"></span>
                     </summary>
                     <!-- Interactive Graph (Primary) -->
                     <div class="flex-auto w-full p-2">
@@ -880,17 +815,6 @@
                     </div>
                 </details>
 
-                <!-- Primary Subject Display -->
-                <details class="details">
-                    <summary>
-                        <span>Primary Subject</span>
-                        <span style="flex: auto;"></span>
-                        <span id="primary-subject-status" class="stats"></span>
-                    </summary>
-                    <div class="m-2">
-                        <div id="primary-subject" class="output small">No primary subject found...</div>
-                    </div>
-                </details>
 
                 <!-- Statements Graph Display -->
                 <details class="details">
@@ -904,18 +828,6 @@
                             style="height: 300px; min-height: 300px;">
                             <rdf-graph id="statements-graph" height="300" charge="-120" link-dist="180"></rdf-graph>
                         </div>
-                    </div>
-                </details>
-
-                <!-- Quads Display -->
-                <details class="details">
-                    <summary>
-                        <span> Quads</span>
-                        <span style="flex:auto;"></span>
-                        <span id="parse-stats" class="stats"></span>
-                    </summary>
-                    <div class="lg:col-span-1 m-2">
-                        <div id="output" class="output">Quads will appear here...</div>
                     </div>
                 </details>
 
