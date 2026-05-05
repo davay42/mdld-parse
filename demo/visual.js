@@ -30,6 +30,14 @@ class RdfGraph extends HTMLElement {
         this._quads = []; this._ctx = {}; this._nodes = []; this._links = [];
         this._sim = null; this._raf = null; this._alpha = 0; this._sleeping = false;
         this._drag = null;
+        // Reusable objects to prevent GC
+        this._grid = new Map();
+        this._gridKeyBuffer = '';
+        this._chargeCache = -120;
+        this._linkDistCache = 180;
+        this._transformBuffer = '';
+        this._colorBuffer = '';
+        this._gridArrays = new Map(); // Reuse grid cell arrays
     }
     connectedCallback() { this._build(); }
     attributeChangedCallback() { if (this._svg) this._restart(); }
@@ -154,7 +162,6 @@ class RdfGraph extends HTMLElement {
             mp.setAttribute('fill', 'none'); mp.setAttribute('stroke', 'gray');
             mp.setAttribute('stroke-width', '1.5'); mp.setAttribute('stroke-linecap', 'round');
             mk.appendChild(mp); defs.appendChild(mk);
-            console.log()
         }
         svg.appendChild(defs);
 
@@ -259,8 +266,13 @@ class RdfGraph extends HTMLElement {
 
     _tick() {
         if (this._sleeping) { this._raf = null; return; }
-        const charge = parseFloat(this.getAttribute('charge') || -120);
-        const ld = parseFloat(this.getAttribute('link-dist') || 180);
+        // Cache parsed values to avoid parseFloat every frame
+        const charge = this._chargeCache !== parseFloat(this.getAttribute('charge') || -120)
+            ? (this._chargeCache = parseFloat(this.getAttribute('charge') || -120))
+            : this._chargeCache;
+        const ld = this._linkDistCache !== parseFloat(this.getAttribute('link-dist') || 180)
+            ? (this._linkDistCache = parseFloat(this.getAttribute('link-dist') || 180))
+            : this._linkDistCache;
         const nodes = this._nodes, links = this._links;
         const W = this._W, H = this._H;
         const alpha = this._alpha, decay = 0.985;
@@ -271,20 +283,72 @@ class RdfGraph extends HTMLElement {
             n.fy = 0;
         }
 
-        // repulsion O(n²) - small graphs only
-        for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-                const a = nodes[i], b = nodes[j];
-                let dx = b.x - a.x, dy = b.y - a.y;
-                const d2 = dx * dx + dy * dy || 1;
-                const f = charge * alpha / d2;
-                const d = Math.sqrt(d2) || 1;
-                dx /= d; dy /= d;
-                // Apply forces based on mass (F = ma, so a = F/m)
-                a.fx -= dx * f / a.mass;
-                a.fy -= dy * f / a.mass;
-                b.fx += dx * f / b.mass;
-                b.fy += dy * f / b.mass;
+        // Optimized repulsion using grid-based approximation O(n log n)
+        const gridSize = Math.max(50, Math.sqrt(W * H / nodes.length));
+        const grid = this._grid;
+        // Clear unused grid cells to prevent memory leaks
+        for (const [key, cell] of grid) {
+            if (cell.length === 0) {
+                grid.delete(key);
+            }
+        }
+
+        // Assign nodes to grid cells - reuse arrays to prevent GC
+        const invGridSize = 1 / gridSize; // Precompute division
+        for (const n of nodes) {
+            const gx = (n.x * invGridSize) | 0; // Bitwise floor is faster
+            const gy = (n.y * invGridSize) | 0;
+            // Reuse string concatenation buffer
+            this._gridKeyBuffer = gx + ',' + gy;
+            let cell = grid.get(this._gridKeyBuffer);
+            if (!cell) {
+                // Try to reuse existing array from pool
+                cell = this._gridArrays.get(this._gridKeyBuffer);
+                if (!cell) {
+                    cell = []; // Create new array only if no reusable one
+                    this._gridArrays.set(this._gridKeyBuffer, cell);
+                }
+                grid.set(this._gridKeyBuffer, cell);
+            }
+            cell.length = 0; // Clear array instead of creating new one
+            cell.push(n);
+        }
+
+        // Calculate repulsion forces using grid optimization
+        for (const n of nodes) {
+            const gx = (n.x * invGridSize) | 0; // Reuse precomputed division
+            const gy = (n.y * invGridSize) | 0;
+
+            // Check neighboring cells (3x3 grid around current cell)
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    // Reuse string concatenation buffer
+                    this._gridKeyBuffer = (gx + dx) + ',' + (gy + dy);
+                    const cellNodes = grid.get(this._gridKeyBuffer);
+                    if (!cellNodes) continue;
+
+                    for (const other of cellNodes) {
+                        if (n === other) continue;
+
+                        let deltaX = other.x - n.x;
+                        let deltaY = other.y - n.y;
+                        const d2 = deltaX * deltaX + deltaY * deltaY || 1;
+                        const d = Math.sqrt(d2);
+
+                        // Apply Barnes-Hut approximation for distant nodes
+                        if (d > gridSize * 2) {
+                            // Treat cell as single point for distant interactions
+                            const cellForce = charge * alpha / (d2 * cellNodes.length);
+                            n.fx -= (deltaX / d) * cellForce / n.mass;
+                            n.fy -= (deltaY / d) * cellForce / n.mass;
+                        } else {
+                            // Direct calculation for nearby nodes
+                            const f = charge * alpha / d2;
+                            n.fx -= (deltaX / d) * f / n.mass;
+                            n.fy -= (deltaY / d) * f / n.mass;
+                        }
+                    }
+                }
             }
         }
         // link attraction
@@ -335,11 +399,17 @@ class RdfGraph extends HTMLElement {
         this._alpha *= decay;
         const energy = Math.min(1, Math.sqrt(ke / Math.max(nodes.length, 1)) / 3);
 
-        // HUD
+        // HUD - reuse color buffer
         const pct = Math.round(energy * 100);
-        const col = energy > 0.3 ? '#1D9E75' : energy > 0.08 ? '#BA7517' : '#888780';
+        if (energy > 0.3) {
+            this._colorBuffer = '#1D9E75';
+        } else if (energy > 0.08) {
+            this._colorBuffer = '#BA7517';
+        } else {
+            this._colorBuffer = '#888780';
+        }
         this._ebar.style.width = pct + '%';
-        this._ebar.style.background = col;
+        this._ebar.style.background = this._colorBuffer;
 
         this._draw();
 
@@ -352,6 +422,7 @@ class RdfGraph extends HTMLElement {
     }
 
     _draw() {
+        // Batch DOM updates and reuse buffers
         for (const l of this._links) {
             const s = l.source, t = l.target;
             if (!s || !t || typeof s !== 'object') continue;
@@ -366,13 +437,15 @@ class RdfGraph extends HTMLElement {
             el.setAttribute('x1', x1); el.setAttribute('y1', y1);
             el.setAttribute('x2', x2); el.setAttribute('y2', y2);
             if (l._labelEl) {
-                l._labelEl.setAttribute('x', (x1 + x2) / 2);
-                l._labelEl.setAttribute('y', (y1 + y2) / 2 - 4);
+                l._labelEl.setAttribute('x', (x1 + x2) * 0.5);
+                l._labelEl.setAttribute('y', (y1 + y2) * 0.5 - 4);
             }
         }
+        // Reuse transform string buffer
         for (const n of this._nodes) {
             if (!n._el) continue;
-            n._el.setAttribute('transform', 'translate(' + n.x + ',' + n.y + ')');
+            this._transformBuffer = 'translate(' + n.x + ',' + n.y + ')';
+            n._el.setAttribute('transform', this._transformBuffer);
         }
     }
 

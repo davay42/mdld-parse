@@ -98,7 +98,6 @@ While the properties **prov:used**, **prov:wasGeneratedBy**, **prov:wasInformedB
 
 The properties rdf:type and rdfs:label are used to express prov:type and prov:label, respectively.
 
-***
 
 ## Example
 
