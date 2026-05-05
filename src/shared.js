@@ -1,4 +1,4 @@
-import { DEFAULT_CONTEXT, STANDALONE_SUBJECT_REGEX, FENCE_REGEX, PREFIX_REGEX, HEADING_REGEX, UNORDERED_LIST_REGEX, BLOCKQUOTE_REGEX } from './constants.js';
+import { DEFAULT_CONTEXT } from './constants.js';
 import { parseSemanticBlock, expandIRI, shortenIRI } from './utils.js';
 
 // Cache for fence regex patterns
@@ -112,28 +112,7 @@ export function getListMarker(block, sourceText) {
 }
 
 // CommonMark line processors - shared between parser and renderer
-export const PROCESSORS = [
-    { test: line => line.startsWith('```'), process: null }, // Code blocks handled separately
-    { test: line => line.startsWith('`'), process: null },    // Code spans handled separately  
-    { test: line => PREFIX_REGEX.test(line), process: null }, // Prefixes handled separately
-    { test: line => HEADING_REGEX.test(line), process: null }, // Headings handled separately
-    { test: line => UNORDERED_LIST_REGEX.test(line), process: null }, // Lists handled separately
-    { test: line => BLOCKQUOTE_REGEX.test(line), process: null }, // Blockquotes handled separately
-    { test: line => STANDALONE_SUBJECT_REGEX.test(line), process: null }, // Standalone subjects handled separately
-    { test: line => line.trim() === '', process: null }, // Empty lines handled separately
-    { test: line => true, process: null } // Default: paragraph
-];
-
-// Token scanning processors - shared between parser and renderer
-export const TOKEN_PROCESSORS = [
-    { type: 'fence', test: line => FENCE_REGEX.test(line.trim()), process: null }, // Will be overridden in parse.js
-    { type: 'content', test: line => false, process: null }, // Will be overridden in parse.js  
-    { type: 'prefix', test: line => PREFIX_REGEX.test(line), process: null }, // Will be overridden in parse.js
-    { type: 'heading', test: line => HEADING_REGEX.test(line), process: null }, // Will be overridden in parse.js
-    { type: 'list', test: line => UNORDERED_LIST_REGEX.test(line), process: null }, // Will be overridden in parse.js
-    { type: 'blockquote', test: line => BLOCKQUOTE_REGEX.test(line), process: null }, // Will be overridden in parse.js
-    { type: 'para', test: line => line.trim(), process: null } // Will be overridden in parse.js
-];
+// Legacy PROCESSORS removed - replaced by character-based tokenizers in parse.js
 
 // Language and attributes parsing
 export function parseLangAndAttrs(langAndAttrs) {
