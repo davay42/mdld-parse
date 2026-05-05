@@ -37,10 +37,6 @@ export function createToken(type, range, text, attrs = null, attrsRange = null, 
     return token;
 }
 
-export function createCarrier(type, text, attrs, attrsRange, valueRange, range, pos, extra = {}) {
-    return { type, text, attrs, attrsRange, valueRange, range, pos, ...extra };
-}
-
 // List token creation - shared logic
 export function createListToken(type, line, lineStart, pos, match) {
     const attrs = match[4] || null;
@@ -91,111 +87,6 @@ export function extractContentFromRange(sourceText, range, attrsRange = null) {
     }
 
     return text.trim();
-}
-
-// List marker utilities - shared for advanced list processing
-export function getListMarker(block, sourceText) {
-    if (!block.range) return null;
-
-    const text = sourceText.substring(block.range.start, block.range.end);
-    const markerMatch = text.match(/^(\s*)([-*+]|\d+\[\.|\])\s+/);
-
-    if (!markerMatch) return null;
-
-    return {
-        type: markerMatch[2].startsWith('-') ? 'dash' :
-            markerMatch[2].startsWith('*') ? 'asterisk' :
-                markerMatch[2].startsWith('+') ? 'plus' : 'ordered',
-        marker: markerMatch[2],
-        indent: markerMatch[1].length
-    };
-}
-
-// CommonMark line processors - shared between parser and renderer
-// Legacy PROCESSORS removed - replaced by character-based tokenizers in parse.js
-
-// Language and attributes parsing
-export function parseLangAndAttrs(langAndAttrs) {
-    const spaceIndex = langAndAttrs.indexOf(' ');
-    const braceIndex = langAndAttrs.indexOf('{');
-    const langEnd = Math.min(
-        spaceIndex > -1 ? spaceIndex : Infinity,
-        braceIndex > -1 ? braceIndex : Infinity
-    );
-    return {
-        lang: langAndAttrs.substring(0, langEnd),
-        attrsText: langAndAttrs.substring(langEnd).match(/\{[^{}]*\}/)?.[0] || null
-    };
-}
-
-// Carrier extraction utilities
-export function findMatchingBracket(text, bracketStart) {
-    let bracketDepth = 1;
-    let bracketEnd = bracketStart + 1;
-
-    while (bracketEnd < text.length && bracketDepth > 0) {
-        if (text[bracketEnd] === '[') bracketDepth++;
-        else if (text[bracketEnd] === ']') bracketDepth--;
-        bracketEnd++;
-    }
-
-    return bracketDepth > 0 ? null : bracketEnd;
-}
-
-export function extractUrlFromBrackets(text, bracketEnd) {
-    let url = null;
-    let spanEnd = bracketEnd;
-
-    if (text[spanEnd] === '(') {
-        const parenEnd = text.indexOf(')', spanEnd);
-        if (parenEnd !== -1) {
-            url = text.substring(spanEnd + 1, parenEnd);
-            spanEnd = parenEnd + 1;
-        }
-    }
-
-    return { url, spanEnd };
-}
-
-export function extractAttributesFromText(text, spanEnd, baseOffset) {
-    let attrs = null;
-    let attrsRange = null;
-    const remaining = text.substring(spanEnd);
-
-    const wsMatch = remaining.match(/^\s+/);
-    const attrsStart = wsMatch ? wsMatch[0].length : 0;
-
-    if (remaining[attrsStart] === '{') {
-        const braceEnd = remaining.indexOf('}', attrsStart);
-        if (braceEnd !== -1) {
-            attrs = remaining.substring(attrsStart, braceEnd + 1);
-            const absStart = baseOffset + spanEnd + attrsStart;
-            attrsRange = [absStart, absStart + attrs.length];
-            spanEnd += braceEnd + 1;
-        }
-    }
-
-    return { attrs, attrsRange, finalSpanEnd: spanEnd };
-}
-
-export function determineCarrierType(url) {
-    if (url && !url.startsWith('=')) {
-        return { carrierType: 'link', resourceIRI: url };
-    }
-    return { carrierType: 'span', resourceIRI: null };
-}
-
-export function calcCarrierRanges(match, baseOffset, matchStart) {
-    const valueStart = baseOffset + matchStart + match[0].indexOf(match[1]);
-    const valueEnd = valueStart + match[1].length;
-    const attrsStart = baseOffset + matchStart + match[0].indexOf('{');
-    const attrsEnd = attrsStart + match[2].length + 2; // +2 for { and }
-    return {
-        valueRange: [valueStart, valueEnd],
-        attrsRange: [attrsStart, attrsEnd], // Include braces
-        range: [baseOffset + matchStart, attrsEnd],
-        pos: matchStart + match[0].length // pos should be relative to current text, not document
-    };
 }
 
 // Clean text extraction utilities
@@ -372,31 +263,6 @@ export function quadIndexKey(subject, predicate, object) {
     return `${subject.value}|${predicate.value}|${object.value}|${datatype}|${language}`;
 }
 
-// IRI expansion and shortening - shared utilities
-export function expandAndShortenIRI(iri, ctx) {
-    const expanded = expandIRI(iri, ctx);
-    return shortenIRI(expanded, ctx);
-}
-
-// Subject resolution utilities - shared between parser and renderer
-export function resolveSubjectType(subjectDecl) {
-    if (!subjectDecl) return 'none';
-
-    if (subjectDecl.startsWith('=#')) {
-        return 'fragment';
-    }
-
-    if (subjectDecl.startsWith('+')) {
-        return 'soft-object';
-    }
-
-    if (subjectDecl === 'RESET') {
-        return 'reset';
-    }
-
-    return 'full-iri';
-}
-
 // Constants - shared across modules (bundle-size optimized)
 export const XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string';
 
@@ -500,57 +366,3 @@ export function processPredicates(predicates, ctx) {
     return { literalProps, objectProps, reverseProps };
 }
 
-// Deterministic sorting utilities - ensure consistent output
-export function sortDeterministic(array, keyFn) {
-    return array.sort((a, b) => {
-        const keyA = keyFn(a);
-        const keyB = keyFn(b);
-        return keyA.localeCompare(keyB);
-    });
-}
-
-export function sortQuadsDeterministically(quads) {
-    return quads.sort((a, b) => {
-        // Deterministic sorting: subject -> predicate -> object
-        const sComp = a.subject.value.localeCompare(b.subject.value);
-        if (sComp !== 0) return sComp;
-        const pComp = a.predicate.value.localeCompare(b.predicate.value);
-        if (pComp !== 0) return pComp;
-        const oA = isLiteral(a.object) ? a.object.value : a.object.value;
-        const oB = isLiteral(b.object) ? b.object.value : b.object.value;
-        return oA.localeCompare(oB);
-    });
-}
-
-// Optimized deterministic prefix generation
-export function generateDeterministicPrefixes(context, usedPrefixes) {
-    const sortedEntries = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
-    let text = '';
-
-    for (const [prefix, namespace] of sortedEntries) {
-        if (prefix !== '@vocab' && !prefix.startsWith('@') && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) {
-            text += generatePrefixDeclaration(prefix, namespace);
-        }
-    }
-
-    return text;
-}
-
-// Memory-efficient block creation
-export function createOptimizedBlockEntry(token, state) {
-    const id = hash(`${token.range[0]}-${token.range[1]}-${token.text.slice(0, 50)}`);
-    const block = {
-        id,
-        type: token.type,
-        carrierType: token.type,
-        range: token.range,
-        text: token.text,
-        carriers: [],
-        predicates: [],
-        subject: state.currentSubject,
-        context: { ...state.ctx }
-    };
-
-    state.origin.blocks.set(id, block);
-    return block;
-}

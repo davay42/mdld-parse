@@ -27,8 +27,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org/
+          node-version: 24
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: true
+
+      - name: Build project
+        run: pnpm run build
 
       - name: Create Release Draft
         id: create_release
