@@ -1,11 +1,11 @@
-# MD-LD Architecture
+# MDLD Architecture
 
 ## Design Principles
 
-MD-LD follows strict engineering principles to ensure reliability and performance:
+MDLD follows strict engineering principles for reliability and performance:
 
 - **Zero dependencies** — Pure JavaScript, ~15KB minified
-- **Streaming-first** — Single-pass parsing, O(n) complexity
+- **Streaming-first** — Single-pass parsing, O(n) complexity  
 - **Character-based tokenization** — 20-28% faster than regex-based approaches
 - **Memory-efficient** — ~640 bytes per quad retained after GC
 - **Standards-compliant** — RDF/JS data model
@@ -16,237 +16,175 @@ MD-LD follows strict engineering principles to ensure reliability and performanc
 
 Document processing follows this pipeline:
 
-1. **Line-by-line scanning** - Sequential token creation
-2. **Context resolution** - Prefix and vocabulary expansion  
-3. **Subject tracking** - Current subject management
-4. **Annotation processing** - Semantic block evaluation
-5. **Quad emission** - RDF triple generation
+1. **Line-by-line scanning** — Sequential token creation
+2. **Context resolution** — Prefix and vocabulary expansion  
+3. **Subject tracking** — Current subject management
+4. **Annotation processing** — Semantic block evaluation
+5. **Quad emission** — RDF triple generation
 
-### Core Parser Structures
+## Core Parser Structures
 
-For detailed documentation of parser internals, see **[Parser Architecture](./Parser.md)** which covers:
+### Token Processing Pipeline
 
-- Parser state management and data structures
-- Token processing pipeline and types
-- Semantic block processing system
-- Carrier extraction mechanisms
-- Elevated statements detection
-- Origin tracking implementation
-- Performance optimizations
-- Extensibility points
+The parser uses character-based tokenizers for optimal performance:
+
+```javascript
+const PROCESSORS = [
+    { type: 'fence', test: line => detectFence(line.trim()), process: handleFence },
+    { type: 'content', test: () => codeBlock, process: line => codeBlock.content.push(line) },
+    { type: 'prefix', test: line => detectPrefix(line), process: handlePrefix },
+    { type: 'standalone', test: line => detectStandaloneSubject(line), process: handleStandaloneSubject },
+    { type: 'heading', test: line => detectHeading(line), process: handleHeading },
+    { type: 'list', test: line => detectList(line), process: handleList },
+    { type: 'blockquote', test: line => detectBlockquote(line), process: handleBlockquote },
+    { type: 'para', test: line => line.trim(), process: handlePara }
+];
+```
 
 ### Character-Based Tokenization
 
-MD-LD v0.10.0 uses a unified character-based tokenization system for optimal performance:
+Character-based tokenizers replace regex patterns for performance:
 
-#### Block-Level Tokenizers
-```javascript
-detectFence()           // ```code blocks
-detectPrefix()          // [prefix] <uri>
-detectHeading()          // # Headings
-detectList()            // - List items
-detectBlockquote()       // > Blockquotes
-detectStandaloneSubject() // {=subject}
-```
-
-#### Inline Carrier Scanner
-```javascript
-scanInlineCarriers()    // [text], **bold**, `code`, <URL>
-```
-
-#### Performance Benefits
-- **20-28% faster parsing** through direct character manipulation
-- **Memory-efficient** with lazy evaluation and minimal allocations
-- **Better error handling** with precise edge case detection
-- **Maintainable code** - No complex regex patterns to debug
-
-#### Token Types
-- **Prefix declarations** - `[prefix] <uri>`
-- **Subject declarations** - `{=iri}`, `{=#fragment}`, `{=}`
-- **Annotations** - `{...}` blocks with predicates
-- **Value carriers** - Markdown elements carrying semantic values
-- **Control tokens** - End of annotation blocks
+- **detectFence()** — Code block fence detection
+- **detectPrefix()** — Namespace prefix declarations  
+- **detectHeading()** — Markdown heading detection
+- **detectList()** — List item detection
+- **detectBlockquote()** — Blockquote detection
+- **detectStandaloneSubject()** — Subject annotation detection
 
 ### Semantic Block Processing
 
-Annotations are parsed using cached semantic blocks:
-
-- Extract subjects, predicates, types, and modifiers
-- Handle all three predicate forms (`p`, `?p`, `!p`)
-- Process polarity tokens (`+`, `-`)
-- Validate datatype and language annotations
-
-## RDF/JS Compatibility
-
-Quads are compatible with major RDF libraries:
-
-- **n3.js** - Turtle/N-Triples serialization
-- **rdflib.js** - RDF store and reasoning
-- **sparqljs** - SPARQL queries and updates
-- **rdf-ext** - Extended RDF utilities
-
-### Quad Structure
-
-Generated quads follow RDF/JS specification:
+The parser processes semantic annotations in context:
 
 ```javascript
+// Subject declaration
+[entity] {=ex:Entity .rdfs:Class label}
+
+// Object introduction  
+[related] {+ex:related ?rdfs:subClassOf}
+
+// Property assertion
+has [property] {+ex:property ?ex:hasProperty}
+```
+
+### Data Structures
+
+**Parser State:**
+```javascript
 {
-  subject: NamedNode|BlankNode,
-  predicate: NamedNode,
-  object: NamedNode|Literal|BlankNode,
-  graph: DefaultGraph|NamedNode
+    prefixes: Map<string, string>,      // prefix → IRI mappings
+    currentSubject: NamedNode|null,    // active subject
+    codeBlock: CodeBlock|null,         // fenced content
+    quads: Quad[],                     // emitted triples
+    origins: Origin[]                  // source tracking
 }
 ```
 
-## Origin Tracking System
-
-Lean origin tracking provides complete provenance:
-
-### Origin Entry Structure
-
+**Quad Generation:**
 ```javascript
 {
-  blockId: '4ac750c12',           // Unique block identifier
-  range: { start: 33, end: 53 },   // Character positions
-  carrierType: 'blockquote',           // Markdown element type
-  subject: 'http://example.org/alice',   // Subject IRI
-  predicate: 'http://www.w3.org/2000/01/rdf-schema#name', // Predicate IRI
-  context: { ex: 'http://example.org/' },  // Active context
-  value: 'Alice Smith',                // Raw content
-  polarity: '+'                        // '+' for quads, '-' for removes
+    subject: NamedNode,
+    predicate: NamedNode, 
+    object: Literal|NamedNode,
+    graph: NamedNode
 }
 ```
 
-### Quad Index
+## Performance Architecture
 
-Efficient lookup structure for locating quads:
+### Memory Management
 
-- **O(1) lookup** - Constant time quad-to-origin mapping
-- **Memory efficient** - Only stores essential metadata
-- **UI navigation** - Enables hover, click-to-source features
+- **Streaming parsing** — Full document never in memory
+- **Lazy evaluation** — Context computed on demand
+- **Efficient indexing** — O(1) subject/object/predicate lookup
+- **Garbage collection** — Minimal retained state
 
-## Performance Characteristics
+### Character-Based Optimization
 
-- **O(n) parsing** - Single pass, linear time complexity
-- **Memory efficient** - Streaming-friendly, minimal state
-- **Deterministic** - Same input always produces same output
-- **Zero dependencies** - Pure JavaScript implementation
+Character-based tokenizers provide:
+- **20-28% faster** parsing than regex-based approaches
+- **Predictable performance** — O(n) complexity
+- **Memory efficiency** — No regex engine overhead
+- **Maintainability** — Clear character logic
 
-### Memory Usage
+### Scaling Architecture
 
-Typical memory consumption for different document sizes:
+**Real-time Applications (60fps):**
+- Maximum: 4,527 quads per frame
+- Use case: Interactive knowledge graphs
+- Pattern: Incremental updates only
 
-| Document Size | Memory Usage | Parsing Time |
-|---------------|---------------|--------------|
-| 1KB          | ~50KB         | ~1ms        |
-| 10KB         | ~500KB        | ~5ms        |
-| 100KB        | ~5MB          | ~50ms       |
-| 1MB          | ~50MB         | ~500ms      |
+**Batch Processing (1-second):**
+- Maximum: 225,059 quads per second  
+- Use case: Background reindexing, imports
+- Pattern: Worker thread, chunked processing
 
-## Error Handling
+**Enterprise Scale:**
+- Small (<4K quads): Real-time updates
+- Medium (4-225K quads): Batch reindexing
+- Large (>225K quads): Streaming architecture
 
-### Error Types
+## Extensibility
 
-- **Syntax errors** - Invalid annotations or malformed tokens
-- **Context errors** - Undefined prefixes or circular references
-- **Type errors** - Invalid datatype combinations
-- **IO errors** - File reading or network issues
+### Plugin Architecture
 
-### Error Recovery
+The parser supports extensions through:
 
-Parser attempts graceful recovery:
+- **Custom tokenizers** — Add new block types
+- **Semantic processors** — Custom annotation handling
+- **Output formats** — Alternative serialization
+- **Validation hooks** — Custom constraint checking
 
-- **Skip invalid tokens** - Continue processing valid content
-- **Provide context** - Include line numbers and token details
-- **Partial results** - Return successfully parsed quads
+### Integration Points
 
-## Browser Compatibility
+- **Parse hooks** — Pre/post processing
+- **Context injection** — Dynamic prefix resolution
+- **Error handling** — Custom error strategies
+- **Performance monitoring** — Built-in profiling
 
-### Module Support
+## Standards Compliance
 
-- **ES Modules** - Modern browsers with `import` support
-- **CDN availability** - Direct loading from npm CDNs
-- **No build step** - Works directly in browser
+### RDF/JS Data Model
 
-### Polyfills
+MDLD implements the RDF/JS data model specification:
+- **NamedNode** — IRIs and CURIEs
+- **Literal** — Typed and language-tagged values
+- **Quad** — RDF triples with graph context
+- **Dataset** — Quad collections with indexing
 
-For older browsers, consider these polyfills:
+### W3C Standards
 
-- **String.prototype.startsWith** - For prefix detection
-- **Map/Set** - For efficient data structures
-- **Promise** - For async operations
+- **RDF 1.1** — Core RDF concepts
+- **RDFS** — Schema vocabulary
+- **PROV-O** — Provenance ontology
+- **SHACL** — Constraint validation
+- **CURIE 1.0** — Compact URI syntax
 
-## Node.js Compatibility
+## Implementation Notes
 
-### Module Systems
+### Single-Pass Design
 
-- **ES Modules** - `import { parse } from 'mdld-parse'`
-- **CommonJS** - `const { parse } = require('mdld-parse')`
-- **TypeScript** - Included type definitions
+The parser processes documents in a single forward pass:
+- No backtracking or look-ahead beyond current line
+- Streaming-friendly for large documents
+- Predictable memory usage
+- Linear time complexity
 
-### Version Requirements
+### Error Handling
 
-- **Node.js 16+** - For ES module support
-- **Node.js 14+** - For CommonJS support
-- **npm 7+** - For dependency management
+- **Graceful degradation** — Continue parsing on errors
+- **Context preservation** — Maintain parser state
+- **Detailed reporting** — Line/column information
+- **Recovery strategies** — Skip invalid content
 
-## Security Considerations
+### Testing Strategy
 
-### Input Validation
+- **Unit tests** — Individual tokenizer validation
+- **Integration tests** — End-to-end parsing
+- **Performance tests** — Benchmarking at scale
+- **Real-world tests** — Actual ontology validation
 
-- **Sanitization** - Clean user input before processing
-- **Length limits** - Prevent memory exhaustion
-- **Context isolation** - Separate contexts for different documents
+---
 
-### Output Safety
-
-- **XSS prevention** - Escape HTML in render output
-- **IRI validation** - Prevent malicious URI schemes
-- **Size limits** - Cap output to reasonable bounds
-
-## Testing Infrastructure
-
-### Test Organization
-
-```
-tests/
-├── parse.tests.js      # Core parsing tests
-├── merge.tests.js     # Merge functionality tests
-├── generate.tests.js  # Generation tests
-├── locate.tests.js    # Origin tracking tests
-└── index.js          # Test runner
-```
-
-### Coverage Areas
-
-- **Syntax parsing** - All annotation forms
-- **Context management** - Prefix and subject handling
-- **Polarity system** - Add/remove operations
-- **Origin tracking** - Quad-to-source mapping
-- **Error handling** - Invalid input scenarios
-- **Performance** - Large document handling
-
-## Development Workflow
-
-### Building from Source
-
-```bash
-# Clone repository
-git clone https://github.com/davay42/mdld-parse.git
-
-# Install dependencies
-npm install
-
-# Run tests
-npm test
-
-# Build for production
-npm run build
-```
-
-### Contributing Guidelines
-
-1. **Add tests** - Cover new functionality with test cases
-2. **Update docs** - Keep documentation in sync
-3. **Check performance** - Ensure O(n) complexity maintained
-4. **Follow style** - Maintain code consistency
+For detailed parser internals, see **[Parser Documentation](./Parser.md)**.  
+For performance metrics and testing methods, see **[Performance Documentation](./Performance.md)**.
