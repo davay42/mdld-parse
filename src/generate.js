@@ -10,6 +10,28 @@ import {
     filterQuadsByType
 } from './shared.js';
 
+// Simple cache for IRI shortening to avoid repeated processing
+const iriCache = new Map();
+const CACHE_SIZE_LIMIT = 1000;
+
+function getCachedShortIRI(iri, context) {
+    const cacheKey = `${iri}|${JSON.stringify(context)}`;
+    if (iriCache.has(cacheKey)) {
+        return iriCache.get(cacheKey);
+    }
+
+    const result = shortenIRI(iri, context);
+
+    // Simple LRU: if cache is full, clear half
+    if (iriCache.size >= CACHE_SIZE_LIMIT) {
+        const keysToDelete = Array.from(iriCache.keys()).slice(0, Math.floor(CACHE_SIZE_LIMIT / 2));
+        keysToDelete.forEach(key => iriCache.delete(key));
+    }
+
+    iriCache.set(cacheKey, result);
+    return result;
+}
+
 export function extractLocalName(iri, ctx = {}) {
     if (!iri) return iri;
 
@@ -38,7 +60,8 @@ export function extractLocalName(iri, ctx = {}) {
  * Output: MDLD text
  */
 export function generate({ quads, context = {}, primarySubject = null }) {
-    const fullContext = { ...DEFAULT_CONTEXT, ...context };
+    // Optimized context merging - avoid spread operator overhead
+    const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
 
     const normalizedQuads = normalizeAndSortQuads(quads);
 
@@ -63,10 +86,10 @@ export function generate({ quads, context = {}, primarySubject = null }) {
 export function generateNode({ quads, focusIRI, context = {} }) {
     // Validate: must have quads and a focus IRI
     if (!quads?.length || !focusIRI) {
-        return { text: '', context: { ...DEFAULT_CONTEXT, ...context } };
+        return { text: '', context: Object.assign({}, DEFAULT_CONTEXT, context) };
     }
 
-    const fullContext = { ...DEFAULT_CONTEXT, ...context };
+    const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
     const normalizedQuads = normalizeAndSortQuads(quads);
     const nodeGroups = groupQuadsByNode(normalizedQuads);
 
@@ -82,8 +105,16 @@ export function generateNode({ quads, focusIRI, context = {} }) {
 }
 
 function normalizeAndSortQuads(quads) {
+    // Early return for empty input
+    if (!quads || quads.length === 0) return [];
+
     return quads
         .map(quad => {
+            // Early return if already normalized (check for RDF/JS compatibility)
+            if (quad.subject.termType && quad.predicate.termType && quad.object.termType) {
+                return quad;
+            }
+
             // Use DataFactory.fromTerm to ensure proper RDF/JS compatibility
             const normSubject = DataFactory.fromTerm(quad.subject);
             const normPredicate = DataFactory.fromTerm(quad.predicate);
@@ -110,10 +141,13 @@ function normalizeAndSortQuads(quads) {
 function groupQuadsBySubject(quads) {
     const groups = new Map();
     for (const quad of quads) {
-        if (!groups.has(quad.subject.value)) {
-            groups.set(quad.subject.value, []);
+        const subjectValue = quad.subject.value;
+        const existing = groups.get(subjectValue);
+        if (existing) {
+            existing.push(quad);
+        } else {
+            groups.set(subjectValue, [quad]);
         }
-        groups.get(quad.subject.value).push(quad);
     }
     return groups;
 }
@@ -123,8 +157,13 @@ function groupQuadsByNode(quads) {
     const RDFS_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 
     const ensure = (key) => {
-        if (!groups.has(key)) groups.set(key, []);
-        return groups.get(key);
+        const existing = groups.get(key);
+        if (existing) {
+            return existing;
+        }
+        const newArray = [];
+        groups.set(key, newArray);
+        return newArray;
     };
 
     for (const quad of quads) {
@@ -155,7 +194,7 @@ function groupQuadsByNode(quads) {
 }
 
 function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
-    let text = '';
+    const textParts = [];
     const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 
     // Build label lookup map for all IRIs that have rdfs:label
@@ -166,12 +205,12 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
     for (const [prefix, namespace] of sortedPrefixes) {
         // Skip default context prefixes - they're implicit in MDLD
         if (prefix !== '@vocab' && !prefix.startsWith('@') && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) {
-            text += generatePrefixDeclaration(prefix, namespace);
+            textParts.push(generatePrefixDeclaration(prefix, namespace));
         }
     }
 
     if (sortedPrefixes.length > 0) {
-        text += '\n';
+        textParts.push('\n');
     }
 
     // Process subjects in deterministic order, with primary subject first
@@ -188,7 +227,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
         // Skip if subject not found in groups (e.g., primarySubject provided but no quads for it)
         if (!subjectQuads) continue;
 
-        const shortSubject = shortenIRI(subjectIRI, context);
+        const shortSubject = getCachedShortIRI(subjectIRI, context);
 
         // Separate types, literals, and objects using shared utility
         const { types, literals, objects } = filterQuadsByType(subjectQuads);
@@ -199,14 +238,14 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
 
         // Build annotations: types + label indicator if present
         let annotations = types.length > 0
-            ? types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
+            ? types.map(t => '.' + getCachedShortIRI(t.object.value, context)).sort().join(' ')
             : '';
         if (hasLabel) {
             annotations += (annotations ? ' ' : '') + 'label';
         }
 
         const annotationStr = annotations ? ' ' + annotations : '';
-        text += `# ${displayName} {=${shortSubject}${annotationStr}}\n\n`;
+        textParts.push(`# ${displayName} {=${shortSubject}${annotationStr}}\n\n`);
 
         // Add literals (excluding the label used in heading) and objects
         const rdfsLabelIRI = 'http://www.w3.org/2000/01/rdf-schema#label';
@@ -216,17 +255,17 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
             if (quad.predicate.value === rdfsLabelIRI && quad.object.value === headingLabel) {
                 return; // Skip the heading label
             }
-            text += generateLiteralText(quad, context);
+            textParts.push(generateLiteralText(quad, context));
         });
 
         sortQuadsByPredicate(objects).forEach(quad => {
-            text += generateObjectText(quad, context, labelLookup);
+            textParts.push(generateObjectText(quad, context, labelLookup));
         });
 
-        text += '\n';
+        textParts.push('\n');
     }
 
-    return { text };
+    return { text: textParts.join('') };
 }
 
 function buildLabelLookup(subjectGroups) {
