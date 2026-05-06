@@ -1,7 +1,7 @@
 [food] <tag:alice@example.com,2026:food/>
-[recipe] <http://schema.org/Recipe>
+[schema] <http://schema.org/>
 
-# Grandma's Apple Pie {=food:apple-pie .recipe:Recipe prov:Entity label}
+# Grandma's Apple Pie {=food:apple-pie .schema:Recipe prov:Entity label}
 
 Traditional family recipe passed down through generations.
 
@@ -51,9 +51,9 @@ Bake at [375°F] {food:bakeTemp ^^xsd:integer} for [45-55] {food:bakeTime ^^xsd:
 
 ### Variation {=food:variation .prov:Entity label}
 
-This recipe is a variation of [Classic Apple Pie] {+food:classic-apple-pie .recipe:Recipe ?food:variationOf}.
+This recipe is a variation of [Classic Apple Pie] {+food:classic-apple-pie .schema:Recipe ?food:variationOf}.
 
-Also related: [Peach Pie] {+food:peach-pie .recipe:Recipe ?food:similarRecipe} and [Apple Crumble] {+food:apple-crumble .recipe:Recipe ?food:similarRecipe}.
+Also related: [Peach Pie] {+food:peach-pie .schema:Recipe ?food:similarRecipe} and [Apple Crumble] {+food:apple-crumble .schema:Recipe ?food:similarRecipe}.
 
 ## Nutrition Information {=food:nutrition .prov:Entity label}
 
