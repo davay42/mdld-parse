@@ -112,12 +112,14 @@ class RdfGraph extends HTMLElement {
             link.label = predicateLabel || curie(link.iri, this._ctx);
         }
 
+        this._types = typeMap
         this._nodes = [...nodeMap.values()];
         this._links = links;
         this._typeColors = typeColors;
         this._nodeLabels = nodeLabels;
         this._renderSvg();
         this._initSim();
+
     }
 
     _renderSvg() {
@@ -202,13 +204,14 @@ class RdfGraph extends HTMLElement {
         this._nodeElMap = new Map();
         for (const n of this._nodes) {
             let color = getIRIColor(n?.id)
+            let typeColor = getIRIColor(this._types.get(n?.id) || n?.id)
             const g = document.createElementNS(SVG_NS, 'g');
             g.style.cursor = 'grab';
             const c = document.createElementNS(SVG_NS, 'circle');
             c.setAttribute('r', n.r);
             c.setAttribute('fill', color);
-            c.setAttribute('stroke', color);
-            c.setAttribute('stroke-width', '1.2');
+            c.setAttribute('stroke', typeColor);
+            c.setAttribute('stroke-width', '2');
             c.setAttribute('fill-opacity', '0.85');
             const t = document.createElementNS(SVG_NS, 'text');
             t.setAttribute('font-size', '8');
