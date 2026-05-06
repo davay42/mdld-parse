@@ -1,31 +1,95 @@
 [food] <tag:alice@example.com,2026:food/>
+[recipe] <http://schema.org/Recipe>
 
-## Apple Pie {=food:pie .prov:Entity label}
+# Grandma's Apple Pie {=food:apple-pie .recipe:Recipe prov:Entity label}
 
-Grandma Rose's recipe, documented by Alice. Cook time: [45] {food:time ^^xsd:integer} min, serves [8] {food:serves ^^xsd:integer}.
+Traditional family recipe passed down through generations.
 
-**Ingredients**
+Cuisine: [American] {food:cuisine}
+Prep time: [45] {food:prepTime ^^xsd:integer} minutes
+Cook time: [60] {food:cookTime ^^xsd:integer} minutes
+Servings: [8] {food:servings ^^xsd:integer}
+Difficulty: [Medium] {food:difficulty}
 
-Flour (cups): [2.5] {+#flour ?food:ingredient .food:Ingredient food:ammount ^^food:cup} - used in crust
+## Dry Ingredients
 
-Sugar (cups): `1` {+#sugar ?food:ingredient .food:Ingredient food:ammount ^^food:cup} used in filling  
+**Flour** {+food:flour .food:Ingredient ?prov:wasDerivedFrom label}
+**Sugar** {+food:sugar .food:Ingredient ?food:hasIngredient label}
+**Salt** {+food:salt .food:Ingredient ?food:hasIngredient label}
 
-Butter (cups): *1* {+#butter ?food:ingredient .food:Ingredient food:ammoun ^^food:cupt} used in crust
+### Wet Ingredients
 
-Apples: **6** {+#apples ?food:ingredient .food:Ingredient food:ammount ^^xsd:integer} used in filling
+**Butter** {+food:butter .food:Ingredient ?food:hasIngredient label} 
+**Eggs** {+food:eggs .food:Ingredient ?food:hasIngredient label}
+**Vanilla** {+food:vanilla .food:Ingredient ?food:hasIngredient label}
 
-Cinnamon (tsp): __2__ {+food:cinnamon ?food:ingredient .food:Ingredient ^^xsd:tsp} used in filling
+### Filling Ingredients
 
-**Process**
+**Apples** {+food:apples .food:Ingredient ?food:hasIngredient label}
+**Cinnamon** {+food:cinnamon .food:Ingredient ?food:hasIngredient label}
+**Lemon Juice** {+food:lemon-juice .food:Ingredient ?food:hasIngredient label}
 
-**Crust** {=food:crust .prov:Activity} mixed [flour] {+food:pie#flour ?prov:used} and [butter] {+food:pie#butter}, generated [dough] {+food:dough ?prov:generated}. Used [bowl] {+food:bowl ?prov:used}.
+## Preparation Steps {=food:preparation .prov:Activity label}
 
-**Filling** {=food:filling .prov:Activity ?prov:wasInformedBy} prepared apples with sugar and cinnamon, generated [apple mix] {+food:mix ?prov:generated}.
+### Step 1: Crust {=food:step-crust .prov:Activity label}
 
-**Baking** {=food:bake .prov:Activity ?prov:wasInformedBy} baked at 375°F for 45 min. Used [oven] {+food:oven ?prov:used}. Generated [baked pie] {+food:baked ?prov:generated}.
+Mixed dry ingredients: [flour] {+food:flour ?prov:used}, [sugar] {+food:sugar ?prov:used}, [salt] {+food:salt ?prov:used}. Cut in [cold butter] {+food:butter ?prov:used} until mixture resembles [coarse crumbs] {food:texture}. Form into [pie dish] {+food:pie-dish ?prov:used}.
 
-We got the **Pie** {=food:pie}
+### Step 2: Filling {=food:step-filling .prov:Activity label}
 
-The final pie was derived from [dough] {+food:dough ?prov:wasDerivedFrom} and [apple mix] {+food:mix ?prov:wasDerivedFrom}.
+Toss [apples] {+food:apples ?prov:used} with [cinnamon] {+food:cinnamon ?prov:used} and [lemon juice] {+food:lemon-juice ?prov:used}. Let sit for [10] {food:restTime ^^xsd:integer} minutes.
 
-**Related**: Apple Crumble {+food:crumble !food:variation .food:Recipe}, Peach Pie {+food:peach !food:variation .food:Recipe}
+### Step 3: Assembly {=food:step-assembly .prov:Activity label}
+
+Add filling to crust. Cover with [top crust] {+food:top-crust .food:Ingredient ?prov:used}. Cut [vent holes] {+food:vents .food:Technique ?prov:used}.
+
+### Step 4: Baking {=food:step-baking .prov:Activity label}
+
+Bake at [375°F] {food:bakeTemp ^^xsd:integer} for [45-55] {food:bakeTime ^^xsd:integer} minutes until [golden brown] {food:color} and [bubbly] {food:texture}.
+
+## Recipe Relationships
+
+### Variation {=food:variation .prov:Entity label}
+
+This recipe is a variation of [Classic Apple Pie] {+food:classic-apple-pie .recipe:Recipe ?food:variationOf}.
+
+Also related: [Peach Pie] {+food:peach-pie .recipe:Recipe ?food:similarRecipe} and [Apple Crumble] {+food:apple-crumble .recipe:Recipe ?food:similarRecipe}.
+
+## Nutrition Information {=food:nutrition .prov:Entity label}
+
+Per serving:
+- Calories: [320] {food:calories ^^xsd:integer}
+- Fat: [14g] {food:fat ^^xsd:string}
+- Carbohydrates: [42g] {food:carbs ^^xsd:string}
+- Protein: [2g] {food:protein ^^xsd:string}
+
+## Provenance
+
+### Recipe Creation {=food:creation .prov:Activity label}
+
+Created by: [Grandma Rose] {+food:grandma-rose .prov:Person ?prov:wasAssociatedWith}
+Documented by: [Alice] {+food:alice .prov:Person ?prov:wasAssociatedWith}
+Date: [2026-05-06] {prov:startedAtTime ^^xsd:date}
+Used: [Family Recipe Book] {+food:recipe-book ?prov:used}
+
+Generated: [Recipe Documentation] {+food:recipe-docs ?prov:generated}.
+
+This demonstrates:
+- Schema.org Recipe vocabulary
+- Complex ingredient relationships
+- Multi-step process with provenance
+- Nutritional information
+- Recipe variations and relationships
+
+
+
+ - [2.5] {food:amount ^^xsd:decimal} cups
+  - [1] {food:amount ^^xsd:decimal} cup
+   - [0.5] {food:amount ^^xsd:decimal} tsp
+- [1] {food:amount ^^xsd:decimal} cup, cold
+ - [2] {food:amount ^^xsd:integer} large
+  - [1] {food:amount ^^xsd:decimal} tsp
+
+   - [6] {food:amount ^^xsd:integer} medium, peeled, sliced
+    - [2] {food:amount ^^xsd:integer} tsp ground
+     - [1] {food:amount ^^xsd:integer} tbsp

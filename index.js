@@ -1742,7 +1742,7 @@ function St(e) {
 				}
 				l += J(c.slice(u));
 				let f = c.includes("{") && c.includes("}"), p = `h${i}`, m = "#".repeat(i), h = f ? `color: ${Y.marker}; opacity: 0.8` : "";
-				n += `<${p} style="margin: 0.5em 0; font-weight: 600;"><span style="${h}">${m}</span> ${l}</${p}>`, r = s;
+				n += `<${p} style="margin: 0; font-weight: 600;"><span style="${h}">${m}</span> ${l}</${p}>`, r = s;
 				continue;
 			}
 		}
