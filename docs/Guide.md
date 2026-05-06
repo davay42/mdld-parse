@@ -128,7 +128,7 @@ my:alice a prov:Person;
 |---|---|---|
 | `[text]` | `[34]` | Inline spans, values mid-sentence |
 | `**text**` | `**Alice**` | Bold emphasis on a value |
-| `` `text` `` | `` `2025-03-04` `` | Code values, dates, numbers |
+| `` `text` `` | `` `v1.2.0` `` | Code/version values |
 | `# text` | `# Journal` | Heading as value |
 | `- text` | `- Design` | List item as value |
 | `> text` | `> Must be unique` | Block quote as message/note |
@@ -137,12 +137,11 @@ my:alice a prov:Person;
 **Datatype shortcuts:**
 
 ```md
-[2026-05-06T14:30:00+04:00]  {my:dateTime ^^xsd:dateTime}
-[2026-05-06]                 {my:date ^^xsd:date}
-[14:30:00+04:00]             {my:time ^^xsd:time}
-[42]                         {my:count ^^xsd:integer}
-[3.14]                       {my:ratio ^^xsd:decimal}
-[true]                       {my:active ^^xsd:boolean}
+[2026-05-06] {my:date ^^xsd:date}
+[14:30:00Z]  {my:time ^^xsd:time}
+[42]         {my:count ^^xsd:integer}
+[3.14]       {my:ratio ^^xsd:decimal}
+[true]       {my:active ^^xsd:boolean}
 ```
 
 ---
@@ -162,8 +161,12 @@ The `+` introduces the *object node*. The `?` marks a forward object property (s
 
 ## Alice {=my:alice .prov:Person label}
 
-Alice knows [Bob] {+my:bob ?my:knows .prov:Person label}.
-She lives near [Central Park] {+my:central-park ?my:livesNear .prov:Location label}.
+Alice knows [Bob] {+my:bob ?my:knows}.
+She lives near [Central Park] {+my:central-park ?my:livesNear}.
+
+## Bob {=my:bob .prov:Person label}
+
+## Central Park {=my:central-park .prov:Location label}
 ```
 
 Generates:
@@ -179,7 +182,7 @@ my:central-park a prov:Location;
     rdfs:label "Central Park".
 ```
 
-Notice you can chain `.Class` and `label` onto the `{+...}` block to type and label the object in the same annotation.
+Each node is defined exactly once, in its own heading. The `{+my:bob ?my:knows}` annotation only asserts the link — type and label belong on Bob's own section. This keeps the graph clean with no duplicate triples.
 
 ### Reverse Links — `!predicate`
 
@@ -190,10 +193,15 @@ Sometimes it's more natural to write the relationship from the other direction. 
 
 Recipes in this collection:
 
-- Apple Pie {+my:apple-pie !my:partOf .my:Recipe label}
+- Apple Pie {+my:apple-pie !my:partOf}
+- Peach Pie {+my:peach-pie !my:partOf}
+
+## Apple Pie {=my:apple-pie .my:Recipe label}
+
+## Peach Pie {=my:peach-pie .my:Recipe label}
 ```
 
-This writes `my:apple-pie my:partOf my:cookbook` — the arrow points from the list item back to the collection, even though we're reading it as "apple pie is part of cookbook."
+This writes `my:apple-pie my:partOf my:cookbook` — the arrow points from the list item back to the collection. Each recipe is then defined in its own section with type and label there.
 
 ---
 
@@ -259,7 +267,7 @@ Here's a complete personal journal note using everything above:
 
 ```md
 [my] <tag:alice.smith@example.org,2026:>
-[j]  <my:journal:>
+[j]  <my:journal/>
 
 # 2026-05-06 {=j:2026-05-06 .j:Entry j:date ^^xsd:date}
 
@@ -268,7 +276,7 @@ Here's a complete personal journal note using everything above:
 Mood: [happy] {j:mood}
 Energy: [8] {j:energy ^^xsd:integer}
 
-Met [Bob] {+my:bob .prov:Person ?j:met label} at [Central Park] {+my:central-park ?j:location .prov:Location label @en}.
+Met [Bob] {+my:bob ?j:met} at [Central Park] {+my:central-park ?j:location}.
 The weather was [sunny] {j:weather}.
 ```
 
@@ -283,11 +291,9 @@ j:2026-05-06 a j:Entry;
     j:met my:bob;
     j:location my:central-park;
     j:weather "sunny".
-my:bob a prov:Person;
-    rdfs:label "Bob".
-my:central-park a prov:Location;
-    rdfs:label "Central Park"@en.
 ```
+
+`my:bob` and `my:central-park` are referenced by IRI. Their type and label belong in their own definitions — in a people file, a places file, or wherever you keep them. A journal entry only records what happened, not who Bob is.
 
 ---
 
@@ -295,13 +301,55 @@ my:central-park a prov:Location;
 
 You don't have to invent every predicate. These standard vocabularies cover most needs and are understood by graph tools everywhere.
 
-### rdfs — Labels, Comments, Hierarchy
+### rdf — Statements and Types
 
-Built-in and always available. `label` (shorthand for `rdfs:label`) is your most-used predicate — it names a node for display.
+`rdf` provides the two most fundamental building blocks:
+
+**`rdf:type`** (written as `.Class` in MD-LD) — declares what a node is:
 
 ```md
-## Alice {=my:alice label}          ← display name
-[A personal knowledge graph.] {comment @en}  ← description
+## Alice {=my:alice .prov:Person}    ← shorthand for rdf:type prov:Person
+```
+
+**`rdf:Statement`** with `rdf:subject`, `rdf:predicate`, `rdf:object` — lets you annotate a *relationship itself* (record its confidence, source, or time). See §9.
+
+### rdfs — Classes, Containers, Labels
+
+`rdfs` gives you the vocabulary for describing structure and display.
+
+**`rdfs:label`** (written as `label`) — the display name of any node:
+
+```md
+## Alice {=my:alice label}
+```
+
+**`rdfs:comment`** (written as `comment`) — a human-readable description:
+
+```md
+[A personal knowledge graph.] {comment @en}
+```
+
+**`rdfs:Class`** (written as `.Class`) — declares that a node is a class, i.e. a category things can belong to:
+
+```md
+## Person {=my:Person .Class label}
+## Place  {=my:Place  .Class label}
+```
+
+**`rdfs:Container` / `rdfs:member`** — an open-ended collection. Use `rdfs:member` (written as `member`) to add items; any node typed `.Container` acts as the bag:
+
+```md
+## My Places {=my:places .Container label}
+
+- Central Park {+my:place/central-park ?member}
+- Tompkins Square {+my:place/tompkins ?member}
+```
+
+The reverse form is equally natural — declare the container on the item side:
+
+```md
+## Central Park {=my:place/central-park .prov:Location label}
+[my:places] {!member +my:places}
 ```
 
 ### prov — Who Did What When
@@ -314,9 +362,11 @@ PROV-O models agents, activities, and entities with their relationships.
 ## Writing session {=my:session-1 .prov:Activity label}
 
 Started at [2026-05-06T10:00:00Z] {prov:startedAtTime ^^xsd:dateTime}.
-Led by [Alice] {+my:alice .prov:Person ?prov:wasAssociatedWith label}.
-Produced [Draft v1] {+my:draft-1 .prov:Entity ?prov:generated label}.
+Led by [Alice] {+my:alice ?prov:wasAssociatedWith}.
+Produced [Draft v1] {+my:draft-1 ?prov:generated}.
 ```
+
+Alice and Draft v1 are defined in their own sections (or files), typed there. The activity only asserts the relationships.
 
 Key prov terms: `prov:Agent`, `prov:Activity`, `prov:Entity`, `prov:wasAssociatedWith`, `prov:wasGeneratedBy`, `prov:used`, `prov:wasDerivedFrom`, `prov:startedAtTime`, `prov:endedAtTime`.
 
@@ -373,27 +423,58 @@ MD-LD automatically extracts the elevated SPO triple (`my:alice my:knows my:bob`
 
 ---
 
-## 10. Subject Chaining — The Most Common Pitfall
+## 10. Subject Decoupling — The TTL Way
 
-Subject context persists until the next `{=...}`. This is powerful but requires attention when you switch between nodes:
+Subject context persists until the next `{=...}`. The elegant way to handle multiple related nodes is to declare all of a node's *outgoing links* together — just like Turtle does — then move to each child in its own section:
 
 ```md
-# Shape {=my:Shape .sh:NodeShape label}
+[my] <tag:alice.smith@example.org,2026:>
 
-Target: [Person] {+my:Person ?sh:targetClass}
+# Person Shape {=my:PersonShape .sh:NodeShape label}
 
-### Name property {=my:Shape-name .sh:PropertyShape ?sh:property}
+Validates [Person] {+my:Person ?sh:targetClass} with rules:
+[name] {+my:PersonShape-name ?sh:property sh:name} and
+[email] {+my:PersonShape-email ?sh:property sh:name}.
+
+## Name rule {=my:PersonShape-name .sh:PropertyShape}
 
 Path: [label] {+label ?sh:path}
+Required: [1] {sh:minCount ^^xsd:integer}
 
-{=my:Shape}   ← !! must reset to parent before adding second property
+> Every person must have a name. {sh:message}
 
-### Email property {=my:Shape-email .sh:PropertyShape ?sh:property}
+## Email rule {=my:PersonShape-email .sh:PropertyShape}
 
 Path: [my:email] {+my:email ?sh:path}
+Required: [1] {sh:minCount ^^xsd:integer}
+
+> Every person must have an email. {sh:message}
 ```
 
-Without the `{=my:Shape}` reset, the `?sh:property` link for the email rule would attach to `my:Shape-name` instead of `my:Shape`. Always reset explicitly when switching parent context.
+The parent shape lists all its `?sh:property` links in one paragraph. Each child `sh:PropertyShape` then gets its own heading section. No resets needed — the `sh:name` value carrier on the `{+...}` block even gives each rule a human-readable name at the point of reference.
+
+The `{=my:Shape}` reset is available when you genuinely need to add properties to a parent *after* defining children inline, but the cleaner default is: **finish a node before moving on**.
+
+### ❌ Antipattern — typing objects inline
+
+Avoid adding `.Class` and `label` directly onto `{+IRI}` references unless that is the *only* place the node ever appears:
+
+```md
+← antipattern: Bob gets typed and labelled here, and again wherever else he appears
+Met [Bob] {+my:bob .prov:Person ?j:met label}.
+```
+
+This scatters type and label triples across every document that mentions Bob. If graphs are merged, you get duplicate assertions. Instead, define Bob once:
+
+```md
+← correct: the journal just records the link
+Met [Bob] {+my:bob ?j:met}.
+
+← Bob's definition lives in one place (people.md or similar)
+## Bob {=my:bob .prov:Person label}
+```
+
+The one exception: when you are authoring a *vocabulary* or *ontology*, where introducing a term and its type in the same annotation is exactly right — as seen in the PROV-O example above.
 
 ---
 
@@ -468,11 +549,11 @@ These rules are non-negotiable. Violating them produces invalid or empty graph o
 ### Personal journal entry
 ```md
 [my] <tag:you@example.com,2026:>
-[j]  <my:journal:>
+[j]  <my:journal/>
 
 # 2026-05-06 {=j:2026-05-06 .j:Entry j:date ^^xsd:date label}
 
-[Productive] {j:mood}. Met [Sam] {+my:sam .prov:Person ?j:met label}.
+[Productive] {j:mood}. Met [Sam] {+my:sam ?j:met} at [the library] {+my:place/library ?j:location}.
 ```
 
 ### Project with tasks
@@ -481,13 +562,12 @@ These rules are non-negotiable. Violating them produces invalid or empty graph o
 
 # Project Alpha {=my:alpha .my:Project label}
 
-- Design {+#design ?my:task .my:Task label}
-- Build  {+#build  ?my:task .my:Task label}
+Tasks: [design] {+#design ?my:task sh:name}, [build] {+#build ?my:task sh:name}.
 
-## Design {=#design}
+## Design {=#design .my:Task label}
 [done] {my:status}
 
-## Build {=#build}
+## Build {=#build .my:Task label}
 [in-progress] {my:status}
 ```
 
@@ -499,9 +579,9 @@ These rules are non-negotiable. Violating them produces invalid or empty graph o
 
 Started: [2026-05-06T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime}
 Ended:   [2026-05-06T09:45:00Z] {prov:endedAtTime ^^xsd:dateTime}
-By:      [You] {+my:you .prov:Person ?prov:wasAssociatedWith label}
-Used:    [dataset v2] {+my:dataset-v2 .prov:Entity ?prov:used label}
-Made:    [report] {+my:report .prov:Entity ?prov:generated label}
+By:      [You] {+my:you ?prov:wasAssociatedWith}
+Used:    [dataset v2] {+my:dataset-v2 ?prov:used}
+Made:    [report] {+my:report ?prov:generated}
 ```
 
 ### SHACL validation shape
@@ -510,18 +590,18 @@ Made:    [report] {+my:report .prov:Entity ?prov:generated label}
 
 ## User Shape {=my:UserShape .sh:NodeShape label}
 
-Target: [User] {+my:User ?sh:targetClass}
+Validates [User] {+my:User ?sh:targetClass} with:
+[email rule] {+my:UserShape-email ?sh:property sh:name} and
+[name rule] {+my:UserShape-name ?sh:property sh:name}.
 
-### Email {=my:UserShape-email .sh:PropertyShape ?sh:property}
+### Email rule {=my:UserShape-email .sh:PropertyShape}
 
 Path: [my:email] {+my:email ?sh:path}
 Required: [1] {sh:minCount ^^xsd:integer}
 
 > User must have an email address. {sh:message}
 
-{=my:UserShape}
-
-### Name {=my:UserShape-name .sh:PropertyShape ?sh:property}
+### Name rule {=my:UserShape-name .sh:PropertyShape}
 
 Path: [label] {+label ?sh:path}
 Required: [1] {sh:minCount ^^xsd:integer}
@@ -538,4 +618,21 @@ Required: [1] {sh:minCount ^^xsd:integer}
 [Alice] {+my:alice ?rdf:subject} [knows] {+my:knows ?rdf:predicate} [Bob] {+my:bob ?rdf:object}.
 Confidence: [0.9] {my:confidence ^^xsd:decimal}
 Recorded: [2026-05-06] {prov:generatedAtTime ^^xsd:date}
+```
+
+### People and places — define once, reference everywhere
+```md
+[my] <tag:you@example.com,2026:>
+
+# People
+
+## Alice {=my:alice .prov:Person label}
+[alice@example.com] {my:email}
+
+## Bob {=my:bob .prov:Person label}
+
+# Places
+
+## Central Park {=my:place/central-park .prov:Location label}
+[New York] {my:city}
 ```
