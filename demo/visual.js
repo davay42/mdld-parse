@@ -492,10 +492,13 @@ class RdfGraph extends HTMLElement {
         this._drag = null;
         // If not moved significantly, treat as click
         if (!wasMoved) {
+            // console.log(node.id);
             this.dispatchEvent(new CustomEvent('node-click', { detail: node.id, bubbles: true }));
         }
         this._wake();
     }
 }
 
-customElements.define('rdf-graph', RdfGraph);
+if (window) {
+    customElements.define('rdf-graph', RdfGraph);
+}

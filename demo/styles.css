@@ -252,6 +252,7 @@
 
     .details summary {
         display: flex;
+        gap: .3em;
         cursor: pointer;
         user-select: none;
         font-weight: 700;

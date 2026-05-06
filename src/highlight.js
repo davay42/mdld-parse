@@ -429,7 +429,7 @@ export function highlightMDLD(code) {
                 // Check if heading is legal (has annotation)
                 const hasAnnotation = headerText.includes('{') && headerText.includes('}');
                 const headingTag = `h${hashCount}`;
-                const headingStyle = `margin: 0.5em 0; font-weight: 600;`;
+                const headingStyle = `margin: 0; font-weight: 600;`;
                 const hashes = '#'.repeat(hashCount);
 
                 // Only color # markers orange if heading is legal (has annotation)

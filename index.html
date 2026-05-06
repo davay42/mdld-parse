@@ -33,7 +33,7 @@
         import { parse, shortenIRI, generate, getIRIColor } from './src/index.js';
         import { render } from './src/render.js';
         import { runTests, tests } from './tests/index.js';
-        import { Writer, DataFactory as N3DataFactory, Store } from 'n3';
+        import { Writer, DataFactory as N3DataFactory, Store, Parser } from 'n3';
         import MarkdownIt from 'markdown-it';
         import { loadExample as loadExampleData } from './demo/examples.js';
         import { highlightMDLD, TOKEN_COLORS } from './src/highlight.js';
@@ -270,6 +270,79 @@
 
             }
         };
+
+        // TTL import functionality
+        window.parseTTL = async function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const parser = new Parser();
+                const quads = await new Promise((resolve, reject) => {
+                    const parsedQuads = [];
+                    parser.parse(text, (error, quad) => {
+                        if (error) {
+                            reject(error);
+                            return;
+                        }
+                        if (quad) {
+                            parsedQuads.push(quad);
+                        } else {
+                            // End of parsing
+                            resolve(parsedQuads);
+                        }
+                    });
+                });
+
+                // Extract prefixes from TTL text for better context
+                const context = extractTTLContext(text);
+
+                // Convert quads to MDLD using generate function
+                const result = generate({ quads, context });
+                const mdldText = result.text || result; // Extract text property from result object
+
+                // Update main editor with generated MDLD
+                if (jar) {
+                    jar.updateCode(mdldText);
+                }
+
+                // Trigger parsing to update all views
+                parseMDLD();
+
+                console.log(`Successfully imported ${quads.length} quads from TTL file with ${Object.keys(context).length} prefixes`);
+
+            } catch (error) {
+                console.error('Error parsing TTL file:', error);
+                alert(`Error parsing TTL file: ${error.message}`);
+            }
+
+            // Reset file input
+            event.target.value = '';
+        };
+
+        // Extract prefix declarations from TTL text
+        function extractTTLContext(ttlText) {
+            const context = {};
+            const prefixRegex = /@prefix\s+(\w+):\s*<([^>]+)>\s*\./gi;
+            let match;
+
+            while ((match = prefixRegex.exec(ttlText)) !== null) {
+                const prefix = match[1];
+                const namespace = match[2];
+                context[prefix] = namespace;
+            }
+
+            return context;
+        }
+
+        // Add event listener for TTL import button
+        document.addEventListener('DOMContentLoaded', () => {
+            const importBtn = document.getElementById('import-ttl-btn');
+            const fileInput = importBtn.querySelector('input[type="file"]');
+
+            fileInput.addEventListener('change', window.parseTTL);
+        });
 
 
         // Format literal with datatype/language
@@ -835,6 +908,10 @@
                     <summary>
                         <span>TTL</span>
                         <span style="flex: 1"></span>
+                        <label id="import-ttl-btn" class="button secondary" title="Convert TTL to MDLD">🗂️
+                            Import
+                            <input type="file" accept=".ttl" style="display:none">
+                        </label>
                         <button id="copy-ttl-btn" class="button secondary" title="Copy TTL to clipboard">
                             📋 Copy
                         </button>

@@ -6,28 +6,26 @@ A controlled vocabulary.
 
 ---
 
-# Status Shape {=ex:StatusShape .sh:NodeShape label}
+# Task Shape {=ex:TaskShape .sh:NodeShape label}
 
-Target: [Status] {+ex:Status ?sh:targetClass}
+Targets all [Task] {+ex:Task ?sh:targetClass} instances to have at least one [status] {+#status ?sh:property sh:name}.
 
-## Status Property {=ex:StatusShape-status .sh:PropertyShape ?sh:property}
+## Status Property {=#status .sh:PropertyShape}
 
-Path: [status] {+ex:status ?sh:path}
-
-Required: [1] {sh:minCount ^^xsd:integer}
+Has at least [1] {sh:minCount ^^xsd:integer} [status] {+ex:status ?sh:path} value.
 
 ---
 
 # Test Data
 
-## Valid Record {=ex:Record-Valid .ex:Status}
+## Task with status {=ex:task-valid .ex:Task label}
+
+[active] {+ex:Active ?ex:status}
 
 This record should pass validation.
 
-### Status {+ex:Active ?ex:status}
-
 ---
 
-## Invalid Record {=ex:Record-Invalid .ex:Status}
+## Task without a status {=ex:task-invalid .ex:Task label}
 
 This record should fail validation - missing required status.
