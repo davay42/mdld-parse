@@ -1,11 +1,23 @@
-[my] <tag:alice@example.com,2026:>
+[my] <tag:alice@example.com,2026:minimal/>
 
-# Machine Learning in Healthcare {=my:paper .prov:Entity label}
+# Simple Note {=my:note .prov:Entity label}
 
-Pages: [24] {my:pages ^^xsd:integer}
-DOI: [10.1234/ml.2024] {+https://doi.org/10.1234/ml.2024 ?my:doi}
+This demonstrates basic MD-LD annotation patterns.
 
-Created by [Dr. Alice Chen] {+my:alice .prov:Person ?prov:wasAttributedTo label}.
+## Basic Properties
 
-**Attribution** {=my:attr .prov:Attribution ?prov:qualifiedAttribution label}: Created by [Dr. Alice Chen] {+my:alice ?prov:agent} as a [Lead Author] {+my:role .prov:Role ?prov:hadRole}.
+Title: [Hello World] {my:title} 
+Status: *draft* {my:status}
+Priority: **medium** {my:priority}
+
+## Typed Values
+
+Created: `2026-05-06` {my:created ^^xsd:date}
+Count: `42` {my:count ^^xsd:integer}
+Rating: __4.5__ {my:rating ^^xsd:decimal}
+Active: **true** {my:active ^^xsd:boolean}
+
+## Simple Link
+
+Related to: [Example Project] {+my:example-project ?my:relatedTo .prov:Project label}
 
