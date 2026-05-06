@@ -1,55 +1,541 @@
-# MD-LD User Guide
+# MD-LD Authoring Guide
 
-This document will guide you from the start to proficiency in MD-LD authoring.
+MD-LD is Markdown with semantic annotations. You write normal prose — notes, plans, journals, documentation — and sprinkle in `{...}` curly-brace hints that tell a parser how to build a knowledge graph from your text. Everything outside `{...}` is free-form and ignored by the graph. You don't have to annotate everything — only what you want in the graph.
 
-## 1. First annotation, primary subject definition
+Think of it like highlighters. You pick a color scheme first (prefix declarations), then highlight the parts of your text that carry meaning.
 
-~~~md
-# Alice's Journal 
+---
 
-Hi! My name is Alice Smith. This is my personal semantic journal.
-~~~
+## 1. Your First Note
 
-This is a regular Markdown note. It is transparent for MD-LD parser. Now let's add our first annotation. We can think of it as like we have a set of special highlighters that we use to mark important parts of the text. So first line is the choice of particular set of markers and in the `##` header you can see our first `{}` curly braces annotation. 
-
-~~~md
-[my] <tag:alice.smith@example.org,2026:>
-
-# Alice's Journal 
-
-## Alice {=my:person/alice .prov:Person label}
-
-Hi! My name is Alice Smith. This is my personal semantic journal.
-~~~
-
-Now we have used our personal identifier for Alice - `tag:alice.smith@example.org,2026:person/alice` - it gets unfolded from the short `my:` value with the base IRI set in the first line. This declared that Alice is a person with a label "Alice". Our first point in the knowledge graph. We use built-in PROV-O standard ontology that is designed to describe relations between agents, entities and activities. A `prov:Person` is a kind of `prov:Agent`. `label` is also added as a literal property to have a nice short name for display in graph visualizations. Not having a prefix assumes use the default `@vocab` - `rdfs:`. So `label` is a shortcut for `rdfs:label` to ease friction at labeling things. Then the node on the graph will show cleanly as `Alice` in most graph visualizers and interfaces.
-
-## 2. Context, authority, prefixes
-
-First step is to get the concept of namespaces for building knowledge graphs. Everything in the graph - be it subjects, predicates or objects - each of them have unique identifiers - IRI. An IRI may be defined in multiple ways. Most straightforward is the use of URL as IRI. You can see this in all W3C ontologies definitions, that are included as default context in MD-LD. These prefixes may be used without declaration:
+Start with plain Markdown. This is always valid MD-LD — it just produces no graph data:
 
 ```md
-[rdf] <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-[rdfs] <http://www.w3.org/2000/01/rdf-schema#>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
-[sh] <http://www.w3.org/ns/shacl#>
-[prov] <http://www.w3.org/ns/prov#>
+# Alice's Journal
+
+Hi! My name is Alice Smith. This is my personal journal.
 ```
 
-These are 5 core ontologies - collections of interconnected terms - that lay foundation to the expressive knowledge graphs. You can open the links and read about the terms available in each ontology.
+Now add your first annotation. Two things happen: you declare a prefix, and you tag the heading as a named node with a type and a label:
 
-So how do we create an IRI? If you have a web-site or you prefer to use some external authority like your company domain or your own social media account - just use the URL link as IRI and it's good to go - `# Alice {=https://example.org/person/alice .prov:Person label}`
+```md
+[my] <tag:alice.smith@example.org,2026:>
 
+# Alice's Journal
 
-But what if you don't have a domain or just want a local personal namespaced IRI? just use the RFC 4151 format that allows to create private namespace with domain/email or any other authority you may provide - be it an ID in some system or a cryptographic key. The IRI assembles as follows - starts with `tag:`, then we put the authority - domain, email or other, then `,2026-05-04:` - the time when the authority was active. You can also provide only year or only year and month - then it will be assumed that you were owning the authority on 1st day of the month/year. Then you may add a custom subspace `journal/` and here you go - your own tag-based namespace is ready for use.
+## Alice {=my:alice .prov:Person label}
 
-`[journal] <tag:alice.smith@example.org,2026:journal/>`
+Hi! My name is Alice Smith. This is my personal journal.
+```
 
-This is your first important line of MD-LD - a prefix declaration - a choice of that particular highlighter color that we need to build or own knowledge graphs.
+That one annotation `{=my:alice .prov:Person label}` did three things:
+- `=my:alice` — declared this heading as a named node (the *subject*)
+- `.prov:Person` — typed it as a Person
+- `label` — used the heading text "Alice" as its display label (`rdfs:label`)
 
-When you write `[prefix]` it holds the short version of the IRI in `<IRI>` and it allows us to author complex IRIs without repeating long strings every time. To generate `http://www.w3.org/ns/prov#Entity` we can use shorter version - `prov:Entity` - 'prov:' is built-in. For everything else - don't forget to declare all prefixes first. This is the key feature of MD-LD - each note is self-contained and can be understood without any external context.
+The generated triples:
 
+```ttl
+@prefix my: <tag:alice.smith@example.org,2026:>.
+@prefix prov: <http://www.w3.org/ns/prov#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
+my:alice a prov:Person;
+    rdfs:label "Alice".
+```
 
+---
 
+## 2. Your Personal IRI — the `tag:` Pattern
 
+Every node in a knowledge graph needs a unique identifier — an IRI. If you have a website, use its URL. If you don't, use the RFC 4151 `tag:` scheme. It's yours to own with just an email address or domain:
+
+```
+tag:alice.smith@example.org,2026:
+     │                      │   └─ your subspace starts here
+     │                      └──── year you controlled this email
+     └─────────────────────────── your authority (email or domain)
+```
+
+Declare it once at the top of your document as a prefix:
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+```
+
+Then use it with the short form anywhere:
+
+| Short form | Expands to |
+|---|---|
+| `my:alice` | `tag:alice.smith@example.org,2026:alice` |
+| `my:journal/2026-05-06` | `tag:alice.smith@example.org,2026:journal/2026-05-06` |
+| `my:place/central-park` | `tag:alice.smith@example.org,2026:place/central-park` |
+
+You can also add a sub-prefix for a specific domain of your notes:
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+[j]  <my:journal/>
+```
+
+Now `j:2026-05-06` expands to `tag:alice.smith@example.org,2026:journal/2026-05-06`. Prefix folding — short prefixes built on top of other prefixes — keeps long IRIs readable.
+
+**Built-in prefixes** (no declaration needed):
+
+```
+rdf    http://www.w3.org/1999/02/22-rdf-syntax-ns#
+rdfs   http://www.w3.org/2000/01/rdf-schema#
+xsd    http://www.w3.org/2001/XMLSchema#
+sh     http://www.w3.org/ns/shacl#
+prov   http://www.w3.org/ns/prov#
+```
+
+---
+
+## 3. Saying Things About Things — Literals
+
+Once you've set a subject with `{=...}`, every annotated value below it belongs to that subject until you change it. The basic pattern is:
+
+```
+[value] {predicate}
+```
+
+The `[value]` is the *carrier* — it can be a bracketed span, bold text, a code span, a heading, a list item, or a blockquote. The `{predicate}` names the property.
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+
+## Alice {=my:alice .prov:Person label}
+
+Age: [34] {my:age ^^xsd:integer}
+City: [Berlin] {my:city @de}
+Bio: **Loves hiking and graph databases.** {my:bio @en}
+```
+
+Generates:
+
+```ttl
+my:alice a prov:Person;
+    rdfs:label "Alice";
+    my:age "34"^^xsd:integer;
+    my:city "Berlin"@de;
+    my:bio "Loves hiking and graph databases."@en.
+```
+
+**Carriers at a glance:**
+
+| Syntax | Example | When to use |
+|---|---|---|
+| `[text]` | `[34]` | Inline spans, values mid-sentence |
+| `**text**` | `**Alice**` | Bold emphasis on a value |
+| `` `text` `` | `` `2025-03-04` `` | Code values, dates, numbers |
+| `# text` | `# Journal` | Heading as value |
+| `- text` | `- Design` | List item as value |
+| `> text` | `> Must be unique` | Block quote as message/note |
+| ` ```text``` ` | code block | Multi-line code or raw data |
+
+**Datatype shortcuts:**
+
+```md
+[2026-05-06T14:30:00+04:00]  {my:dateTime ^^xsd:dateTime}
+[2026-05-06]                 {my:date ^^xsd:date}
+[14:30:00+04:00]             {my:time ^^xsd:time}
+[42]                         {my:count ^^xsd:integer}
+[3.14]                       {my:ratio ^^xsd:decimal}
+[true]                       {my:active ^^xsd:boolean}
+```
+
+---
+
+## 4. Connecting Things — Object Properties
+
+To link two nodes together, use `{+IRI ?predicate}` on the carrier that names the target:
+
+```
+[label for target] {+target:iri ?predicate}
+```
+
+The `+` introduces the *object node*. The `?` marks a forward object property (subject → object).
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+
+## Alice {=my:alice .prov:Person label}
+
+Alice knows [Bob] {+my:bob ?my:knows .prov:Person label}.
+She lives near [Central Park] {+my:central-park ?my:livesNear .prov:Location label}.
+```
+
+Generates:
+
+```ttl
+my:alice a prov:Person;
+    rdfs:label "Alice";
+    my:knows my:bob;
+    my:livesNear my:central-park.
+my:bob a prov:Person;
+    rdfs:label "Bob".
+my:central-park a prov:Location;
+    rdfs:label "Central Park".
+```
+
+Notice you can chain `.Class` and `label` onto the `{+...}` block to type and label the object in the same annotation.
+
+### Reverse Links — `!predicate`
+
+Sometimes it's more natural to write the relationship from the other direction. Use `!` for a reverse property — the triple goes *from* the object *to* the current subject:
+
+```md
+## Cookbook {=my:cookbook .my:Collection label}
+
+Recipes in this collection:
+
+- Apple Pie {+my:apple-pie !my:partOf .my:Recipe label}
+```
+
+This writes `my:apple-pie my:partOf my:cookbook` — the arrow points from the list item back to the collection, even though we're reading it as "apple pie is part of cookbook."
+
+---
+
+## 5. Fragment IRIs — Structuring Within a Document
+
+Fragments (`#section`) let you create multiple related nodes inside one document without long IRIs:
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+
+# Project Alpha {=my:ProjectAlpha .my:Project label}
+
+- Design {+#task-design ?my:hasTask .my:Task label}
+- Build  {+#task-build  ?my:hasTask .my:Task label}
+- Ship   {+#task-ship   ?my:hasTask .my:Task label}
+
+## Design Task {=#task-design}
+
+Status: [done] {my:status}
+
+## Build Task {=#task-build}
+
+Status: [in-progress] {my:status}
+```
+
+`{=#task-design}` sets the subject to `my:ProjectAlpha#task-design` (it appends the fragment to the current base IRI). `{+#task-design}` references that same IRI as an object.
+
+When you need to return to the parent node mid-document, just reset the subject:
+
+```md
+{=my:ProjectAlpha}
+
+[3] {my:taskCount ^^xsd:integer}
+```
+
+Use `{=}` (bare) to clear the subject entirely — subsequent annotations will have no subject until the next `{=...}`.
+
+---
+
+## 6. The Three Predicate Forms
+
+Every annotation uses one of three forms:
+
+| Form | Meaning | Edge | Example |
+|---|---|---|---|
+| `p` | Literal property | S → literal | `[Alice] {my:name}` |
+| `?p` | Object property | S → O | `[Bob] {+my:bob ?my:knows}` |
+| `!p` | Reverse property | O → S | `[Tag] {+my:tag !my:taggedIn}` |
+
+You can combine multiple predicates in one annotation:
+
+```md
+## Alice {=my:alice .prov:Person label}
+```
+
+This sets subject, types it, and assigns a label — all at once. Order within `{...}` is flexible.
+
+---
+
+## 7. A Journal Entry — Putting It Together
+
+Here's a complete personal journal note using everything above:
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+[j]  <my:journal:>
+
+# 2026-05-06 {=j:2026-05-06 .j:Entry j:date ^^xsd:date}
+
+## A good walk {label}
+
+Mood: [happy] {j:mood}
+Energy: [8] {j:energy ^^xsd:integer}
+
+Met [Bob] {+my:bob .prov:Person ?j:met label} at [Central Park] {+my:central-park ?j:location .prov:Location label @en}.
+The weather was [sunny] {j:weather}.
+```
+
+Generated triples:
+
+```ttl
+j:2026-05-06 a j:Entry;
+    j:date "2026-05-06"^^xsd:date;
+    rdfs:label "A good walk";
+    j:mood "happy";
+    j:energy "8"^^xsd:integer;
+    j:met my:bob;
+    j:location my:central-park;
+    j:weather "sunny".
+my:bob a prov:Person;
+    rdfs:label "Bob".
+my:central-park a prov:Location;
+    rdfs:label "Central Park"@en.
+```
+
+---
+
+## 8. Core Ontologies — Vocabulary You Can Reuse
+
+You don't have to invent every predicate. These standard vocabularies cover most needs and are understood by graph tools everywhere.
+
+### rdfs — Labels, Comments, Hierarchy
+
+Built-in and always available. `label` (shorthand for `rdfs:label`) is your most-used predicate — it names a node for display.
+
+```md
+## Alice {=my:alice label}          ← display name
+[A personal knowledge graph.] {comment @en}  ← description
+```
+
+### prov — Who Did What When
+
+PROV-O models agents, activities, and entities with their relationships.
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+
+## Writing session {=my:session-1 .prov:Activity label}
+
+Started at [2026-05-06T10:00:00Z] {prov:startedAtTime ^^xsd:dateTime}.
+Led by [Alice] {+my:alice .prov:Person ?prov:wasAssociatedWith label}.
+Produced [Draft v1] {+my:draft-1 .prov:Entity ?prov:generated label}.
+```
+
+Key prov terms: `prov:Agent`, `prov:Activity`, `prov:Entity`, `prov:wasAssociatedWith`, `prov:wasGeneratedBy`, `prov:used`, `prov:wasDerivedFrom`, `prov:startedAtTime`, `prov:endedAtTime`.
+
+### xsd — Typed Values
+
+Use `^^xsd:type` to give literals proper machine-readable types:
+
+```md
+[2026-05-06]          {my:date ^^xsd:date}
+[2026-05-06T10:00:00Z] {my:time ^^xsd:dateTime}
+[42]                  {my:count ^^xsd:integer}
+[3.14]                {my:ratio ^^xsd:decimal}
+[true]                {my:flag ^^xsd:boolean}
+```
+
+### sh — Validation Shapes (SHACL)
+
+SHACL lets you declare rules about what a valid node looks like:
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+
+## Person Shape {=my:PersonShape .sh:NodeShape label}
+
+Target: [Person] {+my:Person ?sh:targetClass}
+
+### Name Rule {=my:PersonShape-name .sh:PropertyShape ?sh:property}
+
+Path: [label] {+label ?sh:path}
+Required: [1] {sh:minCount ^^xsd:integer}
+
+> Every person must have a name. {sh:message}
+```
+
+---
+
+## 9. Tracking Statements — rdf:Statement
+
+When you need to annotate a *relationship* itself (e.g. record confidence, source, or time of a claim), use `rdf:Statement`:
+
+```md
+[my] <tag:alice.smith@example.org,2026:>
+
+## Observation 1 {=my:obs1 .rdf:Statement .prov:Entity label}
+
+I observed that [Alice] {+my:alice ?rdf:subject} [knows] {+my:knows ?rdf:predicate} [Bob] {+my:bob ?rdf:object}.
+
+Confidence: [0.95] {my:confidence ^^xsd:decimal}
+
+Source: [field notes] {+my:field-notes ?prov:wasDerivedFrom label}
+```
+
+MD-LD automatically extracts the elevated SPO triple (`my:alice my:knows my:bob`) from this pattern alongside the reified statement node.
+
+---
+
+## 10. Subject Chaining — The Most Common Pitfall
+
+Subject context persists until the next `{=...}`. This is powerful but requires attention when you switch between nodes:
+
+```md
+# Shape {=my:Shape .sh:NodeShape label}
+
+Target: [Person] {+my:Person ?sh:targetClass}
+
+### Name property {=my:Shape-name .sh:PropertyShape ?sh:property}
+
+Path: [label] {+label ?sh:path}
+
+{=my:Shape}   ← !! must reset to parent before adding second property
+
+### Email property {=my:Shape-email .sh:PropertyShape ?sh:property}
+
+Path: [my:email] {+my:email ?sh:path}
+```
+
+Without the `{=my:Shape}` reset, the `?sh:property` link for the email rule would attach to `my:Shape-name` instead of `my:Shape`. Always reset explicitly when switching parent context.
+
+---
+
+## 11. Quick Reference
+
+```
+PREFIXES
+[prefix] <IRI>              declare a namespace
+[p2] <p1:sub:>              fold prefix p2 under p1
+
+SUBJECTS
+{=my:node}                  set subject to full IRI
+{=#fragment}                set subject to current-base#fragment
+{=}                         clear subject
+
+OBJECTS
+{+my:node ?predicate}       forward link: subject → object
+{+my:node !predicate}       reverse link: object → subject
+{+#fragment ?predicate}     same with fragment IRI
+
+TYPES
+{.my:Class}                 subject rdf:type my:Class
+
+LITERALS  (value comes from the carrier)
+[text] {predicate}          literal property
+[text] {predicate @en}      with language tag
+[text] {predicate ^^xsd:integer}  with datatype
+
+CARRIERS
+[text]   **text**   `text`  inline spans
+# text   - text   > text   block-level (heading / list / blockquote)
+```fenced```                code block
+
+PREDICATE FORMS
+p       S → literal         [Alice] {my:name}
+?p      S → object          [Bob] {+my:bob ?my:knows}
+!p      object → S          [Tag] {+my:tag !my:taggedIn}
+
+COMBINING (all valid in one block)
+{=my:node .my:Class label}
+{+my:target .my:Type ?my:rel label @en}
+```
+
+---
+
+## 12. Invariants — What Must Always Hold
+
+These rules are non-negotiable. Violating them produces invalid or empty graph output:
+
+- Every triple must come from an annotation `{...}`
+- Every literal must come from a value *carrier* — never write `{predicate "value"}`
+- `{=...}` always declares the subject; it never emits a triple by itself
+- No blank nodes — every node must be a named IRI
+- Do not invent prefixes; declare everything you use
+- `label` without a prefix means `rdfs:label` — use it freely
+- List item annotations apply only to *that* item, not the header or siblings
+
+**Invalid:**
+```md
+{my:age "34"^^xsd:integer}    ← literal inside braces, no carrier
+```
+
+**Valid:**
+```md
+[34] {my:age ^^xsd:integer}   ← carrier [34] holds the value
+```
+
+---
+
+## 13. Worked Patterns
+
+### Personal journal entry
+```md
+[my] <tag:you@example.com,2026:>
+[j]  <my:journal:>
+
+# 2026-05-06 {=j:2026-05-06 .j:Entry j:date ^^xsd:date label}
+
+[Productive] {j:mood}. Met [Sam] {+my:sam .prov:Person ?j:met label}.
+```
+
+### Project with tasks
+```md
+[my] <tag:you@example.com,2026:>
+
+# Project Alpha {=my:alpha .my:Project label}
+
+- Design {+#design ?my:task .my:Task label}
+- Build  {+#build  ?my:task .my:Task label}
+
+## Design {=#design}
+[done] {my:status}
+
+## Build {=#build}
+[in-progress] {my:status}
+```
+
+### Provenance activity
+```md
+[my] <tag:you@example.com,2026:>
+
+## Analysis run {=my:run-1 .prov:Activity label}
+
+Started: [2026-05-06T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime}
+Ended:   [2026-05-06T09:45:00Z] {prov:endedAtTime ^^xsd:dateTime}
+By:      [You] {+my:you .prov:Person ?prov:wasAssociatedWith label}
+Used:    [dataset v2] {+my:dataset-v2 .prov:Entity ?prov:used label}
+Made:    [report] {+my:report .prov:Entity ?prov:generated label}
+```
+
+### SHACL validation shape
+```md
+[my] <tag:you@example.com,2026:>
+
+## User Shape {=my:UserShape .sh:NodeShape label}
+
+Target: [User] {+my:User ?sh:targetClass}
+
+### Email {=my:UserShape-email .sh:PropertyShape ?sh:property}
+
+Path: [my:email] {+my:email ?sh:path}
+Required: [1] {sh:minCount ^^xsd:integer}
+
+> User must have an email address. {sh:message}
+
+{=my:UserShape}
+
+### Name {=my:UserShape-name .sh:PropertyShape ?sh:property}
+
+Path: [label] {+label ?sh:path}
+Required: [1] {sh:minCount ^^xsd:integer}
+
+> User must have a name. {sh:message}
+```
+
+### Reified statement with confidence
+```md
+[my] <tag:you@example.com,2026:>
+
+## Claim {=my:claim-1 .rdf:Statement label}
+
+[Alice] {+my:alice ?rdf:subject} [knows] {+my:knows ?rdf:predicate} [Bob] {+my:bob ?rdf:object}.
+Confidence: [0.9] {my:confidence ^^xsd:decimal}
+Recorded: [2026-05-06] {prov:generatedAtTime ^^xsd:date}
+```
