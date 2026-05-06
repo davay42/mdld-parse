@@ -451,7 +451,7 @@ class RdfGraph extends HTMLElement {
 
     _dragStart(e, n) {
         e.preventDefault();
-        this._drag = { node: n, id: e.pointerId };
+        this._drag = { node: n, id: e.pointerId, startX: e.clientX, startY: e.clientY, moved: false };
         this._svg.setPointerCapture(e.pointerId);
         n._pinned = true;
         n._el.style.cursor = 'grabbing';
@@ -471,17 +471,29 @@ class RdfGraph extends HTMLElement {
         n.x = (e.clientX - r.left) * scaleX;
         n.y = (e.clientY - r.top) * scaleY;
         n.vx = 0; n.vy = 0;
+        // Track if actually moved (more than 3 pixels = drag, not click)
+        const dx = e.clientX - this._drag.startX;
+        const dy = e.clientY - this._drag.startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            this._drag.moved = true;
+        }
         if (this._sleeping) { this._sleeping = false; this._alpha = 0.3; this._wake(); }
     }
     _dragEnd(e) {
         if (!this._drag) return;
-        this._drag.node._pinned = false;
-        this._drag.node._el.style.cursor = 'grab';
+        const node = this._drag.node;
+        const wasMoved = this._drag.moved;
+        node._pinned = false;
+        node._el.style.cursor = 'grab';
         // smaller thermal kick on release for more stability
-        this._drag.node.vx = (Math.random() - .5) * 0.5;
-        this._drag.node.vy = (Math.random() - .5) * 0.5;
+        node.vx = (Math.random() - .5) * 0.5;
+        node.vy = (Math.random() - .5) * 0.5;
         this._alpha = Math.max(this._alpha, 0.25);
         this._drag = null;
+        // If not moved significantly, treat as click
+        if (!wasMoved) {
+            this.dispatchEvent(new CustomEvent('node-click', { detail: node.id, bubbles: true }));
+        }
         this._wake();
     }
 }
