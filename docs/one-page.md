@@ -1,0 +1,322 @@
+# MD-LD One Page Guide
+
+**Semantic Markdown, no guessing, no magic**
+
+MD-LD lets you **add meaning without breaking Markdown**.
+Add `{...}` → you get an RDF graph.
+Delete `{...}` → plain Markdown remains.
+
+Everything semantic is **explicit**, **local**, and **traceable**.
+
+---
+
+## 0. Mental model (read once)
+
+MD-LD always writes **triples**:
+
+```
+Subject ──predicate──▶ Object / Literal
+```
+
+That’s it.
+
+At any annotation `{...}`, there may be:
+
+| Symbol | Meaning                                              |
+| ------ | ---------------------------------------------------- |
+| **S**  | current subject (IRI)                                |
+| **O**  | object IRI (from link, image, or `{+iri}`)          |
+| **L**  | literal text (from the attached Markdown span/block) |
+
+No subject → no triple
+No guessing → no triple
+No `{...}` → no semantics
+
+---
+
+## 1. Start with a document that *already is* a graph
+
+Always declare a subject first.
+
+```md
+[alice] <tag:alice@example.com,2026:>
+
+# Walnut Bread {=alice:walnut-bread .Recipe name}
+```
+
+This emits:
+
+```turtle
+tag:alice@example.com,2026:walnut-bread
+  a schema:Recipe ;
+  schema:name "Walnut Bread" .
+```
+
+**Why this matters**
+
+* Your note is already an addressable node
+* Everything that follows attaches to it
+* This is how “casual notes” become “knowledge”
+
+---
+
+### 1.1. Prefix Folding: Build Your Namespace
+
+Create hierarchical namespaces by referencing previous prefixes:
+
+```md
+# Your domain authority
+[my] <tag:mymail@domain.com,2026:>
+
+# Build the hierarchy
+[j] <my:journal:>
+[p] <my:property:>
+[c] <my:class:>
+
+# Use in content
+# 2026-01-27 {=j:2026-01-27 .c:Event p:date ^^xsd:date}
+```
+
+**Resolves to:**
+- `j:2026-01-27` → `tag:mymail@domain.com,2026:journal:2026-01-27`
+- `c:Event` → `tag:mymail@domain.com,2026:class:Event`
+- `p:date` → `tag:mymail@domain.com,2026:property:date`
+
+Perfect for personal knowledge graphs without external dependencies.
+
+---
+
+## 2. Value carriers (what can hold meaning)
+
+Only these Markdown forms can emit values:
+
+**Inline**
+
+* `[text] {...}`
+* `*text* {...}`, `**text** {...}`
+* `` `code` {...}``
+
+**Block**
+
+* Headings
+* List items
+* Blockquotes
+* Code blocks (fence with `{...}`)
+
+If `{...}` cannot clearly attach → **nothing is emitted**.
+
+---
+
+## 3. The three predicate forms (the whole algebra)
+
+Every triple is written using **one of three predicate shapes**:
+
+| Form  | Emits   |
+| ----- | ------- |
+| `p`   | `S → L` |
+| `?p`  | `S → O` |
+| `!p` | `O → S` |
+
+Nothing else exists.
+
+### Example — all three at once
+
+```md
+[alice] <tag:alice@example.com,2026:>
+
+[Bread] {name}
+[Walnut] {+alice:walnut ?hasIngredient}
+[Recipe](https://en.wikipedia.org/wiki/Recipe) {!hasPart}
+```
+
+Never use shortened CURIE in regular Markdown links. They must be valid URLs for the browser to navigate to.
+
+---
+
+## 4. Literals are always local
+
+Text comes **only** from the attached carrier.
+
+```md
+[2024] {published ^^xsd:gYear}
+[Delicious bread] {description @en}
+```
+
+No datatype or language is ever inferred.
+
+---
+
+## 5. Object IRIs (links or `{+iri}`)
+
+Objects exist only if explicitly present.
+
+```md
+[alice] <tag:alice@example.com,2026:>
+
+[Walnuts](tag:alice@example.com,2026:walnut) {?ingredient}
+```
+
+or
+
+```md
+[Walnuts] {+alice:walnut ?ingredient}
+```
+
+Same graph. Different ergonomics.
+
+---
+
+## 6. Lists = pure Markdown structure, explicit annotations only
+
+Lists have **no semantic scope**. Each item must have explicit annotations.
+
+```md
+[alice] <tag:alice@example.com,2026:>
+
+Ingredients: {=alice:recipe .Container}
+
+- Walnuts {+alice:walnut ?member .alice:Ingredient name}
+- Flour {+alice:flour ?member .alice:Ingredient name}
+- Water {+alice:water ?member .alice:Ingredient name}
+```
+
+Result: clean, explicit graph. No implicit semantics.
+
+### List Item Requirements
+
+**✅ DO - Items with explicit subjects emit semantics:**
+```md
+- **Flour** {=alice:flour}              # Clean subject
+- **Walnuts** {=alice:walnuts}          # Clean subject
+```
+
+
+**Critical Rule**: **All list items must have explicit subject (`{=iri}` or `{+iri}`) to emit semantics.**
+
+**Valid Alternatives for Additional Information:**
+
+**✅ Nested Lists (Pure Structure)**
+```md
+- **Flour** {=alice:flour}
+  Properties:
+  - **Organic** {+alice:organic ?alice:hasProperty .alice:Property label}
+```
+
+**✅ Separate Sections**
+```md
+- **Flour** {=alice:flour}
+
+## Flour Description {=alice:flour}
+[*Important*] {priority .Important}
+```
+
+**Why?** Lists are **pure Markdown structure**. This keeps them predictable and streaming-safe.
+
+---
+
+## 7. Fragments = structured documents
+
+Fragments turn sections into addressable nodes.
+
+```md
+[alice] <tag:alice@example.com,2026:>
+
+## Instructions {=#steps .HowTo}
+
+### Mixing {=#step-1 .HowToStep rdfs:label}
+
+> Mix ingredients {text}
+
+### Baking {=#step-2 .HowToStep rdfs:label}
+
+> Bake for 45 minutes {text}
+```
+
+Emits:
+
+```turtle
+tag:alice@example.com,2026:walnut-bread#steps a schema:HowTo .
+tag:alice@example.com,2026:walnut-bread#step-1 a schema:HowToStep ; rdfs:label "Mixing" ; schema:text "Mix ingredients" .
+tag:alice@example.com,2026:walnut-bread#step-2 a schema:HowToStep ; rdfs:label "Baking" ; schema:text "Bake for 45 minutes" .
+```
+
+Fragments always attach to the **current subject base**.
+
+---
+
+## 8. Blockquotes = descriptions, abstracts, notes
+
+```md
+> A dense, rustic bread with toasted walnuts. {description}
+```
+
+Readable prose → structured data.
+
+---
+
+## 9. Code blocks are first-class values
+
+````md
+[alice] <tag:alice@example.com,2026:>
+
+```txt {=alice:walnut-bread#formula .Recipe text}
+500g flour
+300ml water
+```
+````
+
+Code content becomes a literal.  
+Language fences stay intact.
+
+---
+
+## 10. Reverse relations (write from either side)
+
+```md
+[alice] <tag:alice@example.com,2026:>
+
+Used in: {!hasIngredient}
+
+- Salad {=alice:salad}
+````
+
+Same graph. Different narrative flow.
+
+---
+
+## 11. What MD-LD never does
+
+* ❌ No implicit meaning
+* ❌ No blank nodes
+* ❌ No inferred subjects
+* ❌ No structural guessing
+* ❌ No multi-pass parsing
+* ❌ **No semantic list propagation**
+
+Every triple is **authored**, not derived.
+
+---
+
+## 12. Why this scales (humans + agents)
+
+Because MD-LD is:
+
+* **Streaming-parseable**
+* **Round-trip safe**
+* **Text-preserving**
+* **SPARQL-addressable**
+
+Agents can:
+
+* align facts via SPARQL
+* add/remove triples
+* serialize changes back into Markdown
+  without breaking prose, layout, or intent.
+
+Your document becomes a **shared semantic surface**, not a data export.
+
+---
+
+## One sentence summary
+
+> **MD-LD is RDF you can read, write, diff, query, and share—without ever leaving Markdown.**

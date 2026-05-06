@@ -1,322 +1,46 @@
-# MD-LD One Page Guide
+# MD-LD User Guide
 
-**Semantic Markdown, no guessing, no magic**
+This document will guide you from the start to proficiency in MD-LD authoring.
 
-MD-LD lets you **add meaning without breaking Markdown**.
-Add `{...}` → you get an RDF graph.
-Delete `{...}` → plain Markdown remains.
+Let's imagine that we start a fresh personal semantic notebook using knowledge graphs. Let's start from a couple of contacts, it's nice to see the connections between people as a graph. So, as always, we have Alice, Bob, Claire and David.
 
-Everything semantic is **explicit**, **local**, and **traceable**.
+## 1. First annotation, primary subject definition
 
----
+So Alice starts her personal semantic notebook and wants to define herself as the primary subject of her notebook.
 
-## 0. Mental model (read once)
+~~~md
+# Alice
 
-MD-LD always writes **triples**:
+This is my personal semantic notebook. I build connections here and grow my understanding of the world. 
+~~~
 
-```
-Subject ──predicate──▶ Object / Literal
-```
+This is a regular Markdown note. It doesn't contain any semantic meaning yet and is transparent for MD-LD parser. Now let's add our first annotation to it. We can think of it as like we have a special highlighter that we use to mark important parts of the text. We can go through the text and mark different parts with different colors. And these marks connect to each other to form a knowledge graph that we can query and visualize.
 
-That’s it.
+~~~md
+# Alice {=tag:alice.smith@example.org,2026:person/alice .prov:Person label}
 
-At any annotation `{...}`, there may be:
+This is my personal semantic notebook. I build connections here and grow my understanding of the world. 
+~~~
 
-| Symbol | Meaning                                              |
-| ------ | ---------------------------------------------------- |
-| **S**  | current subject (IRI)                                |
-| **O**  | object IRI (from link, image, or `{+iri}`)          |
-| **L**  | literal text (from the attached Markdown span/block) |
+## 2. Context, authority, prefixes
 
-No subject → no triple
-No guessing → no triple
-No `{...}` → no semantics
-
----
-
-## 1. Start with a document that *already is* a graph
-
-Always declare a subject first.
+First step is to understand the namespaces we use to craft our knowledge graphs. Every entity in the graph - be it subject (a noun), a predicate (a verb) or an object (another noun) - all have unique identifiers - IRI, that may be defined in multiple ways. Most straightforward is the use of URL as IRI. You can see this in all W3C ontologies definitions, that are included as default context in MD-LD. These prefixes may be used without declaration:
 
 ```md
-[alice] <tag:alice@example.com,2026:>
-
-# Walnut Bread {=alice:walnut-bread .Recipe name}
+[rdf] <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+[rdfs] <http://www.w3.org/2000/01/rdf-schema#>
+[xsd] <http://www.w3.org/2001/XMLSchema#>
+[sh] <http://www.w3.org/ns/shacl#>
+[prov] <http://www.w3.org/ns/prov#>
 ```
 
-This emits:
+These are 5 core ontologies - collections of interconnected terms - that lay foundation to the semantic graphs.
 
-```turtle
-tag:alice@example.com,2026:walnut-bread
-  a schema:Recipe ;
-  schema:name "Walnut Bread" .
-```
+So `[prefix]` holds the short version of the IRI in `<IRI>` and it allows us to author complex IRIs without repeating long strings every time. To generate `http://www.w3.org/ns/prov#Entity` we can use shorter version - `prov:Entity` interchangeably. 
 
-**Why this matters**
+To create a piece of data we need to use our own semantic namespace - a base IRI to become a root for our terms. It may be a web-site that you own and may use to publish or verify published data. Let's say you own a `https://example.org` domain, then you may start your document with `[ex] <https://example.org/my-project/>` line so that you may describe your public project. You don't need to publish the data there - IRI is used to identify and not necessarity retrieve pieces of data.
 
-* Your note is already an addressable node
-* Everything that follows attaches to it
-* This is how “casual notes” become “knowledge”
+But what if you don't have a domain or just want a personal namespaced IRI? Use the RFC 4151 standard that allows to create private namespace with domain/email or any other authority you may provide - be it an ID in some system or a cryptographic key. The IRI assembles as follows - starts with `tag:`, then we put the authority - domain, email or other, then `,2026-05-04:` - the time when the authority was active. You can use only year or only year and month - then it will be assumed that you were owning the authority on 1st day of the month/year. Then you may add a custom subspace `journal:` and here you go - your own tag-based namespace is ready for use.
 
----
+`[me] <tag:me@example.org,2026:>`
 
-### 1.1. Prefix Folding: Build Your Namespace
-
-Create hierarchical namespaces by referencing previous prefixes:
-
-```md
-# Your domain authority
-[my] <tag:mymail@domain.com,2026:>
-
-# Build the hierarchy
-[j] <my:journal:>
-[p] <my:property:>
-[c] <my:class:>
-
-# Use in content
-# 2026-01-27 {=j:2026-01-27 .c:Event p:date ^^xsd:date}
-```
-
-**Resolves to:**
-- `j:2026-01-27` → `tag:mymail@domain.com,2026:journal:2026-01-27`
-- `c:Event` → `tag:mymail@domain.com,2026:class:Event`
-- `p:date` → `tag:mymail@domain.com,2026:property:date`
-
-Perfect for personal knowledge graphs without external dependencies.
-
----
-
-## 2. Value carriers (what can hold meaning)
-
-Only these Markdown forms can emit values:
-
-**Inline**
-
-* `[text] {...}`
-* `*text* {...}`, `**text** {...}`
-* `` `code` {...}``
-
-**Block**
-
-* Headings
-* List items
-* Blockquotes
-* Code blocks (fence with `{...}`)
-
-If `{...}` cannot clearly attach → **nothing is emitted**.
-
----
-
-## 3. The three predicate forms (the whole algebra)
-
-Every triple is written using **one of three predicate shapes**:
-
-| Form  | Emits   |
-| ----- | ------- |
-| `p`   | `S → L` |
-| `?p`  | `S → O` |
-| `!p` | `O → S` |
-
-Nothing else exists.
-
-### Example — all three at once
-
-```md
-[alice] <tag:alice@example.com,2026:>
-
-[Bread] {name}
-[Walnut] {+alice:walnut ?hasIngredient}
-[Recipe](https://en.wikipedia.org/wiki/Recipe) {!hasPart}
-```
-
-Never use shortened CURIE in regular Markdown links. They must be valid URLs for the browser to navigate to.
-
----
-
-## 4. Literals are always local
-
-Text comes **only** from the attached carrier.
-
-```md
-[2024] {published ^^xsd:gYear}
-[Delicious bread] {description @en}
-```
-
-No datatype or language is ever inferred.
-
----
-
-## 5. Object IRIs (links or `{+iri}`)
-
-Objects exist only if explicitly present.
-
-```md
-[alice] <tag:alice@example.com,2026:>
-
-[Walnuts](tag:alice@example.com,2026:walnut) {?ingredient}
-```
-
-or
-
-```md
-[Walnuts] {+alice:walnut ?ingredient}
-```
-
-Same graph. Different ergonomics.
-
----
-
-## 6. Lists = pure Markdown structure, explicit annotations only
-
-Lists have **no semantic scope**. Each item must have explicit annotations.
-
-```md
-[alice] <tag:alice@example.com,2026:>
-
-Ingredients: {=alice:recipe .Container}
-
-- Walnuts {+alice:walnut ?member .alice:Ingredient name}
-- Flour {+alice:flour ?member .alice:Ingredient name}
-- Water {+alice:water ?member .alice:Ingredient name}
-```
-
-Result: clean, explicit graph. No implicit semantics.
-
-### List Item Requirements
-
-**✅ DO - Items with explicit subjects emit semantics:**
-```md
-- **Flour** {=alice:flour}              # Clean subject
-- **Walnuts** {=alice:walnuts}          # Clean subject
-```
-
-
-**Critical Rule**: **All list items must have explicit subject (`{=iri}` or `{+iri}`) to emit semantics.**
-
-**Valid Alternatives for Additional Information:**
-
-**✅ Nested Lists (Pure Structure)**
-```md
-- **Flour** {=alice:flour}
-  Properties:
-  - **Organic** {+alice:organic ?alice:hasProperty .alice:Property label}
-```
-
-**✅ Separate Sections**
-```md
-- **Flour** {=alice:flour}
-
-## Flour Description {=alice:flour}
-[*Important*] {priority .Important}
-```
-
-**Why?** Lists are **pure Markdown structure**. This keeps them predictable and streaming-safe.
-
----
-
-## 7. Fragments = structured documents
-
-Fragments turn sections into addressable nodes.
-
-```md
-[alice] <tag:alice@example.com,2026:>
-
-## Instructions {=#steps .HowTo}
-
-### Mixing {=#step-1 .HowToStep rdfs:label}
-
-> Mix ingredients {text}
-
-### Baking {=#step-2 .HowToStep rdfs:label}
-
-> Bake for 45 minutes {text}
-```
-
-Emits:
-
-```turtle
-tag:alice@example.com,2026:walnut-bread#steps a schema:HowTo .
-tag:alice@example.com,2026:walnut-bread#step-1 a schema:HowToStep ; rdfs:label "Mixing" ; schema:text "Mix ingredients" .
-tag:alice@example.com,2026:walnut-bread#step-2 a schema:HowToStep ; rdfs:label "Baking" ; schema:text "Bake for 45 minutes" .
-```
-
-Fragments always attach to the **current subject base**.
-
----
-
-## 8. Blockquotes = descriptions, abstracts, notes
-
-```md
-> A dense, rustic bread with toasted walnuts. {description}
-```
-
-Readable prose → structured data.
-
----
-
-## 9. Code blocks are first-class values
-
-````md
-[alice] <tag:alice@example.com,2026:>
-
-```txt {=alice:walnut-bread#formula .Recipe text}
-500g flour
-300ml water
-```
-````
-
-Code content becomes a literal.  
-Language fences stay intact.
-
----
-
-## 10. Reverse relations (write from either side)
-
-```md
-[alice] <tag:alice@example.com,2026:>
-
-Used in: {!hasIngredient}
-
-- Salad {=alice:salad}
-````
-
-Same graph. Different narrative flow.
-
----
-
-## 11. What MD-LD never does
-
-* ❌ No implicit meaning
-* ❌ No blank nodes
-* ❌ No inferred subjects
-* ❌ No structural guessing
-* ❌ No multi-pass parsing
-* ❌ **No semantic list propagation**
-
-Every triple is **authored**, not derived.
-
----
-
-## 12. Why this scales (humans + agents)
-
-Because MD-LD is:
-
-* **Streaming-parseable**
-* **Round-trip safe**
-* **Text-preserving**
-* **SPARQL-addressable**
-
-Agents can:
-
-* align facts via SPARQL
-* add/remove triples
-* serialize changes back into Markdown
-  without breaking prose, layout, or intent.
-
-Your document becomes a **shared semantic surface**, not a data export.
-
----
-
-## One sentence summary
-
-> **MD-LD is RDF you can read, write, diff, query, and share—without ever leaving Markdown.**
