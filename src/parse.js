@@ -113,15 +113,21 @@ export function parse(firstArg, secondArg = {}) {
         }
     }
 
+    // Create structured primary object for semantic surface
+    const primary = {
+        subject: state.primarySubject,
+        type: state.primaryType,
+        label: state.primaryLabel
+    };
+
     return {
         quads: state.quads,
         remove: filteredRemove,
         statements: state.statements,
         origin: state.origin,
         context: state.ctx,
-        primarySubject: state.primarySubject,
-        primaryType: state.primaryType,
-        primaryLabel: state.primaryLabel,
+        primarySubject: state.primarySubject,  // Canonical append identity
+        primary,                             // Semantic surface descriptor
         md: scanResult.md
     };
 }

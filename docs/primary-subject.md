@@ -8,9 +8,18 @@ MD-LD tracks three primary metadata fields during parsing to provide immediate d
 
 | Field | Source | Purpose |
 |-------|--------|---------|
-| **primarySubject** | First non-fragment `{=subject}` | Document identity |
-| **primaryType** | First `.Class` declaration | Document category |
-| **primaryLabel** | First `{label}` literal | Human-readable name |
+| **primarySubject** | First non-fragment `{=subject}` | Document identity (canonical append identity) |
+| **primaryType** | First `.Class` declaration | Document category (semantic classification) |
+| **primaryLabel** | First `{label}` literal | Human-readable name (UI & display) |
+
+## Dual-Layer Architecture
+
+MD-LD implements a **dual-layer architecture** that separates concerns cleanly:
+
+| Layer | Field | Role | Use Cases |
+| ------ | ------ | --------- | ---------- |
+| **Canonical Identity** | `primarySubject` | Storage, routing, synchronization, append operations |
+| **Semantic Surface** | `primary` object | UI rendering, indexing, navigation, agent orientation |
 
 ## What is a Primary Subject?
 
@@ -20,9 +29,27 @@ The Primary Subject is the first non-fragment subject declaration (`{=IRI}`) in 
 
 The Primary Type is the first `rdf:type` declaration associated with the Primary Subject. It provides a way to identify the type of the main entity described by a document.
 
+### 1. First Type Declaration Wins
+
+```markdown
+# Person {=my:alice .prov:Person .schema:Person}
+[Details] {label}
+```
+
+`primaryType` captures the **first rdf:type assertion emitted while current subject == primarySubject**. This is parser-precise and avoids ambiguity with later type declarations for other entities.
+
 ## What is a Primary Label?
 
 The Primary Label is the first `rdfs:label` literal associated with the Primary Subject. It provides a human-readable name for the main entity described by a document.
+
+### 2. First Label Declaration Wins
+
+```markdown
+# Person {=my:alice .prov:Person label}
+[Alice Smith] {rdfs:label}
+```
+
+`primaryLabel` captures the **first emitted rdfs:label literal while current subject == primarySubject**. This ensures the label is associated with the primary subject, not other entities in the document.
 
 ## Example Document
 
@@ -53,13 +80,17 @@ const md = `[ex] <tag:alice@example.org,2026:articles/>
 
 const result = parse({ text: md });
 
+// Canonical append identity
 console.log('Primary Subject:', result.primarySubject);
-console.log('Primary Type:', result.primaryType);
-console.log('Primary Label:', result.primaryLabel);
+// Semantic surface descriptor
+console.log('Primary Object:', result.primary);
 // Output:
 // Primary Subject: tag:alice@example.org,2026:articles/understanding-primary-subject
-// Primary Type: http://schema.org/Article
-// Primary Label: Understanding Primary Subjects
+// Primary Object: {
+//   subject: 'tag:alice@example.org,2026:articles/understanding-primary-subject',
+//   type: 'http://schema.org/Article',
+//   label: 'Understanding Primary Subjects'
+// }
 ```
 
 ## Key Behaviors
@@ -115,8 +146,16 @@ const doc2 = `[ex] <http://example.org/>
 
 const result = merge([doc1, doc2], { context: { ex: 'http://example.org/' } });
 
-console.log(result.primarySubjects.map(s => s.value));
-// Output: ['http://example.org/doc1', 'http://example.org/doc2']
+// Canonical append identities
+console.log('Primary Subjects:', result.primarySubjects);
+// Semantic surface descriptors
+console.log('Primary Objects:', result.primary);
+// Output:
+// Primary Subjects: ['http://example.org/doc1', 'http://example.org/doc2']
+// Primary Objects: [
+//   { subject: 'http://example.org/doc1', type: 'http://schema.org/Article', label: 'Document 1' },
+//   { subject: 'http://example.org/doc2', type: 'http://schema.org/Article', label: 'Document 2' }
+// ]
 ```
 
 ## Use Cases
@@ -206,13 +245,18 @@ const doc1 = `[blog] <https://example.com/blog/>
 [Hello World] {schema:headline}`;
 
 const result1 = parse({ text: doc1, context: { blog: 'https://example.com/blog/', schema: 'http://schema.org/' } });
+
+// Canonical append identity
 console.log('Primary Subject:', result1.primarySubject);
-console.log('Primary Type:', result1.primaryType);
-console.log('Primary Label:', result1.primaryLabel);
+// Semantic surface descriptor
+console.log('Primary Object:', result1.primary);
 // Output:
 // Primary Subject: https://example.com/blog/post1
-// Primary Type: http://schema.org/BlogPosting
-// Primary Label: My First Post
+// Primary Object: {
+//   subject: 'https://example.com/blog/post1',
+//   type: 'http://schema.org/BlogPosting',
+//   label: 'My First Post'
+// }
 
 // Multiple documents
 const doc2 = `[blog] <https://example.com/blog/>
@@ -221,8 +265,16 @@ const doc2 = `[blog] <https://example.com/blog/>
 
 const merged = merge([doc1, doc2], { context: { blog: 'https://example.com/blog/', schema: 'http://schema.org/' } });
 
-console.log('Primary subjects:', merged.primarySubjects);
-// Output: ['https://example.com/blog/post1', 'https://example.com/blog/post2']
+// Canonical append identities
+console.log('Primary Subjects:', merged.primarySubjects);
+// Semantic surface descriptors
+console.log('Primary Objects:', merged.primary);
+// Output:
+// Primary Subjects: ['https://example.com/blog/post1', 'https://example.com/blog/post2']
+// Primary Objects: [
+//   { subject: 'https://example.com/blog/post1', type: 'http://schema.org/BlogPosting', label: 'My First Post' },
+//   { subject: 'https://example.com/blog/post2', type: 'http://schema.org/BlogPosting', label: 'My Second Post' }
+// ]
 ```
 
 ## Document Identity Trio
@@ -232,18 +284,41 @@ The primary metadata trio provides sufficient document/append stream identity fo
 ```javascript
 // Nostr integration example
 const nostrTags = [
-    ['s', result.primarySubject],  // subject addressing
-    ['t', result.primaryType],     // type filtering  
-    ['d', result.primaryLabel]      // display identifier
+    ['s', result.primarySubject],      // subject addressing (canonical)
+    ['t', result.primary.type],        // type filtering
+    ['d', result.primary.label]        // display identifier
 ];
 
 // Document fingerprint
 const fingerprint = {
-    subject: result.primarySubject,    // What the document is about
-    type: result.primaryType,          // What kind of document
-    label: result.primaryLabel         // Human-readable name
+    canonical: result.primarySubject,    // What the document is about (append identity)
+    semantic: result.primary              // How to present and index the document
 };
 ```
+
+## Primary Metadata is Parser-Level Metadata
+
+**Important**: Primary metadata is derived parser state and does not introduce additional RDF triples or semantic entailments. It describes document intent, not graph semantics.
+
+### Key Distinctions
+
+| Aspect | Primary Metadata | RDF Semantics |
+|---------|------------------|----------------|
+| **Source** | Parser extraction rules | Triple patterns |
+| **Scope** | Document-level intent | Graph-level relationships |
+| **Purpose** | Routing, UI, indexing | Reasoning, inference |
+| **Stability** | Deterministic extraction | Dynamic inference |
+
+### Stability Guarantees
+
+`primarySubject` is **stable under rewrite() operations that preserve extracted quads**. This means:
+
+- Append routing remains consistent across document updates
+- Synchronization identity is preserved during merges
+- File mapping stays stable through rewrite operations
+- Index references remain valid
+
+This stability is crucial for distributed systems and local-first architectures.
 
 ## Specification
 

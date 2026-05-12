@@ -27,11 +27,18 @@ export const parseTests = [
 
 # Document {=ex:doc .ex:Article label}
 [Alice] {ex:author}`;
-            const { primarySubject } = parse({ text: md });
+            const { primarySubject, primary } = parse({ text: md });
 
             assert(primarySubject !== null, 'Should have a primary subject');
             assert(primarySubject === 'http://example.org/doc',
                 `Primary subject should be ex:doc, got ${primarySubject}`);
+            assert(primary !== null, 'Should have a primary object');
+            assert(primary.subject === 'http://example.org/doc',
+                `Primary object subject should be ex:doc, got ${primary.subject}`);
+            assert(primary.type === 'http://example.org/Article',
+                `Primary object type should be ex:Article, got ${primary.type}`);
+            assert(primary.label === 'Document',
+                `Primary object label should be Document, got ${primary.label}`);
         }
     },
 
@@ -39,9 +46,13 @@ export const parseTests = [
         name: 'Primary subject - null when no subject declared',
         fn: () => {
             const md = `[Alice] {label}`;
-            const { primarySubject } = parse({ text: md });
+            const { primarySubject, primary } = parse({ text: md });
 
             assert(primarySubject === null, 'Primary subject should be null when no subject declared');
+            assert(primary !== null, 'Primary object should exist even when no subject declared');
+            assert(primary.subject === null, 'Primary object subject should be null when no subject declared');
+            assert(primary.type === null, 'Primary object type should be null when no subject declared');
+            assert(primary.label === null, 'Primary object label should be null when no label exists');
         }
     },
 
@@ -53,11 +64,14 @@ export const parseTests = [
 # Document {=ex:doc}
 {=#summary}
 [Content] {label}`;
-            const { primarySubject } = parse({ text: md });
+            const { primarySubject, primary } = parse({ text: md });
 
             assert(primarySubject !== null, 'Should have a primary subject');
             assert(primarySubject === 'http://example.org/doc',
                 `Primary subject should be ex:doc, not fragment`);
+            assert(primary !== null, 'Should have a primary object');
+            assert(primary.subject === 'http://example.org/doc',
+                `Primary object subject should be ex:doc, not fragment`);
         }
     },
 
@@ -73,11 +87,14 @@ export const parseTests = [
 
 # Second {=ex:second}
 [Value] {label}`;
-            const { primarySubject } = parse({ text: md });
+            const { primarySubject, primary } = parse({ text: md });
 
             assert(primarySubject !== null, 'Should have a primary subject');
             assert(primarySubject === 'http://example.org/first',
                 `Primary subject should remain ex:first after reset, got ${primarySubject}`);
+            assert(primary !== null, 'Should have a primary object');
+            assert(primary.subject === 'http://example.org/first',
+                `Primary object subject should be ex:first after reset, got ${primary.subject}`);
         }
     },
 
@@ -91,11 +108,14 @@ export const parseTests = [
 
 # Document {=ex:doc}
 [Alice] {ex:author}`;
-            const { primarySubject } = parse({ text: md });
+            const { primarySubject, primary } = parse({ text: md });
 
             assert(primarySubject !== null, 'Should have a primary subject');
             assert(primarySubject === 'http://example.org/doc',
                 `Primary subject should be ex:doc, not fragment`);
+            assert(primary !== null, 'Should have a primary object');
+            assert(primary.subject === 'http://example.org/doc',
+                `Primary object subject should be ex:doc, not fragment`);
         }
     },
 
@@ -107,18 +127,26 @@ export const parseTests = [
 # Document {=ex:doc .ex:Article label}
 [Alice] {ex:author}`;
 
-            const { quads, primarySubject } = parse({ text: md });
+            const { quads, primarySubject, primary } = parse({ text: md });
 
             // Generate with primarySubject to ensure round-trip safety
             const generated = generate({ quads, context: { ex: 'http://example.org/' }, primarySubject });
 
-            // Parse the generated output
-            const { primarySubject: regeneratedPrimary } = parse({ text: generated.text, context: generated.context });
+            // Parse generated output
+            const { primarySubject: regeneratedPrimary, primary: regeneratedPrimaryObj } = parse({ text: generated.text, context: generated.context });
 
             assert(primarySubject !== null, 'Original should have primary subject');
+            assert(primary !== null, 'Original should have primary object');
             assert(regeneratedPrimary !== null, 'Regenerated should have primary subject');
+            assert(regeneratedPrimaryObj !== null, 'Regenerated should have primary object');
             assert(primarySubject === regeneratedPrimary,
                 `Primary subject should be preserved in round-trip: ${primarySubject} vs ${regeneratedPrimary}`);
+            assert(primary.subject === regeneratedPrimaryObj.subject,
+                `Primary object subject should be preserved: ${primary.subject} vs ${regeneratedPrimaryObj.subject}`);
+            assert(primary.type === regeneratedPrimaryObj.type,
+                `Primary object type should be preserved: ${primary.type} vs ${regeneratedPrimaryObj.type}`);
+            assert(primary.label === regeneratedPrimaryObj.label,
+                `Primary object label should be preserved: ${primary.label} vs ${regeneratedPrimaryObj.label}`);
         }
     },
 

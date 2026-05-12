@@ -530,13 +530,22 @@ for (let i = 0; i < tokens.length; i++) {
 // Process retractions and ensure hard invariant
 const filteredRemove = processRetractions(state.quads, state.removeSet);
 
-return {
-    quads: state.quads,           // Final resolved graph state
-    remove: filteredRemove,      // External retractions only
-    statements: state.statements,  // Elevated statements
-    origin: state.origin,         // Complete provenance
-    context: state.ctx           // Final prefix context
-};
+// Create structured primary object for semantic surface
+    const primary = {
+        subject: state.primarySubject,
+        type: state.primaryType,
+        label: state.primaryLabel
+    };
+
+    return {
+        quads: state.quads,           // Final resolved graph state
+        remove: filteredRemove,      // External retractions only
+        statements: state.statements,  // Elevated statements
+        origin: state.origin,         // Complete provenance
+        context: state.ctx,          // Final prefix context
+        primarySubject: state.primarySubject,  // Canonical append identity
+        primary                      // Semantic surface descriptor
+    };
 ```
 
 #### Retraction Processing

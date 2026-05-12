@@ -38,6 +38,14 @@ export const mergeTests = [
                 `Should have 1 primary subject, got ${result.primarySubjects.length}`);
             assert(result.primarySubjects[0] === 'tag:hr@example.com,2026:emp456',
                 `Primary subject should be my:emp456, got ${result.primarySubjects[0]}`);
+            assert(result.primary.length === 1,
+                `Should have 1 primary object, got ${result.primary.length}`);
+            assert(result.primary[0].subject === 'tag:hr@example.com,2026:emp456',
+                `Primary object subject should be my:emp456, got ${result.primary[0].subject}`);
+            assert(result.primary[0].type === 'tag:hr@example.com,2026:Employee',
+                `Primary object type should be my:Employee, got ${result.primary[0].type}`);
+            assert(result.primary[0].label === null,
+                `Primary object label should be null, got ${result.primary[0].label}`);
         }
     },
 

@@ -14,15 +14,30 @@ Parse MD-LD markdown and return RDF quads.
 - `dataFactory` (object, optional) — Custom RDF/JS DataFactory
 - `graph` (string, optional) — Named graph IRI
 
-**Returns:** `{ quads, context, primarySubject, primaryType, primaryLabel, origin, remove, statements }`
+**Returns:** `{ quads, context, primarySubject, primary, origin, remove, statements }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
-- `primarySubject` — String IRI or null (first non-fragment subject declaration)
-- `primaryType` — String IRI or null (first rdf:type declaration)
-- `primaryLabel` — String or null (first rdfs:label literal)
+- `primarySubject` — String IRI or null (canonical append identity)
+- `primary` — Object containing primary metadata (semantic surface descriptor)
+
+**Dual-Layer Architecture:**
+
+| Layer | Field | Purpose | Use Cases |
+|-------|-------|---------|-----------|
+| **Canonical Identity** | `primarySubject` | Append routing, storage, synchronization | `append()`, file placement, authority validation |
+| **Semantic Surface** | `primary` | UI, indexing, navigation, agent orientation | Dashboards, search, previews, timelines |
+
+**Primary Object Structure:**
+```javascript
+primary: {
+    subject: string | null,     // First non-fragment subject declaration
+    type: string | null,       // First rdf:type declaration
+    label: string | null       // First rdfs:label literal
+}
+```
 
 > Legacy: `parse(text, options)` supported for backward compatibility (deprecated)
 
@@ -125,7 +140,7 @@ Merge multiple MDLD documents with diff polarity resolution.
 - `options` (object, optional):
   - `context` (object) — Prefix mappings (merged with DEFAULT_CONTEXT)
 
-**Returns:** `{ quads, remove, origin, context }`
+**Returns:** `{ quads, remove, origin, context, primarySubjects, primary }`
 
 - `quads` — Merged array of RDF/JS Quads
 - `remove` — Array of retractions from merge process
@@ -133,6 +148,27 @@ Merge multiple MDLD documents with diff polarity resolution.
   - `documents` — Array of document metadata
   - `quadIndex` — Combined quad index from all documents
 - `context` — Final merged context
+- `primarySubjects` — Array of string IRIs (canonical append identities, ordered by merge)
+- `primary` — Array of primary objects (semantic surface descriptors, ordered by merge)
+
+**Dual-Layer Architecture:**
+
+| Layer | Field | Purpose | Use Cases |
+|-------|-------|---------|-----------|
+| **Canonical Identity** | `primarySubjects` | Append routing, storage, synchronization | Multi-document append, file organization |
+| **Semantic Surface** | `primary` | UI, indexing, navigation, agent orientation | Vault indexing, document discovery, search |
+
+**Primary Object Array Structure:**
+```javascript
+primary: [
+    {
+        subject: string | null,     // First non-fragment subject declaration
+        type: string | null,       // First rdf:type declaration
+        label: string | null       // First rdfs:label literal
+    },
+    // ... one object per document
+]
+```
 
 #### Basic Merge Example
 

@@ -57,7 +57,7 @@ console.log(result.quads);
 - **⚡ Polarity system** - Sophisticated diff authoring with `+` and `-` prefixes
 - **📍 Origin tracking** - Complete provenance with lean quad-to-source mapping
 - **🎯 Elevated statements** - Automatic rdf:Statement pattern detection for "golden" graph extraction
-- **🏷️ Primary metadata** - Instant access to primarySubject, primaryType, and primaryLabel for document identity
+- **🏷️ Primary metadata** - Structured primary object with subject, type, and label for document identity
 
 ## 🌟 What is MD-LD?
 
@@ -233,17 +233,32 @@ Parse MD-LD markdown and return RDF quads with lean origin tracking.
 - `dataFactory` (object, optional) — Custom RDF/JS DataFactory
 - `graph` (string, optional) — Named graph IRI
 
-**Returns:** `{ quads, remove, statements, origin, context, primarySubject, primaryType, primaryLabel, md }`
+**Returns:** `{ quads, remove, statements, origin, context, primarySubject, primary, md }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
 - `statements` — Array of elevated RDF/JS Quads extracted from rdf:Statement patterns
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
-- `primarySubject` — String IRI or null (first non-fragment subject declaration)
-- `primaryType` — String IRI or null (first rdf:type declaration)
-- `primaryLabel` — String or null (first rdfs:label literal)
+- `primarySubject` — String IRI or null (canonical append identity)
+- `primary` — Object containing primary metadata (semantic surface descriptor)
 - `md` — Clean Markdown with all MD-LD annotations stripped (round-trip safe)
+
+**Dual-Layer Architecture:**
+
+| Layer | Field | Purpose | Use Cases |
+|-------|-------|---------|-----------|
+| **Canonical Identity** | `primarySubject` | Append routing, storage, synchronization | `append()`, file placement, authority validation |
+| **Semantic Surface** | `primary` | UI, indexing, navigation, agent orientation | Dashboards, search, previews, timelines |
+
+**Primary Object Structure:**
+```javascript
+primary: {
+    subject: string | null,     // First non-fragment subject declaration
+    type: string | null,       // First rdf:type declaration
+    label: string | null       // First rdfs:label literal
+}
+```
 
 ### `merge(docs, options)`
 
@@ -254,13 +269,34 @@ Merge multiple MDLD documents with diff polarity resolution.
 - `options` (object, optional):
   - `context` (object) — Prefix mappings (merged with DEFAULT_CONTEXT)
 
-**Returns:** `{ quads, remove, origin, context, primarySubjects }`
+**Returns:** `{ quads, remove, origin, context, primarySubjects, primary }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
-- `origin` — Merge origin tracking with document index and polarity
-- `context` — Final merged context
-- `primarySubjects` — Array of string IRIs (primary subjects from each document, in merge order)
+- `origin` — Merge origin with document tracking
+- `context` — Final context used (includes prefixes)
+- `primarySubjects` — Array of string IRIs (canonical append identities, ordered by merge)
+- `primary` — Array of primary objects (semantic surface descriptors, ordered by merge)
+
+**Dual-Layer Architecture:**
+
+| Layer | Field | Purpose | Use Cases |
+|-------|-------|---------|-----------|
+| **Canonical Identity** | `primarySubjects` | Append routing, storage, synchronization | Multi-document append, file organization |
+| **Semantic Surface** | `primary` | UI, indexing, navigation, agent orientation | Vault indexing, document discovery, search |
+
+**Primary Object Array Structure:**
+```javascript
+primary: [
+    {
+        subject: string | null,     // First non-fragment subject declaration
+        type: string | null,       // First rdf:type declaration
+        label: string | null       // First rdfs:label literal
+    },
+    // ... one object per document
+]
+```
+
 
 ### `generate({ quads, context, primarySubject })`
 

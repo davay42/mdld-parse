@@ -43,7 +43,8 @@ export function merge(docs, options = {}) {
     const quadIndex = new Map();
     const allStatements = []; // Collect statements from all documents
     const accumulatedContext = new Map(); // Track all unique prefixes across documents
-    const primarySubjects = []; // Collect primary subjects from all documents
+    const primaryObjects = []; // Collect primary objects from all documents
+    const primarySubjects = []; // Collect primary subjects for canonical identity
 
     // Process each document in order
     for (let i = 0; i < docs.length; i++) {
@@ -80,7 +81,12 @@ export function merge(docs, options = {}) {
             allStatements.push(...doc.statements);
         }
 
-        // Collect primary subject from this document (already a string IRI)
+        // Collect primary object from this document
+        if (doc.primary && (doc.primary.subject || doc.primary.type || doc.primary.label)) {
+            primaryObjects.push(doc.primary);
+        }
+
+        // Collect primary subject for canonical identity
         if (doc.primarySubject) {
             primarySubjects.push(doc.primarySubject);
         }
@@ -152,6 +158,7 @@ export function merge(docs, options = {}) {
         statements: allStatements, // Include all collected statements
         origin: mergeOrigin,
         context: finalContext,
-        primarySubjects: primarySubjects // Include all collected primary subjects
+        primarySubjects,           // Canonical append identities
+        primary: primaryObjects     // Semantic surface descriptors
     };
 }
