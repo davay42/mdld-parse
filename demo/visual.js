@@ -112,11 +112,14 @@ class RdfGraph extends HTMLElement {
             link.label = predicateLabel || curie(link.iri, this._ctx);
         }
 
-        this._types = typeMap
+        this._types = typeMap;
         this._nodes = [...nodeMap.values()];
         this._links = links;
         this._typeColors = typeColors;
         this._nodeLabels = nodeLabels;
+
+        // Phase 2: sparse adjacency (O(degree) neighbour queries)
+        this._buildSparseAdjacency();
         this._renderSvg();
         this._initSim();
 
@@ -249,13 +252,16 @@ class RdfGraph extends HTMLElement {
     _initSim() {
         const W = this._wrap.clientWidth || 600;
         const H = this._wrap.clientHeight || 480;
+        this._W = W; this._H = H;
+
+        // Phase 3+4: structured initial positions (degree-clustering → spectral diffusion)
+        this._applyDegreeClustering();
+        this._spectralInit();
+
         for (const n of this._nodes) {
-            if (n.x == null) { n.x = W / 2 + (Math.random() - .5) * 200; n.y = H / 2 + (Math.random() - .5) * 200; }
             n.vx = n.vx || 0; n.vy = n.vy || 0;
-            // Add mass proportional to node size (larger nodes = more mass)
             n.mass = Math.max(1, n.size / 8);
         }
-        this._W = W; this._H = H;
         this._alpha = 1; this._sleeping = false;
         this._wake();
     }
@@ -337,16 +343,16 @@ class RdfGraph extends HTMLElement {
                         let deltaY = other.y - n.y;
                         const d2 = deltaX * deltaX + deltaY * deltaY || 1;
                         const d = Math.sqrt(d2);
+                        // Phase 4: degree-adaptive charge (high-degree hubs push harder)
+                        const adaptiveCharge = charge * (1 + this._getDegree(n.id) * 0.1);
 
                         // Apply Barnes-Hut approximation for distant nodes
                         if (d > gridSize * 2) {
-                            // Treat cell as single point for distant interactions
-                            const cellForce = charge * alpha / (d2 * cellNodes.length);
+                            const cellForce = adaptiveCharge * alpha / (d2 * cellNodes.length);
                             n.fx -= (deltaX / d) * cellForce / n.mass;
                             n.fy -= (deltaY / d) * cellForce / n.mass;
                         } else {
-                            // Direct calculation for nearby nodes
-                            const f = charge * alpha / d2;
+                            const f = adaptiveCharge * alpha / d2;
                             n.fx -= (deltaX / d) * f / n.mass;
                             n.fy -= (deltaY / d) * f / n.mass;
                         }
@@ -354,7 +360,7 @@ class RdfGraph extends HTMLElement {
                 }
             }
         }
-        // link attraction
+        // link attraction – uses adaptive link-distance per node pair
         for (const l of links) {
             const s = typeof l.source === 'object' ? l.source : this._nodeById(l.source);
             const t = typeof l.target === 'object' ? l.target : this._nodeById(l.target);
@@ -362,7 +368,10 @@ class RdfGraph extends HTMLElement {
             l.source = s; l.target = t;
             const dx = t.x - s.x, dy = t.y - s.y;
             const d = Math.sqrt(dx * dx + dy * dy) || 1;
-            const f = (d - ld) * 0.02 * alpha;
+            // Phase 4 adaptive: average link-dist for this pair
+            const adaptiveLd = (ld * (1 - this._getLocalDensity(s.id) * 0.2) +
+                ld * (1 - this._getLocalDensity(t.id) * 0.2)) * 0.5;
+            const f = (d - adaptiveLd) * 0.02 * alpha;
             const nx = dx / d, ny = dy / d;
             s.fx += nx * f / s.mass;
             s.fy += ny * f / s.mass;
@@ -449,6 +458,98 @@ class RdfGraph extends HTMLElement {
             if (!n._el) continue;
             this._transformBuffer = 'translate(' + n.x + ',' + n.y + ')';
             n._el.setAttribute('transform', this._transformBuffer);
+        }
+    }
+
+    // ─── Phase 2: Sparse adjacency ──────────────────────────────────────────
+    _buildSparseAdjacency() {
+        this._adjacency = new Map();
+        this._degrees = new Map();
+        for (const n of this._nodes) {
+            this._adjacency.set(n.id, new Set());
+            this._degrees.set(n.id, 0);
+        }
+        for (const l of this._links) {
+            const sid = typeof l.source === 'object' ? l.source.id : l.source;
+            const tid = typeof l.target === 'object' ? l.target.id : l.target;
+            if (this._adjacency.has(sid)) this._adjacency.get(sid).add(tid);
+            if (this._adjacency.has(tid)) this._adjacency.get(tid).add(sid);
+            this._degrees.set(sid, (this._degrees.get(sid) || 0) + 1);
+            this._degrees.set(tid, (this._degrees.get(tid) || 0) + 1);
+        }
+    }
+
+    _getNeighbors(nodeId) { return this._adjacency?.get(nodeId) || new Set(); }
+    _getDegree(nodeId) { return this._degrees?.get(nodeId) || 0; }
+
+    _getLocalDensity(nodeId, radius = 100) {
+        const neighbors = this._getNeighbors(nodeId);
+        if (!neighbors.size) return 0;
+        const node = this._nodes.find(n => n.id === nodeId);
+        if (!node) return 0;
+        let count = 0;
+        const r2 = radius * radius;
+        for (const nid of neighbors) {
+            const nb = this._nodes.find(n => n.id === nid);
+            if (nb) {
+                const dx = nb.x - node.x, dy = nb.y - node.y;
+                if (dx * dx + dy * dy < r2) count++;
+            }
+        }
+        return count / neighbors.size;
+    }
+
+    // ─── Phase 3: Degree-based initial clustering ────────────────────────────
+    _applyDegreeClustering() {
+        const W = this._W, H = this._H;
+        const degreeGroups = new Map();
+        for (const n of this._nodes) {
+            const g = Math.floor(Math.log2(this._getDegree(n.id) + 1));
+            if (!degreeGroups.has(g)) degreeGroups.set(g, []);
+            degreeGroups.get(g).push(n);
+        }
+        const groupCount = degreeGroups.size;
+        let gi = 0;
+        for (const nodes of degreeGroups.values()) {
+            const angle = (gi / groupCount) * 2 * Math.PI;
+            const radius = Math.min(W, H) * 0.3;
+            const gx = W / 2 + Math.cos(angle) * radius;
+            const gy = H / 2 + Math.sin(angle) * radius;
+            for (const n of nodes) {
+                n.x = gx + (Math.random() - 0.5) * 50;
+                n.y = gy + (Math.random() - 0.5) * 50;
+            }
+            gi++;
+        }
+    }
+
+    // ─── Phase 1: Spectral-inspired diffusion layout ─────────────────────────
+    _spectralInit() {
+        const positions = new Map();
+        for (const n of this._nodes) positions.set(n.id, { x: n.x, y: n.y });
+
+        // 3-step Laplacian diffusion (power-iteration approximation)
+        for (let step = 0; step < 3; step++) {
+            const next = new Map();
+            for (const [id, neighbors] of this._adjacency) {
+                if (!neighbors.size) { next.set(id, positions.get(id)); continue; }
+                let sx = 0, sy = 0;
+                for (const nid of neighbors) {
+                    const p = positions.get(nid);
+                    if (p) { sx += p.x; sy += p.y; }
+                }
+                const cur = positions.get(id);
+                next.set(id, {
+                    x: cur.x * 0.65 + (sx / neighbors.size) * 0.35,
+                    y: cur.y * 0.65 + (sy / neighbors.size) * 0.35,
+                });
+            }
+            for (const [id, pos] of next) positions.set(id, pos);
+        }
+
+        for (const n of this._nodes) {
+            const p = positions.get(n.id);
+            if (p) { n.x = p.x; n.y = p.y; }
         }
     }
 
