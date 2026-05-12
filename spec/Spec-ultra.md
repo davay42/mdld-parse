@@ -50,11 +50,22 @@ Ambiguous = no output.
 {+#fragment}  # Temporary soft fragment
 ```
 
-### Primary Subject
+### Primary Metadata
 
-First non-fragment `{=IRI}` in document. Fixed once detected (never cleared on `{=}`).
+MD-LD tracks three primary metadata fields during single-pass parsing:
 
-**parse()**: Returns `primarySubject` (string IRI or null)
+| Field | Source | Purpose |
+|-------|--------|---------|
+| **primarySubject** | First non-fragment `{=subject}` | Document identity |
+| **primaryType** | First `.Class` declaration | Document category |
+| **primaryLabel** | First `{label}` literal | Human-readable name |
+
+**Selection Rules:**
+- First occurrence only (fixed once detected)
+- Never cleared on `{=}` reset
+- Returns `null` if not declared
+
+**parse()**: Returns `{ primarySubject, primaryType, primaryLabel }` (string IRI/null)
 **merge()**: Returns `primarySubjects` array (ordered by merge)
 **generate()**: Accepts `{ quads, context, primarySubject }` — places primary subject first for round-trip safety
 

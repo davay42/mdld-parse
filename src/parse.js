@@ -61,6 +61,8 @@ export function parse(firstArg, secondArg = {}) {
         },
         currentSubject: null,
         primarySubject: null,
+        primaryType: null,
+        primaryLabel: null,
         tokens: null,
         currentTokenIndex: -1,
         statements: [],
@@ -118,6 +120,8 @@ export function parse(firstArg, secondArg = {}) {
         origin: state.origin,
         context: state.ctx,
         primarySubject: state.primarySubject,
+        primaryType: state.primaryType,
+        primaryLabel: state.primaryLabel,
         md: scanResult.md
     };
 }
@@ -521,6 +525,16 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
         const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
         quadBuffer.set(quadKey, quad);
         quads.push(quad);
+
+        // Track primary type and label (first occurrence only)
+        if (state) {
+            if (!state.primaryType && predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
+                state.primaryType = object.value;
+            }
+            if (!state.primaryLabel && predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label' && object.termType === 'Literal') {
+                state.primaryLabel = object.value;
+            }
+        }
 
         // Detect rdf:Statement pattern during single-pass parsing
         detectStatementPatternSinglePass(quad, dataFactory, meta, statements, statementCandidates);

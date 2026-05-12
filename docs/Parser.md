@@ -62,6 +62,9 @@ const state = {
     removeSet: new Set(),      // External retractions
     origin: { quadIndex: new Map() }, // Lean origin tracking
     currentSubject: null,       // Current subject context
+    primarySubject: null,       // First non-fragment subject declaration
+    primaryType: null,         // First rdf:type declaration
+    primaryLabel: null,        // First rdfs:label literal
     tokens: null,              // Tokenized input
     currentTokenIndex: -1,     // Current processing position
     statements: [],            // Elevated statements array
@@ -79,6 +82,9 @@ const state = {
 | **removeSet** | External retractions | Accumulated for removal operations |
 | **origin** | Provenance tracking | Updated with each quad |
 | **currentSubject** | Subject context management | Reset and updated during parsing |
+| **primarySubject** | First non-fragment subject | Set once, never changed |
+| **primaryType** | First rdf:type declaration | Set once, never changed |
+| **primaryLabel** | First rdfs:label literal | Set once, never changed |
 | **statements** | Elevated statements | Accumulated during pattern detection |
 | **statementCandidates** | Pattern completion tracking | Modified during rdf:Statement detection |
 
@@ -357,7 +363,57 @@ function quadIndexKey(subject, predicate, object) {
 }
 ```
 
-### 6. Elevated Statements Detection
+### 6. Primary Metadata Extraction
+
+#### First-Occurrence Tracking
+
+The parser tracks primary metadata during single-pass parsing to provide immediate access to commonly needed document identity:
+
+```javascript
+// Track primary subject: first non-fragment subject declaration
+if (newSubject && !state.primarySubject && !sem.subject.startsWith('=#')) {
+    state.primarySubject = newSubject.value; // Store as string IRI
+}
+
+// Track primary type and label during quad emission
+if (state) {
+    if (!state.primaryType && predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
+        state.primaryType = object.value;
+    }
+    if (!state.primaryLabel && predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label' && object.termType === 'Literal') {
+        state.primaryLabel = object.value;
+    }
+}
+```
+
+#### Primary Metadata Trio
+
+| Field | Source | Purpose | Use Case |
+|-------|--------|---------|-----------|
+| **primarySubject** | First non-fragment `{=subject}` | Document identity | Nostr addressing tags, document routing |
+| **primaryType** | First `.Class` declaration | Document category | Stream filtering, UI categorization |
+| **primaryLabel** | First `{label}` literal | Human-readable name | Display titles, search indexing |
+
+#### Document Identity Applications
+
+The primary metadata trio provides sufficient document/append stream identity for most scenarios:
+
+```javascript
+// Nostr integration example
+const nostrTags = [
+    ['s', result.primarySubject],  // subject addressing
+    ['t', result.primaryType],     // type filtering  
+    ['d', result.primaryLabel]      // display identifier
+];
+```
+
+**Benefits:**
+- **Immediate access** - No post-processing required
+- **Deterministic** - First-occurrence semantics
+- **Lightweight** - Minimal parsing overhead
+- **Sufficient** - Covers 80% of use cases
+
+### 7. Elevated Statements Detection
 
 #### Pattern Detection System
 

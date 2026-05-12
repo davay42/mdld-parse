@@ -14,13 +14,15 @@ Parse MD-LD markdown and return RDF quads.
 - `dataFactory` (object, optional) — Custom RDF/JS DataFactory
 - `graph` (string, optional) — Named graph IRI
 
-**Returns:** `{ quads, context, primarySubject, origin, remove, statements }`
+**Returns:** `{ quads, context, primarySubject, primaryType, primaryLabel, origin, remove, statements }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
 - `primarySubject` — String IRI or null (first non-fragment subject declaration)
+- `primaryType` — String IRI or null (first rdf:type declaration)
+- `primaryLabel` — String or null (first rdfs:label literal)
 
 > Legacy: `parse(text, options)` supported for backward compatibility (deprecated)
 

@@ -1,10 +1,28 @@
-# Primary Subject Example
+# Primary Metadata Example
 
-This example demonstrates the Primary Subject feature in MD-LD, which identifies the main entity described by a document.
+This example demonstrates the Primary Metadata feature in MD-LD, which provides immediate access to the main entity, type, and label described by a document.
+
+## Primary Metadata Trio
+
+MD-LD tracks three primary metadata fields during parsing to provide immediate document identity:
+
+| Field | Source | Purpose |
+|-------|--------|---------|
+| **primarySubject** | First non-fragment `{=subject}` | Document identity |
+| **primaryType** | First `.Class` declaration | Document category |
+| **primaryLabel** | First `{label}` literal | Human-readable name |
 
 ## What is a Primary Subject?
 
 The Primary Subject is the first non-fragment subject declaration (`{=IRI}`) in a document. It provides a deterministic way to identify the central focus of a document.
+
+## What is a Primary Type?
+
+The Primary Type is the first `rdf:type` declaration associated with the Primary Subject. It provides a way to identify the type of the main entity described by a document.
+
+## What is a Primary Label?
+
+The Primary Label is the first `rdfs:label` literal associated with the Primary Subject. It provides a human-readable name for the main entity described by a document.
 
 ## Example Document
 
@@ -22,21 +40,26 @@ The Primary Subject is the first non-fragment subject declaration (`{=IRI}`) in 
 This article explains the Primary Subject concept in MD-LD, which allows applications to quickly identify the main entity described by a document.
 ```
 
-## Parsing with Primary Subject
+## Parsing with Primary Metadata
 
 ```javascript
 import { parse } from 'mdld-parse';
 
-const md = `[ex] <http://example.org/>
+const md = `[ex] <tag:alice@example.org,2026:articles/>
 [schema] <http://schema.org/>
 
-# Article {=ex:article .schema:Article label}
-[Understanding Primary Subjects] {schema:headline}`;
+# Understanding Primary Subjects {=ex:understanding-primary-subject .schema:Article label}
+`;
 
 const result = parse({ text: md });
 
-console.log(result.primarySubject);
-// Output: http://example.org/article
+console.log('Primary Subject:', result.primarySubject);
+console.log('Primary Type:', result.primaryType);
+console.log('Primary Label:', result.primaryLabel);
+// Output:
+// Primary Subject: tag:alice@example.org,2026:articles/understanding-primary-subject
+// Primary Type: http://schema.org/Article
+// Primary Label: Understanding Primary Subjects
 ```
 
 ## Key Behaviors
@@ -98,10 +121,13 @@ console.log(result.primarySubjects.map(s => s.value));
 
 ## Use Cases
 
-- **Document Identification** - Quickly determine what a document is about
+- **Document Identity** - Primary subject + type + label provide complete document fingerprint
+- **Stream Addressing** - Perfect for Nostr tags and distributed systems
 - **Merge Tracking** - Track which entities are being merged across documents
-- **UI Navigation** - Provide a default focus point for document viewers
-- **Query Optimization** - Use primary subject as default query context
+- **UI Navigation** - Provide default focus and display information for document viewers
+- **Query Optimization** - Use primary metadata as default query context and filters
+- **Content Classification** - Automatic categorization based on primary type
+- **Search Indexing** - Use primary label for human-readable search results
 
 ## RDF Philosophy Alignment
 
@@ -180,8 +206,13 @@ const doc1 = `[blog] <https://example.com/blog/>
 [Hello World] {schema:headline}`;
 
 const result1 = parse({ text: doc1, context: { blog: 'https://example.com/blog/', schema: 'http://schema.org/' } });
-console.log('Primary subject:', result1.primarySubject);
-// Output: https://example.com/blog/post1
+console.log('Primary Subject:', result1.primarySubject);
+console.log('Primary Type:', result1.primaryType);
+console.log('Primary Label:', result1.primaryLabel);
+// Output:
+// Primary Subject: https://example.com/blog/post1
+// Primary Type: http://schema.org/BlogPosting
+// Primary Label: My First Post
 
 // Multiple documents
 const doc2 = `[blog] <https://example.com/blog/>
@@ -192,6 +223,26 @@ const merged = merge([doc1, doc2], { context: { blog: 'https://example.com/blog/
 
 console.log('Primary subjects:', merged.primarySubjects);
 // Output: ['https://example.com/blog/post1', 'https://example.com/blog/post2']
+```
+
+## Document Identity Trio
+
+The primary metadata trio provides sufficient document/append stream identity for most scenarios:
+
+```javascript
+// Nostr integration example
+const nostrTags = [
+    ['s', result.primarySubject],  // subject addressing
+    ['t', result.primaryType],     // type filtering  
+    ['d', result.primaryLabel]      // display identifier
+];
+
+// Document fingerprint
+const fingerprint = {
+    subject: result.primarySubject,    // What the document is about
+    type: result.primaryType,          // What kind of document
+    label: result.primaryLabel         // Human-readable name
+};
 ```
 
 ## Specification

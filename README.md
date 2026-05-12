@@ -57,6 +57,7 @@ console.log(result.quads);
 - **⚡ Polarity system** - Sophisticated diff authoring with `+` and `-` prefixes
 - **📍 Origin tracking** - Complete provenance with lean quad-to-source mapping
 - **🎯 Elevated statements** - Automatic rdf:Statement pattern detection for "golden" graph extraction
+- **🏷️ Primary metadata** - Instant access to primarySubject, primaryType, and primaryLabel for document identity
 
 ## 🌟 What is MD-LD?
 
@@ -232,9 +233,7 @@ Parse MD-LD markdown and return RDF quads with lean origin tracking.
 - `dataFactory` (object, optional) — Custom RDF/JS DataFactory
 - `graph` (string, optional) — Named graph IRI
 
-**Returns:** `{ quads, remove, statements, origin, context, primarySubject, md }`
-
-> **Legacy:** `parse(text, options)` still works for backward compatibility
+**Returns:** `{ quads, remove, statements, origin, context, primarySubject, primaryType, primaryLabel, md }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
@@ -242,6 +241,8 @@ Parse MD-LD markdown and return RDF quads with lean origin tracking.
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
 - `primarySubject` — String IRI or null (first non-fragment subject declaration)
+- `primaryType` — String IRI or null (first rdf:type declaration)
+- `primaryLabel` — String or null (first rdfs:label literal)
 - `md` — Clean Markdown with all MD-LD annotations stripped (round-trip safe)
 
 ### `merge(docs, options)`
