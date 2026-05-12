@@ -9,8 +9,8 @@ MD-LD tracks three primary metadata fields during parsing to provide immediate d
 | Field | Source | Purpose |
 |-------|--------|---------|
 | **primarySubject** | First non-fragment `{=subject}` | Document identity (canonical append identity) |
-| **primaryType** | First `.Class` declaration | Document category (semantic classification) |
-| **primaryLabel** | First `{label}` literal | Human-readable name (UI & display) |
+| **primaryType** | First `rdf:type` declaration | Document category (semantic classification) |
+| **primaryLabel** | First `rdfs:label` literal | Human-readable name (UI & display) |
 
 ## Dual-Layer Architecture
 
