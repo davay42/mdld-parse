@@ -745,6 +745,11 @@ function I(t, n = {}) {
 		let t = v(e.subject, e.predicate, e.object);
 		c.has(t) || l.push(e);
 	}
+	let u = {
+		subject: o.primarySubject,
+		type: o.primaryType,
+		label: o.primaryLabel
+	};
 	return {
 		quads: o.quads,
 		remove: l,
@@ -752,8 +757,7 @@ function I(t, n = {}) {
 		origin: o.origin,
 		context: o.ctx,
 		primarySubject: o.primarySubject,
-		primaryType: o.primaryType,
-		primaryLabel: o.primaryLabel,
+		primary: u,
 		md: s.md
 	};
 }
@@ -1152,57 +1156,58 @@ function Re(e, t, n) {
 	}) : e;
 }
 function ze(t, n = {}) {
-	let r = /* @__PURE__ */ new Map(), i = /* @__PURE__ */ new Set(), a = [], o = /* @__PURE__ */ new Map(), s = [], c = /* @__PURE__ */ new Map(), l = [];
-	for (let u = 0; u < t.length; u++) {
-		let d = t[u], f = Re(d, n, {
+	let r = /* @__PURE__ */ new Map(), i = /* @__PURE__ */ new Set(), a = [], o = /* @__PURE__ */ new Map(), s = [], c = /* @__PURE__ */ new Map(), l = [], u = [];
+	for (let d = 0; d < t.length; d++) {
+		let f = t[d], p = Re(f, n, {
 			...e,
 			...n.context
 		});
-		if (f.context) for (let [t, n] of Object.entries(f.context)) !c.has(t) && !e[t] && c.set(t, n);
-		let p = {
-			index: u,
-			input: typeof d == "string" ? "string" : "ParseResult",
-			origin: f.origin,
-			context: f.context,
-			statementsCount: f.statements?.length || 0
+		if (p.context) for (let [t, n] of Object.entries(p.context)) !c.has(t) && !e[t] && c.set(t, n);
+		let m = {
+			index: d,
+			input: typeof f == "string" ? "string" : "ParseResult",
+			origin: p.origin,
+			context: p.context,
+			statementsCount: p.statements?.length || 0
 		};
-		a.push(p), f.statements && f.statements.length > 0 && s.push(...f.statements), f.primarySubject && l.push(f.primarySubject);
-		for (let e of f.quads) {
+		a.push(m), p.statements && p.statements.length > 0 && s.push(...p.statements), p.primary && (p.primary.subject || p.primary.type || p.primary.label) && l.push(p.primary), p.primarySubject && u.push(p.primarySubject);
+		for (let e of p.quads) {
 			let t = U(e);
 			r.set(t, e);
-			let n = f.origin.quadIndex.get(t);
+			let n = p.origin.quadIndex.get(t);
 			o.set(t, {
 				...n || {},
-				documentIndex: u,
+				documentIndex: d,
 				polarity: "+"
 			});
 		}
-		for (let e of f.remove) {
+		for (let e of p.remove) {
 			let t = U(e);
 			r.has(t) ? r.delete(t) : i.add(e);
-			let n = f.origin.quadIndex.get(t);
+			let n = p.origin.quadIndex.get(t);
 			o.set(t, {
 				...n || {},
-				documentIndex: u,
+				documentIndex: d,
 				polarity: "-"
 			});
 		}
 	}
-	let u = Array.from(r.values()), d = Array.from(i), f = {
+	let d = Array.from(r.values()), f = Array.from(i), p = {
 		documents: a,
 		quadIndex: o
-	}, p = {
+	}, m = {
 		...e,
 		...n.context,
 		...Object.fromEntries(c)
-	}, m = new Set(u.map(U)), h = new Set(d.map(U));
+	}, h = new Set(d.map(U)), g = new Set(f.map(U));
 	return {
-		quads: u.filter((e) => !h.has(U(e))),
-		remove: d.filter((e) => !m.has(U(e))),
+		quads: d.filter((e) => !g.has(U(e))),
+		remove: f.filter((e) => !h.has(U(e))),
 		statements: s,
-		origin: f,
-		context: p,
-		primarySubjects: l
+		origin: p,
+		context: m,
+		primarySubjects: u,
+		primary: l
 	};
 }
 //#endregion
