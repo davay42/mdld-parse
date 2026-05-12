@@ -715,6 +715,8 @@ function I(t, n = {}) {
 		},
 		currentSubject: null,
 		primarySubject: null,
+		primaryType: null,
+		primaryLabel: null,
 		tokens: null,
 		currentTokenIndex: -1,
 		statements: [],
@@ -750,6 +752,8 @@ function I(t, n = {}) {
 		origin: o.origin,
 		context: o.ctx,
 		primarySubject: o.primarySubject,
+		primaryType: o.primaryType,
+		primaryLabel: o.primaryLabel,
 		md: s.md
 	};
 }
@@ -1014,9 +1018,9 @@ function z(e, t, n, r, i, a, o, s, c, l = null, u = null, d = null, f = null) {
 		} else n.add(p);
 	} else {
 		let n = v(p.subject, p.predicate, p.object);
-		t.set(n, p), e.push(p), Me(p, c, l, u, d);
-		let s = ye(i, a, o, l);
-		r.set(n, s), f.currentBlock && i.id === f.currentBlock.id && (f.currentBlock.quadKeys || (f.currentBlock.quadKeys = []), f.currentBlock.quadKeys.push(n));
+		t.set(n, p), e.push(p), f && (!f.primaryType && o.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && (f.primaryType = s.value), !f.primaryLabel && o.value === "http://www.w3.org/2000/01/rdf-schema#label" && s.termType === "Literal" && (f.primaryLabel = s.value)), Me(p, c, l, u, d);
+		let m = ye(i, a, o, l);
+		r.set(n, m), f.currentBlock && i.id === f.currentBlock.id && (f.currentBlock.quadKeys || (f.currentBlock.quadKeys = []), f.currentBlock.quadKeys.push(n));
 	}
 }
 function Me(e, t, n, r = null, i = null) {

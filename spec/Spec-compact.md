@@ -116,22 +116,27 @@ Creates a temporary fragment relative to the current subject base.
 
 The soft IRI only exists within the current annotation block.
 
-### Primary Subject
+### Primary Metadata
 
-The **Primary Subject** is the first non-fragment subject declaration (`{=IRI}`) in a document.
+MD-LD tracks three primary metadata fields during single-pass parsing:
+
+| Field | Source | Purpose |
+|-------|--------|---------|
+| **primarySubject** | First non-fragment `{=subject}` | Document identity |
+| **primaryType** | First `.Class` declaration | Document category |
+| **primaryLabel** | First `{label}` literal | Human-readable name |
 
 **Selection rules:**
-- First non-fragment `{=IRI}` becomes primary
-- Fragments (`{=#fragment}`) excluded
-- Fixed once detected (never cleared on `{=}` reset)
-- Null if no subject declared
+- First occurrence only (fixed once detected)
+- Never cleared on `{=}` reset
+- Returns `null` if not declared
 
 **API returns:**
-- `parse()`: `{ ..., primarySubject: string | null }`
+- `parse()`: `{ ..., primarySubject: string | null, primaryType: string | null, primaryLabel: string | null }`
 - `merge()`: `{ ..., primarySubjects: string[] }` (ordered by merge)
 - `generate({ quads, context, primarySubject })`: Places primary subject first for round-trip safety
 
-**Use cases:** Document identification, merge tracking, UI navigation, query optimization.
+**Use cases:** Document identity, stream addressing, merge tracking, UI navigation, query optimization, content classification, search indexing.
 
 ---
 

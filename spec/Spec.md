@@ -954,11 +954,21 @@ If you need these features, use them in your application logic, not in the MD-LD
 
 ---
 
-## 17. Primary Subject
+## 17. Primary Metadata
+
+MD-LD tracks three primary metadata fields during parsing to provide immediate document identity:
+
+| Field | Source | Purpose |
+|-------|--------|---------|
+| **primarySubject** | First non-fragment `{=subject}` | Document identity |
+| **primaryType** | First `.Class` declaration | Document category |
+| **primaryLabel** | First `{label}` literal | Human-readable name |
+
+### 17.1 Primary Subject
 
 The **Primary Subject** is the main entity described by an MD-LD document. It provides a deterministic way to identify the central focus of a document.
 
-### Selection Criteria
+#### Selection Criteria
 
 The Primary Subject is determined by these rules:
 
@@ -967,16 +977,42 @@ The Primary Subject is determined by these rules:
 3. **Fixed once detected** - Once set, the primary subject never changes, even on `{=}` reset
 4. **No subject means no primary** - If no subject is declared, the primary subject is `null`
 
-### Examples
+### 17.2 Primary Type
 
-**Simple primary subject:**
+The **Primary Type** is the first `rdf:type` declaration associated with the Primary Subject. It provides a way to identify the type of the main entity described by a document.
+
+#### Selection Criteria
+
+The Primary Type is determined by these rules:
+
+1. **First rdf:type declaration** - The first `.Class` declaration becomes the primary type
+2. **Fixed once detected** - Once set, the primary type never changes
+3. **No type means no primary** - If no type is declared, the primary type is `null`
+
+### 17.3 Primary Label
+
+The **Primary Label** is the first `rdfs:label` literal associated with the Primary Subject. It provides a human-readable name for the main entity described by a document.
+
+#### Selection Criteria
+
+The Primary Label is determined by these rules:
+
+1. **First rdfs:label literal** - The first `{label}` literal becomes the primary label
+2. **Fixed once detected** - Once set, the primary label never changes
+3. **No label means no primary** - If no label is declared, the primary label is `null`
+
+### 17.4 Examples
+
+**Complete primary metadata:**
 ```md
 [ex] <http://example.org/>
 
-# Document {=ex:doc .ex:Article label}
+# Understanding MDLD {=ex:doc .ex:Article label}
 [Alice] {ex:author}
 ```
 Primary subject: `ex:doc`
+Primary type: `ex:Article`
+Primary label: `Understanding MDLD`
 
 **Fragment does not become primary:**
 ```md
@@ -986,23 +1022,28 @@ Primary subject: `ex:doc`
 {=#summary}
 [Content] {label}
 ```
-Primary subject: `ex:doc` (fragment `#summary` is ignored)
+Primary subject: `ex:doc`
+Primary type: `null`
+Primary label: `null`
 
 **Subject reset:**
 ```md
 [ex] <http://example.org/>
 
-# First {=ex:first}
+# First {=ex:first .ex:Type}
 [Value] {label}
 
 # Reset {=}
 
-# Second {=ex:second}
+# Second {=ex:second .ex:OtherType}
 [Value] {label}
 ```
-Primary subject: `ex:first` (reset does not clear the primary)
+Primary subject: `ex:first`
+Primary type: `ex:Type`
+Primary label: `First`
+(Reset does not clear primary metadata)
 
-### API Return Values
+### 17.5 API Return Values
 
 **parse() returns:**
 ```javascript
@@ -1011,7 +1052,9 @@ Primary subject: `ex:first` (reset does not clear the primary)
   remove: [...],
   origin: {...},
   context: {...},
-  primarySubject: string | null
+  primarySubject: string | null,
+  primaryType: string | null,
+  primaryLabel: string | null
 }
 ```
 
@@ -1026,21 +1069,26 @@ Primary subject: `ex:first` (reset does not clear the primary)
 }
 ```
 
-### Use Cases
+### 17.6 Use Cases
 
-Primary subjects enable:
-- **Document identification** - Quickly determine what a document is about
+Primary metadata enables:
+- **Document identity** - Primary subject + type + label provide complete document fingerprint
+- **Stream addressing** - Perfect for Nostr tags and distributed systems
 - **Merge tracking** - Track which entities are being merged across documents
-- **UI navigation** - Provide a default focus point for document viewers
-- **Query optimization** - Use primary subject as default query context
+- **UI navigation** - Provide default focus and display information for document viewers
+- **Query optimization** - Use primary metadata as default query context and filters
+- **Content classification** - Automatic categorization based on primary type
+- **Search indexing** - Use primary label for human-readable search results
 
-### Conformance Requirements
+### 17.7 Conformance Requirements
 
 An MD-LD processor MUST:
 1. Track the first non-fragment subject declaration as primary subject
-2. Return `primarySubject` in parse results (or `null` if none)
-3. Return `primarySubjects` array in merge results (ordered by merge)
-4. Keep primary subject fixed once detected (never cleared on `{=}` reset)
+2. Track the first rdf:type declaration as primary type
+3. Track the first rdfs:label literal as primary label
+4. Return all three primary fields in parse results (or `null` if none)
+5. Return `primarySubjects` array in merge results (ordered by merge)
+6. Keep all primary metadata fixed once detected (never cleared on `{=}` reset)
 
 ---
 
