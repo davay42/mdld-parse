@@ -117,7 +117,8 @@ export function parse(firstArg, secondArg = {}) {
     const primary = {
         subject: state.primarySubject,
         type: state.primaryType,
-        label: state.primaryLabel
+        label: state.primaryLabel,
+        comment: state.primaryComment
     };
 
     return {
@@ -539,6 +540,9 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
             }
             if (!state.primaryLabel && predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label' && object.termType === 'Literal') {
                 state.primaryLabel = object.value;
+            }
+            if (!state.primaryComment && predicate.value === 'http://www.w3.org/2000/01/rdf-schema#comment' && object.termType === 'Literal') {
+                state.primaryComment = object.value;
             }
         }
 

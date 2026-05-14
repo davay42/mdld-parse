@@ -1,8 +1,8 @@
 # Primary Metadata Example
 
-This example demonstrates the Primary Metadata feature in MD-LD, which provides immediate access to the main entity, type, and label described by a document.
+This example demonstrates the Primary Metadata feature in MD-LD, which provides immediate access to the main entity, type, label, comment described by a document.
 
-## Primary Metadata Trio
+## Primary Metadata Quartet
 
 MD-LD tracks three primary metadata fields during parsing to provide immediate document identity:
 
@@ -11,6 +11,7 @@ MD-LD tracks three primary metadata fields during parsing to provide immediate d
 | **primarySubject** | First non-fragment `{=subject}` | Document identity (canonical append identity) |
 | **primaryType** | First `rdf:type` declaration | Document category (semantic classification) |
 | **primaryLabel** | First `rdfs:label` literal | Human-readable name (UI & display) |
+| **primaryComment** | First `rdfs:comment` literal | Human-readable comment (UI & description) |
 
 ## Dual-Layer Architecture
 

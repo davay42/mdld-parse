@@ -534,7 +534,8 @@ const filteredRemove = processRetractions(state.quads, state.removeSet);
     const primary = {
         subject: state.primarySubject,
         type: state.primaryType,
-        label: state.primaryLabel
+        label: state.primaryLabel,
+        comment: state.primaryComment
     };
 
     return {
