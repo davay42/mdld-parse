@@ -748,7 +748,8 @@ function I(t, n = {}) {
 	let u = {
 		subject: o.primarySubject,
 		type: o.primaryType,
-		label: o.primaryLabel
+		label: o.primaryLabel,
+		comment: o.primaryComment
 	};
 	return {
 		quads: o.quads,
@@ -1022,7 +1023,7 @@ function z(e, t, n, r, i, a, o, s, c, l = null, u = null, d = null, f = null) {
 		} else n.add(p);
 	} else {
 		let n = v(p.subject, p.predicate, p.object);
-		t.set(n, p), e.push(p), f && (!f.primaryType && o.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && (f.primaryType = s.value), !f.primaryLabel && o.value === "http://www.w3.org/2000/01/rdf-schema#label" && s.termType === "Literal" && (f.primaryLabel = s.value)), Me(p, c, l, u, d);
+		t.set(n, p), e.push(p), f && (!f.primaryType && o.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && (f.primaryType = s.value), !f.primaryLabel && o.value === "http://www.w3.org/2000/01/rdf-schema#label" && s.termType === "Literal" && (f.primaryLabel = s.value), !f.primaryComment && o.value === "http://www.w3.org/2000/01/rdf-schema#comment" && s.termType === "Literal" && (f.primaryComment = s.value)), Me(p, c, l, u, d);
 		let m = ye(i, a, o, l);
 		r.set(n, m), f.currentBlock && i.id === f.currentBlock.id && (f.currentBlock.quadKeys || (f.currentBlock.quadKeys = []), f.currentBlock.quadKeys.push(n));
 	}
@@ -1303,7 +1304,7 @@ function Ke(t, n, r = null) {
 		let a = K(e, n), { types: s, literals: c, objects: l } = Ee(r), u = o.has(e), d = u ? o.get(e) : Be(e, n), f = s.length > 0 ? s.map((e) => "." + K(e.object.value, n)).sort().join(" ") : "";
 		u && (f += (f ? " " : "") + "label");
 		let p = f ? " " + f : "";
-		i.push(`# ${d} {=${a}${p}}\n\n`);
+		i.push(`# ${d} {=${a}${p}}\n`);
 		let m = u ? o.get(e) : null;
 		F(c).forEach((e) => {
 			e.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && e.object.value === m || i.push(we(e, n));
