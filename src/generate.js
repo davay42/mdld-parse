@@ -245,7 +245,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
         }
 
         const annotationStr = annotations ? ' ' + annotations : '';
-        textParts.push(`# ${displayName} {=${shortSubject}${annotationStr}}\n\n`);
+        textParts.push(`# ${displayName} {=${shortSubject}${annotationStr}}\n`);
 
         // Add literals (excluding the label used in heading) and objects
         const rdfsLabelIRI = 'http://www.w3.org/2000/01/rdf-schema#label';
