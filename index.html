@@ -780,568 +780,337 @@ Related to: [Example Project] {+my:example-project ?my:relatedTo .prov:Project l
 
 # Personal Journal {=j:index .prov:Collection label}
 
-Daily journal with proper PROV-O provenance and temporal structure.
+Alice's daily journal, structured as a hierarchy of collections. The top-level index contains [2026] {+j:2026/index ?prov:hadMember label}.
 
-Includes records for [2026] {+j:2026/index ?prov:hadMember}.
+## Year 2026 {=j:2026/index .prov:Collection label}
 
-## Year 2026 {=j:2026/index .prov:Activity .prov:Collection label}
+2026 is organised into monthly collections: [January] {+j:2026/01/index ?prov:hadMember label}, [February] {+j:2026/02/index ?prov:hadMember label}, [March] {+j:2026/03/index ?prov:hadMember label}, [April] {+j:2026/04/index ?prov:hadMember label}, and [May] {+j:2026/05/index ?prov:hadMember label}.
 
-This is all notes made in 2026 collection. It includes monthly collections:
+## May 2026 {=j:2026/05/index .prov:Collection label}
 
-- January {+j:2026/01/index ?prov:hadMember}
-- February {+j:2026/02/index ?prov:hadMember}
-- March {+j:2026/03/index ?prov:hadMember}
-- April {+j:2026/04/index ?prov:hadMember}
-- May {+j:2026/05/index ?prov:hadMember}
+May started on [2026-05-01] {prov:startedAtTime ^^xsd:date} and is divided into five weekly collections: days [1–3] {+j:2026/05/week-1/index ?prov:hadMember label}, [4–10] {+j:2026/05/week-2/index ?prov:hadMember label}, [11–17] {+j:2026/05/week-3/index ?prov:hadMember label}, [18–24] {+j:2026/05/week-4/index ?prov:hadMember label}, and [25–31] {+j:2026/05/week-5/index ?prov:hadMember label}.
 
-## May 2026 {=j:2026/05/index .prov:Activity .prov:Collection label}
+## Week 2, May 2026 {=j:2026/05/week-2/index .prov:Collection label}
 
-Started: [2026-05-01T00:00:00+04:00] {prov:startedAtTime ^^xsd:dateTime}
+The second week of May ran from [2026-05-04] {prov:startedAtTime ^^xsd:date} through [2026-05-10] {prov:endedAtTime ^^xsd:date}. It contained [6] {j:totalActivities ^^xsd:integer} logged activities across [5] {j:readingHours ^^xsd:integer} hours of reading, [8] {j:workHours ^^xsd:integer} hours of work, and [3] {j:exerciseHours ^^xsd:integer} hours of exercise. Of [5] {j:goalsTotal ^^xsd:integer} weekly goals set on Monday, [4] {j:goalsCompleted ^^xsd:integer} were completed and [1] {j:goalsCarryOver ^^xsd:integer} carried over.
 
-We have 5 weeks in May - [1-3] {+j:2026/05/week-1/index ?prov:hadMember}, [4-10] {+j:2026/05/week-2/index ?prov:hadMember}, [11-17] {+j:2026/05/week-3/index ?prov:hadMember}, [18-24] {+j:2026/05/week-4/index ?prov:hadMember}, [25-31] {+j:2026/05/week-5/index ?prov:hadMember}.
+The week's daily entries are members of this collection:
 
 ======
 
-#### 06 May 2026 {=j:2026/05/06/index .prov:Activity label}
+### 06 May 2026 {=j:2026/05/06/index .prov:Activity label}
 
-It's our first record in [week 2] {+j:2026/05/week-2/index ?prov:wasInformedBy}.
+A productive Wednesday. The day ran from [2026-05-06T08:00:00+04:00] {prov:startedAtTime ^^xsd:dateTime} to [2026-05-06T23:30:00+04:00] {prov:endedAtTime ^^xsd:dateTime} and is a [member] {+j:2026/05/week-2/index ?prov:hadMember} of week 2. It produced a [daily summary] {+j:2026/05/06/summary .prov:Entity ?prov:generated label} capturing mood and locations visited.
 
-Complete day with activities, locations, and emotional state.
+The day flowed through three phases, each informing the next: [morning] {+#morning ?prov:wasInformedBy}, then [afternoon] {+#afternoon ?prov:wasInformedBy}, then [social] {+#social ?prov:wasInformedBy}.
 
-Started: [2026-05-06T08:00:00+04:00] {prov:startedAtTime ^^xsd:dateTime}
-Ended: [2026-05-06T23:30:00+04:00] {prov:endedAtTime ^^xsd:dateTime}
+#### Morning {=#morning .prov:Activity label}
 
-Includes these activities: [morning] {+#morning !prov:wasInformedBy}, [afternoon] {+#afternoon !prov:wasInformedBy} and [social] {+#social !prov:wasInformedBy}.
+The morning started with a [walk] {+#walk ?prov:wasInformedBy} and then [coffee] {+#coffee-prep ?prov:wasInformedBy}.
 
-### Morning Activities {=#morning .prov:Activity label}
+##### Morning Walk {=#walk .prov:Activity label}
 
-I had a [walk] {+#walk ?prov:wasInformedBy} and a [coffee] {+#coffee-prep ?prov:wasInformedBy}.
+A [45] {j:durationMin ^^xsd:integer}-minute run covering [2.5] {j:distanceMiles ^^xsd:decimal} miles through [Central Park] {+j:place/central-park .prov:Location ?prov:atLocation label}, wearing [running shoes] {+j:shoes/running .prov:Entity ?prov:used label}. The watch generated [heart rate data] {+j:2026/05/06/hr-data .prov:Entity ?prov:generated label} for the session.
 
-**Morning Walk** {=#walk .prov:Activity label}
-- Duration: [45] {j:duration ^^xsd:integer} minutes
-- Distance: [2.5] {j:distance ^^xsd:decimal} miles
-- Location: [Central Park] {+j:place/central-park .prov:Location ?prov:atLocation}
-- Equipment: [Running Shoes] {+j:shoes/running ?prov:used}
-- Generated: [Heart Rate Data] {+j:2026/05/06/hr-data ?prov:generated}
+##### Coffee Preparation {=#coffee-prep .prov:Activity label}
 
-**Coffee Preparation** {=#coffee-prep .prov:Activity ?prov:used}
-- Location: [Home] {+j:place/home ?prov:atLocation}
-- Resources: [Coffee Beans] {+j:coffee/beans ?prov:used}, [Water] {+j:coffee/water ?prov:used}
-- Generated: [Morning Coffee] {+#morning-coffee ?prov:generated}
+Back [home] {+j:place/home .prov:Location ?prov:atLocation label}, ground [coffee beans] {+j:coffee/beans .prov:Entity ?prov:used label} with [water] {+j:coffee/water .prov:Entity ?prov:used label} and produced a [morning coffee] {+#morning-coffee .prov:Entity ?prov:generated label}.
 
-### Afternoon Activities {=#afternoon .prov:Activity label}
+#### Afternoon {=#afternoon .prov:Activity ?prov:wasInformedBy label}
 
-**Reading Session** {=#reading .prov:Activity}
-- Book: [Dune] {+j:dune-book .prov:Entity ?prov:used}
-- Pages: [42] {j:pages ^^xsd:integer}
-- Duration: [2] {j:hours ^^xsd:integer}
-- Generated: [Reading Notes] {+j:reading-notes ?prov:generated}
+The afternoon split between reading and a work session.
 
-**Work Session** {+j:work .prov:Activity ?prov:used}
-- Task: [API Documentation] {+j:api-docs .prov:Entity ?prov:used}
-- Duration: [3] {j:hours ^^xsd:integer}
-- Generated: [Documentation Updates] {+j:doc-updates ?prov:generated}
+##### Reading Session {=#reading .prov:Activity label}
 
-### Social Interactions {=#social .prov:Activity label}
+Read [42] {j:pages ^^xsd:integer} pages of [Dune] {+j:dune-book .prov:Entity ?prov:used label} over [2] {j:durationHours ^^xsd:integer} hours, producing [reading notes] {+j:reading-notes .prov:Entity ?prov:generated label}.
 
-**Coffee Meeting** {+j:coffee-meeting .prov:Activity ?prov:used}
-- Associated with: [Sam] {+j:sam .prov:Person ?prov:wasAssociatedWith}
-- Location: [Local Cafe] {+j:cafe .prov:Location ?prov:atLocation}
-- Duration: [30] {j:minutes ^^xsd:integer}
-- Topic: [Career Changes] {j:topic}
+##### Work Session {=#work .prov:Activity ?prov:wasInformedBy label}
 
-## Emotional State Tracking {=#emotional-state .prov:Entity label}
+Spent [3] {j:durationHours ^^xsd:integer} hours on [API documentation] {+j:api-docs .prov:Entity ?prov:used label}, generating [documentation updates] {+j:doc-updates .prov:Entity ?prov:generated label}.
 
-Daily mood and energy levels with temporal context.
+#### Social {=#social .prov:Activity ?prov:wasInformedBy label}
 
-### Mood Data {=j:mood-data .prov:Entity label}
-Date: [2026-05-06] {j:date ^^xsd:date}
-Mood: [happy] {j:mood}
-Energy level: [8] {j:energy ^^xsd:integer} out of 10
-Stress level: [2] {j:stress ^^xsd:integer} out of 10
+Met [Sam] {+j:sam .prov:Person ?prov:wasAssociatedWith label} at the [local café] {+j:place/cafe .prov:Location ?prov:atLocation label} for [30] {j:durationMin ^^xsd:integer} minutes to talk through [career changes] {j:topic}.
 
-### Location History {=j:location-history .prov:Entity label}
-Places visited with frequency and context.
+### Daily Summary {=j:2026/05/06/summary .prov:Entity label}
 
-Locations:
-- [Central Park] {+j:central-park ?j:visited} - [3] {j:visitCount ^^xsd:integer} times this week
-- [Local Cafe] {+j:cafe ?j:visited} - [2] {j:visitCount ^^xsd:integer} times this week
-- [Home Office] {+j:home-office ?j:visited} - [5] {j:visitCount ^^xsd:integer} days this week
-
-## Week 2 May 2026 {=j:2026/05/week-2/index .prov:Activity .prov:Collection label}
-
-Started: [2026-05-04T00:00:00+04:00] {prov:startedAtTime ^^xsd:dateTime}
-
-Aggregated activities and patterns for the week.
-
-Started: [2026-05-06T23:00:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Ended: [2026-05-06T23:15:00Z] {prov:endedAtTime ^^xsd:dateTime}
-
-### Activities Summary
-Total activities: [6] {j:totalActivities ^^xsd:integer}
-Reading time: [5] {j:readingHours ^^xsd:integer} hours
-Work time: [8] {j:workHours ^^xsd:integer} hours
-Exercise time: [3] {j:exerciseHours ^^xsd:integer} hours
-
-### Goals Progress
-Weekly goals: [Set on Monday] {j:weeklyGoals}
-Completed: [4] {j:goalsCompleted ^^xsd:integer} out of 5
-Carry over: [1] {j:goalsCarryOver ^^xsd:integer} goal
-
-This demonstrates:
-- Proper PROV-O activity chains
-- Temporal properties with XSD
-- Location and emotional tracking
-- Activity aggregation and summarization
-- Social interaction modeling
+End-of-day reflection, generated by the day's activity. Mood: [happy] {j:mood}, energy [8] {j:energy ^^xsd:integer}/10, stress [2] {j:stress ^^xsd:integer}/10. Places visited today: [Central Park] {+j:place/central-park ?j:visited}, [home] {+j:place/home ?j:visited}, and [local café] {+j:place/cafe ?j:visited}.
 
 `,recipe:`[food] <tag:alice@example.com,2026:food/>
 [schema] <http://schema.org/>
 
-# Grandma's Apple Pie {=food:apple-pie .schema:Recipe prov:Entity label}
+# Grandma's Apple Pie {=food:apple-pie .schema:Recipe .prov:Entity label}
 
-Traditional family recipe passed down through generations.
+> Delicious apple pie as gradma used to make it autumn. {comment}
 
-Cuisine: [American] {food:cuisine}
-Prep time: [45] {food:prepTime ^^xsd:integer} minutes
-Cook time: [60] {food:cookTime ^^xsd:integer} minutes
-Servings: [8] {food:servings ^^xsd:integer}
-Difficulty: [Medium] {food:difficulty}
+This is a [American] {food:cuisine} family recipe that Grandma Rose has been making since the 1960s. It takes about [45] {food:prepTime ^^xsd:integer} minutes to prepare and [55] {food:cookTime ^^xsd:integer} minutes to bake, making [8] {food:servings ^^xsd:integer} generous slices. It's a variation of [Classic Apple Pie] {+food:classic-apple-pie .schema:Recipe ?schema:isBasedOn label} — her version adds more cinnamon and uses a butter crust rather than shortening. You might also like [Peach Pie] {+food:peach-pie .schema:Recipe ?food:similarRecipe label} or [Apple Crumble] {+food:apple-crumble .schema:Recipe ?food:similarRecipe label} if you want something in the same family.
 
-## Dry Ingredients
+Per serving this comes in at around [320] {food:calories ^^xsd:integer} calories, [14g] {food:fat} fat, [42g] {food:carbs} carbs, and [2g] {food:protein} protein.
 
-**Flour** {+food:flour .food:Ingredient ?prov:wasDerivedFrom label}
-**Sugar** {+food:sugar .food:Ingredient ?food:hasIngredient label}
-**Salt** {+food:salt .food:Ingredient ?food:hasIngredient label}
+## Ingredients
 
-### Wet Ingredients
+### Crust
 
-**Butter** {+food:butter .food:Ingredient ?food:hasIngredient label} 
-**Eggs** {+food:eggs .food:Ingredient ?food:hasIngredient label}
-**Vanilla** {+food:vanilla .food:Ingredient ?food:hasIngredient label}
+**Flour** {=food:flour}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *includes* {=#flour ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [2.5] {food:amount ^^xsd:decimal} [cups] {+food:cup ?food:unit} of *flour* {+food:flour ?prov:entity}.
 
-### Filling Ingredients
+**Butter** {=food:butter}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *includes* {=#butter ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [1] {food:amount ^^xsd:decimal} [cup] {+food:cup ?food:unit} of *cold* {food:temperature} *butter* {+food:butter ?prov:entity}.
 
-**Apples** {+food:apples .food:Ingredient ?food:hasIngredient label}
-**Cinnamon** {+food:cinnamon .food:Ingredient ?food:hasIngredient label}
-**Lemon Juice** {+food:lemon-juice .food:Ingredient ?food:hasIngredient label}
+**Eggs** {=food:salt}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *is made with* {=#eggs ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [2] {food:amount ^^xsd:integer} *eggs* {+food:egg ?prov:entity}.
 
-## Preparation Steps {=food:preparation .prov:Activity label}
+**Sugar** {=food:sugar}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *is made with* {=#sugar ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [1] {food:amount ^^xsd:decimal} [cup] {+food:cup ?food:unit} of *butter* {+food:sugar ?prov:entity}.
 
-### Step 1: Crust {=food:step-crust .prov:Activity label}
+**Salt** {=food:salt}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *is made with* {=#salt ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [0.5] {food:amount ^^xsd:decimal} [tsp] {+food:tsp ?food:unit} of *salt* {+food:salt ?prov:entity}.
 
-Mixed dry ingredients: [flour] {+food:flour ?prov:used}, [sugar] {+food:sugar ?prov:used}, [salt] {+food:salt ?prov:used}. Cut in [cold butter] {+food:butter ?prov:used} until mixture resembles [coarse crumbs] {food:texture}. Form into [pie dish] {+food:pie-dish ?prov:used}.
+**Vanilla** {=food:vanilla}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *is made with* {=#vanilla ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [1] {food:amount ^^xsd:decimal} [tsp] {+food:tsp ?food:unit} of *vanilla* {+food:vanilla ?prov:entity}.
 
-### Step 2: Filling {=food:step-filling .prov:Activity label}
+### Filling
 
-Toss [apples] {+food:apples ?prov:used} with [cinnamon] {+food:cinnamon ?prov:used} and [lemon juice] {+food:lemon-juice ?prov:used}. Let sit for [10] {food:restTime ^^xsd:integer} minutes.
+**Apples** {=food:apples}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *includes* {=#apples ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [6] {food:amount ^^xsd:integer} medium *apples* {+food:apple ?prov:entity}, peeled and sliced.
 
-### Step 3: Assembly {=food:step-assembly .prov:Activity label}
+**Cinnamon** {=food:cinnamon}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *is seasoned with* {=#cinnamon ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [2] {food:amount ^^xsd:integer} [tsp] {+food:tsp ?food:unit} ground *cinnamon* {+food:cinnamon ?prov:entity}.
 
-Add filling to crust. Cover with [top crust] {+food:top-crust .food:Ingredient ?prov:used}. Cut [vent holes] {+food:vents .food:Technique ?prov:used}.
+**Lemon Juice** {=food:lemon-juice}: [Pie] {=food:apple-pie !prov:wasDerivedFrom} *is seasoned with* {=#lemon-juice ?prov:qualifiedDerivation .prov:Derivation .prov:Usage} [1] {food:amount ^^xsd:integer} [tbsp] {+food:tbsp ?food:unit} *lemon juice* {+food:lemon-juice ?prov:entity}.
 
-### Step 4: Baking {=food:step-baking .prov:Activity label}
+## Making the Crust {=#step-crust .prov:Activity label}
 
-Bake at [375°F] {food:bakeTemp ^^xsd:integer} for [45-55] {food:bakeTime ^^xsd:integer} minutes until [golden brown] {food:color} and [bubbly] {food:texture}.
+Mix [flour] {+#flour ?prov:qualifiedUsage}, [sugar] {+#sugar ?prov:qualifiedUsage}, and [salt] {+#salt ?prov:qualifiedUsage} together, then cut in [cold butter] {+#butter ?prov:qualifiedUsage} until the mixture looks like coarse crumbs. Press into your [pie dish] {+food:pie-dish .food:Equipment ?prov:used label} and set aside. This produces the [unbaked crust] {+#unbaked-crust .prov:Entity ?prov:generated label}.
 
-## Recipe Relationships
+## Making the Filling {=#step-filling .prov:Activity ?prov:wasInformedBy label}
 
-### Variation {=food:variation .prov:Entity label}
+Toss [apples] {+#apples ?prov:qualifiedUsage} with [cinnamon] {+#cinnamon ?prov:qualifiedUsage} and [lemon juice] {+#lemon-juice ?prov:qualifiedUsage}. Let it sit for [10] {food:restTime ^^xsd:integer} minutes so the flavours start to meld — you'll see some juice pool at the bottom, that's what makes it bubbly in the oven. This gives you the [spiced filling] {+#spiced-filling .prov:Entity ?prov:generated label}.
 
-This recipe is a variation of [Classic Apple Pie] {+food:classic-apple-pie .schema:Recipe ?food:variationOf}.
+## Assembly and Baking {=#step-baking .prov:Activity ?prov:wasInformedBy label}
 
-Also related: [Peach Pie] {+food:peach-pie .schema:Recipe ?food:similarRecipe} and [Apple Crumble] {+food:apple-crumble .schema:Recipe ?food:similarRecipe}.
+Spoon the [spiced filling] {+#spiced-filling ?prov:used} into the [unbaked crust] {+#unbaked-crust ?prov:used}, cover with a [top crust] {+#top-crust ?prov:used label}, and cut a few vent holes so steam can escape. Bake at [375] {food:bakeTempF ^^xsd:integer}°F for [50] {food:bakeTimeMin ^^xsd:integer} minutes until [golden brown] {food:color}. This produces the [finished pie] {+#finished-pie .prov:Entity ?prov:generated label}.
 
-## Nutrition Information {=food:nutrition .prov:Entity label}
+## How This Recipe Came to Be {=#creation .prov:Activity ?prov:wasInformedBy label}
 
-Per serving:
-- Calories: [320] {food:calories ^^xsd:integer}
-- Fat: [14g] {food:fat ^^xsd:string}
-- Carbohydrates: [42g] {food:carbs ^^xsd:string}
-- Protein: [2g] {food:protein ^^xsd:string}
+[Grandma Rose] {+food:grandma-rose .prov:Person ?prov:wasAssociatedWith label} developed this version over many years, working from the [Family Recipe Book] {+food:recipe-book .prov:Entity ?prov:used label} she brought from her childhood home. [Alice] {+food:alice .prov:Person ?prov:wasAssociatedWith label} wrote it down on [2026-05-06] {prov:endedAtTime ^^xsd:date} to make sure it wouldn't be lost, producing this [recipe documentation] {+#recipe-docs .prov:Entity ?prov:generated label}.`,project:`[proj] <tag:alice@example.com,2026:project/>
 
-## Provenance
+# Website Redesign {=proj:website .proj:Project .prov:Plan label}
 
-### Recipe Creation {=food:creation .prov:Activity label}
+The Q2 2026 website redesign is a [$25,000] {proj:budget ^^xsd:decimal} initiative running from [2026-06-01] {prov:startedAtTime ^^xsd:date} through [2026-08-31] {prov:endedAtTime ^^xsd:date}, currently in [planning] {proj:status} status. It is backed by the [Marketing Department] {+proj:marketing ?proj:sponsor .prov:Organization label} and [Customer Support] {+proj:support ?proj:stakeholder .prov:Organization label}, both of whom provided the brief.
 
-Created by: [Grandma Rose] {+food:grandma-rose .prov:Person ?prov:wasAssociatedWith}
-Documented by: [Alice] {+food:alice .prov:Person ?prov:wasAssociatedWith}
-Date: [2026-05-06] {prov:startedAtTime ^^xsd:date}
-Used: [Family Recipe Book] {+food:recipe-book ?prov:used}
+## Team
 
-Generated: [Recipe Documentation] {+food:recipe-docs ?prov:generated}.
+Three people assembled under the [Q2 Website Plan] {+proj:q2-plan .prov:Plan label} to staff this project.
 
-This demonstrates:
-- Schema.org Recipe vocabulary
-- Complex ingredient relationships
-- Multi-step process with provenance
-- Nutritional information
-- Recipe variations and relationships
+### Alice Johnson {=proj:alice .prov:Person label}
 
+[alice@example.com] {proj:email} — [Project Manager] {proj:role}, responsible for overall delivery and stakeholder communication.
 
+### Bob Smith {=proj:bob .prov:Person label}
 
- - [2.5] {food:amount ^^xsd:decimal} cups
-  - [1] {food:amount ^^xsd:decimal} cup
-   - [0.5] {food:amount ^^xsd:decimal} tsp
-- [1] {food:amount ^^xsd:decimal} cup, cold
- - [2] {food:amount ^^xsd:integer} large
-  - [1] {food:amount ^^xsd:decimal} tsp
+[bob@example.com] {proj:email} — [Lead Developer] {proj:role}, leading all frontend and backend implementation work. Bob acts on behalf of [Alice] {+proj:alice ?prov:actedOnBehalfOf} as the technical authority for the project.
 
-   - [6] {food:amount ^^xsd:integer} medium, peeled, sliced
-    - [2] {food:amount ^^xsd:integer} tsp ground
-     - [1] {food:amount ^^xsd:integer} tbsp`,project:`[proj] <tag:alice@example.com,2026:project/>
+### Carol Davis {=proj:carol .prov:Person label}
 
-# Website Redesign {=proj:website .prov:Project label}
+[carol@example.com] {proj:email} — [UX Designer] {proj:role}, responsible for user research through to final visual design.
 
-Website redesign project for Q2 2026 with modern responsive design.
+## Team Formation {=proj:team-formation .prov:Activity label}
 
-## Project Metadata {=proj:website-meta .prov:Entity label}
+On [2026-05-15T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime} Alice convened the team and formalised the plan. She was [associated with] {+proj:alice ?prov:wasAssociatedWith} the activity directly, and it produced the [assembled team entity] {+proj:team-structure .prov:Entity ?prov:generated label} — the agreed roster and responsibility assignments that subsequent phases depend on.
 
-Budget: [$25,000] {proj:budget ^^xsd:decimal}
-Start date: [2026-06-01] {proj:startDate ^^xsd:date}
-End date: [2026-08-31] {proj:endDate ^^xsd:date}
-Status: [planning] {proj:status}
+## Design Phase {=proj:design-phase .prov:Activity ?prov:wasInformedBy label}
 
-## Team Formation Activity {=proj:team-formation .prov:Activity label}
+Kicking off on [2026-06-01] {prov:startedAtTime ^^xsd:date} and wrapping by [2026-06-15] {prov:endedAtTime ^^xsd:date}, the design phase was led by [Carol] {+proj:carol ?prov:wasAssociatedWith}. It drew on the [assembled team entity] {+proj:team-structure ?prov:used} established during team formation and consumed the [existing design system] {+proj:design-system .prov:Entity ?prov:used label} as a constraint baseline. The phase moved from user interviews through wireframes to polished mockups, producing the [design documentation] {+proj:design-docs .prov:Entity ?prov:generated label} that development would build from.
 
-Started: [2026-05-15T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Associated with: [Alice Johnson] {+proj:alice .prov:Person ?prov:wasAssociatedWith} as Project Manager
-Plan: [Q2 Website Plan] {+proj:q2-plan .prov:Plan ?prov:hadPlan}
+## Development Phase {=proj:dev-phase .prov:Activity ?prov:wasInformedBy label}
 
-Generated: [Team Structure] {+proj:team-structure ?prov:generated}
+Development ran from [2026-06-16] {prov:startedAtTime ^^xsd:date} to [2026-07-30] {prov:endedAtTime ^^xsd:date}, led by [Bob] {+proj:bob ?prov:wasAssociatedWith}. The team used the [design documentation] {+proj:design-docs ?prov:used} directly — no redesign, just implementation — alongside the [API documentation] {+proj:api-docs .prov:Entity ?prov:used label} for backend contracts. The phase generated the [working prototype] {+proj:prototype .prov:Entity ?prov:generated label} deployed to staging.
 
-## Team Members
+## Validation Shapes
 
-### Project Manager {=proj:alice .prov:Person label}
+Every project document should be self-consistent. These shapes enforce the minimum structural expectations for a project, its team, and its deliverables.
 
-Name: [Alice Johnson] {rdfs:label}
-Email: [alice@example.com] {proj:email}
-Role: [Project Manager] {proj:role}
+### Project Shape {=proj:ProjectShape .sh:NodeShape label}
 
-### Lead Developer {=proj:bob .prov:Person label}
+Validates every [proj:Project] {+proj:Project ?sh:targetClass} to carry a [budget] {+#budget ?sh:property sh:name}, a [status] {+#status ?sh:property sh:name}, and at least one [sponsor] {+#sponsor ?sh:property sh:name}.
 
-Name: [Bob Smith] {rdfs:label}
-Email: [bob@example.com] {proj:email}
-Role: [Lead Developer] {proj:role}
+#### Budget is required {=#budget .sh:PropertyShape sh:message}
+[proj:budget] {+proj:budget ?sh:path} must appear exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} time and be a [decimal] {+xsd:decimal ?sh:datatype}.
 
-### UX Designer {=proj:carol .prov:Person label}
+#### Status is required {=#status .sh:PropertyShape sh:message}
+[proj:status] {+proj:status ?sh:path} must appear at least [1] {sh:minCount ^^xsd:integer} time.
 
-Name: [Carol Davis] {rdfs:label}
-Email: [carol@example.com] {proj:email}
-Role: [UX Designer] {proj:role}
+#### Sponsor is required {=#sponsor .sh:PropertyShape sh:message}
+A project must be backed by at least [1] {sh:minCount ^^xsd:integer} [proj:sponsor] {+proj:sponsor ?sh:path}.
 
-## Project Tasks
+### Team Member Shape {=proj:PersonShape .sh:NodeShape label}
 
-### Design Phase {=proj:design-phase .prov:Activity label}
+Validates every [prov:Person] {+prov:Person ?sh:targetClass} in this project to have an [email] {+#email ?sh:property sh:name} and a [role] {+#role ?sh:property sh:name}.
 
-Started: [2026-06-01] {prov:startedAtTime ^^xsd:date}
-Ended: [2026-06-15] {prov:endedAtTime ^^xsd:date}
+#### Email is required {=#email .sh:PropertyShape sh:message}
+[proj:email] {+proj:email ?sh:path} must appear exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} time and match the pattern [^.+@.+$] {sh:pattern}.
 
-Tasks:
-- [User Research] {+proj:user-research .proj:Task ?prov:used} - interviews and surveys
-- [Wireframes] {+proj:wireframes .proj:Task ?prov:used} - low-fidelity layouts
-- [High-fidelity Mockups] {+proj:mockups .proj:Task ?prov:used} - detailed designs
+#### Role is required {=#role .sh:PropertyShape sh:message}
+[proj:role] {+proj:role ?sh:path} must appear at least [1] {sh:minCount ^^xsd:integer} time.
 
-Generated: [Design Documentation] {+proj:design-docs ?prov:generated}
+### Deliverable Shape {=proj:DeliverableShape .sh:NodeShape label}
 
-### Development Phase {=proj:dev-phase .prov:Activity label}
+Validates every [prov:Entity] {+prov:Entity ?sh:targetClass} produced by a project activity to have a [label] {+#dlabel ?sh:property sh:name} and a [wasGeneratedBy] {+#generated ?sh:property sh:name} link.
 
-Started: [2026-06-16] {prov:startedAtTime ^^xsd:date}
-Ended: [2026-07-30] {prov:endedAtTime ^^xsd:date}
+#### Label is required {=#dlabel .sh:PropertyShape sh:message}
+Every deliverable must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [rdfs:label] {+rdfs:label ?sh:path}.
 
-Tasks:
-- [Frontend Development] {+proj:frontend .proj:Task ?prov:used} - React components
-- [Backend API] {+proj:backend .proj:Task ?prov:used} - Node.js services
-- [Database Schema] {+proj:database .proj:Task ?prov:used} - PostgreSQL design
+#### Generation link is required {=#generated .sh:PropertyShape sh:message}
+Every deliverable must trace back to at least [1] {sh:minCount ^^xsd:integer} [prov:wasGeneratedBy] {+prov:wasGeneratedBy ?sh:path} activity.
 
-Generated: [Working Prototype] {+proj:prototype ?prov:generated}
+## Project Is On Schedule {=proj:stmt-schedule .rdf:Statement .prov:Entity label}
 
-## Project Relationships
+**The working prototype** {+proj:prototype ?rdf:subject} *was delivered by* {+proj:deliveredBy ?rdf:predicate} **2026-07-30, within the original timeline** {+proj:original-timeline ?rdf:object}.
+Generated by: [Development Phase] {+proj:dev-phase ?prov:wasGeneratedBy}
+Derived from: [Design Documentation] {+proj:design-docs ?prov:wasDerivedFrom}
+Established: [2026-07-30T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
 
-### Dependencies {=proj:dependencies .rdfs:Resource label}
+## Design System Adopted as Foundation {=proj:stmt-design-system .rdf:Statement .prov:Entity label}
 
-The project depends on:
-- [Design System] {+proj:design-system ?proj:requires}
-- [API Documentation] {+proj:api-docs ?proj:requires}
-
-### Stakeholders {=proj:stakeholders .rdfs:Resource label}
-
-Key stakeholders:
-- [Marketing Department] {+proj:marketing ?proj:stakeholder .prov:Organization}
-- [Customer Support] {+proj:support ?proj:stakeholder .prov:Organization}
-
-## Delegation Pattern
-
-### Development Delegation {=proj:dev-delegation .prov:Delegation ?prov:qualifiedDelegation}
-
-Alice delegates frontend development to specialized team.
-
-Delegate: [Alice] {+proj:alice ?prov:delegate}
-Responsible: [Frontend Team] {+proj:frontend-team .prov:Organization ?prov:responsible}
-Activity: [Frontend Development] {+proj:frontend-dev .prov:Activity ?prov:hadActivity}
-Role: [Development Lead] {+proj:dev-lead .prov:Role ?prov:hadRole}
-
-This demonstrates:
-- Complete PROV-O provenance chains
-- Project lifecycle with phases
-- Team formation and delegation
-- Proper temporal properties
-- Cross-ontology integration
-`,"space-mission":`[prov] <http://www.w3.org/ns/prov#>
-[nasa] <http://nasa.gov/>
+**The design documentation** {+proj:design-docs ?rdf:subject} *was derived from* {+prov:wasDerivedFrom ?rdf:predicate} **the existing design system** {+proj:design-system ?rdf:object}.
+Generated by: [Design Phase] {+proj:design-phase ?prov:wasGeneratedBy}
+Derived from: [Team Formation] {+proj:team-formation ?prov:wasDerivedFrom}
+Established: [2026-06-15T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
+`,"space-mission":`[cassini] <https://nasa.gov/cassini/>
 [xsd] <http://www.w3.org/2001/XMLSchema#>
 
-# Apollo 11 Mission {=nasa:apollo11 .prov:Activity label}
+# Cassini-Huygens Mission {=cassini:mission .prov:Activity label}
 
-Historic lunar landing mission with complete provenance tracking.
+> Cassini-Huygens was a joint NASA/ESA/ASI mission to Saturn, running from launch in 1997 to a deliberate atmospheric entry in 2017. {comment}
 
-## Mission Overview {=nasa:mission-overview .prov:Entity label}
+Over nearly two decades it reshaped our understanding of the ringed planet, its moons, and the potential for life in the outer solar system. This document traces the mission's major phases as a provenance chain, with the spacecraft's modules modelled as the agents responsible for each phase of science.
 
-Launch date: [1969-07-16] {nasa:launchDate ^^xsd:date}
-Landing date: [1969-07-20] {nasa:landingDate ^^xsd:date}
-Mission duration: [8] {nasa:durationDays ^^xsd:integer} days
-Budget: [$2.5] {nasa:budget ^^xsd:decimal} billion USD
-Status: [Success] {nasa:missionStatus}
+## Spacecraft Modules {=cassini:spacecraft .prov:Entity label}
 
-## Mission Timeline {=nasa:timeline .prov:Activity label}
+The spacecraft comprised two largely independent systems that separated after arrival at Saturn.
 
-Complete chronological sequence of mission events.
+### Cassini Orbiter {=cassini:orbiter .prov:Agent label}
 
-### Launch Phase {=nasa:launch .prov:Activity label}
-Started: [1969-07-16T13:32:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Ended: [1969-07-16T13:35:00Z] {prov:endedAtTime ^^xsd:dateTime}
-Associated with: [Launch Team] {+nasa:launch-team ?prov:wasAssociatedWith .prov:Organization}
-Used: [Saturn V Rocket] {+nasa:saturnv .nasa:Rocket ?prov:used}
-Generated: [Earth Orbit] {+nasa:earth-orbit ?prov:generated}
+Built by NASA's Jet Propulsion Laboratory, it spent thirteen years in Saturn orbit carrying twelve science instruments. Its mass was [2,523] {cassini:massKg ^^xsd:decimal} kg at launch and it was operated by [JPL] {+cassini:jpl ?prov:actedOnBehalfOf .prov:Organization label}.
 
-### Trans-Lunar Injection {=nasa:tli .prov:Activity label}
-Started: [1969-07-16T13:35:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Ended: [1969-07-16T16:00:00Z] {prov:endedAtTime ^^xsd:dateTime}
-Informed by: [Launch Phase] {+nasa:launch ?prov:wasInformedBy}
-Used: [Saturn V S-IVB Stage] {+nasa:saturnv-stage ?prov:used}
-Generated: [Lunar Trajectory] {+nasa:lunar-trajectory ?prov:generated}
+### Huygens Probe {=cassini:huygens .prov:Agent label}
 
-### Lunar Landing {=nasa:landing .prov:Activity label}
-Started: [1969-07-20T20:05:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Ended: [1969-07-20T20:17:00Z] {prov:endedAtTime ^^xsd:dateTime}
-Informed by: [Trans-Lunar Injection] {+nasa:tli ?prov:wasInformedBy}
-Used: [LM Eagle] {+nasa:eagle .nasa:Module ?prov:used}
-Generated: [Lunar Surface Presence] {+nasa:lunar-presence ?prov:generated}
+An ESA-built atmospheric entry vehicle designed for a single-use descent through Titan's thick nitrogen atmosphere. It carried [six] {cassini:instrumentCount ^^xsd:integer} dedicated instruments and acted on behalf of [ESA] {+cassini:esa ?prov:actedOnBehalfOf .prov:Organization label}.
 
-## Personnel {=nasa:crew .prov:Entity label}
+## Mission Timeline
 
-Mission crew with defined roles and responsibilities.
+The mission unfolded in four major phases, each building on the last through a clean provenance chain.
 
-### Mission Commander {=nasa:armstrong .prov:Person label}
-Name: [Neil Armstrong] {rdfs:label}
-Born: [1930-08-05] {nasa:birthDate ^^xsd:date}
-Role: [Commander] {nasa:missionRole}
-First step: [First human on Moon] {nasa:achievement}
+### Launch and Cruise {=cassini:launch-cruise .prov:Activity label}
 
-### Lunar Module Pilot {=nasa:aldrin .prov:Person label}
-Name: [Buzz Aldrin] {rdfs:label}
-Born: [1930-01-20] {nasa:birthDate ^^xsd:date}
-Role: [Lunar Module Pilot] {nasa:missionRole}
-EVA duration: [2h 18m] {nasa:evaDuration ^^xsd:string}
+Cassini lifted off on [1997-10-15T08:43:00Z] {prov:startedAtTime ^^xsd:dateTime} and spent seven years on a gravity-assist trajectory through the inner solar system. The [Cassini orbiter] {+cassini:orbiter ?prov:wasAssociatedWith} and [Huygens probe] {+cassini:huygens ?prov:wasAssociatedWith} traveled together. The cruise ended on [2004-07-01T02:12:00Z] {prov:endedAtTime ^^xsd:dateTime} when the main engine fired for Saturn Orbit Insertion, producing the [Saturn approach dataset] {+cassini:cruise-data .prov:Entity ?prov:generated label} — dust measurements, solar wind readings, and the first distant imaging of the Saturn system.
 
-### Command Module Pilot {=nasa:collins .prov:Person label}
-Name: [Michael Collins] {rdfs:label}
-Born: [1930-10-31] {nasa:birthDate ^^xsd:date}
-Role: [Command Module Pilot] {nasa:missionRole}
-Responsibility: [Orbital operations] {nasa:responsibility}
+### Saturn Orbit Insertion {=cassini:soi .prov:Activity ?prov:wasInformedBy label}
 
-## Equipment {=nasa:equipment .prov:Entity label}
+The engine burn on [2004-07-01T02:12:00Z] {prov:startedAtTime ^^xsd:dateTime} lasting 96 minutes placed Cassini into Saturn orbit. It ended at [2004-07-01T03:48:00Z] {prov:endedAtTime ^^xsd:dateTime}. The [Cassini orbiter] {+cassini:orbiter ?prov:wasAssociatedWith} executed the manoeuvre autonomously. This generated the [initial ring-crossing observations] {+cassini:ring-crossing-data .prov:Entity ?prov:generated label} — the first in-situ measurements of ring particle composition.
 
-All mission hardware and systems used.
+### Huygens Titan Descent {=cassini:titan-descent .prov:Activity ?prov:wasInformedBy label}
 
-### Launch Vehicle {=nasa:saturnv .nasa:Rocket label}
-Name: [Saturn V] {rdfs:label}
-Manufacturer: [Boeing] {nasa:manufacturer}
-Height: [363] {nasa:height ^^xsd:integer} ft
-Thrust: [7.6] {nasa:thrust ^^xsd:decimal} million lbs
+The Huygens probe was released on [2004-12-25] {prov:startedAtTime ^^xsd:date} and entered Titan's atmosphere on [2005-01-14T09:10:00Z] {prov:endedAtTime ^^xsd:dateTime}. The [Huygens probe] {+cassini:huygens ?prov:wasAssociatedWith} descended for 72 minutes through hydrocarbon haze, producing the [Titan atmosphere profile] {+cassini:titan-atmos-data .prov:Entity ?prov:generated label} — temperature, pressure, and wind measurements from 1,270 km altitude down to the surface, along with the first images of Titan's surface from inside the atmosphere.
 
-### Lunar Module {=nasa:eagle .nasa:Module label}
-Name: [Eagle] {rdfs:label}
-Manufacturer: [Grumman Aircraft] {nasa:manufacturer}
-Mass: [15,897] {nasa:mass ^^xsd:decimal} lb
-Crew capacity: [2] {nasa:crewCapacity ^^xsd:integer}
+### Extended Orbital Science {=cassini:orbital-science .prov:Activity ?prov:wasInformedBy label}
 
-### Command Module {=nasa:columbia .nasa:Module label}
-Name: [Columbia] {rdfs:label}
-Manufacturer: [North American Aviation] {nasa:manufacturer}
-Mass: [28,801] {nasa:mass ^^xsd:decimal} lb
-Crew capacity: [3] {nasa:crewCapacity ^^xsd:integer}
+The Cassini orbiter conducted [294] {cassini:titanFlybys ^^xsd:integer} Titan flybys and numerous close encounters with Enceladus, Iapetus, and Rhea from [2004-07-01] {prov:startedAtTime ^^xsd:date} through [2017-09-15] {prov:endedAtTime ^^xsd:date}. The [Cassini orbiter] {+cassini:orbiter ?prov:wasAssociatedWith} generated the [Enceladus plume dataset] {+cassini:enceladus-data .prov:Entity ?prov:generated label} during six dedicated low-altitude passes through the southern polar geysers.
 
-## Mission Objectives {=nasa:objectives .prov:Entity label}
+## Key Findings
 
-Primary goals and their achievement status.
+Two results stood out above all others and are elevated here as the mission's golden graph — the facts everything else builds toward.
 
-### Primary Objective {=nasa:primary-goal .nasa:Goal label}
-Description: [Land humans on Moon and return safely] {rdfs:label}
-Status: [Achieved] {nasa:achievementStatus}
-Achievement date: [1969-07-20] {nasa:achievementDate ^^xsd:date}
+## Enceladus Hosts a Subsurface Ocean {=cassini:stmt-ocean .rdf:Statement .prov:Entity label}
 
-### Secondary Objectives
+**The Enceladus plume dataset** {+cassini:enceladus-data ?rdf:subject} *confirmed* {+cassini:hasSubsurfaceOcean ?rdf:predicate} **a global liquid water ocean beneath its ice shell** {+cassini:enceladus-ocean ?rdf:object}.
+Generated by: [Extended Orbital Science] {+cassini:orbital-science ?prov:wasGeneratedBy}
+Derived from: [Saturn Orbit Insertion] {+cassini:soi ?prov:wasDerivedFrom}
+Established: [2014-04-03T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
 
-#### Lunar Sample Collection {=nasa:sample-goal .nasa:Goal label}
-Description: [Collect lunar samples for scientific analysis] {rdfs:label}
-Status: [Achieved] {nasa:achievementStatus}
-Sample weight: [21.5] {nasa:sampleWeight ^^xsd:decimal} kg
+## Titan Has a Methane Hydrological Cycle {=cassini:stmt-methane .rdf:Statement .prov:Entity label}
 
-#### EVA Operations {=nasa:eva-goal .nasa:Goal label}
-Description: [Conduct extravehicular activities] {rdfs:label}
-Status: [Achieved] {nasa:achievementStatus}
-EVA duration: [2h 18m] {nasa:evaDuration ^^xsd:string}
-
-## Mission Control {=nasa:mission-control .prov:Organization label}
-
-Ground support team with delegation structure.
-
-### Flight Directors {=nasa:flight-directors .prov:Organization label}
-Role: [Mission supervision] {nasa:role}
-Personnel: [Gene Kranz, Glynn Lunney, Gerald Griffin] {nasa:personnel}
-
-### Delegation Pattern {=nasa:operation-delegation .prov:Delegation ?prov:qualifiedDelegation}
-
-NASA Administrator delegates operational authority to Mission Control.
-
-Delegator: [NASA Administrator] {+nasa:admin ?prov:delegate}
-Responsible: [Mission Control] {+nasa:mission-control ?prov:responsible}
-Activity: [Flight Operations] {+nasa:flight-ops ?prov:hadActivity}
-Role: [Flight Director] {+nasa:flight-director ?prov:hadRole}
-
-This demonstrates:
-- Complete PROV-O activity chains
-- Proper temporal properties with XSD
-- Organizational structure and delegation
-- Equipment tracking and relationships
-- Goal achievement modeling
+**The Titan atmosphere profile** {+cassini:titan-atmos-data ?rdf:subject} *revealed* {+cassini:hasMethaneHydrologicalCycle ?rdf:predicate} **a full methane rain-lake-evaporation cycle on Titan's surface** {+cassini:titan-methane-cycle ?rdf:object}.
+Generated by: [Huygens Titan Descent] {+cassini:titan-descent ?prov:wasGeneratedBy}
+Derived from: [Saturn Orbit Insertion] {+cassini:soi ?prov:wasDerivedFrom}
+Established: [2005-01-14T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
 `,research:`[research] <https://research.example.org/>
 [data] <https://research.example.org/datasets/>
-[prov] <http://www.w3.org/ns/prov#>
-[sh] <http://www.w3.org/ns/shacl#>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
 
 # Medical Imaging AI Research {=research:paper .prov:Entity label}
 
-Deep learning analysis of attention mechanisms for medical diagnosis.
+This paper explores how deep learning attention mechanisms can improve automated diagnosis from medical imaging data, covering the full arc from dataset assembly through model training to peer-reviewed publication.
 
 ## Authors {=research:authors .prov:Entity label}
 
-Research team with defined roles and contributions.
-
-### Primary Author {=research:sarah-martinez .prov:Person label}
-Name: [Dr. Sarah Martinez] {rdfs:label}
-Email: [sarah.martinez@mit.edu] {research:email}
-Role: [Lead Researcher] {research:role}
-Contribution: [Methodology development] {research:contribution}
-
-### Co-Author {=research:james-liu .prov:Person label}
-Name: [Dr. James Liu] {rdfs:label}
-Email: [james.liu@mit.edu] {research:email}
-Role: [ML Engineer] {research:role}
-Contribution: [Model implementation] {research:contribution}
+The work was led by **[Dr. Sarah Martinez](mailto:sarah.martinez@mit.edu)** {rdfs:label} {research:email} at MIT, who served as [Lead Researcher] {research:role} and was responsible for [methodology development] {research:contribution}. Joining her was **[Dr. James Liu](mailto:james.liu@mit.edu)** {=research:james-liu .prov:Person rdfs:label research:email}, the team's [ML Engineer] {research:role}, who took charge of [model implementation] {research:contribution}.
 
 ## Research Activity {=research:research-activity .prov:Activity label}
 
-Complete research lifecycle with proper provenance.
-
-Started: [2024-01-01] {prov:startedAtTime ^^xsd:date}
-Ended: [2024-03-15] {prov:endedAtTime ^^xsd:date}
-Associated with: [Research Team] {+research:authors ?prov:wasAssociatedWith}
-Plan: [Medical AI Research Plan] {+research:plan .prov:Plan ?prov:hadPlan}
+The project ran from [2024-01-01] {prov:startedAtTime ^^xsd:date} through [2024-03-15] {prov:endedAtTime ^^xsd:date}, carried out by the [Research Team] {+research:authors ?prov:wasAssociatedWith} according to the [Medical AI Research Plan] {+research:plan .prov:Plan ?prov:hadPlan} they had drafted the previous autumn.
 
 ## Dataset Collection {=research:dataset-collection .prov:Activity label}
 
-Systematic dataset gathering and validation.
+Assembling a dataset of sufficient quality and scale was the first major challenge.
 
-### Primary Dataset {=data:primary-dataset .research:Dataset label}
-Source: [GitHub Medical Imaging Repository] {research:source}
-Training samples: [80000] {data:trainCount ^^xsd:integer} DICOM images
-Validation samples: [10000] {data:valCount ^^xsd:integer} DICOM images
-Test samples: [10000] {data:testCount ^^xsd:integer} DICOM images
-Classes: [15] {data:classCount ^^xsd:integer} anatomical structures
+### Primary Dataset {=data:primary-dataset .research:Dataset .prov:Entity label}
 
-### Augmented Dataset {=data:augmented-dataset .research:Dataset label}
-Derived from: [Primary Dataset] {+data:primary-dataset ?prov:wasDerivedFrom}
-Resolution: [512x512] {data:resolution} grayscale
-Features: [Patient metadata] {data:features}
-Sample size: [1000] {data:patientCount ^^xsd:integer} patients
+The team sourced [80,000] {data:trainCount ^^xsd:integer} DICOM training images from the [GitHub Medical Imaging Repository] {research:source}, setting aside [10,000] {data:valCount ^^xsd:integer} for validation and another [10,000] {data:testCount ^^xsd:integer} for final testing. The images span [15] {data:classCount ^^xsd:integer} anatomical structures. It was assembled during the [dataset collection phase] {+research:dataset-collection ?prov:wasGeneratedBy}.
+
+### Augmented Dataset {=data:augmented-dataset .research:Dataset .prov:Entity label}
+
+Working from that [primary collection] {+data:primary-dataset ?prov:wasDerivedFrom}, the team produced a [512x512] {data:resolution} grayscale augmented set enriched with [patient metadata] {data:features}, covering [1,000] {data:patientCount ^^xsd:integer} individual patients to reduce demographic bias. This derived set was also [generated] {+research:dataset-collection ?prov:wasGeneratedBy} as part of the same collection activity.
 
 ## Model Development {=research:model-development .prov:Activity label}
 
-Training process with resource tracking.
-
-Started: [2024-02-01] {prov:startedAtTime ^^xsd:date}
-Ended: [2024-02-28] {prov:endedAtTime ^^xsd:date}
-Used: [Primary Dataset] {+data:primary-dataset ?prov:used} and [Augmented Dataset] {+data:augmented-dataset ?prov:used}
-Associated with: [Dr. James Liu] {+research:james-liu ?prov:wasAssociatedWith} as ML Engineer
-Generated: [Trained Model] {+research:trained-model ?prov:generated}
+Training ran through February — from [2024-02-01] {prov:startedAtTime ^^xsd:date} to [2024-02-28] {prov:endedAtTime ^^xsd:date}. [Dr. James Liu] {+research:james-liu ?prov:wasAssociatedWith} drove the implementation, feeding the model both the [raw] {+data:primary-dataset ?prov:used} and [augmented] {+data:augmented-dataset ?prov:used} datasets. The process produced a [trained model artifact] {+research:trained-model ?prov:generated} ready for evaluation.
 
 ## Model Evaluation {=research:evaluation .prov:Activity label}
 
-Comprehensive testing with statistical validation.
-
-Started: [2024-03-01] {prov:startedAtTime ^^xsd:date}
-Used: [Trained Model] {+research:trained-model ?prov:used}
-Generated: [Evaluation Results] {+research:eval-results ?prov:generated}
+Evaluation began on [2024-03-01] {prov:startedAtTime ^^xsd:date}. The [trained model] {+research:trained-model ?prov:used} was put through a comprehensive test suite that yielded the [evaluation results] {+research:eval-results ?prov:generated} reported below.
 
 ### Performance Metrics {=research:metrics .prov:Entity label}
-Training accuracy: [94.5] {research:trainAcc ^^xsd:decimal}
-Validation accuracy: [92.3] {research:valAcc ^^xsd:decimal}
-Test accuracy: [91.8] {research:testAcc ^^xsd:decimal}
-F1 score: [0.89] {research:f1 ^^xsd:decimal}
-AUC-ROC: [0.93] {research:auc ^^xsd:decimal}
-Statistical significance: [p < 0.05] {research:significance}
-Sample size: [1000] {research:sampleSize ^^xsd:integer}
+
+The results were strong across the board. Training accuracy reached [94.5%] {research:trainAcc ^^xsd:decimal}, with validation holding at [92.3%] {research:valAcc ^^xsd:decimal} and the held-out test set at [91.8%] {research:testAcc ^^xsd:decimal}. The F1 score came in at [0.89] {research:f1 ^^xsd:decimal} and AUC-ROC at [0.93] {research:auc ^^xsd:decimal}, both statistically significant at [p < 0.05] {research:significance} across a sample of [1,000] {research:sampleSize ^^xsd:integer} patients.
+
+## Paper Reports Clinical Accuracy {=research:stmt-accuracy .rdf:Statement .prov:Entity label}
+
+**The research paper** {+research:paper ?rdf:subject} *reports* {+research:testAcc ?rdf:predicate} **91.8% test accuracy** {+research:metrics ?rdf:object}.
+Derived from: [Evaluation Results] {+research:eval-results ?prov:wasDerivedFrom}
+Generated by: [Model Evaluation] {+research:evaluation ?prov:wasGeneratedBy}
+Established: [2024-03-15T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
+
+## Paper Was NASA-Funded {=research:stmt-publication .rdf:Statement .prov:Entity label}
+**The research paper** {+research:paper ?rdf:subject} *was funded by* {+prov:wasAttributedTo ?rdf:predicate} **NASA Space Medicine** {+research:nasa ?rdf:object}.
+Generated by: [Publication Activity] {+research:publication ?prov:wasGeneratedBy}
+Derived from: [Research Activity] {+research:research-activity ?prov:wasDerivedFrom}
+Established: [2024-04-15T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
 
 ## SHACL Validation Shapes
 
 ### Paper Validation Shape {=research:PaperShape .sh:NodeShape label}
 
-Ensures scientific papers meet academic standards. Targets all instances of [Paper] {+research:Paper ?sh:targetClass} to have a [title] {+#title ?sh:property sh:name}, [authors] {+#author ?sh:property sh:name} and  [citations] {+#citation ?sh:property sh:name}.
+To ensure the graph stays consistent, we defined a shape targeting every [Paper] {+research:Paper ?sh:targetClass} in the graph. Any paper must carry exactly [one title] {+#title ?sh:property sh:name}, at least [one author] {+#author ?sh:property sh:name}, and at least [one citation] {+#citation ?sh:property sh:name} — otherwise it isn't a complete scientific record.
 
 ### Paper must have exactly one title. {=#title .sh:PropertyShape sh:message}
-Path: [title] {+rdfs:label ?sh:path}
-Required: [1] {sh:minCount sh:maxCount ^^xsd:integer}
+The [rdfs:label] {+rdfs:label ?sh:path} property holds the title — exactly [1] {sh:minCount sh:maxCount ^^xsd:integer}.
 
 ## Paper must have at least one author. {=#author .sh:PropertyShape sh:message}
-Path: [author] {+research:author ?sh:path}
-Required: [1] {sh:minCount ^^xsd:integer}
+Every paper needs at least [1] {sh:minCount ^^xsd:integer} value on [author] {+research:author ?sh:path}.
 
 ## Paper must have at least one citation. {=#citation .sh:PropertyShape sh:message}
-Path: [citation] {+research:citation ?sh:path}
-Required: [1] {sh:minCount ^^xsd:integer}
+Same idea for citations: [citation] {+research:citation ?sh:path} must appear at least [1] {sh:minCount ^^xsd:integer} time.
 
 ### Test Data
 
 #### Valid Paper {=research:valid-paper .research:Paper label}
-Title: [Medical Imaging AI Research] {rdfs:label}
-Authors: [Dr. Sarah Martinez] {+research:sarah-martinez ?research:author}
-Citations: [15] {research:citation ^^xsd:integer}
+This is **[Medical Imaging AI Research] {rdfs:label}**, authored by [Dr. Sarah Martinez] {+research:sarah-martinez ?research:author} and carrying [15] {research:citation ^^xsd:integer} citations — it should pass all three constraints cleanly.
 
 #### Invalid Paper {=research:invalid-paper .research:Paper label}
-Title: [Untitled] {rdfs:label}
-Authors: [] {research:citation}
+This stub has a title of [Untitled] {rdfs:label} but no author and no citation value — [intentionally incomplete] {research:citation} to demonstrate what a violation looks like.
 
 ## Funding and Provenance
 
 ### Funding Entity {=research:funding .prov:Entity label}
-Grant: [NRA-2024-12345] {research:grantNumber}
-Amount: [$500,000] {research:amount ^^xsd:decimal}
-Source: [NASA Space Medicine] {+research:nasa ?prov:wasAttributedTo .prov:Organization}
-Period: [2024-2026] {research:period}
+
+The work was made possible by grant [NRA-2024-12345] {research:grantNumber}, a [$500,000] {research:amount ^^xsd:decimal} award from [NASA Space Medicine] {+research:nasa ?prov:wasAttributedTo .prov:Organization} running from [2024 to 2026] {research:period}.
 
 ### Publication Activity {=research:publication .prov:Activity label}
-Published: [Medical Imaging AI Research] {+research:paper ?prov:used} in [Medical Journal] {+research:journal ?prov:wasGeneratedBy}
-Date: [2024-04-15] {prov:startedAtTime ^^xsd:date}
 
-This demonstrates:
-- Complete PROV-O provenance chains
-- Dataset management with XSD typing
-- SHACL validation with self-documenting
-- Academic research lifecycle
-- Proper ontology integration
+On [2024-04-15] {prov:startedAtTime ^^xsd:date} the team submitted [Medical Imaging AI Research] {+research:paper ?prov:used} and it was accepted by [Medical Journal] {+research:journal ?prov:wasGeneratedBy}. The funding, the data, the model, and the results all now have a complete provenance trail traceable through this document.
 `,index:`# MD-LD Demo Examples
 
 Quick start examples demonstrating core MD-LD patterns and features.
@@ -2858,9 +2627,9 @@ Quick start examples demonstrating core MD-LD patterns and features.
     }
 
     .details[open] .rdf-graph[height="300"] {
-        height: 300px !important;
-        min-height: 300px !important;
-        max-height: 300px !important;
+        height: 400px !important;
+        min-height: 400px !important;
+        max-height: 400px !important;
     }
 
     /* Reserve space for collapsed content to prevent jumping */
@@ -2921,20 +2690,21 @@ Quick start examples demonstrating core MD-LD patterns and features.
 
     /* Specific TTL styling */
     #ttl {
-        white-space: pre-wrap !important;
-        word-wrap: break-word !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
-        max-width: 100% !important;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        max-width: 100%;
+        padding: 1em;
     }
 
     /* Specific MDLD styling */
     #mdld {
-        white-space: pre-wrap !important;
-        word-wrap: break-word !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
-        max-width: 100% !important;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        max-width: 100%;
     }
 
     /* Specific quads output styling - prevent layout shifts */

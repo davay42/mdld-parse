@@ -1,129 +1,58 @@
-[prov] <http://www.w3.org/ns/prov#>
-[nasa] <http://nasa.gov/>
+[cassini] <https://nasa.gov/cassini/>
 [xsd] <http://www.w3.org/2001/XMLSchema#>
 
-# Apollo 11 Mission {=nasa:apollo11 .prov:Activity label}
+# Cassini-Huygens Mission {=cassini:mission .prov:Activity label}
 
-Historic lunar landing mission with complete provenance tracking.
+> Cassini-Huygens was a joint NASA/ESA/ASI mission to Saturn, running from launch in 1997 to a deliberate atmospheric entry in 2017. {comment}
 
-## Mission Overview {=nasa:mission-overview .prov:Entity label}
+Over nearly two decades it reshaped our understanding of the ringed planet, its moons, and the potential for life in the outer solar system. This document traces the mission's major phases as a provenance chain, with the spacecraft's modules modelled as the agents responsible for each phase of science.
 
-Launch date: [1969-07-16] {nasa:launchDate ^^xsd:date}
-Landing date: [1969-07-20] {nasa:landingDate ^^xsd:date}
-Mission duration: [8] {nasa:durationDays ^^xsd:integer} days
-Budget: [$2.5] {nasa:budget ^^xsd:decimal} billion USD
-Status: [Success] {nasa:missionStatus}
+## Spacecraft Modules {=cassini:spacecraft .prov:Entity label}
 
-## Mission Timeline {=nasa:timeline .prov:Activity label}
+The spacecraft comprised two largely independent systems that separated after arrival at Saturn.
 
-Complete chronological sequence of mission events.
+### Cassini Orbiter {=cassini:orbiter .prov:Agent label}
 
-### Launch Phase {=nasa:launch .prov:Activity label}
-Started: [1969-07-16T13:32:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Ended: [1969-07-16T13:35:00Z] {prov:endedAtTime ^^xsd:dateTime}
-Associated with: [Launch Team] {+nasa:launch-team ?prov:wasAssociatedWith .prov:Organization}
-Used: [Saturn V Rocket] {+nasa:saturnv .nasa:Rocket ?prov:used}
-Generated: [Earth Orbit] {+nasa:earth-orbit ?prov:generated}
+Built by NASA's Jet Propulsion Laboratory, it spent thirteen years in Saturn orbit carrying twelve science instruments. Its mass was [2,523] {cassini:massKg ^^xsd:decimal} kg at launch and it was operated by [JPL] {+cassini:jpl ?prov:actedOnBehalfOf .prov:Organization label}.
 
-### Trans-Lunar Injection {=nasa:tli .prov:Activity label}
-Started: [1969-07-16T13:35:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Ended: [1969-07-16T16:00:00Z] {prov:endedAtTime ^^xsd:dateTime}
-Informed by: [Launch Phase] {+nasa:launch ?prov:wasInformedBy}
-Used: [Saturn V S-IVB Stage] {+nasa:saturnv-stage ?prov:used}
-Generated: [Lunar Trajectory] {+nasa:lunar-trajectory ?prov:generated}
+### Huygens Probe {=cassini:huygens .prov:Agent label}
 
-### Lunar Landing {=nasa:landing .prov:Activity label}
-Started: [1969-07-20T20:05:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Ended: [1969-07-20T20:17:00Z] {prov:endedAtTime ^^xsd:dateTime}
-Informed by: [Trans-Lunar Injection] {+nasa:tli ?prov:wasInformedBy}
-Used: [LM Eagle] {+nasa:eagle .nasa:Module ?prov:used}
-Generated: [Lunar Surface Presence] {+nasa:lunar-presence ?prov:generated}
+An ESA-built atmospheric entry vehicle designed for a single-use descent through Titan's thick nitrogen atmosphere. It carried [six] {cassini:instrumentCount ^^xsd:integer} dedicated instruments and acted on behalf of [ESA] {+cassini:esa ?prov:actedOnBehalfOf .prov:Organization label}.
 
-## Personnel {=nasa:crew .prov:Entity label}
+## Mission Timeline
 
-Mission crew with defined roles and responsibilities.
+The mission unfolded in four major phases, each building on the last through a clean provenance chain.
 
-### Mission Commander {=nasa:armstrong .prov:Person label}
-Name: [Neil Armstrong] {rdfs:label}
-Born: [1930-08-05] {nasa:birthDate ^^xsd:date}
-Role: [Commander] {nasa:missionRole}
-First step: [First human on Moon] {nasa:achievement}
+### Launch and Cruise {=cassini:launch-cruise .prov:Activity label}
 
-### Lunar Module Pilot {=nasa:aldrin .prov:Person label}
-Name: [Buzz Aldrin] {rdfs:label}
-Born: [1930-01-20] {nasa:birthDate ^^xsd:date}
-Role: [Lunar Module Pilot] {nasa:missionRole}
-EVA duration: [2h 18m] {nasa:evaDuration ^^xsd:string}
+Cassini lifted off on [1997-10-15T08:43:00Z] {prov:startedAtTime ^^xsd:dateTime} and spent seven years on a gravity-assist trajectory through the inner solar system. The [Cassini orbiter] {+cassini:orbiter ?prov:wasAssociatedWith} and [Huygens probe] {+cassini:huygens ?prov:wasAssociatedWith} traveled together. The cruise ended on [2004-07-01T02:12:00Z] {prov:endedAtTime ^^xsd:dateTime} when the main engine fired for Saturn Orbit Insertion, producing the [Saturn approach dataset] {+cassini:cruise-data .prov:Entity ?prov:generated label} — dust measurements, solar wind readings, and the first distant imaging of the Saturn system.
 
-### Command Module Pilot {=nasa:collins .prov:Person label}
-Name: [Michael Collins] {rdfs:label}
-Born: [1930-10-31] {nasa:birthDate ^^xsd:date}
-Role: [Command Module Pilot] {nasa:missionRole}
-Responsibility: [Orbital operations] {nasa:responsibility}
+### Saturn Orbit Insertion {=cassini:soi .prov:Activity ?prov:wasInformedBy label}
 
-## Equipment {=nasa:equipment .prov:Entity label}
+The engine burn on [2004-07-01T02:12:00Z] {prov:startedAtTime ^^xsd:dateTime} lasting 96 minutes placed Cassini into Saturn orbit. It ended at [2004-07-01T03:48:00Z] {prov:endedAtTime ^^xsd:dateTime}. The [Cassini orbiter] {+cassini:orbiter ?prov:wasAssociatedWith} executed the manoeuvre autonomously. This generated the [initial ring-crossing observations] {+cassini:ring-crossing-data .prov:Entity ?prov:generated label} — the first in-situ measurements of ring particle composition.
 
-All mission hardware and systems used.
+### Huygens Titan Descent {=cassini:titan-descent .prov:Activity ?prov:wasInformedBy label}
 
-### Launch Vehicle {=nasa:saturnv .nasa:Rocket label}
-Name: [Saturn V] {rdfs:label}
-Manufacturer: [Boeing] {nasa:manufacturer}
-Height: [363] {nasa:height ^^xsd:integer} ft
-Thrust: [7.6] {nasa:thrust ^^xsd:decimal} million lbs
+The Huygens probe was released on [2004-12-25] {prov:startedAtTime ^^xsd:date} and entered Titan's atmosphere on [2005-01-14T09:10:00Z] {prov:endedAtTime ^^xsd:dateTime}. The [Huygens probe] {+cassini:huygens ?prov:wasAssociatedWith} descended for 72 minutes through hydrocarbon haze, producing the [Titan atmosphere profile] {+cassini:titan-atmos-data .prov:Entity ?prov:generated label} — temperature, pressure, and wind measurements from 1,270 km altitude down to the surface, along with the first images of Titan's surface from inside the atmosphere.
 
-### Lunar Module {=nasa:eagle .nasa:Module label}
-Name: [Eagle] {rdfs:label}
-Manufacturer: [Grumman Aircraft] {nasa:manufacturer}
-Mass: [15,897] {nasa:mass ^^xsd:decimal} lb
-Crew capacity: [2] {nasa:crewCapacity ^^xsd:integer}
+### Extended Orbital Science {=cassini:orbital-science .prov:Activity ?prov:wasInformedBy label}
 
-### Command Module {=nasa:columbia .nasa:Module label}
-Name: [Columbia] {rdfs:label}
-Manufacturer: [North American Aviation] {nasa:manufacturer}
-Mass: [28,801] {nasa:mass ^^xsd:decimal} lb
-Crew capacity: [3] {nasa:crewCapacity ^^xsd:integer}
+The Cassini orbiter conducted [294] {cassini:titanFlybys ^^xsd:integer} Titan flybys and numerous close encounters with Enceladus, Iapetus, and Rhea from [2004-07-01] {prov:startedAtTime ^^xsd:date} through [2017-09-15] {prov:endedAtTime ^^xsd:date}. The [Cassini orbiter] {+cassini:orbiter ?prov:wasAssociatedWith} generated the [Enceladus plume dataset] {+cassini:enceladus-data .prov:Entity ?prov:generated label} during six dedicated low-altitude passes through the southern polar geysers.
 
-## Mission Objectives {=nasa:objectives .prov:Entity label}
+## Key Findings
 
-Primary goals and their achievement status.
+Two results stood out above all others and are elevated here as the mission's golden graph — the facts everything else builds toward.
 
-### Primary Objective {=nasa:primary-goal .nasa:Goal label}
-Description: [Land humans on Moon and return safely] {rdfs:label}
-Status: [Achieved] {nasa:achievementStatus}
-Achievement date: [1969-07-20] {nasa:achievementDate ^^xsd:date}
+## Enceladus Hosts a Subsurface Ocean {=cassini:stmt-ocean .rdf:Statement .prov:Entity label}
 
-### Secondary Objectives
+**The Enceladus plume dataset** {+cassini:enceladus-data ?rdf:subject} *confirmed* {+cassini:hasSubsurfaceOcean ?rdf:predicate} **a global liquid water ocean beneath its ice shell** {+cassini:enceladus-ocean ?rdf:object}.
+Generated by: [Extended Orbital Science] {+cassini:orbital-science ?prov:wasGeneratedBy}
+Derived from: [Saturn Orbit Insertion] {+cassini:soi ?prov:wasDerivedFrom}
+Established: [2014-04-03T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
 
-#### Lunar Sample Collection {=nasa:sample-goal .nasa:Goal label}
-Description: [Collect lunar samples for scientific analysis] {rdfs:label}
-Status: [Achieved] {nasa:achievementStatus}
-Sample weight: [21.5] {nasa:sampleWeight ^^xsd:decimal} kg
+## Titan Has a Methane Hydrological Cycle {=cassini:stmt-methane .rdf:Statement .prov:Entity label}
 
-#### EVA Operations {=nasa:eva-goal .nasa:Goal label}
-Description: [Conduct extravehicular activities] {rdfs:label}
-Status: [Achieved] {nasa:achievementStatus}
-EVA duration: [2h 18m] {nasa:evaDuration ^^xsd:string}
-
-## Mission Control {=nasa:mission-control .prov:Organization label}
-
-Ground support team with delegation structure.
-
-### Flight Directors {=nasa:flight-directors .prov:Organization label}
-Role: [Mission supervision] {nasa:role}
-Personnel: [Gene Kranz, Glynn Lunney, Gerald Griffin] {nasa:personnel}
-
-### Delegation Pattern {=nasa:operation-delegation .prov:Delegation ?prov:qualifiedDelegation}
-
-NASA Administrator delegates operational authority to Mission Control.
-
-Delegator: [NASA Administrator] {+nasa:admin ?prov:delegate}
-Responsible: [Mission Control] {+nasa:mission-control ?prov:responsible}
-Activity: [Flight Operations] {+nasa:flight-ops ?prov:hadActivity}
-Role: [Flight Director] {+nasa:flight-director ?prov:hadRole}
-
-This demonstrates:
-- Complete PROV-O activity chains
-- Proper temporal properties with XSD
-- Organizational structure and delegation
-- Equipment tracking and relationships
-- Goal achievement modeling
+**The Titan atmosphere profile** {+cassini:titan-atmos-data ?rdf:subject} *revealed* {+cassini:hasMethaneHydrologicalCycle ?rdf:predicate} **a full methane rain-lake-evaporation cycle on Titan's surface** {+cassini:titan-methane-cycle ?rdf:object}.
+Generated by: [Huygens Titan Descent] {+cassini:titan-descent ?prov:wasGeneratedBy}
+Derived from: [Saturn Orbit Insertion] {+cassini:soi ?prov:wasDerivedFrom}
+Established: [2005-01-14T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
