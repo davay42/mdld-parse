@@ -1,98 +1,84 @@
 [proj] <tag:alice@example.com,2026:project/>
 
-# Website Redesign {=proj:website .prov:Project label}
+# Website Redesign {=proj:website .proj:Project .prov:Plan label}
 
-Website redesign project for Q2 2026 with modern responsive design.
+The Q2 2026 website redesign is a [$25,000] {proj:budget ^^xsd:decimal} initiative running from [2026-06-01] {prov:startedAtTime ^^xsd:date} through [2026-08-31] {prov:endedAtTime ^^xsd:date}, currently in [planning] {proj:status} status. It is backed by the [Marketing Department] {+proj:marketing ?proj:sponsor .prov:Organization label} and [Customer Support] {+proj:support ?proj:stakeholder .prov:Organization label}, both of whom provided the brief.
 
-## Project Metadata {=proj:website-meta .prov:Entity label}
+## Team
 
-Budget: [$25,000] {proj:budget ^^xsd:decimal}
-Start date: [2026-06-01] {proj:startDate ^^xsd:date}
-End date: [2026-08-31] {proj:endDate ^^xsd:date}
-Status: [planning] {proj:status}
+Three people assembled under the [Q2 Website Plan] {+proj:q2-plan .prov:Plan label} to staff this project.
 
-## Team Formation Activity {=proj:team-formation .prov:Activity label}
+### Alice Johnson {=proj:alice .prov:Person label}
 
-Started: [2026-05-15T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Associated with: [Alice Johnson] {+proj:alice .prov:Person ?prov:wasAssociatedWith} as Project Manager
-Plan: [Q2 Website Plan] {+proj:q2-plan .prov:Plan ?prov:hadPlan}
+[alice@example.com] {proj:email} — [Project Manager] {proj:role}, responsible for overall delivery and stakeholder communication.
 
-Generated: [Team Structure] {+proj:team-structure ?prov:generated}
+### Bob Smith {=proj:bob .prov:Person label}
 
-## Team Members
+[bob@example.com] {proj:email} — [Lead Developer] {proj:role}, leading all frontend and backend implementation work. Bob acts on behalf of [Alice] {+proj:alice ?prov:actedOnBehalfOf} as the technical authority for the project.
 
-### Project Manager {=proj:alice .prov:Person label}
+### Carol Davis {=proj:carol .prov:Person label}
 
-Name: [Alice Johnson] {rdfs:label}
-Email: [alice@example.com] {proj:email}
-Role: [Project Manager] {proj:role}
+[carol@example.com] {proj:email} — [UX Designer] {proj:role}, responsible for user research through to final visual design.
 
-### Lead Developer {=proj:bob .prov:Person label}
+## Team Formation {=proj:team-formation .prov:Activity label}
 
-Name: [Bob Smith] {rdfs:label}
-Email: [bob@example.com] {proj:email}
-Role: [Lead Developer] {proj:role}
+On [2026-05-15T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime} Alice convened the team and formalised the plan. She was [associated with] {+proj:alice ?prov:wasAssociatedWith} the activity directly, and it produced the [assembled team entity] {+proj:team-structure .prov:Entity ?prov:generated label} — the agreed roster and responsibility assignments that subsequent phases depend on.
 
-### UX Designer {=proj:carol .prov:Person label}
+## Design Phase {=proj:design-phase .prov:Activity ?prov:wasInformedBy label}
 
-Name: [Carol Davis] {rdfs:label}
-Email: [carol@example.com] {proj:email}
-Role: [UX Designer] {proj:role}
+Kicking off on [2026-06-01] {prov:startedAtTime ^^xsd:date} and wrapping by [2026-06-15] {prov:endedAtTime ^^xsd:date}, the design phase was led by [Carol] {+proj:carol ?prov:wasAssociatedWith}. It drew on the [assembled team entity] {+proj:team-structure ?prov:used} established during team formation and consumed the [existing design system] {+proj:design-system .prov:Entity ?prov:used label} as a constraint baseline. The phase moved from user interviews through wireframes to polished mockups, producing the [design documentation] {+proj:design-docs .prov:Entity ?prov:generated label} that development would build from.
 
-## Project Tasks
+## Development Phase {=proj:dev-phase .prov:Activity ?prov:wasInformedBy label}
 
-### Design Phase {=proj:design-phase .prov:Activity label}
+Development ran from [2026-06-16] {prov:startedAtTime ^^xsd:date} to [2026-07-30] {prov:endedAtTime ^^xsd:date}, led by [Bob] {+proj:bob ?prov:wasAssociatedWith}. The team used the [design documentation] {+proj:design-docs ?prov:used} directly — no redesign, just implementation — alongside the [API documentation] {+proj:api-docs .prov:Entity ?prov:used label} for backend contracts. The phase generated the [working prototype] {+proj:prototype .prov:Entity ?prov:generated label} deployed to staging.
 
-Started: [2026-06-01] {prov:startedAtTime ^^xsd:date}
-Ended: [2026-06-15] {prov:endedAtTime ^^xsd:date}
+## Validation Shapes
 
-Tasks:
-- [User Research] {+proj:user-research .proj:Task ?prov:used} - interviews and surveys
-- [Wireframes] {+proj:wireframes .proj:Task ?prov:used} - low-fidelity layouts
-- [High-fidelity Mockups] {+proj:mockups .proj:Task ?prov:used} - detailed designs
+Every project document should be self-consistent. These shapes enforce the minimum structural expectations for a project, its team, and its deliverables.
 
-Generated: [Design Documentation] {+proj:design-docs ?prov:generated}
+### Project Shape {=proj:ProjectShape .sh:NodeShape label}
 
-### Development Phase {=proj:dev-phase .prov:Activity label}
+Validates every [proj:Project] {+proj:Project ?sh:targetClass} to carry a [budget] {+#budget ?sh:property sh:name}, a [status] {+#status ?sh:property sh:name}, and at least one [sponsor] {+#sponsor ?sh:property sh:name}.
 
-Started: [2026-06-16] {prov:startedAtTime ^^xsd:date}
-Ended: [2026-07-30] {prov:endedAtTime ^^xsd:date}
+#### Budget is required {=#budget .sh:PropertyShape sh:message}
+[proj:budget] {+proj:budget ?sh:path} must appear exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} time and be a [decimal] {+xsd:decimal ?sh:datatype}.
 
-Tasks:
-- [Frontend Development] {+proj:frontend .proj:Task ?prov:used} - React components
-- [Backend API] {+proj:backend .proj:Task ?prov:used} - Node.js services
-- [Database Schema] {+proj:database .proj:Task ?prov:used} - PostgreSQL design
+#### Status is required {=#status .sh:PropertyShape sh:message}
+[proj:status] {+proj:status ?sh:path} must appear at least [1] {sh:minCount ^^xsd:integer} time.
 
-Generated: [Working Prototype] {+proj:prototype ?prov:generated}
+#### Sponsor is required {=#sponsor .sh:PropertyShape sh:message}
+A project must be backed by at least [1] {sh:minCount ^^xsd:integer} [proj:sponsor] {+proj:sponsor ?sh:path}.
 
-## Project Relationships
+### Team Member Shape {=proj:PersonShape .sh:NodeShape label}
 
-### Dependencies {=proj:dependencies .rdfs:Resource label}
+Validates every [prov:Person] {+prov:Person ?sh:targetClass} in this project to have an [email] {+#email ?sh:property sh:name} and a [role] {+#role ?sh:property sh:name}.
 
-The project depends on:
-- [Design System] {+proj:design-system ?proj:requires}
-- [API Documentation] {+proj:api-docs ?proj:requires}
+#### Email is required {=#email .sh:PropertyShape sh:message}
+[proj:email] {+proj:email ?sh:path} must appear exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} time and match the pattern [^.+@.+$] {sh:pattern}.
 
-### Stakeholders {=proj:stakeholders .rdfs:Resource label}
+#### Role is required {=#role .sh:PropertyShape sh:message}
+[proj:role] {+proj:role ?sh:path} must appear at least [1] {sh:minCount ^^xsd:integer} time.
 
-Key stakeholders:
-- [Marketing Department] {+proj:marketing ?proj:stakeholder .prov:Organization}
-- [Customer Support] {+proj:support ?proj:stakeholder .prov:Organization}
+### Deliverable Shape {=proj:DeliverableShape .sh:NodeShape label}
 
-## Delegation Pattern
+Validates every [prov:Entity] {+prov:Entity ?sh:targetClass} produced by a project activity to have a [label] {+#dlabel ?sh:property sh:name} and a [wasGeneratedBy] {+#generated ?sh:property sh:name} link.
 
-### Development Delegation {=proj:dev-delegation .prov:Delegation ?prov:qualifiedDelegation}
+#### Label is required {=#dlabel .sh:PropertyShape sh:message}
+Every deliverable must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [rdfs:label] {+rdfs:label ?sh:path}.
 
-Alice delegates frontend development to specialized team.
+#### Generation link is required {=#generated .sh:PropertyShape sh:message}
+Every deliverable must trace back to at least [1] {sh:minCount ^^xsd:integer} [prov:wasGeneratedBy] {+prov:wasGeneratedBy ?sh:path} activity.
 
-Delegate: [Alice] {+proj:alice ?prov:delegate}
-Responsible: [Frontend Team] {+proj:frontend-team .prov:Organization ?prov:responsible}
-Activity: [Frontend Development] {+proj:frontend-dev .prov:Activity ?prov:hadActivity}
-Role: [Development Lead] {+proj:dev-lead .prov:Role ?prov:hadRole}
+## Project Is On Schedule {=proj:stmt-schedule .rdf:Statement .prov:Entity label}
 
-This demonstrates:
-- Complete PROV-O provenance chains
-- Project lifecycle with phases
-- Team formation and delegation
-- Proper temporal properties
-- Cross-ontology integration
+**The working prototype** {+proj:prototype ?rdf:subject} *was delivered by* {+proj:deliveredBy ?rdf:predicate} **2026-07-30, within the original timeline** {+proj:original-timeline ?rdf:object}.
+Generated by: [Development Phase] {+proj:dev-phase ?prov:wasGeneratedBy}
+Derived from: [Design Documentation] {+proj:design-docs ?prov:wasDerivedFrom}
+Established: [2026-07-30T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}
+
+## Design System Adopted as Foundation {=proj:stmt-design-system .rdf:Statement .prov:Entity label}
+
+**The design documentation** {+proj:design-docs ?rdf:subject} *was derived from* {+prov:wasDerivedFrom ?rdf:predicate} **the existing design system** {+proj:design-system ?rdf:object}.
+Generated by: [Design Phase] {+proj:design-phase ?prov:wasGeneratedBy}
+Derived from: [Team Formation] {+proj:team-formation ?prov:wasDerivedFrom}
+Established: [2026-06-15T00:00:00Z] {prov:generatedAtTime ^^xsd:dateTime}

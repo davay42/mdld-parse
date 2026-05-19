@@ -1,8 +1,5 @@
 [research] <https://research.example.org/>
 [data] <https://research.example.org/datasets/>
-[prov] <http://www.w3.org/ns/prov#>
-[sh] <http://www.w3.org/ns/shacl#>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
 
 # Medical Imaging AI Research {=research:paper .prov:Entity label}
 
