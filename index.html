@@ -780,61 +780,59 @@ Related to: [Example Project] {+my:example-project ?my:relatedTo .prov:Project l
 
 # Personal Journal {=j:index .prov:Collection label}
 
-Alice's daily journal, structured as a hierarchy of collections. The top-level index contains [2026] {+j:2026/index ?prov:hadMember label}.
+Everything I write ends up here. Started keeping this in [2026] {+j:2026/index ?prov:hadMember label}.
 
 ## Year 2026 {=j:2026/index .prov:Collection label}
 
-2026 is organised into monthly collections: [January] {+j:2026/01/index ?prov:hadMember label}, [February] {+j:2026/02/index ?prov:hadMember label}, [March] {+j:2026/03/index ?prov:hadMember label}, [April] {+j:2026/04/index ?prov:hadMember label}, and [May] {+j:2026/05/index ?prov:hadMember label}.
+Quite a year so far. I've been writing through [January] {+j:2026/01/index ?prov:hadMember label}, [February] {+j:2026/02/index ?prov:hadMember label}, [March] {+j:2026/03/index ?prov:hadMember label}, [April] {+j:2026/04/index ?prov:hadMember label}, and now [May] {+j:2026/05/index ?prov:hadMember label}.
 
 ## May 2026 {=j:2026/05/index .prov:Collection label}
 
-May started on [2026-05-01] {prov:startedAtTime ^^xsd:date} and is divided into five weekly collections: days [1–3] {+j:2026/05/week-1/index ?prov:hadMember label}, [4–10] {+j:2026/05/week-2/index ?prov:hadMember label}, [11–17] {+j:2026/05/week-3/index ?prov:hadMember label}, [18–24] {+j:2026/05/week-4/index ?prov:hadMember label}, and [25–31] {+j:2026/05/week-5/index ?prov:hadMember label}.
+May kicked off on [2026-05-01] {prov:startedAtTime ^^xsd:date}. I'm splitting it into weeks: [1–3] {+j:2026/05/week-1/index ?prov:hadMember label}, [4–10] {+j:2026/05/week-2/index ?prov:hadMember label}, [11–17] {+j:2026/05/week-3/index ?prov:hadMember label}, [18–24] {+j:2026/05/week-4/index ?prov:hadMember label}, [25–31] {+j:2026/05/week-5/index ?prov:hadMember label}.
 
 ## Week 2, May 2026 {=j:2026/05/week-2/index .prov:Collection label}
 
-The second week of May ran from [2026-05-04] {prov:startedAtTime ^^xsd:date} through [2026-05-10] {prov:endedAtTime ^^xsd:date}. It contained [6] {j:totalActivities ^^xsd:integer} logged activities across [5] {j:readingHours ^^xsd:integer} hours of reading, [8] {j:workHours ^^xsd:integer} hours of work, and [3] {j:exerciseHours ^^xsd:integer} hours of exercise. Of [5] {j:goalsTotal ^^xsd:integer} weekly goals set on Monday, [4] {j:goalsCompleted ^^xsd:integer} were completed and [1] {j:goalsCarryOver ^^xsd:integer} carried over.
-
-The week's daily entries are members of this collection:
+Week ran [2026-05-04] {prov:startedAtTime ^^xsd:date} to [2026-05-10] {prov:endedAtTime ^^xsd:date}. Decent week overall — [6] {j:totalActivities ^^xsd:integer} things logged, [5] {j:readingHours ^^xsd:integer} hrs reading, [8] {j:workHours ^^xsd:integer} hrs work, [3] {j:exerciseHours ^^xsd:integer} hrs moving. Set [5] {j:goalsTotal ^^xsd:integer} goals Monday, hit [4] {j:goalsCompleted ^^xsd:integer}, rolled [1] {j:goalsCarryOver ^^xsd:integer} over.
 
 ======
 
 ### 06 May 2026 {=j:2026/05/06/index .prov:Activity label}
 
-A productive Wednesday. The day ran from [2026-05-06T08:00:00+04:00] {prov:startedAtTime ^^xsd:dateTime} to [2026-05-06T23:30:00+04:00] {prov:endedAtTime ^^xsd:dateTime} and is a [member] {+j:2026/05/week-2/index ?prov:hadMember} of week 2. It produced a [daily summary] {+j:2026/05/06/summary .prov:Entity ?prov:generated label} capturing mood and locations visited.
+Good day. Up at [2026-05-06T08:00:00+04:00] {prov:startedAtTime ^^xsd:dateTime}, lights out [2026-05-06T23:30:00+04:00] {prov:endedAtTime ^^xsd:dateTime}. This is [week 2] {+j:2026/05/week-2/index ?prov:hadMember}. By end of day I had a [daily wrap-up] {+j:2026/05/06/summary .prov:Entity ?prov:generated label} written.
 
-The day flowed through three phases, each informing the next: [morning] {+#morning ?prov:wasInformedBy}, then [afternoon] {+#afternoon ?prov:wasInformedBy}, then [social] {+#social ?prov:wasInformedBy}.
+Morning led into afternoon which led into [evening out] {+#morning ?prov:wasInformedBy} → [#afternoon] {+#afternoon ?prov:wasInformedBy} → [#social] {+#social ?prov:wasInformedBy}.
 
 #### Morning {=#morning .prov:Activity label}
 
-The morning started with a [walk] {+#walk ?prov:wasInformedBy} and then [coffee] {+#coffee-prep ?prov:wasInformedBy}.
+Started slow, which was the point. [Run first] {+#walk ?prov:wasInformedBy}, then [coffee] {+#coffee-prep ?prov:wasInformedBy}.
 
-##### Morning Walk {=#walk .prov:Activity label}
+##### Morning Run {=#walk .prov:Activity label}
 
-A [45] {j:durationMin ^^xsd:integer}-minute run covering [2.5] {j:distanceMiles ^^xsd:decimal} miles through [Central Park] {+j:place/central-park .prov:Location ?prov:atLocation label}, wearing [running shoes] {+j:shoes/running .prov:Entity ?prov:used label}. The watch generated [heart rate data] {+j:2026/05/06/hr-data .prov:Entity ?prov:generated label} for the session.
+[45] {j:durationMin ^^xsd:integer} minutes, [2.5] {j:distanceMiles ^^xsd:decimal} miles around [Central Park] {+j:place/central-park .prov:Location ?prov:atLocation label}. Wore my [running shoes] {+j:shoes/running .prov:Entity ?prov:used label} — watch logged [heart rate data] {+j:2026/05/06/hr-data .prov:Entity ?prov:generated label} the whole time.
 
-##### Coffee Preparation {=#coffee-prep .prov:Activity label}
+##### Coffee {=#coffee-prep .prov:Activity label}
 
-Back [home] {+j:place/home .prov:Location ?prov:atLocation label}, ground [coffee beans] {+j:coffee/beans .prov:Entity ?prov:used label} with [water] {+j:coffee/water .prov:Entity ?prov:used label} and produced a [morning coffee] {+#morning-coffee .prov:Entity ?prov:generated label}.
+Back [home] {+j:place/home .prov:Location ?prov:atLocation label}. Ground the [beans] {+j:coffee/beans .prov:Entity ?prov:used label}, boiled [water] {+j:coffee/water .prov:Entity ?prov:used label}, got a proper [cup] {+#morning-coffee .prov:Entity ?prov:generated label}.
 
 #### Afternoon {=#afternoon .prov:Activity ?prov:wasInformedBy label}
 
-The afternoon split between reading and a work session.
+Split between reading and grinding through docs.
 
-##### Reading Session {=#reading .prov:Activity label}
+##### Reading {=#reading .prov:Activity label}
 
-Read [42] {j:pages ^^xsd:integer} pages of [Dune] {+j:dune-book .prov:Entity ?prov:used label} over [2] {j:durationHours ^^xsd:integer} hours, producing [reading notes] {+j:reading-notes .prov:Entity ?prov:generated label}.
+[2] {j:durationHours ^^xsd:integer} hours with [Dune] {+j:dune-book .prov:Entity ?prov:used label} — got through [42] {j:pages ^^xsd:integer} pages. Wrote up [some notes] {+j:reading-notes .prov:Entity ?prov:generated label} while it was fresh.
 
-##### Work Session {=#work .prov:Activity ?prov:wasInformedBy label}
+##### Work {=#work .prov:Activity ?prov:wasInformedBy label}
 
-Spent [3] {j:durationHours ^^xsd:integer} hours on [API documentation] {+j:api-docs .prov:Entity ?prov:used label}, generating [documentation updates] {+j:doc-updates .prov:Entity ?prov:generated label}.
+[3] {j:durationHours ^^xsd:integer} hours on [API docs] {+j:api-docs .prov:Entity ?prov:used label}. Pushed [a round of updates] {+j:doc-updates .prov:Entity ?prov:generated label}.
 
-#### Social {=#social .prov:Activity ?prov:wasInformedBy label}
+#### Evening — coffee with Sam {=#social .prov:Activity ?prov:wasInformedBy label}
 
-Met [Sam] {+j:sam .prov:Person ?prov:wasAssociatedWith label} at the [local café] {+j:place/cafe .prov:Location ?prov:atLocation label} for [30] {j:durationMin ^^xsd:integer} minutes to talk through [career changes] {j:topic}.
+Met [Sam] {+j:sam .prov:Person ?prov:wasAssociatedWith label} at [our usual spot] {+j:place/cafe .prov:Location ?prov:atLocation label}. [30] {j:durationMin ^^xsd:integer} minutes turned into a real conversation about [career changes] {j:topic}.
 
-### Daily Summary {=j:2026/05/06/summary .prov:Entity label}
+### Wrap-up {=j:2026/05/06/summary .prov:Entity label}
 
-End-of-day reflection, generated by the day's activity. Mood: [happy] {j:mood}, energy [8] {j:energy ^^xsd:integer}/10, stress [2] {j:stress ^^xsd:integer}/10. Places visited today: [Central Park] {+j:place/central-park ?j:visited}, [home] {+j:place/home ?j:visited}, and [local café] {+j:place/cafe ?j:visited}.
+Mood: [happy] {j:mood}. Energy [8] {j:energy ^^xsd:integer}/10, stress [2] {j:stress ^^xsd:integer}/10 — good ratio. Was out at [Central Park] {+j:place/central-park ?j:visited}, [home] {+j:place/home ?j:visited}, and [the café] {+j:place/cafe ?j:visited}.
 
 `,recipe:`[food] <tag:alice@example.com,2026:food/>
 [schema] <http://schema.org/>
