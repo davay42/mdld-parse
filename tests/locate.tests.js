@@ -22,13 +22,13 @@ export const locateTests = [
             
 # Article {=ex:article .ex:Article}
 
-> Alice Smith {author}
-> 2024-01-01 {datePublished}`;
+> Alice Smith {ex:author}
+> 2024-01-01 {ex:datePublished}`;
 
             const result = parse({ text: mdld });
             const authorQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/article' &&
-                q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
+                q.predicate.value === 'http://example.org/author'
             );
 
             assert(authorQuad, 'Should find author quad');
@@ -51,13 +51,13 @@ export const locateTests = [
 
 # Person {=ex:alice .ex:Person}
 
-> Alice Smith {name}
-> 25 {age ^^xsd:integer}`;
+> Alice Smith {ex:name}
+> 25 {ex:age ^^xsd:integer}`;
 
             const result = parse({ text: mdld });
             const aliceQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/alice' &&
-                q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#name'
+                q.predicate.value === 'http://example.org/name'
             );
 
             const location = locate(aliceQuad, result.origin);
@@ -98,12 +98,12 @@ export const locateTests = [
 
 # Article {=ex:article .ex:Article}
 
-> alice {+ex:alice ?author}`;
+> alice {+ex:alice ?ex:author}`;
 
             const result = parse({ text: mdld });
             const objectQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/article' &&
-                q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
+                q.predicate.value === 'http://example.org/author'
             );
 
             const location = locate(objectQuad, result.origin);
@@ -122,12 +122,12 @@ export const locateTests = [
 
 # Person {=ex:person .ex:Person}
 
-> 25 {age ^^xsd:integer}`;
+> 25 {ex:age ^^xsd:integer}`;
 
             const result = parse({ text: mdld });
             const ageQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/person' &&
-                q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#age'
+                q.predicate.value === 'http://example.org/age'
             );
 
             const location = locate(ageQuad, result.origin);
@@ -146,7 +146,7 @@ export const locateTests = [
 
 # Article {=ex:article .ex:Article}
 
-> Alice Smith {author}`;
+> Alice Smith {ex:author}`;
 
             const result = parse({ text: mdld });
             const fakeQuad = {
@@ -222,7 +222,7 @@ export const locateTests = [
 
 # Test {=ex:test .ex:Test}
 
-> value {property} `;
+> value {ex:property} `;
 
             const result = parse({ text: mdld });
             const quad = result.quads[0];
@@ -245,12 +245,12 @@ export const locateTests = [
 
 # Article {=ex:article .ex:Article}
 
-[Alice Smith] {author}`;
+[Alice Smith] {ex:author}`;
 
             const result = parse({ text: mdld });
             const authorQuad = result.quads.find(q =>
                 q.subject.value === 'http://example.org/article' &&
-                q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#author'
+                q.predicate.value === 'http://example.org/author'
             );
 
             const location = locate(authorQuad, result.origin);
@@ -264,6 +264,163 @@ export const locateTests = [
             // Validate value matches expected content
             assertEqual(location.value, 'Alice Smith');
             assertEqual(location.polarity, '+');
+        }
+    },
+
+    // Test 11: valueRange for text updates
+    {
+        name: 'Locate - valueRange enables text updates in correct carrier',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+[Alice Smith] {ex:author}`;
+
+            const result = parse({ text: mdld });
+            const authorQuad = result.quads.find(q =>
+                q.subject.value === 'http://example.org/article' &&
+                q.predicate.value === 'http://example.org/author'
+            );
+
+            const location = locate(authorQuad, result.origin);
+            assert(location, 'Should locate quad');
+            assert(location.valueRange !== null, 'Should have valueRange');
+
+            // Extract text using valueRange (content without carrier markers)
+            const valueText = mdld.substring(location.valueRange.start, location.valueRange.end);
+            assertEqual(valueText, 'Alice Smith', 'valueRange should extract content without carrier markers');
+
+            // Extract text using range (includes annotation)
+            const fullText = mdld.substring(location.range.start, location.range.end);
+            assert(fullText.includes('[Alice Smith]'), 'range should include carrier markers');
+            assert(fullText.includes('{ex:author}'), 'range should include annotation');
+
+            // Simulate updating the value using valueRange (need to add brackets back)
+            const updatedText = mdld.substring(0, location.valueRange.start) +
+                'Bob Johnson' +
+                mdld.substring(location.valueRange.end);
+
+            // Verify the updated text maintains correct carrier structure
+            assert(updatedText.includes('[Bob Johnson] {ex:author}'), 'Updated text should maintain annotation');
+
+            // Parse updated text and verify new value
+            const updatedResult = parse({ text: updatedText });
+            const updatedQuad = updatedResult.quads.find(q =>
+                q.subject.value === 'http://example.org/article' &&
+                q.predicate.value === 'http://example.org/author'
+            );
+            assert(updatedQuad, 'Should have updated quad');
+            assertEqual(updatedQuad.object.value, 'Bob Johnson', 'Quad should have updated value');
+        }
+    },
+
+    // Test 12: Retract and re-add uses latest active annotation
+    {
+        name: 'Locate - Retract and re-add uses latest active annotation',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+[Alice Smith] {ex:author}
+[Alice Smith] {-ex:author}
+[Bob Johnson] {ex:author}`;
+
+            const result = parse({ text: mdld });
+            const authorQuad = result.quads.find(q =>
+                q.subject.value === 'http://example.org/article' &&
+                q.predicate.value === 'http://example.org/author'
+            );
+
+            assert(authorQuad, 'Should have author quad after retract and re-add');
+            assertEqual(authorQuad.object.value, 'Bob Johnson', 'Should have latest value (Bob Johnson)');
+
+            const location = locate(authorQuad, result.origin);
+            assert(location, 'Should locate latest active quad');
+            assertEqual(location.value, 'Bob Johnson', 'Should point to latest active annotation');
+            assertEqual(location.polarity, '+', 'Latest annotation should have positive polarity');
+
+            // Verify valueRange points to the latest annotation
+            if (location.valueRange) {
+                const valueText = mdld.substring(location.valueRange.start, location.valueRange.end);
+                assertEqual(valueText, 'Bob Johnson', 'valueRange should point to latest active annotation');
+            }
+        }
+    },
+
+    // Test 13: Multiple retractions track latest active annotation
+    {
+        name: 'Locate - Multiple retractions track latest active annotation',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+[Alice Smith] {ex:author}
+[Alice Smith] {-ex:author}
+[Bob Johnson] {ex:author}
+[Bob Johnson] {-ex:author}
+[Charlie Davis] {ex:author}`;
+
+            const result = parse({ text: mdld });
+            const authorQuad = result.quads.find(q =>
+                q.subject.value === 'http://example.org/article' &&
+                q.predicate.value === 'http://example.org/author'
+            );
+
+            assert(authorQuad, 'Should have author quad after multiple retractions');
+            assertEqual(authorQuad.object.value, 'Charlie Davis', 'Should have final value (Charlie Davis)');
+
+            const location = locate(authorQuad, result.origin);
+            assert(location, 'Should locate final active quad');
+            assertEqual(location.value, 'Charlie Davis', 'Should point to final active annotation');
+
+            // Verify valueRange points to the final annotation
+            if (location.valueRange) {
+                const valueText = mdld.substring(location.valueRange.start, location.valueRange.end);
+                assertEqual(valueText, 'Charlie Davis', 'valueRange should point to final active annotation');
+            }
+        }
+    },
+
+    // Test 14: valueRange works for all carrier types
+    {
+        name: 'Locate - valueRange extracts content without markers for all carrier types',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+[Bracket text] {ex:bracket}
+*Emphasis text* {ex:emphasis}
+\`Code text\` {ex:code}`;
+
+            const result = parse({ text: mdld });
+
+            // Test bracket carrier
+            const bracketQuad = result.quads.find(q => q.predicate.value === 'http://example.org/bracket');
+            const bracketLocation = locate(bracketQuad, result.origin);
+            assert(bracketLocation, 'Should locate bracket carrier');
+            assert(bracketLocation.valueRange !== null, 'Bracket should have valueRange');
+            const bracketText = mdld.substring(bracketLocation.valueRange.start, bracketLocation.valueRange.end);
+            assertEqual(bracketText, 'Bracket text', 'valueRange should exclude brackets');
+
+            // Test emphasis carrier
+            const emphasisQuad = result.quads.find(q => q.predicate.value === 'http://example.org/emphasis');
+            const emphasisLocation = locate(emphasisQuad, result.origin);
+            assert(emphasisLocation, 'Should locate emphasis carrier');
+            assert(emphasisLocation.valueRange !== null, 'Emphasis should have valueRange');
+            const emphasisText = mdld.substring(emphasisLocation.valueRange.start, emphasisLocation.valueRange.end);
+            assertEqual(emphasisText, 'Emphasis text', 'valueRange should exclude emphasis markers');
+
+            // Test code carrier
+            const codeQuad = result.quads.find(q => q.predicate.value === 'http://example.org/code');
+            const codeLocation = locate(codeQuad, result.origin);
+            assert(codeLocation, 'Should locate code carrier');
+            assert(codeLocation.valueRange !== null, 'Code should have valueRange');
+            const codeText = mdld.substring(codeLocation.valueRange.start, codeLocation.valueRange.end);
+            assertEqual(codeText, 'Code text', 'valueRange should exclude backticks');
         }
     }
 ];

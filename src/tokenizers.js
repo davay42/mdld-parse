@@ -309,7 +309,12 @@ export function detectAngleBracketUrl(text, startPos) {
     const schemeMatch = url.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/);
     if (!schemeMatch) return null;
 
-    return { url, endPos: closeAngle + 1 };
+    return {
+        url,
+        endPos: closeAngle + 1,
+        contentStart: startPos + 1,
+        contentEnd: closeAngle
+    };
 }
 
 /**
@@ -358,7 +363,8 @@ export function detectEmphasis(text, startPos) {
                 content,
                 attrs: attrsResult?.attrs || null,
                 endPos: finalPos,
-                contentEnd: endPos
+                contentStart,
+                contentEnd: pos
             };
         }
         pos++;
@@ -403,7 +409,8 @@ export function detectCodeSpan(text, startPos) {
                 content,
                 attrs: attrsResult?.attrs || null,
                 endPos: finalPos,
-                contentEnd: endPos
+                contentStart,
+                contentEnd: pos
             };
         }
         pos++;
@@ -460,7 +467,8 @@ export function detectBracketLink(text, startPos) {
         url,
         attrs: attrsResult?.attrs || null,
         endPos: finalPos,
-        bracketEnd: bracketEnd + 1
+        contentStart: startPos + 1,
+        contentEnd: bracketEnd
     };
 }
 
@@ -547,15 +555,20 @@ export function scanInlineCarriers(text, baseOffset = 0) {
         // Calculate ranges once
         const absStart = baseOffset + pos;
         const absEnd = baseOffset + detected.endPos;
-        const contentEndOffset = detected.contentEnd || detected.bracketEnd || detected.endPos;
-        const absContentEnd = baseOffset + contentEndOffset;
+        const absContentEnd = baseOffset + detected.contentEnd;
+
+        // Calculate valueRange using detected contentStart/contentEnd (all detection functions now provide these)
+        const valueRange = [
+            baseOffset + detected.contentStart,
+            baseOffset + detected.contentEnd
+        ];
 
         // Build carrier object with minimal properties
         const carrier = {
             type: type,
             text: detected.content !== undefined ? detected.content : (detected.text !== undefined ? detected.text : url),
             range: [absStart, absEnd],
-            valueRange: [absStart + (type === 'url' ? 1 : 0), absContentEnd - (type === 'url' ? 1 : 0)],
+            valueRange,
             attrs: attrs,
             url: url,
             pos: detected.endPos
