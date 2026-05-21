@@ -1,4 +1,4 @@
-import { parse, locate, generate } from '../src/index.js';
+import { parse, locate, generate, updateValue } from '../src/index.js';
 
 // Test helpers
 function assert(condition, message) {
@@ -421,6 +421,64 @@ export const locateTests = [
             assert(codeLocation.valueRange !== null, 'Code should have valueRange');
             const codeText = mdld.substring(codeLocation.valueRange.start, codeLocation.valueRange.end);
             assertEqual(codeText, 'Code text', 'valueRange should exclude backticks');
+        }
+    },
+
+    // Test 15: updateValue convenience function
+    {
+        name: 'Locate - updateValue convenience function',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+[Alice Smith] {ex:author}`;
+
+            const result = parse({ text: mdld });
+            const authorQuad = result.quads.find(q =>
+                q.subject.value === 'http://example.org/article' &&
+                q.predicate.value === 'http://example.org/author'
+            );
+
+            // Test with explicit origin (more efficient)
+            const updatedText1 = updateValue({
+                text: mdld,
+                quad: authorQuad,
+                value: 'Bob Johnson',
+                origin: result.origin
+            });
+            assert(updatedText1.includes('[Bob Johnson] {ex:author}'), 'Should update value with explicit origin');
+
+            // Test without origin (auto-parse)
+            const updatedText2 = updateValue({
+                text: mdld,
+                quad: authorQuad,
+                value: 'Charlie Davis'
+            });
+            assert(updatedText2.includes('[Charlie Davis] {ex:author}'), 'Should update value with auto-parse');
+
+            // Verify updated text parses correctly
+            const updatedResult = parse({ text: updatedText1 });
+            const updatedQuad = updatedResult.quads.find(q =>
+                q.subject.value === 'http://example.org/article' &&
+                q.predicate.value === 'http://example.org/author'
+            );
+            assert(updatedQuad, 'Updated text should parse correctly');
+            assertEqual(updatedQuad.object.value, 'Bob Johnson', 'Updated quad should have new value');
+
+            // Test fail-safe: non-existent quad returns original text
+            const fakeQuad = {
+                subject: { termType: 'NamedNode', value: 'http://example.org/nonexistent' },
+                predicate: { termType: 'NamedNode', value: 'http://example.org/fake' },
+                object: { termType: 'Literal', value: 'fake' }
+            };
+            const unchangedText = updateValue({
+                text: mdld,
+                quad: fakeQuad,
+                value: 'should not change',
+                origin: result.origin
+            });
+            assertEqual(unchangedText, mdld, 'Non-existent quad should return original text');
         }
     }
 ];

@@ -237,7 +237,7 @@ export const DataFactory = {
 
 /**
  * Locate the origin entry for a quad using the lean origin system
- * 
+ *
  * @param {Object} quad - The quad to locate (subject, predicate, object)
  * @param {Object} origin - Origin object containing quadIndex
  * @returns {Object|null} Origin entry or null if not found
@@ -256,7 +256,6 @@ export function locate(quad, origin) {
     // Return the origin entry directly - no need to create new object
     return origin.quadIndex.get(quadKey) || null;
 }
-
 
 export function hash(str) {
     let h = 5381;
