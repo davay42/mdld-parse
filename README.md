@@ -371,7 +371,10 @@ Locate the origin entry for a quad using the lean origin system.
 - `quad` (object) — The quad to locate (subject, predicate, object)
 - `origin` (object) — Origin object containing quadIndex
 
-**Returns:** `{ blockId, range, carrierType, subject, predicate, context, value, polarity }` or `null`
+**Returns:** `{ blockId, range, valueRange, carrierType, subject, predicate, context, value, polarity }` or `null`
+
+- `range`: Full character range including carrier markers (e.g., `[`, `]`, `{`, `}`)
+- `valueRange`: Character range excluding carrier markers (null if not available)
 
 ### `render(quads, options)`
 

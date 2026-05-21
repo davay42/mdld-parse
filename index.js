@@ -611,6 +611,7 @@ function ye(e, t, n, r = null) {
 	return {
 		blockId: e.id,
 		range: e.range,
+		valueRange: e.valueRange || null,
 		carrierType: e.carrierType,
 		subject: t.value,
 		predicate: n.value,
@@ -1003,6 +1004,10 @@ function je(e, t, n, r, i, a, o, s, c) {
 			start: r[0],
 			end: r[1]
 		},
+		valueRange: a ? {
+			start: a[0],
+			end: a[1]
+		} : null,
 		carrierType: o || null,
 		subject: e,
 		types: l.types,

@@ -25,7 +25,8 @@ Each `OriginEntry` contains:
 ```javascript
 {
   blockId: string,        // Unique identifier for the containing block
-  range: { start: number, end: number },  // Character range in source text
+  range: { start: number, end: number },  // Character range including carrier markers
+  valueRange: { start: number, end: number } | null,  // Character range excluding carrier markers
   carrierType: string,    // 'heading', 'blockquote', 'span'
   subject: string,        // Subject IRI of the quad
   predicate: string,       // Predicate IRI of the quad
