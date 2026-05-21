@@ -417,7 +417,9 @@ function le(e, t) {
 	let r = e.slice(t + 1, n).trim();
 	return r.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/) ? {
 		url: r,
-		endPos: n + 1
+		endPos: n + 1,
+		contentStart: t + 1,
+		contentEnd: n
 	} : null;
 }
 function ue(e, t) {
@@ -439,7 +441,8 @@ function ue(e, t) {
 				content: t,
 				attrs: c?.attrs || null,
 				endPos: l,
-				contentEnd: a
+				contentStart: o,
+				contentEnd: s
 			};
 		}
 		s++;
@@ -460,7 +463,8 @@ function de(e, t) {
 				content: t,
 				attrs: o?.attrs || null,
 				endPos: s,
-				contentEnd: r
+				contentStart: i,
+				contentEnd: a
 			};
 		}
 		a++;
@@ -489,7 +493,8 @@ function fe(e, t) {
 		url: a,
 		attrs: o?.attrs || null,
 		endPos: s,
-		bracketEnd: n + 1
+		contentStart: t + 1,
+		contentEnd: n
 	};
 }
 function x(e, t = 0) {
@@ -523,16 +528,16 @@ function x(e, t = 0) {
 			i = a.endPos;
 			continue;
 		}
-		let l = t + i, u = t + a.endPos, d = t + (a.contentEnd || a.bracketEnd || a.endPos), f = {
+		let l = t + i, u = t + a.endPos, d = t + a.contentEnd, f = [t + a.contentStart, t + a.contentEnd], p = {
 			type: s,
 			text: a.content === void 0 ? a.text === void 0 ? o : a.text : a.content,
 			range: [l, u],
-			valueRange: [l + +(s === "url"), d - +(s === "url")],
+			valueRange: f,
 			attrs: c,
 			url: o,
 			pos: a.endPos
 		};
-		c && (f.attrsRange = [d, u]), n.push(f), i = a.endPos;
+		c && (p.attrsRange = [d, u]), n.push(p), i = a.endPos;
 	}
 	return n;
 }
