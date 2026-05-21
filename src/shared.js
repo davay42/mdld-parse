@@ -140,6 +140,7 @@ export function createLeanOriginEntry(block, subject, predicate, meta = null) {
     return {
         blockId: block.id,
         range: block.range,
+        valueRange: block.valueRange || null,
         carrierType: block.carrierType,
         subject: subject.value,
         predicate: predicate.value,

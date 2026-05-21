@@ -68,13 +68,13 @@ export const originLeanTests = [
             // Check optional fields
             assert(typeof location.context === 'object', 'Should have context object');
             assert(typeof location.value === 'string', 'Should have value string');
+            assert(location.valueRange === null || typeof location.valueRange === 'object', 'Should have valueRange object or null');
 
             // Check removed fields
             assert(location.entryIndex === undefined, 'Should not have entryIndex');
             assert(location.kind === undefined, 'Should not have kind');
             assert(location.isVacant === undefined, 'Should not have isVacant');
             assert(location.attrsRange === undefined, 'Should not have attrsRange');
-            assert(location.valueRange === undefined, 'Should not have valueRange');
             assert(location.slotId === undefined, 'Should not have slotId');
             assert(location.lastValue === undefined, 'Should not have lastValue');
             assert(location.vacantSince === undefined, 'Should not have vacantSince');

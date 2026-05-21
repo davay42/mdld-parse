@@ -491,6 +491,7 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
     return {
         id: blockId,
         range: { start: range[0], end: range[1] },
+        valueRange: valueRange ? { start: valueRange[0], end: valueRange[1] } : null,
         carrierType: carrierType || null,
         subject,
         types: expanded.types,
