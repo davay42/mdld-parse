@@ -305,6 +305,72 @@ Generate node-centric MDLD showing all quads where a specific IRI appears in any
 
 **Use case:** Perfect for exploring a specific node and all its relationships—where it appears as subject, object, predicate, type, or datatype. Creates an exhaustive view of everything related to the focus IRI. Ideal for node-centric knowledge graph explorers.
 
+### `updateValue()` — Update Quad Carrier Text in Source Text
+
+Update the carrier text of a literal quad in MDLD text. Only the carrier content is replaced — datatype (`^^xsd:integer`) and language (`@en`) annotations inside the `{…}` block are preserved as-is, since they are part of the annotation, not the carrier.
+
+```javascript
+import { parse, updateValue } from 'mdld-parse';
+
+const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+[Alice Smith] {ex:author}`;
+
+const result = parse({ text: mdld });
+const authorQuad = result.quads.find(q =>
+    q.subject.value === 'http://example.org/article' &&
+    q.predicate.value === 'http://example.org/author'
+);
+
+const updatedText = updateValue({
+    text: mdld,
+    quad: authorQuad,
+    value: 'Bob Johnson',
+    origin: result.origin  // optional (auto-parses if not provided)
+});
+
+console.log(updatedText);
+// [ex] <http://example.org/>
+//
+// # Article {=ex:article .ex:Article}
+//
+// [Bob Johnson] {ex:author}
+```
+
+**Annotation annotations are preserved:**
+```javascript
+// Original: > 25 {ex:age ^^xsd:integer}
+updateValue({ text, quad, value: '30' });
+// Result:   > 30 {ex:age ^^xsd:integer}  ← datatype preserved
+
+// Original: > Hello {ex:greeting @en}
+updateValue({ text, quad, value: 'Good morning' });
+// Result:   > Good morning {ex:greeting @en}  ← language tag preserved
+```
+
+**Parameters:**
+- `text` (string) — The original MDLD text
+- `quad` (object) — The quad to update (subject, predicate, object)
+- `value` (string) — The new carrier text to set
+- `origin` (object, optional) — ParseResult.origin (auto-parses if not provided)
+
+**Returns:** Updated MDLD text, or original text if update fails (fail-safe)
+
+**How it works:**
+- Uses `locate()` to find the quad's position in the source text
+- Uses `valueRange` to replace only the carrier text (excluding carrier markers like `[`, `]`)
+- Annotation block `{…}` with predicate, datatype, language is untouched
+- Auto-parses if result not provided (convenient but less efficient)
+
+**Fail-safe behavior:**
+- Returns original text if quad cannot be located
+- Returns original text if valueRange is not available
+- Never corrupts the source text
+
+**Use case:** Perfect for editor applications that need to update literal values while preserving carrier syntax, datatype annotations, and language tags.
+
 ### Composition Patterns
 
 With the unified named parameter API, `parse()` and `generate()` compose seamlessly through object spreading:
