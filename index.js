@@ -1787,4 +1787,10 @@ function St(e) {
 	return n;
 }
 //#endregion
-export { e as DEFAULT_CONTEXT, d as DataFactory, h as expandIRI, Ve as generate, He as generateNode, Q as getIRIColor, p as hash, yt as hashIRI, St as highlightMDLD, f as locate, ze as merge, I as parse, _ as parseSemanticBlock, Je as render, g as shortenIRI };
+//#region src/index.js
+function Ct({ text: e, quad: t, value: n, origin: r }) {
+	let i = f(t, r?.quadIndex ? r : I({ text: e }).origin);
+	return !i || !i.valueRange ? e : e.substring(0, i.valueRange.start) + n + e.substring(i.valueRange.end);
+}
+//#endregion
+export { e as DEFAULT_CONTEXT, d as DataFactory, h as expandIRI, Ve as generate, He as generateNode, Q as getIRIColor, p as hash, yt as hashIRI, St as highlightMDLD, f as locate, ze as merge, I as parse, _ as parseSemanticBlock, Je as render, g as shortenIRI, Ct as updateValue };
