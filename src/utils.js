@@ -1,4 +1,4 @@
-import { URL_REGEX, DEFAULT_CONTEXT } from './constants.js';
+import { URL_REGEX, DEFAULT_CONTEXT, RDF_LANG_STRING, XSD_STRING, XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE } from './constants.js';
 
 const VALID_URI_SCHEMES = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file):/;
 
@@ -38,16 +38,16 @@ export class Literal extends Term {
             this.value = dtMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
             if (dtMatch[5]) {
                 this.language = dtMatch[5];
-                this.datatype = new NamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#langString');
+                this.datatype = new NamedNode(RDF_LANG_STRING);
             } else if (dtMatch[3]) {
                 this.datatype = new NamedNode(dtMatch[3]);
             } else {
-                this.datatype = new NamedNode('http://www.w3.org/2001/XMLSchema#string');
+                this.datatype = new NamedNode(XSD_STRING);
             }
         } else {
             // Fallback for simple literals without complex parsing
             this.value = id.replace(/^"|"$/g, '');
-            this.datatype = new NamedNode('http://www.w3.org/2001/XMLSchema#string');
+            this.datatype = new NamedNode(XSD_STRING);
         }
     }
 
@@ -125,14 +125,6 @@ export class Quad extends Term {
     }
 }
 
-// XSD constants
-const xsd = {
-    boolean: 'http://www.w3.org/2001/XMLSchema#boolean',
-    integer: 'http://www.w3.org/2001/XMLSchema#integer',
-    double: 'http://www.w3.org/2001/XMLSchema#double',
-    string: 'http://www.w3.org/2001/XMLSchema#string'
-};
-
 // DataFactory singleton matching N3.js interface
 export const DataFactory = {
     namedNode: (iri) => new NamedNode(iri),
@@ -159,14 +151,14 @@ export const DataFactory = {
         if (datatype === '') {
             // Convert a boolean
             if (typeof value === 'boolean') {
-                datatype = xsd.boolean;
+                datatype = XSD_BOOLEAN;
             }
             // Convert an integer or double
             else if (typeof value === 'number') {
                 if (Number.isFinite(value)) {
-                    datatype = Number.isInteger(value) ? xsd.integer : xsd.double;
+                    datatype = Number.isInteger(value) ? XSD_INTEGER : XSD_DOUBLE;
                 } else {
-                    datatype = xsd.double;
+                    datatype = XSD_DOUBLE;
                     if (!Number.isNaN(value)) {
                         value = value > 0 ? 'INF' : '-INF';
                     }
@@ -175,7 +167,7 @@ export const DataFactory = {
         }
 
         // Create a datatyped literal
-        return (datatype === '' || datatype === xsd.string)
+        return (datatype === '' || datatype === XSD_STRING)
             ? new Literal(`"${escapedValue}"`)
             : new Literal(`"${escapedValue}"^^${datatype}`);
     },

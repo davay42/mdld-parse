@@ -1,5 +1,5 @@
 import { shortenIRI, expandIRI, DataFactory } from './utils.js';
-import { DEFAULT_CONTEXT } from './constants.js';
+import { DEFAULT_CONTEXT, RDFS_LABEL, RDF_TYPE } from './constants.js';
 import {
     isLiteral,
     collectUsedPrefixes,
@@ -56,16 +56,16 @@ export function extractLocalName(iri, ctx = {}) {
 /**
  * Generate deterministic MDLD from RDF quads
  * Purpose: TTL→MDLD conversion with canonical structure
- * Input: RDF quads + context + optional primarySubject (string IRI)
- * Output: MDLD text
+ * Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean)
+ * Output: MDLD text + context + compactStats
  */
-export function generate({ quads, context = {}, primarySubject = null }) {
+export function generate({ quads, context = {}, primarySubject = null, compactInline = true }) {
     // Optimized context merging - avoid spread operator overhead
     const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
 
     const normalizedQuads = normalizeAndSortQuads(quads);
 
-    const subjectGroups = groupQuadsBySubject(normalizedQuads);
+    const { subjectGroups, reverseIndex } = groupQuadsBySubject(normalizedQuads);
 
     // Fallback: if no primarySubject provided, use first subject from quads
     let effectivePrimary = primarySubject;
@@ -73,9 +73,9 @@ export function generate({ quads, context = {}, primarySubject = null }) {
         effectivePrimary = normalizedQuads[0].subject.value;
     }
 
-    const { text } = buildDeterministicMDLD(subjectGroups, fullContext, effectivePrimary);
+    const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, effectivePrimary, reverseIndex, compactInline);
 
-    return { text, context: fullContext };
+    return { text, context: fullContext, compactStats };
 }
 
 /**
@@ -83,25 +83,25 @@ export function generate({ quads, context = {}, primarySubject = null }) {
  * in any position: subject, object, predicate, type, or datatype.
  * Perfect for exploring individual nodes and their complete relationship graph.
  */
-export function generateNode({ quads, focusIRI, context = {} }) {
+export function generateNode({ quads, focusIRI, context = {}, compactInline = true }) {
     // Validate: must have quads and a focus IRI
     if (!quads?.length || !focusIRI) {
-        return { text: '', context: Object.assign({}, DEFAULT_CONTEXT, context) };
+        return { text: '', context: Object.assign({}, DEFAULT_CONTEXT, context), compactStats: null };
     }
 
     const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
     const normalizedQuads = normalizeAndSortQuads(quads);
-    const nodeGroups = groupQuadsByNode(normalizedQuads);
+    const { nodeGroups, reverseIndex } = groupQuadsByNode(normalizedQuads);
 
     // SAFETY: If focusIRI not in graph, return empty - NEVER fall back to all data
     // This prevents accidental rendering of entire databases on misspelled IRIs
     if (!nodeGroups.has(focusIRI)) {
-        return { text: '', context: fullContext };
+        return { text: '', context: fullContext, compactStats: null };
     }
 
-    const { text } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI);
+    const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI, reverseIndex, compactInline);
 
-    return { text, context: fullContext };
+    return { text, context: fullContext, compactStats };
 }
 
 function normalizeAndSortQuads(quads) {
@@ -140,6 +140,8 @@ function normalizeAndSortQuads(quads) {
 
 function groupQuadsBySubject(quads) {
     const groups = new Map();
+    const reverseIndex = new Map(); // object IRI -> [quads pointing to it]
+
     for (const quad of quads) {
         const subjectValue = quad.subject.value;
         const existing = groups.get(subjectValue);
@@ -148,13 +150,25 @@ function groupQuadsBySubject(quads) {
         } else {
             groups.set(subjectValue, [quad]);
         }
+
+        // Track reverse connections (where this quad's object is a named node)
+        if (quad.object.termType === 'NamedNode') {
+            const objectValue = quad.object.value;
+            const reverseList = reverseIndex.get(objectValue);
+            if (reverseList) {
+                reverseList.push(quad);
+            } else {
+                reverseIndex.set(objectValue, [quad]);
+            }
+        }
     }
-    return groups;
+
+    return { subjectGroups: groups, reverseIndex };
 }
 
 function groupQuadsByNode(quads) {
     const groups = new Map();
-    const RDFS_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+    const reverseIndex = new Map(); // object IRI -> [quads pointing to it]
 
     const ensure = (key) => {
         const existing = groups.get(key);
@@ -175,6 +189,14 @@ function groupQuadsByNode(quads) {
         // 2. Object (reverse relations - where this IRI is pointed to)
         if (object.termType === 'NamedNode') {
             ensure(object.value).push(quad);
+            // Track reverse connections
+            const objectValue = object.value;
+            const reverseList = reverseIndex.get(objectValue);
+            if (reverseList) {
+                reverseList.push(quad);
+            } else {
+                reverseIndex.set(objectValue, [quad]);
+            }
         }
 
         // 3. Predicate (where this IRI is used as a property)
@@ -190,15 +212,30 @@ function groupQuadsByNode(quads) {
             ensure(object.datatype.value || object.datatype).push(quad);
         }
     }
-    return groups;
+    return { nodeGroups: groups, reverseIndex };
 }
 
-function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
+function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true) {
     const textParts = [];
     const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 
     // Build label lookup map for all IRIs that have rdfs:label
     const labelLookup = buildLabelLookup(subjectGroups);
+
+    // Track compaction statistics
+    const compactStats = {
+        compactedSubjects: 0,
+        skippedHeadings: 0,
+        inlineAnnotations: 0
+    };
+
+    // Track all quads that have been rendered (reverse, inline, etc.) to ensure quad stability
+    const renderedQuads = new Set();
+    // Pre-compute filtered quad groups for rapid O(1) access
+    const filteredGroups = new Map();
+    for (const [subjectIRI, quads] of subjectGroups.entries()) {
+        filteredGroups.set(subjectIRI, filterQuadsByType(quads));
+    }
 
     // Add prefixes first (deterministic order), but exclude default context prefixes
     const sortedPrefixes = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
@@ -227,20 +264,31 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
         // Skip if subject not found in groups (e.g., primarySubject provided but no quads for it)
         if (!subjectQuads) continue;
 
-        const shortSubject = getCachedShortIRI(subjectIRI, context);
+        // Skip subjects where all quads have been rendered (reverse, inline, etc.)
+        if (subjectQuads.every(q => renderedQuads.has(q))) {
+            compactStats.skippedHeadings++;
+            compactStats.compactedSubjects++;
+            continue;
+        }
 
-        // Separate types, literals, and objects using shared utility
-        const { types, literals, objects } = filterQuadsByType(subjectQuads);
+        // Separate types, literals, and objects using pre-computed filtered groups
+        const { types, literals, objects } = filteredGroups.get(subjectIRI);
+
+        const shortSubject = getCachedShortIRI(subjectIRI, context);
 
         // Check if this subject has a label
         const hasLabel = labelLookup.has(subjectIRI);
         const displayName = hasLabel ? labelLookup.get(subjectIRI) : extractLocalName(subjectIRI, context);
 
         // Build annotations: types + label indicator if present
-        let annotations = types.length > 0
-            ? types.map(t => '.' + getCachedShortIRI(t.object.value, context)).sort().join(' ')
+        // Exclude types already rendered inline to maintain quad stability
+        const typesNotRendered = types.filter(t => !renderedQuads.has(t));
+        let annotations = typesNotRendered.length > 0
+            ? typesNotRendered.map(t => '.' + getCachedShortIRI(t.object.value, context)).sort().join(' ')
             : '';
-        if (hasLabel) {
+        // Only add label indicator if label quad not already rendered inline
+        const labelQuad = subjectQuads.find(q => q.predicate.value === RDFS_LABEL);
+        if (hasLabel && (!labelQuad || !renderedQuads.has(labelQuad))) {
             annotations += (annotations ? ' ' : '') + 'label';
         }
 
@@ -248,33 +296,90 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null) {
         textParts.push(`# ${displayName} {=${shortSubject}${annotationStr}}\n`);
 
         // Add literals (excluding the label used in heading) and objects
-        const rdfsLabelIRI = 'http://www.w3.org/2000/01/rdf-schema#label';
         const headingLabel = hasLabel ? labelLookup.get(subjectIRI) : null;
         sortQuadsByPredicate(literals).forEach(quad => {
             // Skip only the label that matches the heading display, render additional labels
-            if (quad.predicate.value === rdfsLabelIRI && quad.object.value === headingLabel) {
+            if (quad.predicate.value === RDFS_LABEL && quad.object.value === headingLabel) {
                 return; // Skip the heading label
             }
             textParts.push(generateLiteralText(quad, context));
         });
 
         sortQuadsByPredicate(objects).forEach(quad => {
-            textParts.push(generateObjectText(quad, context, labelLookup));
+            // Skip quads already rendered (reverse annotations, inline, etc.)
+            if (renderedQuads.has(quad)) {
+                return;
+            }
+            textParts.push(generateObjectText(quad, context, labelLookup, filteredGroups, renderedQuads, compactInline, compactStats));
         });
+
+        // Render reverse connections for primarySubject as !p annotations
+        if (subjectIRI === primarySubjectIRI && reverseIndex && reverseIndex.has(subjectIRI)) {
+            const reverseQuads = reverseIndex.get(subjectIRI);
+            // Sort by predicate for deterministic output
+            reverseQuads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
+
+            for (const quad of reverseQuads) {
+                // Mark this quad as rendered to exclude from normal subject rendering
+                renderedQuads.add(quad);
+
+                const subjectQuads = subjectGroups.get(quad.subject.value);
+
+                const subjectLabel = labelLookup.has(quad.subject.value)
+                    ? labelLookup.get(quad.subject.value)
+                    : extractLocalName(quad.subject.value, context);
+                const shortSubject = getCachedShortIRI(quad.subject.value, context);
+                const shortPredicate = getCachedShortIRI(quad.predicate.value, context);
+
+                // Build inline type/label annotation for reverse connections
+                // Only render inline types/labels ONCE per subject to ensure quad stability
+                let inlineAnnotation = '';
+                if (compactInline && subjectQuads) {
+                    const { types } = filteredGroups.get(quad.subject.value) || { types: [] };
+                    const hasLabel = labelLookup.has(quad.subject.value);
+
+                    const typeAnnotations = types.length > 0
+                        ? types.map(t => '.' + getCachedShortIRI(t.object.value, context)).sort().join(' ')
+                        : '';
+                    const labelAnnotation = hasLabel ? 'label' : '';
+
+                    if (typeAnnotations || labelAnnotation) {
+                        inlineAnnotation = ' ' + [typeAnnotations, labelAnnotation].filter(Boolean).join(' ');
+                        compactStats.inlineAnnotations++;
+
+                        // Mark only the type and label quads as rendered inline
+                        types.forEach(q => renderedQuads.add(q));
+                        if (hasLabel) {
+                            const labelQuad = subjectQuads.find(q => q.predicate.value === RDFS_LABEL);
+                            if (labelQuad) renderedQuads.add(labelQuad);
+                        }
+                    }
+
+                    // Check if this subject's quads are all rendered (reverse + inline types/labels)
+                    // If so, skip the separate heading
+                    const allRendered = subjectQuads.every(q => renderedQuads.has(q));
+                    if (allRendered) {
+                        compactStats.skippedHeadings++;
+                        compactStats.compactedSubjects++;
+                    }
+                }
+
+                textParts.push(`[${subjectLabel}] {+${shortSubject} !${shortPredicate}${inlineAnnotation}}\n`);
+            }
+        }
 
         textParts.push('\n');
     }
 
-    return { text: textParts.join('') };
+    return { text: textParts.join(''), compactStats };
 }
 
 function buildLabelLookup(subjectGroups) {
     const labelLookup = new Map();
-    const rdfsLabelIRI = 'http://www.w3.org/2000/01/rdf-schema#label';
 
     for (const subjectQuads of subjectGroups.values()) {
         for (const quad of subjectQuads) {
-            if (quad.predicate.value === rdfsLabelIRI && quad.object.termType === 'Literal') {
+            if (quad.predicate.value === RDFS_LABEL && quad.object.termType === 'Literal') {
                 labelLookup.set(quad.subject.value, quad.object.value);
             }
         }

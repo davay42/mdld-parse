@@ -7,6 +7,13 @@ import {
 } from './utils.js';
 import {
     DEFAULT_CONTEXT,
+    RDFS_LABEL,
+    RDFS_COMMENT,
+    RDF_TYPE,
+    RDF_STATEMENT,
+    RDF_SUBJECT,
+    RDF_PREDICATE,
+    RDF_OBJECT
 } from './constants.js';
 import {
     detectStandaloneSubject,
@@ -26,11 +33,6 @@ import {
     createListToken,
     parseSemCached,
     extractCleanText,
-    RDF_TYPE,
-    RDF_STATEMENT,
-    RDF_SUBJECT,
-    RDF_PREDICATE,
-    RDF_OBJECT,
     createLeanOriginEntry,
     resolveSubject,
     resolveObject,
@@ -536,13 +538,13 @@ function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predi
 
         // Track primary type and label (first occurrence only)
         if (state) {
-            if (!state.primaryType && predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
+            if (!state.primaryType && predicate.value === RDF_TYPE) {
                 state.primaryType = object.value;
             }
-            if (!state.primaryLabel && predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label' && object.termType === 'Literal') {
+            if (!state.primaryLabel && predicate.value === RDFS_LABEL && object.termType === 'Literal') {
                 state.primaryLabel = object.value;
             }
-            if (!state.primaryComment && predicate.value === 'http://www.w3.org/2000/01/rdf-schema#comment' && object.termType === 'Literal') {
+            if (!state.primaryComment && predicate.value === RDFS_COMMENT && object.termType === 'Literal') {
                 state.primaryComment = object.value;
             }
         }

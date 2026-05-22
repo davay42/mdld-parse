@@ -4,6 +4,7 @@ import { mergeTests } from './merge.tests.js';
 import { originLeanTests } from './origin-lean.tests.js';
 import { elevatedStatementTests } from './elevated-statements.tests.js';
 import { mdTests } from './md.tests.js';
+import { runReverseAnnotationTests } from './reverse-annotation.tests.js';
 
 const tests = [
     ...parseTests,

@@ -1,4 +1,4 @@
-import { DEFAULT_CONTEXT } from './constants.js';
+import { DEFAULT_CONTEXT, RDFS_LABEL, RDF_TYPE, RDF_STATEMENT, RDF_SUBJECT, RDF_PREDICATE, RDF_OBJECT, XSD_STRING, XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE } from './constants.js';
 import { parseSemanticBlock, expandIRI, shortenIRI } from './utils.js';
 
 // Cache for fence regex patterns
@@ -130,11 +130,6 @@ export function extractCleanText(token) {
 }
 
 // Quad emission utilities
-export const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-export const RDF_STATEMENT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement';
-export const RDF_SUBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#subject';
-export const RDF_PREDICATE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate';
-export const RDF_OBJECT = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#object';
 
 export function createLeanOriginEntry(block, subject, predicate, meta = null) {
     return {
@@ -196,7 +191,7 @@ export function isNamedNode(term) {
 }
 
 export function isRdfType(term) {
-    return term?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+    return term?.value === RDF_TYPE;
 }
 
 // IRI prefix extraction utility
@@ -264,9 +259,6 @@ export function quadIndexKey(subject, predicate, object) {
     return `${subject.value}|${predicate.value}|${object.value}|${datatype}|${language}`;
 }
 
-// Constants - shared across modules (bundle-size optimized)
-export const XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string';
-
 // Optimized sorting utilities - inline for better minification
 export function sortQuadsByPredicate(quads) {
     return quads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
@@ -315,7 +307,7 @@ export function generateLiteralText(quad, context) {
     return `[${value}] {${annotation}}\n`;
 }
 
-export const generateObjectText = (quad, context, labelLookup = null) => {
+export const generateObjectText = (quad, context, labelLookup = null, filteredGroups = null, renderedQuads = null, compactInline = true, compactStats = null) => {
     const objShort = shortenIRI(quad.object.value, context);
     const predShort = shortenIRI(quad.predicate.value, context);
 
@@ -324,8 +316,47 @@ export const generateObjectText = (quad, context, labelLookup = null) => {
         ? labelLookup.get(quad.object.value)
         : objShort;
 
+    // Build inline type/label annotation if available
+    // Only render inline types/labels ONCE per subject to ensure quad stability
+    let inlineAnnotation = '';
+    if (compactInline && filteredGroups && labelLookup && renderedQuads) {
+        const filtered = filteredGroups.get(quad.object.value);
+        if (filtered) {
+            const { types } = filtered;
+            const hasLabel = labelLookup.has(quad.object.value);
+
+            // Check if any type or label quad for this subject has already been rendered
+            const alreadyRendered = types.some(t => renderedQuads.has(t)) ||
+                (hasLabel && types.some(t =>
+                    t.predicate.value === RDFS_LABEL && renderedQuads.has(t)
+                ));
+
+            if (!alreadyRendered) {
+                // Build inline types and label
+                const typeAnnotations = types.length > 0
+                    ? types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
+                    : '';
+                const labelAnnotation = hasLabel ? 'label' : '';
+
+                if (typeAnnotations || labelAnnotation) {
+                    inlineAnnotation = ' ' + [typeAnnotations, labelAnnotation].filter(Boolean).join(' ');
+                    if (compactStats) {
+                        compactStats.inlineAnnotations++;
+                    }
+
+                    // Mark only the type and label quads as rendered inline
+                    types.forEach(q => renderedQuads.add(q));
+                    if (hasLabel) {
+                        const labelQuad = types.find(q => q.predicate.value === RDFS_LABEL);
+                        if (labelQuad) renderedQuads.add(labelQuad);
+                    }
+                }
+            }
+        }
+    }
+
     // Object links: italic
-    return `[${displayText}] {+${objShort} ?${predShort}}\n`;
+    return `[${displayText}] {+${objShort} ?${predShort}${inlineAnnotation}}\n`;
 };
 
 // Optimized quad filtering - destructuring for smaller minified output
