@@ -1727,7 +1727,7 @@ List items:
 
             const context = { ex: 'http://example.org/' };
 
-            // Generate MDLD
+            // Generate MDLD (no primarySubject needed for this test)
             const { text, context: cont } = generate({ quads, context });
 
             // Parse it back

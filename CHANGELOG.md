@@ -1,5 +1,51 @@
 # MD-LD evolution
 
+## v1.0.0 (2026-05-22)
+
+### Production Release
+
+### Breaking Changes
+- **Reverse connection rendering now requires explicit `primarySubject`** — When `primarySubject` is not provided to `generate()`, reverse connections (`!p` annotations) are not rendered. This ensures deterministic, order-independent behavior and prevents quad duplication issues from order-sensitive fallbacks.
+
+### Performance Improvements
+- **Pre-computed filtered groups** — Replaced lazy caching with upfront computation of filtered quad groups for O(1) access during rendering
+- **Simplified quad tracking** — Consolidated `renderedReverseQuads`, `renderedInlineQuads`, and `renderedInlineSubjects` into a single `renderedQuads` Set
+- **Removed redundant state** — Eliminated `skippedSubjects` Set and derived skip conditions from `renderedQuads`
+
+### Code Quality (DRY)
+- **Centralized RDF term constants** — All W3C RDF IRIs now defined in `src/constants.js`:
+  - `RDFS_LABEL`, `RDFS_COMMENT`
+  - `RDF_TYPE`, `RDF_LANG_STRING`, `RDF_STATEMENT`, `RDF_SUBJECT`, `RDF_PREDICATE`, `RDF_OBJECT`
+  - `XSD_STRING`, `XSD_BOOLEAN`, `XSD_INTEGER`, `XSD_DOUBLE`
+- **Removed duplicate constant definitions** from `shared.js` and `utils.js`
+- **Eliminated magic strings** throughout codebase for better maintainability
+
+### Bug Fixes
+- **Fixed quad duplication in heading types/labels** — Types and labels rendered in heading annotations are now marked as rendered to prevent inline duplication
+- **Fixed order-sensitive primarySubject fallback** — Removed fallback to first subject from quads, ensuring deterministic output regardless of quad ordering
+
+### Documentation
+- **Updated README.md** — Documented `primarySubject` behavior for reverse connections
+- **Updated docs/API.md** — Added clear documentation for generate function parameters
+- **Documented compactInline default** — Clarified that inline compaction is enabled by default
+
+### Test Coverage
+- **132 tests passing** — Full backward compatibility maintained
+- **All quad stability tests passing** — Round-trip safety verified
+
+### Migration Guide
+If you were relying on reverse connection rendering without explicitly setting `primarySubject`:
+
+```javascript
+// Before (v0.10.0)
+const { text } = generate({ quads, context });
+// Reverse connections rendered with order-sensitive fallback
+
+// After (v1.0.0)
+const { text } = generate({ quads, context, primarySubject: 'http://example.org/subject' });
+// Reverse connections rendered only when primarySubject explicitly provided
+```
+
 ## v0.10.0 (2026-05-05)
 
 ### Added

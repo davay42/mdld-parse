@@ -274,7 +274,7 @@ Generate deterministic MDLD from RDF quads with visual styling.
 **Parameters (named object):**
 - `quads` (array, required) — Array of RDF/JS Quads to convert
 - `context` (object, optional) — Prefix mappings (default: `{}`)
-- `primarySubject` (string, optional) — String IRI to place first in output (ensures round-trip safety). If not provided, falls back to the first subject from quads.
+- `primarySubject` (string, optional) — String IRI to place first in output and enable reverse connection rendering. If not provided, reverse connections are not rendered (deterministic, order-independent behavior).
 - `compactInline` (boolean, optional) — Enable inline type/label compaction for referenced subjects (default: `true`)
 
 **Returns:** `{ text, context, compactStats }`
@@ -291,7 +291,7 @@ Generate deterministic MDLD from RDF quads with visual styling.
 - Label-in-heading: Uses `rdfs:label` in subject headings when available
 - Multiple labels: First label in heading, additional labels rendered as literals
 - Inline compaction: Types and labels of referenced subjects rendered inline (when `compactInline = true`)
-- Reverse connections: Primary subject's incoming connections rendered as `!p` annotations
+- Reverse connections: Primary subject's incoming connections rendered as `!p` annotations (only when `primarySubject` is explicitly provided)
 - Round-trip safe: All data preserved through parse → generate → parse
 - Composable: `generate(parse(text))` extracts semantics; `parse(generate({quads}))` normalizes quads
 

@@ -67,13 +67,11 @@ export function generate({ quads, context = {}, primarySubject = null, compactIn
 
     const { subjectGroups, reverseIndex } = groupQuadsBySubject(normalizedQuads);
 
-    // Fallback: if no primarySubject provided, use first subject from quads
-    let effectivePrimary = primarySubject;
-    if (!effectivePrimary && normalizedQuads.length > 0) {
-        effectivePrimary = normalizedQuads[0].subject.value;
-    }
+    // Only use reverseIndex if primarySubject is explicitly provided
+    // Avoids order-sensitive fallback that could break with quad ordering changes
+    const effectiveReverseIndex = primarySubject ? reverseIndex : null;
 
-    const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, effectivePrimary, reverseIndex, compactInline);
+    const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, effectiveReverseIndex, compactInline);
 
     return { text, context: fullContext, compactStats };
 }
@@ -294,6 +292,10 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
 
         const annotationStr = annotations ? ' ' + annotations : '';
         textParts.push(`# ${displayName} {=${shortSubject}${annotationStr}}\n`);
+
+        // Mark all type and label quads as rendered to prevent inline duplication
+        types.forEach(t => renderedQuads.add(t));
+        if (labelQuad) renderedQuads.add(labelQuad);
 
         // Add literals (excluding the label used in heading) and objects
         const headingLabel = hasLabel ? labelLookup.get(subjectIRI) : null;
