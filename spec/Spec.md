@@ -1041,6 +1041,7 @@ Primary label: `null`
 Primary subject: `ex:first`
 Primary type: `ex:Type`
 Primary label: `First`
+Primary comment: `First item description`
 (Reset does not clear primary metadata)
 
 ### 17.5 API Return Values
@@ -1048,13 +1049,19 @@ Primary label: `First`
 **parse() returns:**
 ```javascript
 {
-  quads: [...],
-  remove: [...],
-  origin: {...},
-  context: {...},
-  primarySubject: string | null,
-  primaryType: string | null,
-  primaryLabel: string | null
+  quads: [...],              // RDF quads (RDF/JS compatible)
+  remove: [...],             // Quads to remove (external retractions)
+  statements: [...],         // Elevated rdf:Statement quads (golden graph)
+  origin: {...},             // Lean origin tracking (quadIndex, blocks, documentStructure)
+  context: {...},            // Prefix context including @vocab
+  primarySubject: string | null,  // Canonical append identity (string IRI)
+  primary: {                 // Semantic surface descriptor
+    subject: string | null,
+    type: string | null,
+    label: string | null,
+    comment: string | null
+  },
+  md: string                 // Clean markdown without annotations
 }
 ```
 
@@ -1063,16 +1070,18 @@ Primary label: `First`
 {
   quads: [...],
   remove: [...],
-  origin: {...},
-  context: {...},
-  primarySubjects: string[]  // ordered by merge
+  statements: [...],         // Elevated rdf:Statement quads from all documents
+  origin: {...},             // Merge origin with document indices
+  context: {...},            // Union of all document contexts
+  primarySubjects: string[], // Canonical append identities (ordered by merge)
+  primary: [...]             // Semantic surface descriptors from all documents
 }
 ```
 
 ### 17.6 Use Cases
 
 Primary metadata enables:
-- **Document identity** - Primary subject + type + label provide complete document fingerprint
+- **Document identity** - Primary subject + type + label + comment provide complete document fingerprint
 - **Stream addressing** - Perfect for Nostr tags and distributed systems
 - **Merge tracking** - Track which entities are being merged across documents
 - **UI navigation** - Provide default focus and display information for document viewers
@@ -1086,13 +1095,85 @@ An MD-LD processor MUST:
 1. Track the first non-fragment subject declaration as primary subject
 2. Track the first rdf:type declaration as primary type
 3. Track the first rdfs:label literal as primary label
-4. Return all three primary fields in parse results (or `null` if none)
-5. Return `primarySubjects` array in merge results (ordered by merge)
-6. Keep all primary metadata fixed once detected (never cleared on `{=}` reset)
+4. Track the first rdfs:comment literal as primary comment
+5. Return all four primary fields in parse results (or `null` if none)
+6. Return `primarySubjects` array in merge results (ordered by merge)
+7. Return `primary` array in merge results (semantic surface descriptors)
+8. Keep all primary metadata fixed once detected (never cleared on `{=}` reset)
 
 ---
 
-## 18. Conformance
+## 18. Elevated Statements
+
+MD-LD automatically detects `rdf:Statement` patterns during parsing to create a "golden graph" of important statements while maintaining full provenance.
+
+### 18.1 Detection Rules
+
+A statement is elevated when a subject is typed as `rdf:Statement` and has all three required properties:
+
+```javascript
+{
+  subject: someIRI,
+  predicate: rdf:type,
+  object: rdf:Statement
+}
+{
+  subject: someIRI,
+  predicate: rdf:subject,
+  object: statementSubject
+}
+{
+  subject: someIRI,
+  predicate: rdf:predicate,
+  object: statementPredicate
+}
+{
+  subject: someIRI,
+  predicate: rdf:object,
+  object: statementObject
+}
+```
+
+### 18.2 Elevated Quad Creation
+
+When a complete `rdf:Statement` pattern is detected, MD-LD creates an elevated quad:
+
+```javascript
+{
+  subject: statementSubject,
+  predicate: statementPredicate,
+  object: statementObject
+}
+```
+
+This elevated quad represents the actual statement being reified, without the reification wrapper.
+
+### 18.3 API Access
+
+Elevated statements are returned in the `statements` array:
+
+```javascript
+const result = parse({ text: mdld });
+// result.statements contains all elevated rdf:Statement quads
+```
+
+### 18.4 Benefits
+
+- **Golden graph**: Access important statements without reification noise
+- **Full provenance**: Original `rdf:Statement` quads remain in `result.quads`
+- **Single-pass detection**: No post-processing required
+- **Memory efficient**: Minimal overhead for detection
+
+### 18.5 Use Cases
+
+- **Dashboard displays**: Show important relationships directly
+- **Query optimization**: Query elevated statements for key facts
+- **Validation**: Verify critical statements are present
+- **Knowledge extraction**: Extract meaningful patterns from large graphs
+
+---
+
+## 19. Conformance
 
 An MD-LD processor is conformant if it follows these rules:
 

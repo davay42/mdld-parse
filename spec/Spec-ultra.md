@@ -52,31 +52,41 @@ Ambiguous = no output.
 
 ### Primary Metadata
 
-MD-LD tracks three primary metadata fields during single-pass parsing:
+MD-LD tracks four primary metadata fields during single-pass parsing:
 
 | Field | Source | Purpose |
 |-------|--------|---------|
 | **primarySubject** | First non-fragment `{=subject}` | Document identity |
 | **primaryType** | First `.Class` declaration | Document category |
 | **primaryLabel** | First `{label}` literal | Human-readable name |
+| **primaryComment** | First `{comment}` literal | Human-readable description |
 
 **Selection Rules:**
 - First occurrence only (fixed once detected)
 - Never cleared on `{=}` reset
 - Returns `null` if not declared
 
-**parse()**: Returns `{ primarySubject, primaryType, primaryLabel }` (string IRI/null)
-**merge()**: Returns `primarySubjects` array (ordered by merge)
+**parse()**: Returns `{ quads, remove, statements, origin, context, primarySubject, primary, md }`
+- `primary`: `{ subject, type, label, comment }` (semantic surface descriptor)
+**merge()**: Returns `{ quads, remove, statements, origin, context, primarySubjects, primary }`
+- `primarySubjects`: ordered array of canonical identities
+- `primary`: array of semantic surface descriptors
 **generate()**: Accepts `{ quads, context, primarySubject }` — places primary subject first for round-trip safety
 
-## 7. Types
+## 7. Elevated Statements
+
+Auto-detects `rdf:Statement` patterns (type + subject + predicate + object) to create golden graph SPO quads.
+
+**API**: `result.statements` array contains elevated quads.
+
+## 8. Types
 
 ```
 .Class        # S rdf:type schema:Class
 .Person .Astronaut  # Multiple types
 ```
 
-## 8. Predicates
+## 9. Predicates
 
 | Syntax | Direction | Use |
 |--------|-----------|-----|
@@ -86,17 +96,17 @@ MD-LD tracks three primary metadata fields during single-pass parsing:
 
 Create quad only if all nodes exist.
 
-### 8.1 Remove Polarity
+### 9.1 Remove Polarity
 
 Prefix `-` for remove tokens: `-p`, `-?p`, `-!p`, `-.C`
 
 Route against live buffer: cancel if present, else add to remove array.
 
-Result: `{ quads, remove, origin, context }`
+Result: `{ quads, remove, statements, origin, context }`
 
 Invariant: `quads ∩ remove = ∅`
 
-## 9. Literals
+## 10. Literals
 
 From value carrier only.
 
