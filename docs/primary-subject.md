@@ -4,7 +4,7 @@ This example demonstrates the Primary Metadata feature in MD-LD, which provides 
 
 ## Primary Metadata Quartet
 
-MD-LD tracks three primary metadata fields during parsing to provide immediate document identity:
+MD-LD tracks four primary metadata fields during parsing to provide immediate document identity:
 
 | Field | Source | Purpose |
 |-------|--------|---------|
@@ -90,7 +90,8 @@ console.log('Primary Object:', result.primary);
 // Primary Object: {
 //   subject: 'tag:alice@example.org,2026:articles/understanding-primary-subject',
 //   type: 'http://schema.org/Article',
-//   label: 'Understanding Primary Subjects'
+//   label: 'Understanding Primary Subjects',
+//   comment: null
 // }
 ```
 
@@ -154,8 +155,8 @@ console.log('Primary Objects:', result.primary);
 // Output:
 // Primary Subjects: ['http://example.org/doc1', 'http://example.org/doc2']
 // Primary Objects: [
-//   { subject: 'http://example.org/doc1', type: 'http://schema.org/Article', label: 'Document 1' },
-//   { subject: 'http://example.org/doc2', type: 'http://schema.org/Article', label: 'Document 2' }
+//   { subject: 'http://example.org/doc1', type: 'http://schema.org/Article', label: 'Document 1', comment: null },
+//   { subject: 'http://example.org/doc2', type: 'http://schema.org/Article', label: 'Document 2', comment: null }
 // ]
 ```
 
@@ -256,7 +257,8 @@ console.log('Primary Object:', result1.primary);
 // Primary Object: {
 //   subject: 'https://example.com/blog/post1',
 //   type: 'http://schema.org/BlogPosting',
-//   label: 'My First Post'
+//   label: 'My First Post',
+//   comment: null
 // }
 
 // Multiple documents
@@ -273,14 +275,14 @@ console.log('Primary Objects:', merged.primary);
 // Output:
 // Primary Subjects: ['https://example.com/blog/post1', 'https://example.com/blog/post2']
 // Primary Objects: [
-//   { subject: 'https://example.com/blog/post1', type: 'http://schema.org/BlogPosting', label: 'My First Post' },
-//   { subject: 'https://example.com/blog/post2', type: 'http://schema.org/BlogPosting', label: 'My Second Post' }
+//   { subject: 'https://example.com/blog/post1', type: 'http://schema.org/BlogPosting', label: 'My First Post', comment: null },
+//   { subject: 'https://example.com/blog/post2', type: 'http://schema.org/BlogPosting', label: 'My Second Post', comment: null }
 // ]
 ```
 
-## Document Identity Trio
+## Document Identity Quartet
 
-The primary metadata trio provides sufficient document/append stream identity for most scenarios:
+The primary metadata quartet provides sufficient document/append stream identity for most scenarios:
 
 ```javascript
 // Nostr integration example

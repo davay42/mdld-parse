@@ -14,14 +14,16 @@ Parse MD-LD markdown and return RDF quads.
 - `dataFactory` (object, optional) — Custom RDF/JS DataFactory
 - `graph` (string, optional) — Named graph IRI
 
-**Returns:** `{ quads, context, primarySubject, primary, origin, remove, statements }`
+**Returns:** `{ quads, remove, statements, origin, context, primarySubject, primary, md }`
 
 - `quads` — Array of RDF/JS Quads (final resolved graph state)
 - `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
+- `statements` — Array of elevated rdf:Statement quads (golden graph)
 - `origin` — Lean origin tracking object with quadIndex for UI navigation
 - `context` — Final context used (includes prefixes)
 - `primarySubject` — String IRI or null (canonical append identity)
 - `primary` — Object containing primary metadata (semantic surface descriptor)
+- `md` — Clean markdown without annotations
 
 **Dual-Layer Architecture:**
 
@@ -35,7 +37,8 @@ Parse MD-LD markdown and return RDF quads.
 primary: {
     subject: string | null,     // First non-fragment subject declaration
     type: string | null,       // First rdf:type declaration
-    label: string | null       // First rdfs:label literal
+    label: string | null,      // First rdfs:label literal
+    comment: string | null     // First rdfs:comment literal
 }
 ```
 
@@ -140,10 +143,11 @@ Merge multiple MDLD documents with diff polarity resolution.
 - `options` (object, optional):
   - `context` (object) — Prefix mappings (merged with DEFAULT_CONTEXT)
 
-**Returns:** `{ quads, remove, origin, context, primarySubjects, primary }`
+**Returns:** `{ quads, remove, statements, origin, context, primarySubjects, primary }`
 
 - `quads` — Merged array of RDF/JS Quads
 - `remove` — Array of retractions from merge process
+- `statements` — Array of elevated rdf:Statement quads from all documents
 - `origin` — Merge origin with document chain:
   - `documents` — Array of document metadata
   - `quadIndex` — Combined quad index from all documents
@@ -164,7 +168,8 @@ primary: [
     {
         subject: string | null,     // First non-fragment subject declaration
         type: string | null,       // First rdf:type declaration
-        label: string | null       // First rdfs:label literal
+        label: string | null,      // First rdfs:label literal
+        comment: string | null     // First rdfs:comment literal
     },
     // ... one object per document
 ]

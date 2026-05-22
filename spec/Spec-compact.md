@@ -125,6 +125,7 @@ MD-LD tracks three primary metadata fields during single-pass parsing:
 | **primarySubject** | First non-fragment `{=subject}` | Document identity |
 | **primaryType** | First `.Class` declaration | Document category |
 | **primaryLabel** | First `{label}` literal | Human-readable name |
+| **primaryComment** | First `{comment}` literal | Human-readable description |
 
 **Selection rules:**
 - First occurrence only (fixed once detected)
@@ -132,15 +133,32 @@ MD-LD tracks three primary metadata fields during single-pass parsing:
 - Returns `null` if not declared
 
 **API returns:**
-- `parse()`: `{ ..., primarySubject: string | null, primaryType: string | null, primaryLabel: string | null }`
-- `merge()`: `{ ..., primarySubjects: string[] }` (ordered by merge)
+- `parse()`: `{ quads, remove, statements, origin, context, primarySubject, primary, md }`
+  - `primary`: `{ subject, type, label, comment }` (semantic surface descriptor)
+- `merge()`: `{ quads, remove, statements, origin, context, primarySubjects, primary }`
+  - `primarySubjects`: ordered array of canonical identities
+  - `primary`: array of semantic surface descriptors
 - `generate({ quads, context, primarySubject })`: Places primary subject first for round-trip safety
 
 **Use cases:** Document identity, stream addressing, merge tracking, UI navigation, query optimization, content classification, search indexing.
 
 ---
 
-## 7. Types
+## 7. Elevated Statements
+
+MD-LD automatically detects `rdf:Statement` patterns during parsing to create a "golden graph" of important statements.
+
+**Detection:** Subject typed as `rdf:Statement` with `rdf:subject`, `rdf:predicate`, `rdf:object` properties.
+
+**Elevated quad:** Creates direct SPO quad from the statement's subject/predicate/object values.
+
+**API access:** `result.statements` array contains all elevated quads.
+
+**Benefits:** Golden graph access, full provenance retention, single-pass detection, memory efficient.
+
+---
+
+## 8. Types
 
 ```
 .Class

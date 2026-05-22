@@ -65,6 +65,7 @@ const state = {
     primarySubject: null,       // First non-fragment subject declaration
     primaryType: null,         // First rdf:type declaration
     primaryLabel: null,        // First rdfs:label literal
+    primaryComment: null,      // First rdfs:comment literal
     tokens: null,              // Tokenized input
     currentTokenIndex: -1,     // Current processing position
     statements: [],            // Elevated statements array
@@ -85,6 +86,7 @@ const state = {
 | **primarySubject** | First non-fragment subject | Set once, never changed |
 | **primaryType** | First rdf:type declaration | Set once, never changed |
 | **primaryLabel** | First rdfs:label literal | Set once, never changed |
+| **primaryComment** | First rdfs:comment literal | Set once, never changed |
 | **statements** | Elevated statements | Accumulated during pattern detection |
 | **statementCandidates** | Pattern completion tracking | Modified during rdf:Statement detection |
 
@@ -375,7 +377,7 @@ if (newSubject && !state.primarySubject && !sem.subject.startsWith('=#')) {
     state.primarySubject = newSubject.value; // Store as string IRI
 }
 
-// Track primary type and label during quad emission
+// Track primary type, label, and comment during quad emission
 if (state) {
     if (!state.primaryType && predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
         state.primaryType = object.value;
@@ -383,20 +385,24 @@ if (state) {
     if (!state.primaryLabel && predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label' && object.termType === 'Literal') {
         state.primaryLabel = object.value;
     }
+    if (!state.primaryComment && predicate.value === 'http://www.w3.org/2000/01/rdf-schema#comment' && object.termType === 'Literal') {
+        state.primaryComment = object.value;
+    }
 }
 ```
 
-#### Primary Metadata Trio
+#### Primary Metadata Quartet
 
 | Field | Source | Purpose | Use Case |
 |-------|--------|---------|-----------|
 | **primarySubject** | First non-fragment `{=subject}` | Document identity | Nostr addressing tags, document routing |
 | **primaryType** | First `.Class` declaration | Document category | Stream filtering, UI categorization |
 | **primaryLabel** | First `{label}` literal | Human-readable name | Display titles, search indexing |
+| **primaryComment** | First `{comment}` literal | Human-readable description | UI descriptions, tooltips |
 
 #### Document Identity Applications
 
-The primary metadata trio provides sufficient document/append stream identity for most scenarios:
+The primary metadata quartet provides sufficient document/append stream identity for most scenarios:
 
 ```javascript
 // Nostr integration example
@@ -545,7 +551,8 @@ const filteredRemove = processRetractions(state.quads, state.removeSet);
         origin: state.origin,         // Complete provenance
         context: state.ctx,          // Final prefix context
         primarySubject: state.primarySubject,  // Canonical append identity
-        primary                      // Semantic surface descriptor
+        primary,                      // Semantic surface descriptor
+        md: scanResult.md             // Clean markdown without annotations
     };
 ```
 
