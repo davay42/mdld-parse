@@ -267,25 +267,35 @@ primary: [
 ```
 
 
-### `generate({ quads, context, primarySubject })`
+### `generate({ quads, context, primarySubject, compactInline })`
 
 Generate deterministic MDLD from RDF quads with visual styling.
 
 **Parameters (named object):**
 - `quads` (array, required) — Array of RDF/JS Quads to convert
 - `context` (object, optional) — Prefix mappings (default: `{}`)
-- `primarySubject` (string, optional) — String IRI to place first in output (ensures round-trip safety). If not provided, falls back to the first subject from quads.
+- `primarySubject` (string, optional) — String IRI to place first in output and enable reverse connection rendering. If not provided, reverse connections are not rendered (deterministic, order-independent behavior).
+- `compactInline` (boolean, optional) — Enable inline type/label compaction for referenced subjects (default: `true`)
 
-**Returns:** `{ text, context }`
+**Returns:** `{ text, context, compactStats }`
+
+- `text` (string) — Generated MDLD text
+- `context` (object) — Full context with all prefixes used
+- `compactStats` (object) — Compaction metrics:
+  - `compactedSubjects` (number) — Subjects compacted with inline types/labels
+  - `skippedHeadings` (number) — Headings skipped due to compaction
+  - `inlineAnnotations` (number) — Inline type/label annotations rendered
 
 **Features:**
 - Visual carrier styles based on datatype (code spans for numbers, bold booleans, etc.)
 - Label-in-heading: Uses `rdfs:label` in subject headings when available
 - Multiple labels: First label in heading, additional labels rendered as literals
+- Inline compaction: Types and labels of referenced subjects rendered inline (when `compactInline = true`)
+- Reverse connections: Primary subject's incoming connections rendered as `!p` annotations (only when `primarySubject` is explicitly provided)
 - Round-trip safe: All data preserved through parse → generate → parse
 - Composable: `generate(parse(text))` extracts semantics; `parse(generate({quads}))` normalizes quads
 
-### `generateNode({ quads, focusIRI, context })`
+### `generateNode({ quads, focusIRI, context, compactInline })`
 
 Generate node-centric MDLD showing all quads where a specific IRI appears in any position.
 
@@ -293,8 +303,13 @@ Generate node-centric MDLD showing all quads where a specific IRI appears in any
 - `quads` (array, required) — Array of RDF/JS Quads to search
 - `focusIRI` (string, required) — The IRI to center the view on
 - `context` (object, optional) — Prefix mappings (default: `{}`)
+- `compactInline` (boolean, optional) — Enable inline type/label compaction (default: `true`)
 
-**Returns:** `{ text, context }`
+**Returns:** `{ text, context, compactStats }`
+
+- `text` (string) — Generated MDLD text
+- `context` (object) — Full context with all prefixes used
+- `compactStats` (object) — Compaction metrics (or `null` if focusIRI not found)
 
 **Behavior (Safety-First):**
 - If `focusIRI` is null/undefined: Returns empty text

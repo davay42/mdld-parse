@@ -205,19 +205,24 @@ console.log(merged.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predi
 // ['article rdf:type Article', 'article author Bob', 'article status Published']
 ```
 
-### `generate({ quads, context, primarySubject })`
+### `generate({ quads, context, primarySubject, compactInline })`
 
 Generate deterministic MDLD from RDF quads with visual styling.
 
 **Parameters (named object):**
 - `quads` (array, required) — Array of RDF/JS Quads to convert
 - `context` (object, optional) — Prefix mappings (default: `{}`)
-- `primarySubject` (string, optional) — IRI to place first in output (ensures round-trip safety)
+- `primarySubject` (string, optional) — IRI to place first in output and enable reverse connection rendering. If not provided, reverse connections are not rendered (deterministic, order-independent behavior).
+- `compactInline` (boolean, optional) — Enable inline type/label compaction for referenced subjects (default: `true`)
 
-**Returns:** `{ text, context }`
+**Returns:** `{ text, context, compactStats }`
 
 - `text` — Generated MDLD markdown
 - `context` — Final context used (includes defaults)
+- `compactStats` — Compaction metrics:
+  - `compactedSubjects` (number) — Subjects compacted with inline types/labels
+  - `skippedHeadings` (number) — Headings skipped due to compaction
+  - `inlineAnnotations` (number) — Inline type/label annotations rendered
 
 #### Generate Example
 
