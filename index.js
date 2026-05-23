@@ -1007,6 +1007,29 @@ function filterQuadsByType(subjectQuads) {
 		objects
 	};
 }
+function generateRetractionText(quad, context) {
+	const predShort = shortenIRI(quad.predicate.value, context);
+	let annotation;
+	if (quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") {
+		annotation = `-.${shortenIRI(quad.object.value, context)}`;
+		return `> {${annotation}}\n`;
+	} else if (isNamedNode(quad.object)) {
+		const objShort = shortenIRI(quad.object.value, context);
+		annotation = `-?${predShort}`;
+		return `[${objShort}] {+${objShort} ${annotation}}\n`;
+	} else {
+		annotation = `-${predShort}`;
+		if (quad.object.language) annotation += ` @${quad.object.language}`;
+		else if (quad.object.datatype.value !== "http://www.w3.org/2001/XMLSchema#string") annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
+		const rawValue = quad.object.value || quad.object;
+		const value = typeof rawValue === "string" ? rawValue : String(rawValue);
+		const datatype = quad.object.datatype?.value || "";
+		if (value.includes("\n")) return `~~~ {${annotation}}\n${value}\n~~~\n`;
+		if (datatype.includes("integer") || datatype.includes("decimal") || datatype.includes("double") || datatype.includes("float")) return `\`${value}\` {${annotation}}\n`;
+		if (datatype.includes("boolean")) return `**${value}** {${annotation}}\n`;
+		return `[${value}] {${annotation}}\n`;
+	}
+}
 //#endregion
 //#region src/parse.js
 function parse(firstArg, secondArg = {}) {
@@ -1677,13 +1700,16 @@ function extractLocalName(iri, ctx = {}) {
 /**
 * Generate deterministic MDLD from RDF quads
 * Purpose: TTL→MDLD conversion with canonical structure
-* Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean)
+* Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean) + remove (array)
 * Output: MDLD text + context + compactStats
 */
-function generate({ quads, context = {}, primarySubject = null, compactInline = false, renderReverse = false }) {
+function generate({ quads, context = {}, primarySubject = null, compactInline = false, renderReverse = false, remove = [] }) {
 	const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
-	const { subjectGroups, reverseIndex } = groupQuadsBySubject(normalizeAndSortQuads(quads));
-	const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, primarySubject && renderReverse ? reverseIndex : null, compactInline);
+	const normalizedQuads = normalizeAndSortQuads(quads);
+	const normalizedRemove = normalizeAndSortQuads(remove);
+	const { subjectGroups, reverseIndex } = groupQuadsBySubject(normalizedQuads);
+	const removeBySubject = groupQuadsBySubject(normalizedRemove).subjectGroups;
+	const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, primarySubject && renderReverse ? reverseIndex : null, compactInline, removeBySubject);
 	return {
 		text,
 		context: fullContext,
@@ -1783,7 +1809,7 @@ function groupQuadsByNode(quads) {
 		reverseIndex
 	};
 }
-function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true) {
+function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true, removeBySubject = /* @__PURE__ */ new Map()) {
 	const textParts = [];
 	const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 	const labelLookup = buildLabelLookup(subjectGroups);
@@ -1862,6 +1888,18 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
 				textParts.push(`[${subjectLabel}] {+${shortSubject} !${shortPredicate}${inlineAnnotation}}\n`);
 			}
 		}
+		if (removeBySubject.has(subjectIRI)) {
+			const removeQuads = removeBySubject.get(subjectIRI);
+			for (const quad of removeQuads) textParts.push(generateRetractionText(quad, context));
+			removeBySubject.delete(subjectIRI);
+		}
+		textParts.push("\n");
+	}
+	for (const [subjectIRI, removeQuads] of removeBySubject) {
+		const shortSubject = getCachedShortIRI(subjectIRI, context);
+		const displayName = extractLocalName(subjectIRI, context);
+		textParts.push(`# ${displayName} {=${shortSubject}}\n`);
+		for (const quad of removeQuads) textParts.push(generateRetractionText(quad, context));
 		textParts.push("\n");
 	}
 	return {

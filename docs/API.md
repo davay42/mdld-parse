@@ -210,9 +210,9 @@ console.log(merged.quads.map(q => `${q.subject.value.split('/').pop()} ${q.predi
 // ['article rdf:type Article', 'article author Bob', 'article status Published']
 ```
 
-### `generate({ quads, context, primarySubject, compactInline })`
+### `generate({ quads, context, primarySubject, compactInline, renderReverse, remove })`
 
-Generate deterministic MDLD from RDF quads with visual styling.
+Generate deterministic MDLD from RDF quads with visual styling and diff generation.
 
 **Parameters (named object):**
 - `quads` (array, required) — Array of RDF/JS Quads to convert
@@ -220,6 +220,7 @@ Generate deterministic MDLD from RDF quads with visual styling.
 - `primarySubject` (string, optional) — IRI to place first in output (requires `renderReverse: true` for reverse connections)
 - `compactInline` (boolean, optional) — Enable inline type/label compaction for referenced subjects (default: `false`)
 - `renderReverse` (boolean, optional) — Enable reverse connection rendering as `!p` annotations (default: `false`)
+- `remove` (array, optional) — Array of RDF/JS Quads to retract (for diff generation)
 
 **Returns:** `{ text, context, compactStats }`
 
@@ -248,7 +249,7 @@ const quads = [
   }
 ];
 
-const result = generate({ 
+const result = generate({
   quads,
   context: { ex: 'http://example.org/' }
 });
@@ -258,6 +259,45 @@ console.log(result.text);
 //
 // > alice {+ex:alice ?ex:author}
 ```
+
+#### Diff Generation Example
+
+```javascript
+import { generate, DataFactory } from 'mdld-parse';
+
+const { namedNode, literal } = DataFactory;
+
+const quads = [
+  DataFactory.quad(
+    namedNode('http://example.org/doc'),
+    namedNode('http://example.org/author'),
+    literal('Alice')
+  )
+];
+
+const remove = [
+  DataFactory.quad(
+    namedNode('http://example.org/doc'),
+    namedNode('http://example.org/author'),
+    literal('Smith')
+  )
+];
+
+const { text } = generate({
+  quads,
+  remove,
+  context: { ex: 'http://example.org/' }
+});
+
+console.log(text);
+// [ex] <http://example.org/>
+//
+// # doc {=ex:doc}
+// [Alice] {ex:author}
+// [Smith] {-ex:author}
+```
+
+See [Diff Generation](./diff.md) for comprehensive diff documentation.
 
 ### `locate(quad, origin)`
 
