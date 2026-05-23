@@ -910,10 +910,6 @@ function resolveObject(sem, state) {
 	if (sem.object.startsWith("#")) return resolveFragment(sem.object.substring(1), state.currentSubject, state.df);
 	return state.df.namedNode(expandIRI(sem.object, state.ctx));
 }
-function escapeHtml$1(text) {
-	if (!text) return "";
-	return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
-}
 function isLiteral(term) {
 	return term?.termType === "Literal";
 }
@@ -1879,98 +1875,6 @@ function buildLabelLookup(subjectGroups) {
 	return labelLookup;
 }
 //#endregion
-//#region src/render.js
-/**
-* Render MD-LD to clean HTML (minimal, no RDFa)
-* 
-* This implementation provides a minimal HTML renderer that:
-* 1. Preserves document structure (headings, paragraphs, lists, etc.)
-* 2. Handles inline formatting (bold, italic, code, links)
-* 3. Strips MDLD annotations from output
-* 4. Uses the same parsing foundation as generate()
-* 
-* @param {string} mdld - MD-LD input string
-* @param {Object} options - Rendering options
-* @param {Object} options.context - Additional context prefixes
-* @returns {Object} Render result with HTML and metadata
-*/
-function render(mdld, options = {}) {
-	const parsed = parse({
-		text: mdld,
-		context: options.context || {}
-	});
-	return {
-		html: renderToHTML(parsed, mdld),
-		context: parsed.context,
-		metadata: {
-			blockCount: parsed.origin.blocks.size,
-			quadCount: parsed.quads.length,
-			renderTime: Date.now()
-		}
-	};
-}
-/**
-* Render parsed MDLD to clean HTML
-* Uses the md field from parse result (already stripped of annotations)
-*/
-function renderToHTML(parsed, sourceText) {
-	return markdownToHTML(stripOnlyMDLDAnnotations(sourceText));
-}
-/**
-* Strip only MDLD annotations, preserve markdown formatting
-*/
-function stripOnlyMDLDAnnotations(text) {
-	let cleaned = text;
-	cleaned = cleaned.replace(/^\[[^\]]+\]\s*<[^>]+>\s*$/gm, "");
-	cleaned = cleaned.replace(/^(#{1,6}\s+[^\n]+)\s*\{[^}]*\}\s*$/gm, "$1");
-	cleaned = cleaned.replace(/\s*\{[^}]*\}\s*$/gm, "");
-	cleaned = cleaned.replace(/^\[([^\]]+)\]\s*\{[?!][^}]*\}\s*$/gm, "");
-	return cleaned;
-}
-/**
-* Convert markdown to HTML (minimal implementation)
-*/
-function markdownToHTML(markdown) {
-	let html = markdown;
-	html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-		return `<pre><code${lang ? ` class="language-${escapeHtml$1(lang)}"` : ""}>${escapeHtml$1(code.trim())}</code></pre>`;
-	});
-	html = html.replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, text) => {
-		const level = hashes.length;
-		return `<h${level}>${escapeHtml$1(text.trim())}</h${level}>`;
-	});
-	html = html.replace(/^>\s+(.+)$/gm, "<blockquote>$1</blockquote>");
-	html = html.replace(/^[-*]\s+(.+)$/gm, "<li>$1</li>");
-	html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-	html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-	html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-	html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, "<a href=\"$2\">$1</a>");
-	const lines = html.split("\n");
-	const output = [];
-	let inParagraph = false;
-	for (const line of lines) if (line.trim() === "") {
-		if (inParagraph) {
-			output.push("</p>");
-			inParagraph = false;
-		}
-	} else if (line.match(/^(<h|<pre|<blockquote|<li|<ul)/)) {
-		if (inParagraph) {
-			output.push("</p>");
-			inParagraph = false;
-		}
-		output.push(line);
-	} else {
-		if (!inParagraph) {
-			output.push("<p>");
-			inParagraph = true;
-		}
-		if (line.includes("<") && line.includes(">")) output.push(line + " ");
-		else output.push(escapeHtml$1(line) + " ");
-	}
-	if (inParagraph) output.push("</p>");
-	return output.join("\n");
-}
-//#endregion
 //#region src/highlight.js
 /**
 * MD-LD Syntax Highlighter
@@ -2308,4 +2212,4 @@ function updateValue({ text, quad, value, origin }) {
 	return text.substring(0, location.valueRange.start) + value + text.substring(location.valueRange.end);
 }
 //#endregion
-export { DEFAULT_CONTEXT, DataFactory, expandIRI, generate, generateNode, getIRIColor, hash, hashIRI, highlightMDLD, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue };
+export { DEFAULT_CONTEXT, DataFactory, expandIRI, generate, generateNode, getIRIColor, hash, hashIRI, highlightMDLD, locate, merge, parse, parseSemanticBlock, shortenIRI, updateValue };
