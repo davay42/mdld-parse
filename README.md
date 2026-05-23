@@ -1,10 +1,29 @@
 # MD-LD
 
-**Markdown-Linked Data (MD-LD)** — a deterministic, streaming-friendly RDF authoring format that extends Markdown with explicit `{...}` annotations.
+**Markdown-Linked Data (MD-LD)** — Human-readable RDF authoring for knowledge graph applications.
+
+Write semantic data in natural Markdown. Parse to RDF quads. Build deterministic state machines.
 
 [![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
 
-[Demo](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse) 
+[Demo](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse)
+
+## 🎯 What is MD-LD?
+
+MD-LD makes RDF quads easy to write and read by humans. It extends Markdown with explicit `{...}` annotations to create a **human-readable CRDT-style semantic state machine**.
+
+**Core value:** Author and maintain knowledge graphs as plain text with deterministic round-trip safety.
+
+```markdown
+[ex] <http://example.org/>
+
+# Document {=ex:doc .Article label}
+
+[Alice] {=ex:alice ?ex:author .prov:Person ex:firstName label}
+[Smith] {ex:lastName}
+```
+
+**Generates RDF quads** that work with n3.js, rdflib, and any RDF/JS-compatible library.
 
 ## 🚀 Quick Start
 
@@ -13,66 +32,116 @@ pnpm install mdld-parse
 ```
 
 ```javascript
-import { parse } from 'mdld-parse';
+import { parse, generate, merge } from 'mdld-parse';
 
-const result = parse(`
-[ex] <http://example.org/>
+// Parse MDLD to RDF quads
+const result = parse({ text: mdldString });
+console.log(result.quads); // RDF/JS quads
 
-# Document {=ex:doc .ex:Article label}
+// Generate MDLD from quads
+const { text } = generate({ quads: result.quads });
 
-[Alice] {?ex:author =ex:alice .prov:Person ex:firstName label}
-[Smith] {ex:lastName}`);
-
-console.log(result.quads);
-// RDF/JS quads ready for n3.js, rdflib, etc.
-// @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
-// @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
-// @prefix prov: <http://www.w3.org/ns/prov#>.
-// @prefix ex: <http://example.org/>.
-
-// ex:doc a ex:Article;
-//     rdfs:label "Document";
-//     ex:author ex:alice.
-// ex:alice a prov:Person;
-//     rdfs:label "Alice";
-//     ex:firstName "Alice";
-//     ex:lastName "Smith".
+// Merge multiple documents (CRDT-style)
+const merged = merge([doc1, doc2, doc3]);
 ```
+
+## 💡 Use Cases
+
+### 1. **App State Management**
+Store application state as append-only document arrays with diff resolution:
+
+```javascript
+const session = {
+  documents: [
+    initialState,    // Document 1: initial state
+    userAction1,     // Document 2: user added data
+    userAction2,     // Document 3: user modified data
+    userAction3      // Document 4: user deleted data (with retractions)
+  ]
+};
+
+const currentState = merge(session.documents);
+```
+
+**Benefits:** Time travel, undo/redo, offline-first sync, audit trails.
+
+### 2. **State Exchange Between Apps**
+Reliably exchange semantic state between microservices or client-server:
+
+```javascript
+// App A sends state to App B
+const stateTransfer = {
+  documents: appA.documents.slice(-10),  // Last 10 operations
+  context: appA.context
+};
+
+// App B receives and merges
+const mergedState = merge([...appB.documents, ...stateTransfer.documents]);
+```
+
+**Benefits:** Deterministic resolution, conflict handling, human-readable format.
+
+### 3. **LLM Knowledge Graph Operations**
+LLMs can author MDLD, filter quads, and generate readable summaries:
+
+```javascript
+// LLM authors MDLD
+const llmAuthored = `
+# Analysis {=ex:analysis .Analysis}
+[High priority] {ex:priority}
+[Complete] {ex:status}
+`;
+
+// Parse to quads
+const { quads } = parse({ text: llmAuthored });
+
+// LLM filters quads (semantic reasoning)
+const highPriority = quads.filter(q => 
+  q.predicate.value === 'http://example.org/priority' &&
+  q.object.value === 'High priority'
+);
+
+// Generate readable MDLD from filtered quads
+const { text } = generate({ quads: highPriority });
+```
+
+**Benefits:** LLMs get both structured data (quads) and human-readable text (MDLD).
+
+### 4. **Multi-User Collaboration**
+Collaborative editing with automatic conflict resolution:
+
+```javascript
+// User A's session
+const userA = [initialState, userA_addsTask, userA_updatesTask];
+
+// User B's session
+const userB = [initialState, userB_addsTask, userB_updatesTask];
+
+// Merge both sessions
+const merged = merge([...userA, ...userB]);
+```
+
+**Benefits:** Last-write-wins resolution, preserved history, manual review possible.
 
 ## 📚 Documentation Hub
 
-- **📖 [Documentation](./docs/index.md)** - Complete documentation with guides and references
-- **🎯 [Examples](./examples/index.md)** - Real-world MD-LD examples and use cases  
-- **📋 [Specification](./spec/index.md)** - Formal specification and test suite
+- **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
+- **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
+- **📋 [Specification](./spec/index.md)** — Formal specification and test suite
 
 ## ✨ Core Features
 
-- **🔗 Prefix folding** - Build hierarchical namespaces with lightweight IRI authoring
-- **📍 Subject declarations** - `{=IRI}` and `{=#fragment}` for context setting
-- **🎯 Object IRIs** - `{+IRI}` and `{+#fragment}` for temporary object declarations  
-- **🔄 Three predicate forms** - `p` (S→L), `?p` (S→O), `!p` (O→S)
-- **🏷️ Type declarations** - `.Class` for rdf:type triples
-- **📅 Datatypes & language** - `^^xsd:date` and `@en` support
-- **🧩 Fragments** - Document structuring with `{=#fragment}`
-- **⚡ Polarity system** - Sophisticated diff authoring with `+` and `-` prefixes
-- **📍 Origin tracking** - Complete provenance with lean quad-to-source mapping
-- **🎯 Elevated statements** - Automatic rdf:Statement pattern detection for "golden" graph extraction
-- **🏷️ Primary metadata** - Structured primary object with subject, type, and label for document identity
-
-## 🌟 What is MD-LD?
-
-MD-LD allows you to author RDF graphs directly in Markdown using explicit `{...}` annotations:
-
-```markdown
-[my] <tag:alice@example.com,2026:>
-# 2024-07-18 {=my:journal-2024-07-18 .my:Event my:date ^^xsd:date}
-## A good day {label}
-Mood: [Happy] {my:mood}
-Energy level: [8] {my:energyLevel ^^xsd:integer}
-Met [Sam] {+my:sam .my:Person ?my:attendee} on my regular walk at [Central Park] {+my:central-park ?my:location .my:Place label @en} and talked about [Sunny] {my:weather} weather. 
-```
-
-Generates valid RDF triples with complete provenance tracking.
+- **🔗 Prefix folding** — Build hierarchical namespaces with lightweight IRI authoring
+- **📍 Subject declarations** — `{=IRI}` and `{=#fragment}` for context setting
+- **🎯 Object IRIs** — `{+IRI}` and `{+#fragment}` for temporary object declarations
+- **🔄 Three predicate forms** — `p` (S→L), `?p` (S→O), `!p` (O→S)
+- **🏷️ Type declarations** — `.Class` for rdf:type triples
+- **📅 Datatypes & language** — `^^xsd:date` and `@en` support
+- **🧩 Fragments** — Document structuring with `{=#fragment}`
+- **⚡ Polarity system** — Sophisticated diff authoring with `+` and `-` prefixes
+- **📍 Origin tracking** — Complete provenance with lean quad-to-source mapping
+- **🎯 Elevated statements** — Automatic rdf:Statement pattern detection
+- **🏷️ Primary metadata** — Structured primary object for document identity
 
 ## 📦 Installation
 
@@ -83,20 +152,17 @@ pnpm install mdld-parse
 ```
 
 ```javascript
-import { parse } from 'mdld-parse';
+import { parse, generate, merge } from 'mdld-parse';
 
-const markdown = `[ex] <tag:alice@example.org,2026:>
+const mdld = `[ex] <http://example.org/>
 
-# Demo document {=ex:example/doc .prov:Entity label}
+# Document {=ex:doc .Article label}
 
-> A demo document for MD-LD {comment}
-[Alice] {+ex:alice ?ex:author .prov:Person label}
-`;
+[Alice] {=ex:alice ?ex:author .prov:Person ex:firstName label}
+[Smith] {ex:lastName}`;
 
-const result = parse({ text: markdown });
-
-console.log(result.quads);
-// RDF/JS quads ready for n3.js, rdflib, etc.
+const result = parse({ text: mdld });
+console.log(result.quads); // RDF/JS quads
 ```
 
 ### Browser (ES Modules)
@@ -104,8 +170,7 @@ console.log(result.quads);
 ```html
 <script type="module">
   import { parse } from 'https://cdn.jsdelivr.net/npm/mdld-parse/+esm';
-  
-  const result = parse('[ex] <tag:alice@example.org,2026:>\n\n# Hello {=ex:hello label}');
+  const result = parse('[ex] <http://example.org/>\n\n# Hello {=ex:hello label}');
 </script>
 ```
 
@@ -117,7 +182,7 @@ MD-LD encodes a directed labeled multigraph where three nodes may be in scope:
 - **O** — object resource (IRI from link/image)
 - **L** — literal value (string + optional datatype/language)
 
-### Predicate Routing (§8.1)
+### Predicate Routing
 
 Each predicate form determines the graph edge:
 
@@ -127,23 +192,6 @@ Each predicate form determines the graph edge:
 | `?p`  | S → O   | `[NASA] {=ex:nasa ?org}`     | object property  |
 | `!p`  | O → S   | `[Parent] {=ex:p !hasPart}`  | reverse object   |
 
-## 📍 Elevated Statements
-
-MD-LD automatically detects `rdf:Statement` patterns during parsing and extracts elevated SPO quads for convenient consumption by applications.
-
-### Pattern Detection
-
-When the parser encounters a complete `rdf:Statement` pattern with `rdf:subject`, `rdf:predicate`, and `rdf:object`, it automatically adds the corresponding SPO quad to the `statements` array:
-
-```markdown
-[ex] <http://example.org/>
-
-## Elevated statement {=ex:stmt1 .rdf:Statement}
-**Alice** {+ex:alice ?rdf:subject} *knows* {+ex:knows ?rdf:predicate} **Bob** {+ex:bob ?rdf:object}
-
-Direct statement:**Alice** {=ex:alice} knows **Bob** {?ex:knows +ex:bob} 
-```
-
 ## 🎨 Syntax Quick Reference
 
 ### Subject Declaration
@@ -152,19 +200,10 @@ Set current subject (emits no quads):
 ## Apollo 11 {=ex:apollo11}
 ```
 
-### Fragment Syntax
-Create fragment IRIs relative to current subject:
-```markdown
-# Document {=ex:document}
-{=#summary}
-[Content] {label}
-```
-Fragments replace any existing fragment and require a current subject.
-
 ### Type Declaration
 Emit `rdf:type` triple:
 ```markdown
-## Apollo 11 {=ex:apollo11 .ex:SpaceMission .ex:Event}
+## Apollo 11 {=ex:apollo11 .SpaceMission .Event}
 ```
 
 ### Literal Properties
@@ -184,50 +223,47 @@ Links create relationships (use `?` prefix):
 ```
 
 ### Resource Declaration
-Declare resources inline with `{=iri}`:
+Declare resources inline with `{+iri}`:
 ```markdown
 # Mission {=ex:apollo11}
-[Neil Armstrong] {=ex:armstrong ?ex:commander .prov:Person}
+[Neil Armstrong] {+ex:armstrong ?ex:commander .Person}
+```
+
+### Diff Authoring (Polarity)
+Use `+` and `-` for retractions:
+```markdown
+# Update value
+[Person] {=ex:person}
+[Alice] {-ex:name}
+[Bob] {ex:name}
+
+# Remove triple
+[Person] {=ex:person}
+[Alice] {-ex:friend}
 ```
 
 ## 🔧 API Reference
 
 ### `parse({ text, context, dataFactory, graph })`
 
-Parse MD-LD markdown and return RDF quads with lean origin tracking.
+Parse MDLD to RDF quads with lean origin tracking.
 
-**Parameters (named object):**
-- `text` (string, required) — MD-LD formatted text
-- `context` (object, optional) — Prefix mappings (default: `{ '@vocab': 'http://www.w3.org/2000/01/rdf-schema#', rdf, rdfs, xsd, sh, prov }`)
+**Parameters:**
+- `text` (string, required) — MDLD formatted text
+- `context` (object, optional) — Prefix mappings
 - `dataFactory` (object, optional) — Custom RDF/JS DataFactory
 - `graph` (string, optional) — Named graph IRI
 
 **Returns:** `{ quads, remove, statements, origin, context, primarySubject, primary, md }`
 
-- `quads` — Array of RDF/JS Quads (final resolved graph state)
-- `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
-- `statements` — Array of elevated RDF/JS Quads extracted from rdf:Statement patterns
-- `origin` — Lean origin tracking object with quadIndex for UI navigation
-- `context` — Final context used (includes prefixes)
+- `quads` — RDF/JS Quads (final resolved graph state)
+- `remove` — RDF/JS Quads (external retractions)
+- `statements` — Elevated SPO quads from rdf:Statement patterns
+- `origin` — Lean origin tracking for UI navigation
+- `context` — Final context with prefixes
 - `primarySubject` — String IRI or null (canonical append identity)
-- `primary` — Object containing primary metadata (semantic surface descriptor)
-- `md` — Clean Markdown with all MD-LD annotations stripped (round-trip safe)
-
-**Dual-Layer Architecture:**
-
-| Layer | Field | Purpose | Use Cases |
-|-------|-------|---------|-----------|
-| **Canonical Identity** | `primarySubject` | Append routing, storage, synchronization | `append()`, file placement, authority validation |
-| **Semantic Surface** | `primary` | UI, indexing, navigation, agent orientation | Dashboards, search, previews, timelines |
-
-**Primary Object Structure:**
-```javascript
-primary: {
-    subject: string | null,     // First non-fragment subject declaration
-    type: string | null,       // First rdf:type declaration
-    label: string | null       // First rdfs:label literal
-}
-```
+- `primary` — Primary metadata (subject, type, label)
+- `md` — Clean Markdown with annotations stripped
 
 ### `merge(docs, options)`
 
@@ -236,239 +272,83 @@ Merge multiple MDLD documents with diff polarity resolution.
 **Parameters:**
 - `docs` (array) — Array of markdown strings or ParseResult objects
 - `options` (object, optional):
-  - `context` (object) — Prefix mappings (merged with DEFAULT_CONTEXT)
+  - `context` (object) — Prefix mappings
 
 **Returns:** `{ quads, remove, origin, context, primarySubjects, primary }`
 
-- `quads` — Array of RDF/JS Quads (final resolved graph state)
-- `remove` — Array of RDF/JS Quads (external retractions targeting prior state)
+- `quads` — RDF/JS Quads (final resolved graph state)
+- `remove` — RDF/JS Quads (external retractions)
 - `origin` — Merge origin with document tracking
-- `context` — Final context used (includes prefixes)
-- `primarySubjects` — Array of string IRIs (canonical append identities, ordered by merge)
-- `primary` — Array of primary objects (semantic surface descriptors, ordered by merge)
+- `context` — Final context with prefixes
+- `primarySubjects` — Array of string IRIs (canonical identities)
+- `primary` — Array of primary metadata objects
 
-**Dual-Layer Architecture:**
+**Use case:** CRDT-style state management with append-only documents.
 
-| Layer | Field | Purpose | Use Cases |
-|-------|-------|---------|-----------|
-| **Canonical Identity** | `primarySubjects` | Append routing, storage, synchronization | Multi-document append, file organization |
-| **Semantic Surface** | `primary` | UI, indexing, navigation, agent orientation | Vault indexing, document discovery, search |
+### `generate({ quads, context, primarySubject, compactInline, renderReverse })`
 
-**Primary Object Array Structure:**
-```javascript
-primary: [
-    {
-        subject: string | null,     // First non-fragment subject declaration
-        type: string | null,       // First rdf:type declaration
-        label: string | null       // First rdfs:label literal
-    },
-    // ... one object per document
-]
-```
-
-
-### `generate({ quads, context, primarySubject, compactInline })`
-
-Generate deterministic MDLD from RDF quads with visual styling.
-
-**Parameters (named object):**
-- `quads` (array, required) — Array of RDF/JS Quads to convert
-- `context` (object, optional) — Prefix mappings (default: `{}`)
-- `primarySubject` (string, optional) — String IRI to place first in output (requires `renderReverse: true` for reverse connections)
-- `compactInline` (boolean, optional) — Enable inline type/label compaction for referenced subjects (default: `false`)
-- `renderReverse` (boolean, optional) — Enable reverse connection rendering as `!p` annotations (default: `false`)
-
-**Returns:** `{ text, context, compactStats }`
-
-- `text` (string) — Generated MDLD text
-- `context` (object) — Full context with all prefixes used
-- `compactStats` (object) — Compaction metrics:
-  - `compactedSubjects` (number) — Subjects compacted with inline types/labels
-  - `skippedHeadings` (number) — Headings skipped due to compaction
-  - `inlineAnnotations` (number) — Inline type/label annotations rendered
-
-**Features:**
-- Visual carrier styles based on datatype (code spans for numbers, bold booleans, etc.)
-- Label-in-heading: Uses `rdfs:label` in subject headings when available
-- Multiple labels: First label in heading, additional labels rendered as literals
-- Inline compaction: Types and labels of referenced subjects rendered inline (when `compactInline = true`)
-- Reverse connections: Primary subject's incoming connections rendered as `!p` annotations (only when `primarySubject` is explicitly provided)
-- Round-trip safe: All data preserved through parse → generate → parse
-- Composable: `generate(parse(text))` extracts semantics; `parse(generate({quads}))` normalizes quads
-
-### `generateNode({ quads, focusIRI, context, compactInline })`
-
-Generate node-centric MDLD showing all quads where a specific IRI appears in any position.
-
-**Parameters (named object):**
-- `quads` (array, required) — Array of RDF/JS Quads to search
-- `focusIRI` (string, required) — The IRI to center the view on
-- `context` (object, optional) — Prefix mappings (default: `{}`)
-- `compactInline` (boolean, optional) — Enable inline type/label compaction (default: `true`, opinionated for exploration)
-- `renderReverse` (boolean, optional) — Enable reverse connection rendering as `!p` annotations (default: `true`, opinionated for exploration)
-
-**Returns:** `{ text, context, compactStats }`
-
-- `text` (string) — Generated MDLD text
-- `context` (object) — Full context with all prefixes used
-- `compactStats` (object) — Compaction metrics (or `null` if focusIRI not found)
-
-**Behavior (Safety-First):**
-- If `focusIRI` is null/undefined: Returns empty text
-- If `focusIRI` not in graph: Returns empty text (never falls back to all data)
-- If `quads` is empty: Returns empty text
-
-**Safety rationale:** Prevents accidental rendering of entire databases on misspelled IRIs—critical for production use with LLM cost per token. Explicit emptiness signals "not found" to the caller.
-
-**Use case:** Perfect for exploring a specific node and all its relationships—where it appears as subject, object, predicate, type, or datatype. Creates an exhaustive view of everything related to the focus IRI. Ideal for node-centric knowledge graph explorers.
-
-### `updateValue()` — Update Quad Carrier Text in Source Text
-
-Update the carrier text of a literal quad in MDLD text. Only the carrier content is replaced — datatype (`^^xsd:integer`) and language (`@en`) annotations inside the `{…}` block are preserved as-is, since they are part of the annotation, not the carrier.
-
-```javascript
-import { parse, updateValue } from 'mdld-parse';
-
-const mdld = `[ex] <http://example.org/>
-
-# Article {=ex:article .ex:Article}
-
-[Alice Smith] {ex:author}`;
-
-const result = parse({ text: mdld });
-const authorQuad = result.quads.find(q =>
-    q.subject.value === 'http://example.org/article' &&
-    q.predicate.value === 'http://example.org/author'
-);
-
-const updatedText = updateValue({
-    text: mdld,
-    quad: authorQuad,
-    value: 'Bob Johnson',
-    origin: result.origin  // optional (auto-parses if not provided)
-});
-
-console.log(updatedText);
-// [ex] <http://example.org/>
-//
-// # Article {=ex:article .ex:Article}
-//
-// [Bob Johnson] {ex:author}
-```
-
-**Annotation annotations are preserved:**
-```javascript
-// Original: > 25 {ex:age ^^xsd:integer}
-updateValue({ text, quad, value: '30' });
-// Result:   > 30 {ex:age ^^xsd:integer}  ← datatype preserved
-
-// Original: > Hello {ex:greeting @en}
-updateValue({ text, quad, value: 'Good morning' });
-// Result:   > Good morning {ex:greeting @en}  ← language tag preserved
-```
+Generate deterministic MDLD from RDF quads.
 
 **Parameters:**
-- `text` (string) — The original MDLD text
-- `quad` (object) — The quad to update (subject, predicate, object)
-- `value` (string) — The new carrier text to set
-- `origin` (object, optional) — ParseResult.origin (auto-parses if not provided)
+- `quads` (array, required) — RDF/JS Quads to convert
+- `context` (object, optional) — Prefix mappings
+- `primarySubject` (string, optional) — IRI to place first in output
+- `compactInline` (boolean, optional) — Inline type/label compaction (default: `false`)
+- `renderReverse` (boolean, optional) — Reverse connections as `!p` (default: `false`)
 
-**Returns:** Updated MDLD text, or original text if update fails (fail-safe)
+**Returns:** `{ text, context, compactStats }`
 
-**How it works:**
-- Uses `locate()` to find the quad's position in the source text
-- Uses `valueRange` to replace only the carrier text (excluding carrier markers like `[`, `]`)
-- Annotation block `{…}` with predicate, datatype, language is untouched
-- Auto-parses if result not provided (convenient but less efficient)
+- `text` — Generated MDLD text
+- `context` — Full context with prefixes
+- `compactStats` — Compaction metrics
 
-**Fail-safe behavior:**
-- Returns original text if quad cannot be located
-- Returns original text if valueRange is not available
-- Never corrupts the source text
+**Features:** Visual styling, label-in-heading, round-trip safe.
 
-**Use case:** Perfect for editor applications that need to update literal values while preserving carrier syntax, datatype annotations, and language tags.
+### `generateNode({ quads, focusIRI, context, compactInline, renderReverse })`
 
-### Composition Patterns
+Generate node-centric MDLD for a specific IRI.
 
-With the unified named parameter API, `parse()` and `generate()` compose seamlessly through object spreading:
+**Parameters:**
+- `quads` (array, required) — RDF/JS Quads to search
+- `focusIRI` (string, required) — IRI to center view on
+- `context` (object, optional) — Prefix mappings
+- `compactInline` (boolean, optional) — Inline compaction (default: `true`)
+- `renderReverse` (boolean, optional) — Reverse connections (default: `true`)
 
-```javascript
-import { parse, generate, generateNode } from 'mdld-parse';
+**Returns:** `{ text, context, compactStats }`
 
-// Pattern 1: parse → generate (semantic extraction)
-const canonical = generate({ ...parse({ text, context }) });
-// text → quads → canonical MDLD (deterministic, visual styling applied)
+**Safety:** Returns empty text if focusIRI not found (prevents accidental full database rendering).
 
-// Pattern 2: generate → parse (normalize external RDF)
-const normalized = parse({ ...generate({ quads: externalQuads, context }) });
-// external quads → MDLD → validated quads (DataFactory-safe, no blank nodes)
+### `updateValue({ text, quad, value, origin })`
 
-// Pattern 3: parse → generateNode (node-centric exploration)
-const nodeView = generateNode({ ...parse({ text }), focusIRI: 'http://example.org/alice' });
-// full graph → isolated node view (safe: returns empty if IRI not found)
-```
+Update carrier text of a literal quad in MDLD text.
 
-**Why this works:**
-- `parse()` returns `{ quads, context, primarySubject, md, ... }`
-- `generate()` accepts `{ quads, context, primarySubject }`
-- `generateNode()` accepts `{ quads, context, focusIRI }` (with focusIRI override)
-- Perfect shape alignment enables elegant `{ ...spread }` composition
+**Parameters:**
+- `text` (string) — Original MDLD text
+- `quad` (object) — Quad to update
+- `value` (string) — New carrier text
+- `origin` (object, optional) — ParseResult.origin
 
-### The `md` Field — Clean Markdown Extraction
+**Returns:** Updated MDLD text (fail-safe)
 
-Every `parse()` result includes a `md` field containing the original Markdown with all MD-LD annotations stripped:
-
-```javascript
-const result = parse({
-  text: `# Document {=ex:doc .Article}\n[Content] {ex:content}`,
-  context: { ex: 'http://example.org/' }
-});
-
-console.log(result.md);
-// # Document\nContent
-
-// Round-trip safety: re-parsing clean MD produces zero quads
-const reparsed = parse({ text: result.md });
-console.log(reparsed.quads.length); // 0
-```
-
-**Behavior:**
-- Valid MD-LD annotations (`{=...}`, `{+...}`, `{...}`) are completely removed
-- Content from value carriers (`[text]`, `**bold**`, `` `code` ``) is preserved
-- Invalid syntax (annotations not at end-of-line) is preserved as visible markers
-- Headings, lists, blockquotes, code blocks maintain their structure
-- Prefix declarations at start of line are stripped
-- Standalone subject declarations (`{=ex:subject}`) are stripped
-
-**Use cases:**
-- **Content extraction** — Get readable Markdown without semantic markup
-- **Syntax validation** — Remaining `{...}` patterns indicate invalid MD-LD syntax
-- **Round-trip testing** — `parse(md).md` should parse to zero quads
-- **Preview generation** — Show clean document before publishing
+**Use case:** Editor applications updating literal values.
 
 ### `locate(quad, origin)`
 
-Locate the origin entry for a quad using the lean origin system.
+Locate quad origin entry for UI navigation.
 
-**Parameters:**
-- `quad` (object) — The quad to locate (subject, predicate, object)
-- `origin` (object) — Origin object containing quadIndex
-
-**Returns:** `{ blockId, range, valueRange, carrierType, subject, predicate, context, value, polarity }` or `null`
-
-- `range`: Full character range including carrier markers (e.g., `[`, `]`, `{`, `}`)
-- `valueRange`: Character range excluding carrier markers (null if not available)
+**Returns:** `{ blockId, range, valueRange, carrierType, ... }` or `null`
 
 ### Utility Functions
 
 ```javascript
 import {
   DEFAULT_CONTEXT,    // Default prefix mappings
-  DataFactory,        // RDF/JS DataFactory instance
-  hash,              // String hashing function
-  expandIRI,         // IRI expansion with context
-  shortenIRI,        // IRI shortening with context
-  parseSemanticBlock // Parse semantic block syntax
+  DataFactory,        // RDF/JS DataFactory
+  hash,              // String hashing
+  expandIRI,         // IRI expansion
+  shortenIRI,        // IRI shortening
+  parseSemanticBlock // Semantic block parsing
 } from 'mdld-parse';
 ```
 
@@ -478,28 +358,20 @@ import {
 - **Zero dependencies** — Pure JavaScript, ~15KB minified
 - **Streaming-first** — Single-pass parsing, O(n) complexity
 - **Standards-compliant** — RDF/JS data model
-- **Origin tracking** — Full round-trip support with source maps
+- **Deterministic** — Same input always produces same output
 - **Explicit semantics** — No guessing, inference, or heuristics
 
 ### RDF/JS Compatibility
-Quads are compatible with:
+Quads work with:
 - [`n3.js`](https://github.com/rdfjs/N3.js) — Turtle/N-Triples serialization
-- [`rdflib.js`](https://github.com/linkeddata/rdflib.js) — RDF store and reasoning
+- [`rdflib.js`](https://github.com/linkeddata/rdflib.js) — RDF stores
 - [`sparqljs`](https://github.com/RubenVerborgh/SPARQL.js) — SPARQL queries
-- [`rdf-ext`](https://github.com/rdf-ext/rdf-ext) — Extended RDF utilities
+- [`rdf-ext`](https://github.com/rdf-ext/rdf-ext) — RDF utilities
 
 ## 🧪 Testing
-
-The parser includes comprehensive tests covering all spec requirements:
 
 ```bash
 pnpm test
 ```
 
-Tests validate:
-- Subject declaration and context
-- All predicate forms (p, ?p, !p)
-- Datatypes and language tags
-- Explicit list item annotations
-- Code blocks and blockquotes
-- Round-trip serialization
+132 tests covering all spec requirements.
