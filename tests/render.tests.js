@@ -1,22 +1,18 @@
 import { render } from '../src/render.js';
-import { parse } from '../src/parse.js';
-import { parseRDFa } from 'rdfa-parse';
 
 /**
- * Test suite for faithful MDLD rendering with round-trip validation
+ * Test suite for minimal MDLD HTML rendering
  */
 export function runrenderTests() {
     console.log('🧪 Running MDLD Render Tests...\n');
 
     const tests = [
-        testBasicRoundTrip,
-        testComplexAnnotations,
-        testNestedStructures,
-        testListHandling,
-        testInlineCarriers,
-        testTypeAnnotations,
-        testMultipleSubjects,
-        testEdgeCases
+        testBasicRendering,
+        testHeadings,
+        testInlineFormatting,
+        testLists,
+        testCodeBlocks,
+        testBlockquotes
     ];
 
     let passed = 0;
@@ -44,185 +40,39 @@ export function runrenderTests() {
 }
 
 /**
- * Test basic round-trip functionality
+ * Test basic HTML rendering
  */
-function testBasicRoundTrip() {
-    const mdld = `[ex] <http://example.org/>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
-
-# Alice {=ex:alice .Person}
-Name: [Alice] {ex:name}
-Age: [30] {ex:age ^^xsd:integer}`;
-
-    const result = render(mdld, { validate: true });
-
-    if (!result.validation.isValid) {
-        return {
-            passed: false,
-            error: 'Basic round-trip failed',
-            details: `Missing: ${result.validation.missingQuads.length}, Extra: ${result.validation.extraQuads.length}`
-        };
-    }
-
-    return { passed: true };
-}
-
-/**
- * Test complex annotations with multiple predicates
- */
-function testComplexAnnotations() {
-    const mdld = `[ex] <http://example.org/>
-[dc] <http://purl.org/dc/terms/>
-
-# Project {=ex:project .Project .Important}
-Title: [AI Research] {ex:title dc:title}
-Description: [Advanced AI project] {ex:description dc:description}
-Lead: [Alice] {+ex:alice ?ex:lead .Person}
-Status: [Active] {ex:status ex:Active}`;
-
-    const result = render(mdld, { validate: true });
-
-    if (!result.validation.isValid) {
-        return {
-            passed: false,
-            error: 'Complex annotations round-trip failed',
-            details: `Expected 5 quads, got ${result.validation.parsedCount}`
-        };
-    }
-
-    return { passed: true };
-}
-
-/**
- * Test nested structures and hierarchy
- */
-function testNestedStructures() {
-    const mdld = `[ex] <http://example.org/>
-
-# Company {=ex:company .Organization}
-Name: [TechCorp] {ex:name}
-
-## Department {=ex:dept .Department}
-Name: [R&D] {ex:name}
-Parent: [TechCorp] {+ex:company ?ex:parent}
-
-### Team {=ex:team .Team}
-Name: [AI Team] {ex:name}
-Department: [R&D] {+ex:dept ?ex:department}`;
-
-    const result = render(mdld, { validate: true });
-
-    if (!result.validation.isValid) {
-        return {
-            passed: false,
-            error: 'Nested structures round-trip failed',
-            details: `Missing: ${result.validation.missingQuads.join(', ')}`
-        };
-    }
-
-    return { passed: true };
-}
-
-/**
- * Test list handling with RDFa
- */
-function testListHandling() {
-    const mdld = `[ex] <http://example.org/>
-
-# Tasks {=ex:tasks .TaskList}
-Items:
-- [Task 1] {+ex:task1 ?ex:task}
-- [Task 2] {+ex:task2 ?ex:task}
-  - [Subtask 2.1] {+ex:subtask1 ?ex:subtask}
-- [Task 3] {+ex:task3 ?ex:task}`;
-
-    const result = render(mdld, { validate: true });
-
-    if (!result.validation.isValid) {
-        return {
-            passed: false,
-            error: 'List handling round-trip failed',
-            details: `Expected 4 quads, got ${result.validation.parsedCount}`
-        };
-    }
-
-    return { passed: true };
-}
-
-/**
- * Test inline carriers with formatting
- */
-function testInlineCarriers() {
-    const mdld = `[ex] <http://example.org/>
-
-# Document {=ex:doc .Document}
-Title: *[Important]* {ex:title .Important}
-Author: [Alice] {+ex:alice ?ex:author .Person}
-Code: \`test()\` {ex:example}
-Link: [Website](https://example.com) {+ex:website ?ex:url}`;
-
-    const result = render(mdld, { validate: true });
-
-    if (!result.validation.isValid) {
-        return {
-            passed: false,
-            error: 'Inline carriers round-trip failed',
-            details: `Missing: ${result.validation.missingQuads.length}`
-        };
-    }
-
-    return { passed: true };
-}
-
-/**
- * Test type annotations and inheritance
- */
-function testTypeAnnotations() {
-    const mdld = `[ex] <http://example.org/>
-[xsd] <http://www.w3.org/2001/XMLSchema#>
-
-# Person {=ex:person .Person .Agent}
-Name: [Bob] {ex:name}
-Email: [bob@example.com] {ex:email}
-
-# Employee {=ex:employee .Employee .Person}
-Name: [Alice] {ex:name}
-Salary: [75000] {ex:salary ^^xsd:decimal}`;
-
-    const result = render(mdld, { validate: true });
-
-    if (!result.validation.isValid) {
-        return {
-            passed: false,
-            error: 'Type annotations round-trip failed',
-            details: `Expected 6 quads, got ${result.validation.parsedCount}`
-        };
-    }
-
-    return { passed: true };
-}
-
-/**
- * Test multiple subjects and relationships
- */
-function testMultipleSubjects() {
+function testBasicRendering() {
     const mdld = `[ex] <http://example.org/>
 
 # Alice {=ex:alice .Person}
 Name: [Alice] {ex:name}
-Knows: [Bob] {+ex:bob ?ex:knows}
+Age: [30] {ex:age}`;
 
-# Bob {=ex:bob .Person}
-Name: [Bob] {ex:name}
-Knows: [Alice] {+ex:alice ?ex:knows}`;
+    const result = render(mdld);
 
-    const result = render(mdld, { validate: true });
-
-    if (!result.validation.isValid) {
+    if (!result.html.includes('<h1>Alice</h1>')) {
         return {
             passed: false,
-            error: 'Multiple subjects round-trip failed',
-            details: `Expected 4 quads, got ${result.validation.parsedCount}`
+            error: 'Heading not rendered correctly',
+            details: result.html
+        };
+    }
+
+    if (!result.html.includes('<p>')) {
+        return {
+            passed: false,
+            error: 'Paragraph not rendered',
+            details: result.html
+        };
+    }
+
+    // Should NOT contain MDLD annotations
+    if (result.html.includes('{') || result.html.includes('}')) {
+        return {
+            passed: false,
+            error: 'MDLD annotations not stripped',
+            details: result.html
         };
     }
 
@@ -230,25 +80,121 @@ Knows: [Alice] {+ex:alice ?ex:knows}`;
 }
 
 /**
- * Test edge cases and special characters
+ * Test heading levels
  */
-function testEdgeCases() {
+function testHeadings() {
     const mdld = `[ex] <http://example.org/>
+    
+# H1 {=ex:h1}
+## H2 {=ex:h2}
+### H3 {=ex:h3}`;
 
-# Special {=ex:special .Special}
-Quote: ["Hello & World"] {ex:quote}
-HTML: [<div>test</div>] {ex:html}
-Empty: [] {ex:empty}
-Unicode: [Café] {ex:unicode}`;
+    const result = render(mdld);
 
-    const result = render(mdld, { validate: true });
+    if (!result.html.includes('<h1>H1</h1>')) {
+        return { passed: false, error: 'H1 not rendered' };
+    }
+    if (!result.html.includes('<h2>H2</h2>')) {
+        return { passed: false, error: 'H2 not rendered' };
+    }
+    if (!result.html.includes('<h3>H3</h3>')) {
+        return { passed: false, error: 'H3 not rendered' };
+    }
 
-    if (!result.validation.isValid) {
-        return {
-            passed: false,
-            error: 'Edge cases round-trip failed',
-            details: `Missing: ${result.validation.missingQuads.length}`
-        };
+    return { passed: true };
+}
+
+/**
+ * Test inline formatting
+ */
+function testInlineFormatting() {
+    const mdld = `[ex] <http://example.org/>
+    
+# Test {=ex:test}
+Bold: **text** {ex:bold}
+Italic: *text* {ex:italic}
+Code: \`code\` {ex:code}
+Link: [text](url) {ex:link}`;
+
+    const result = render(mdld);
+
+    if (!result.html.includes('<strong>text</strong>')) {
+        return { passed: false, error: 'Bold not rendered' };
+    }
+    if (!result.html.includes('<em>text</em>')) {
+        return { passed: false, error: 'Italic not rendered' };
+    }
+    if (!result.html.includes('<code>code</code>')) {
+        return { passed: false, error: 'Code not rendered' };
+    }
+    if (!result.html.includes('<a href="url">text</a>')) {
+        return { passed: false, error: 'Link not rendered' };
+    }
+
+    return { passed: true };
+}
+
+/**
+ * Test list rendering
+ */
+function testLists() {
+    const mdld = `[ex] <http://example.org/>
+    
+# Test {=ex:test}
+- Item 1 {ex:item1}
+- Item 2 {ex:item2}`;
+
+    const result = render(mdld);
+
+    if (!result.html.includes('<li>')) {
+        return { passed: false, error: 'List items not rendered' };
+    }
+    if (result.html.includes('{')) {
+        return { passed: false, error: 'Annotations not stripped from lists' };
+    }
+
+    return { passed: true };
+}
+
+/**
+ * Test code blocks
+ */
+function testCodeBlocks() {
+    const mdld = `[ex] <http://example.org/>
+    
+# Test {=ex:test}
+\`\`\`javascript
+const x = 1;
+\`\`\` {ex:code}`;
+
+    const result = render(mdld);
+
+    if (!result.html.includes('<pre><code')) {
+        return { passed: false, error: 'Code block not rendered' };
+    }
+    if (!result.html.includes('const x = 1;')) {
+        return { passed: false, error: 'Code content not preserved' };
+    }
+
+    return { passed: true };
+}
+
+/**
+ * Test blockquotes
+ */
+function testBlockquotes() {
+    const mdld = `[ex] <http://example.org/>
+    
+# Test {=ex:test}
+> Quote text {ex:quote}`;
+
+    const result = render(mdld);
+
+    if (!result.html.includes('<blockquote>')) {
+        return { passed: false, error: 'Blockquote not rendered' };
+    }
+    if (result.html.includes('{')) {
+        return { passed: false, error: 'Annotations not stripped from blockquote' };
     }
 
     return { passed: true };
