@@ -459,18 +459,6 @@ Locate the origin entry for a quad using the lean origin system.
 - `range`: Full character range including carrier markers (e.g., `[`, `]`, `{`, `}`)
 - `valueRange`: Character range excluding carrier markers (null if not available)
 
-### `render(quads, options)`
-
-Render RDF quads as HTML+RDFa for web display.
-
-**Parameters:**
-- `quads` (array) — Array of RDF/JS Quads to render
-- `options` (object, optional):
-  - `context` (object) — Prefix mappings for CURIE shortening
-  - `baseIRI` (string) — Base IRI for resolving relative references
-
-**Returns:** `{ html, context }`
-
 ### Utility Functions
 
 ```javascript

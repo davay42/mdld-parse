@@ -1,7 +1,6 @@
 import { parse } from './parse.js';
 import { merge } from './merge.js';
 import { generate, generateNode } from './generate.js';
-import { render } from './render.js';
 import { getIRIColor, hashIRI, highlightMDLD } from './highlight.js'
 import { DEFAULT_CONTEXT } from './constants.js';
 import {
@@ -13,7 +12,7 @@ import {
     locate
 } from './utils.js';
 
-export { parse, merge, generate, generateNode, render, getIRIColor, hashIRI, highlightMDLD, DEFAULT_CONTEXT, DataFactory, hash, expandIRI, shortenIRI, parseSemanticBlock, locate };
+export { parse, merge, generate, generateNode, getIRIColor, hashIRI, highlightMDLD, DEFAULT_CONTEXT, DataFactory, hash, expandIRI, shortenIRI, parseSemanticBlock, locate };
 
 /**
  * Update the value of a quad in MDLD text and return the updated text

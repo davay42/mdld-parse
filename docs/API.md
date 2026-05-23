@@ -293,35 +293,6 @@ console.log(location.value); // "Alice"
 console.log(location.carrierType); // "blockquote"
 ```
 
-### `render(quads, options)`
-
-Render RDF quads as HTML+RDFa for web display.
-
-**Parameters:**
-- `quads` (array) — Array of RDF/JS Quads to render
-- `options` (object, optional):
-  - `context` (object) — Prefix mappings for CURIE shortening
-  - `baseIRI` (string) — Base IRI for resolving relative references
-
-**Returns:** `{ html, context }`
-
-- `html` — HTML string with RDFa annotations
-- `context` — Context used for rendering
-
-#### Render Example
-
-```javascript
-import { parse, render } from 'mdld-parse';
-
-const result = parse({ text: mdldText});
-const rendered = render(result.quads, { ex: 'http://example.org/' });
-
-console.log(rendered.html);
-// <div typeof="ex:Article">
-//   <span property="ex:author">Alice</span>
-// </div>
-```
-
 ## Utility Functions
 
 ```javascript

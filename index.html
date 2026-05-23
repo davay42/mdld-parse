@@ -31,7 +31,6 @@
 
     <script type="module">
         import { parse, shortenIRI, generate, getIRIColor } from './src/index.js';
-        import { render } from './src/render.js';
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store, Parser } from 'n3';
         import MarkdownIt from 'markdown-it';
@@ -49,18 +48,6 @@
             const code = jar.toString();
             editor.innerHTML = highlightMDLD(code);
         };
-
-        // Development flag to enable/disable RDFa rendering
-        // Set to false for production, true for development
-        const ENABLE_RDFA_RENDER = false;
-
-        // Show/hide rendered HTML section based on flag
-        document.addEventListener('DOMContentLoaded', function () {
-            const renderedSection = document.getElementById('rendered-section');
-            if (renderedSection) {
-                renderedSection.style.display = ENABLE_RDFA_RENDER ? 'block' : 'none';
-            }
-        });
 
         // Load example from imported modules
         window.loadExample = function (name) {
@@ -133,16 +120,12 @@
         window.parseMDLD = function () {
             const input = jar ? jar.toString() : '';
             const output = document.getElementById('output');
-            const rendered = document.getElementById('rendered-output');
             const stats = document.getElementById('parse-stats');
 
 
 
             if (!input.trim()) {
                 output.textContent = 'Quads will appear here...';
-                if (ENABLE_RDFA_RENDER && rendered) {
-                    rendered.textContent = 'Rendered HTML will appear here...';
-                }
                 stats.textContent = '';
 
                 // Clear primary subject display
@@ -250,12 +233,6 @@
                     statementsStats.textContent = 'No elevated statements';
                 }
 
-                // Display rendered HTML+RDFa (only if enabled)
-                if (ENABLE_RDFA_RENDER && rendered) {
-                    const renderedResult = render(input);
-                    rendered.innerHTML = `<div class="bg-white dark:bg-gray-800 p-4 rounded">${renderedResult.html}</div>`;
-                }
-
                 // Convert quads to readable format
 
                 stats.textContent = `${result.quads.length} quads • ${duration}ms${quadsChanged ? '' : ' (no change)'}`;
@@ -263,9 +240,6 @@
 
             } catch (error) {
                 output.textContent = `Error: ${error.message}`;
-                if (ENABLE_RDFA_RENDER && rendered) {
-                    rendered.textContent = `Error: ${error.message}`;
-                }
                 stats.textContent = '';
 
             }
@@ -365,12 +339,6 @@
                 jar.updateCode('');
             }
             document.getElementById('output').textContent = 'Quads will appear here...';
-            if (ENABLE_RDFA_RENDER) {
-                const rendered = document.getElementById('rendered-output');
-                if (rendered) {
-                    rendered.textContent = 'Rendered HTML will appear here...';
-                }
-            }
             document.getElementById('parse-stats').textContent = '';
 
             // Clear TTL content and graph viewer
