@@ -8,15 +8,16 @@ The `generate()` function converts RDF/JS Quads into canonical MDLD text with vi
 
 ## Core Functions
 
-### `generate({ quads, context, primarySubject, compactInline })`
+### `generate({ quads, context, primarySubject, compactInline, renderReverse })`
 
 Generate deterministic MDLD from RDF quads with visual styling and compaction.
 
 **Parameters:**
 - `quads` (array, required) — Array of RDF/JS Quads to convert
 - `context` (object, optional) — Prefix mappings (default: `{}`)
-- `primarySubject` (string, optional) — IRI to place first in output (ensures round-trip safety)
-- `compactInline` (boolean, optional) — Enable inline type/label compaction (default: `true`)
+- `primarySubject` (string, optional) — IRI to place first in output (requires `renderReverse: true` for reverse connections)
+- `compactInline` (boolean, optional) — Enable inline type/label compaction (default: `false`)
+- `renderReverse` (boolean, optional) — Enable reverse connection rendering as `!p` annotations (default: `false`)
 
 **Returns:** `{ text, context, compactStats }`
 
@@ -27,7 +28,7 @@ Generate deterministic MDLD from RDF quads with visual styling and compaction.
   - `skippedHeadings` (number) — Headings skipped due to compaction
   - `inlineAnnotations` (number) — Inline type/label annotations rendered
 
-### `generateNode({ quads, focusIRI, context, compactInline })`
+### `generateNode({ quads, focusIRI, context, compactInline, renderReverse })`
 
 Generate node-centric MDLD showing all quads where a specific IRI appears in any position (subject, object, predicate, type, or datatype).
 
@@ -35,7 +36,8 @@ Generate node-centric MDLD showing all quads where a specific IRI appears in any
 - `quads` (array, required) — Array of RDF/JS Quads to search
 - `focusIRI` (string, required) — The IRI to center the view on
 - `context` (object, optional) — Prefix mappings (default: `{}`)
-- `compactInline` (boolean, optional) — Enable inline type/label compaction (default: `true`)
+- `compactInline` (boolean, optional) — Enable inline type/label compaction (default: `true`, opinionated for exploration)
+- `renderReverse` (boolean, optional) — Enable reverse connection rendering as `!p` annotations (default: `true`, opinionated for exploration)
 
 **Returns:** `{ text, context, compactStats }`
 

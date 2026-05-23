@@ -1,52 +1,102 @@
 //#region src/constants.js
-var e = {
+/**
+* Shared utilities for MD-LD Parser and Renderer
+* Ensures DRY code and consistent CommonMark processing
+*/
+var DEFAULT_CONTEXT = {
 	"@vocab": "http://www.w3.org/2000/01/rdf-schema#",
 	rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
 	rdfs: "http://www.w3.org/2000/01/rdf-schema#",
 	xsd: "http://www.w3.org/2001/XMLSchema#",
 	sh: "http://www.w3.org/ns/shacl#",
 	prov: "http://www.w3.org/ns/prov#"
-}, t = "http://www.w3.org/2000/01/rdf-schema#label", n = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", r = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString", i = "http://www.w3.org/2001/XMLSchema#string", a = "http://www.w3.org/2001/XMLSchema#boolean", o = "http://www.w3.org/2001/XMLSchema#integer", s = "http://www.w3.org/2001/XMLSchema#double", c = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file|urn:uuid):/, l = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file):/, u = class {
-	constructor(e) {
-		this.id = e;
+};
+var RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
+var RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+var RDF_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString";
+var XSD_STRING = "http://www.w3.org/2001/XMLSchema#string";
+var XSD_BOOLEAN = "http://www.w3.org/2001/XMLSchema#boolean";
+var XSD_INTEGER = "http://www.w3.org/2001/XMLSchema#integer";
+var XSD_DOUBLE = "http://www.w3.org/2001/XMLSchema#double";
+var URL_REGEX = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file|urn:uuid):/;
+//#endregion
+//#region src/utils.js
+var VALID_URI_SCHEMES = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file):/;
+var Term = class {
+	constructor(id) {
+		this.id = id;
 	}
-	equals(e) {
-		return !!e && this.termType === e.termType && this.value === e.value;
+	equals(other) {
+		return !!other && this.termType === other.termType && this.value === other.value;
 	}
-}, d = class extends u {
-	constructor(e) {
-		super(e), this.termType = "NamedNode", this.value = e;
+};
+var NamedNode = class extends Term {
+	constructor(iri) {
+		super(iri);
+		this.termType = "NamedNode";
+		this.value = iri;
 	}
-}, f = class extends u {
-	constructor(e) {
-		super(e), this.termType = "Literal", this.value = "", this.language = "", this.datatype = null;
-		let t = e.match(/^"([^"\\]*(?:\\.[^"\\]*)*)"(\^\^([^"]+))?(@([^-]+)(--(.+))?)?$/);
-		t ? (this.value = t[1].replace(/\\"/g, "\"").replace(/\\\\/g, "\\"), t[5] ? (this.language = t[5], this.datatype = new d(r)) : t[3] ? this.datatype = new d(t[3]) : this.datatype = new d(i)) : (this.value = e.replace(/^"|"$/g, ""), this.datatype = new d(i));
+};
+var Literal = class extends Term {
+	constructor(id) {
+		super(id);
+		this.termType = "Literal";
+		this.value = "";
+		this.language = "";
+		this.datatype = null;
+		const dtMatch = id.match(/^"([^"\\]*(?:\\.[^"\\]*)*)"(\^\^([^"]+))?(@([^-]+)(--(.+))?)?$/);
+		if (dtMatch) {
+			this.value = dtMatch[1].replace(/\\"/g, "\"").replace(/\\\\/g, "\\");
+			if (dtMatch[5]) {
+				this.language = dtMatch[5];
+				this.datatype = new NamedNode(RDF_LANG_STRING);
+			} else if (dtMatch[3]) this.datatype = new NamedNode(dtMatch[3]);
+			else this.datatype = new NamedNode(XSD_STRING);
+		} else {
+			this.value = id.replace(/^"|"$/g, "");
+			this.datatype = new NamedNode(XSD_STRING);
+		}
 	}
-	equals(e) {
-		return !!e && this.termType === e.termType && this.value === e.value && this.language === e.language && this.datatype?.value === e.datatype?.value;
+	equals(other) {
+		return !!other && this.termType === other.termType && this.value === other.value && this.language === other.language && this.datatype?.value === other.datatype?.value;
 	}
-}, p = class extends u {
-	constructor(e) {
-		super(e || `b${Math.random().toString(36).slice(2, 11)}`), this.termType = "BlankNode", this.value = this.id;
+};
+var BlankNode = class extends Term {
+	constructor(name) {
+		super(name || `b${Math.random().toString(36).slice(2, 11)}`);
+		this.termType = "BlankNode";
+		this.value = this.id;
 	}
-}, m = class extends u {
-	constructor(e) {
-		super(e), this.termType = "Variable", this.value = e;
+};
+var Variable = class extends Term {
+	constructor(name) {
+		super(name);
+		this.termType = "Variable";
+		this.value = name;
 	}
-}, h = new class extends u {
+};
+var DefaultGraph = class extends Term {
 	constructor() {
-		super(""), this.termType = "DefaultGraph", this.value = "";
+		super("");
+		this.termType = "DefaultGraph";
+		this.value = "";
 	}
-	equals(e) {
-		return !!e && this.termType === e.termType;
+	equals(other) {
+		return !!other && this.termType === other.termType;
 	}
-}(), g = class extends u {
-	constructor(e, t, n, r = h) {
-		super(`${e.id}|${t.id}|${n.id}|${r.id}`), this.termType = "Quad", this.subject = e, this.predicate = t, this.object = n, this.graph = r;
+};
+var DEFAULTGRAPH = new DefaultGraph();
+var Quad = class extends Term {
+	constructor(subject, predicate, object, graph = DEFAULTGRAPH) {
+		super(`${subject.id}|${predicate.id}|${object.id}|${graph.id}`);
+		this.termType = "Quad";
+		this.subject = subject;
+		this.predicate = predicate;
+		this.object = object;
+		this.graph = graph;
 	}
-	equals(e) {
-		return !!e && this.termType === e.termType && this.subject.equals(e.subject) && this.predicate.equals(e.predicate) && this.object.equals(e.object) && this.graph.equals(e.graph);
+	equals(other) {
+		return !!other && this.termType === other.termType && this.subject.equals(other.subject) && this.predicate.equals(other.predicate) && this.object.equals(other.object) && this.graph.equals(other.graph);
 	}
 	toJSON() {
 		return {
@@ -69,115 +119,139 @@ var e = {
 			}
 		};
 	}
-}, _ = {
-	namedNode: (e) => new d(e),
-	blankNode: (e) => new p(e),
-	literal: (e, t) => {
-		let n = String(e).replace(/"/g, "\\\"");
-		if (typeof t == "string") return new f(`"${n}"@${t.toLowerCase()}`);
-		if (t !== void 0 && !("termType" in t)) {
-			let e = t.direction ? `--${t.direction.toLowerCase()}` : "";
-			return new f(`"${n}"@${t.language.toLowerCase()}${e}`);
+};
+var DataFactory = {
+	namedNode: (iri) => new NamedNode(iri),
+	blankNode: (name) => new BlankNode(name),
+	literal: (value, languageOrDataType) => {
+		const escapedValue = String(value).replace(/"/g, "\\\"");
+		if (typeof languageOrDataType === "string") return new Literal(`"${escapedValue}"@${languageOrDataType.toLowerCase()}`);
+		if (languageOrDataType !== void 0 && !("termType" in languageOrDataType)) {
+			const direction = languageOrDataType.direction ? `--${languageOrDataType.direction.toLowerCase()}` : "";
+			return new Literal(`"${escapedValue}"@${languageOrDataType.language.toLowerCase()}${direction}`);
 		}
-		let r = t ? t.value : "";
-		return r === "" && (typeof e == "boolean" ? r = a : typeof e == "number" && (Number.isFinite(e) ? r = Number.isInteger(e) ? o : s : (r = s, Number.isNaN(e) || (e = e > 0 ? "INF" : "-INF")))), r === "" || r === "http://www.w3.org/2001/XMLSchema#string" ? new f(`"${n}"`) : new f(`"${n}"^^${r}`);
+		let datatype = languageOrDataType ? languageOrDataType.value : "";
+		if (datatype === "") {
+			if (typeof value === "boolean") datatype = XSD_BOOLEAN;
+			else if (typeof value === "number") if (Number.isFinite(value)) datatype = Number.isInteger(value) ? XSD_INTEGER : XSD_DOUBLE;
+			else {
+				datatype = XSD_DOUBLE;
+				if (!Number.isNaN(value)) value = value > 0 ? "INF" : "-INF";
+			}
+		}
+		return datatype === "" || datatype === "http://www.w3.org/2001/XMLSchema#string" ? new Literal(`"${escapedValue}"`) : new Literal(`"${escapedValue}"^^${datatype}`);
 	},
-	variable: (e) => new m(e),
-	defaultGraph: () => h,
-	quad: (e, t, n, r) => new g(e, t, n, r),
-	triple: (e, t, n, r) => new g(e, t, n, r),
-	fromTerm: (e) => {
-		if (e instanceof u) return e;
-		switch (e.termType) {
-			case "NamedNode": return new d(e.value);
-			case "BlankNode": return new p(e.value);
-			case "Variable": return new m(e.value);
-			case "DefaultGraph": return h;
+	variable: (name) => new Variable(name),
+	defaultGraph: () => DEFAULTGRAPH,
+	quad: (subject, predicate, object, graph) => new Quad(subject, predicate, object, graph),
+	triple: (subject, predicate, object, graph) => new Quad(subject, predicate, object, graph),
+	fromTerm: (term) => {
+		if (term instanceof Term) return term;
+		switch (term.termType) {
+			case "NamedNode": return new NamedNode(term.value);
+			case "BlankNode": return new BlankNode(term.value);
+			case "Variable": return new Variable(term.value);
+			case "DefaultGraph": return DEFAULTGRAPH;
 			case "Literal":
-				let t = String(e.value).replace(/"/g, "\\\"");
-				return e.language ? new f(`"${t}"@${e.language}`) : e.datatype ? new f(`"${t}"^^${e.datatype.value || e.datatype}`) : new f(`"${t}"`);
-			case "Quad": return _.fromQuad(e);
-			default: throw Error(`Unexpected termType: ${e.termType}`);
+				const escapedValue = String(term.value).replace(/"/g, "\\\"");
+				if (term.language) return new Literal(`"${escapedValue}"@${term.language}`);
+				else if (term.datatype) return new Literal(`"${escapedValue}"^^${term.datatype.value || term.datatype}`);
+				else return new Literal(`"${escapedValue}"`);
+			case "Quad": return DataFactory.fromQuad(term);
+			default: throw new Error(`Unexpected termType: ${term.termType}`);
 		}
 	},
-	fromQuad: (e) => {
-		if (e instanceof g) return e;
-		if (e.termType !== "Quad") {
-			if (e.subject && e.predicate && e.object) return new g(_.fromTerm(e.subject), _.fromTerm(e.predicate), _.fromTerm(e.object), _.fromTerm(e.graph || _.defaultGraph()));
-			throw Error(`Unexpected termType: ${e.termType}`);
+	fromQuad: (inQuad) => {
+		if (inQuad instanceof Quad) return inQuad;
+		if (inQuad.termType !== "Quad") {
+			if (inQuad.subject && inQuad.predicate && inQuad.object) return new Quad(DataFactory.fromTerm(inQuad.subject), DataFactory.fromTerm(inQuad.predicate), DataFactory.fromTerm(inQuad.object), DataFactory.fromTerm(inQuad.graph || DataFactory.defaultGraph()));
+			throw new Error(`Unexpected termType: ${inQuad.termType}`);
 		}
-		return new g(_.fromTerm(e.subject), _.fromTerm(e.predicate), _.fromTerm(e.object), _.fromTerm(e.graph));
+		return new Quad(DataFactory.fromTerm(inQuad.subject), DataFactory.fromTerm(inQuad.predicate), DataFactory.fromTerm(inQuad.object), DataFactory.fromTerm(inQuad.graph));
 	}
 };
-function v(e, t) {
-	if (!e || !t || !t.quadIndex) return null;
-	let n = ee(e);
-	return n && t.quadIndex.get(n) || null;
+/**
+* Locate the origin entry for a quad using the lean origin system
+*
+* @param {Object} quad - The quad to locate (subject, predicate, object)
+* @param {Object} origin - Origin object containing quadIndex
+* @returns {Object|null} Origin entry or null if not found
+*/
+function locate(quad, origin) {
+	if (!quad || !origin || !origin.quadIndex) return null;
+	const quadKey = quadToKeyForOrigin(quad);
+	if (!quadKey) return null;
+	return origin.quadIndex.get(quadKey) || null;
 }
-function y(e) {
-	let t = 5381;
-	for (let n = 0; n < e.length; n++) t = (t << 5) + t + e.charCodeAt(n);
-	return Math.abs(t).toString(16).slice(0, 12);
+function hash(str) {
+	let h = 5381;
+	for (let i = 0; i < str.length; i++) h = (h << 5) + h + str.charCodeAt(i);
+	return Math.abs(h).toString(16).slice(0, 12);
 }
-var b = /* @__PURE__ */ new Map();
-function x(e, t) {
-	if (e == null) return null;
-	let n = `${e}|${t["@vocab"] || ""}|${Object.keys(t).filter((e) => e !== "@vocab").sort().map((e) => `${e}:${t[e]}`).join(",")}`;
-	if (b.has(n)) return b.get(n);
-	let r = (typeof e == "string" ? e : typeof e == "object" && typeof e.value == "string" ? e.value : String(e)).trim(), i;
-	if (r.match(c)) i = r;
-	else if (r.includes(":")) {
-		let [e, n] = r.split(":", 2);
-		e && !t[e] && e !== "@vocab" && console.warn(`Undefined prefix "${e}" in IRI "${r}" - treating as literal`), i = t[e] ? t[e] + n : r;
-	} else i = (t["@vocab"] || "") + r;
-	return b.set(n, i), i;
+var iriCache$1 = /* @__PURE__ */ new Map();
+function expandIRI(term, ctx) {
+	if (term == null) return null;
+	const cacheKey = `${term}|${ctx["@vocab"] || ""}|${Object.keys(ctx).filter((k) => k !== "@vocab").sort().map((k) => `${k}:${ctx[k]}`).join(",")}`;
+	if (iriCache$1.has(cacheKey)) return iriCache$1.get(cacheKey);
+	const t = (typeof term === "string" ? term : typeof term === "object" && typeof term.value === "string" ? term.value : String(term)).trim();
+	let result;
+	if (t.match(URL_REGEX)) result = t;
+	else if (t.includes(":")) {
+		const [prefix, ref] = t.split(":", 2);
+		if (prefix && !ctx[prefix] && prefix !== "@vocab") console.warn(`Undefined prefix "${prefix}" in IRI "${t}" - treating as literal`);
+		result = ctx[prefix] ? ctx[prefix] + ref : t;
+	} else result = (ctx["@vocab"] || "") + t;
+	iriCache$1.set(cacheKey, result);
+	return result;
 }
-function S(e, t) {
-	if (!e || !l.test(e)) return e;
-	if (t["@vocab"] && e.startsWith(t["@vocab"])) return e.substring(t["@vocab"].length);
-	for (let [n, r] of Object.entries(t)) if (n !== "@vocab" && e.startsWith(r) && Object.entries(t).filter(([t, n]) => t !== "@vocab" && e.startsWith(n)).every(([e, t]) => r.length >= t.length || e === n && t.length === r.length)) return n + ":" + e.substring(r.length);
-	return e;
+function shortenIRI(iri, ctx) {
+	if (!iri || !VALID_URI_SCHEMES.test(iri)) return iri;
+	if (ctx["@vocab"] && iri.startsWith(ctx["@vocab"])) return iri.substring(ctx["@vocab"].length);
+	for (const [prefix, namespace] of Object.entries(ctx)) if (prefix !== "@vocab" && iri.startsWith(namespace)) {
+		if (Object.entries(ctx).filter(([p, ns]) => p !== "@vocab" && iri.startsWith(ns)).every(([p, ns]) => namespace.length >= ns.length || p === prefix && ns.length === namespace.length)) return prefix + ":" + iri.substring(namespace.length);
+	}
+	return iri;
 }
-var C = {
+var TOKEN_PATTERNS = {
 	"=#": {
 		kind: "fragment",
-		extract: (e) => e.substring(2).replace("}", "")
+		extract: (t) => t.substring(2).replace("}", "")
 	},
 	"+#": {
 		kind: "softFragment",
-		extract: (e) => e.substring(2).replace("}", "")
+		extract: (t) => t.substring(2).replace("}", "")
 	},
 	"+": {
 		kind: "object",
-		extract: (e) => e.substring(1)
+		extract: (t) => t.substring(1)
 	},
 	"^^": {
 		kind: "datatype",
-		extract: (e) => e.substring(2)
+		extract: (t) => t.substring(2)
 	},
 	"@": {
 		kind: "language",
-		extract: (e) => e.substring(1)
+		extract: (t) => t.substring(1)
 	},
 	".": {
 		kind: "type",
-		extract: (e) => e.substring(1)
+		extract: (t) => t.substring(1)
 	},
 	"!": {
 		kind: "property",
 		form: "!",
-		extract: (e) => e.substring(1)
+		extract: (t) => t.substring(1)
 	},
 	"?": {
 		kind: "property",
 		form: "?",
-		extract: (e) => e.substring(1)
+		extract: (t) => t.substring(1)
 	}
 };
-function w(e) {
+function parseSemanticBlock(raw) {
 	try {
-		let t = String(e || "").trim().replace(/^\{|\}$/g, "").trim();
-		if (!t) return {
+		const cleaned = String(raw || "").trim().replace(/^\{|\}$/g, "").trim();
+		if (!cleaned) return {
 			subject: null,
 			object: null,
 			types: [],
@@ -186,7 +260,7 @@ function w(e) {
 			language: null,
 			entries: []
 		};
-		let n = {
+		const result = {
 			subject: null,
 			object: null,
 			types: [],
@@ -194,76 +268,133 @@ function w(e) {
 			datatype: null,
 			language: null,
 			entries: []
-		}, r = /\S+/g, i;
-		for (; (i = r.exec(t)) !== null;) {
-			let e = i[0], t = 1 + i.index, r = t + e.length, a = n.entries.length, o = !1;
-			if (e.startsWith("-") && e.length > 1 && (o = !0, e = e.slice(1)), e === "=") {
-				o && console.warn("-= is not valid, subject declarations have no polarity"), n.subject = "RESET", n.entries.push({
+		};
+		const re = /\S+/g;
+		let m;
+		while ((m = re.exec(cleaned)) !== null) {
+			let token = m[0];
+			const relStart = 1 + m.index;
+			const relEnd = relStart + token.length;
+			const entryIndex = result.entries.length;
+			let remove = false;
+			if (token.startsWith("-") && token.length > 1) {
+				remove = true;
+				token = token.slice(1);
+			}
+			if (token === "=") {
+				if (remove) console.warn("-= is not valid, subject declarations have no polarity");
+				result.subject = "RESET";
+				result.entries.push({
 					kind: "subjectReset",
 					relRange: {
-						start: t,
-						end: r
+						start: relStart,
+						end: relEnd
 					},
-					raw: e
+					raw: token
 				});
 				continue;
 			}
-			if (e.startsWith("=") && !e.startsWith("=#")) {
-				o && console.warn("-= is not valid, subject declarations have no polarity");
-				let i = e.substring(1);
-				n.subject = i, n.entries.push({
+			if (token.startsWith("=") && !token.startsWith("=#")) {
+				if (remove) console.warn("-= is not valid, subject declarations have no polarity");
+				const iri = token.substring(1);
+				result.subject = iri;
+				result.entries.push({
 					kind: "subject",
-					iri: i,
+					iri,
 					relRange: {
-						start: t,
-						end: r
+						start: relStart,
+						end: relEnd
 					},
-					raw: e
+					raw: token
 				});
 				continue;
 			}
-			let s = !1;
-			for (let [c, l] of Object.entries(C)) if (e.startsWith(c)) {
-				let c = {
-					kind: l.kind,
+			let processed = false;
+			for (const [pattern, config] of Object.entries(TOKEN_PATTERNS)) if (token.startsWith(pattern)) {
+				const entry = {
+					kind: config.kind,
 					relRange: {
-						start: t,
-						end: r
+						start: relStart,
+						end: relEnd
 					},
-					raw: i[0]
-				}, u = l.extract(e);
-				l.kind === "fragment" ? (n.subject = `=#${u}`, c.fragment = u) : l.kind === "softFragment" ? (n.object = `#${u}`, c.fragment = u) : l.kind === "object" ? (o && (console.warn("-+ is not valid, object declarations have no polarity"), o = !1), n.object = u, c.iri = u) : l.kind === "datatype" ? (o && (console.warn("-^^ is not valid, datatype modifiers have no polarity"), o = !1), n.language || (n.datatype = u), c.datatype = u) : l.kind === "language" ? (o && (console.warn("-@ is not valid, language modifiers have no polarity"), o = !1), n.language = u, n.datatype = null, c.language = u) : l.kind === "type" ? (n.types.push({
-					iri: u,
-					entryIndex: a,
-					remove: o
-				}), c.iri = u, c.remove = o) : l.kind === "property" && (n.predicates.push({
-					iri: u,
-					form: l.form,
-					entryIndex: a,
-					remove: o
-				}), c.iri = u, c.form = l.form, c.remove = o), n.entries.push(c), s = !0;
+					raw: m[0]
+				};
+				const extracted = config.extract(token);
+				if (config.kind === "fragment") {
+					result.subject = `=#${extracted}`;
+					entry.fragment = extracted;
+				} else if (config.kind === "softFragment") {
+					result.object = `#${extracted}`;
+					entry.fragment = extracted;
+				} else if (config.kind === "object") {
+					if (remove) {
+						console.warn("-+ is not valid, object declarations have no polarity");
+						remove = false;
+					}
+					result.object = extracted;
+					entry.iri = extracted;
+				} else if (config.kind === "datatype") {
+					if (remove) {
+						console.warn("-^^ is not valid, datatype modifiers have no polarity");
+						remove = false;
+					}
+					if (!result.language) result.datatype = extracted;
+					entry.datatype = extracted;
+				} else if (config.kind === "language") {
+					if (remove) {
+						console.warn("-@ is not valid, language modifiers have no polarity");
+						remove = false;
+					}
+					result.language = extracted;
+					result.datatype = null;
+					entry.language = extracted;
+				} else if (config.kind === "type") {
+					result.types.push({
+						iri: extracted,
+						entryIndex,
+						remove
+					});
+					entry.iri = extracted;
+					entry.remove = remove;
+				} else if (config.kind === "property") {
+					result.predicates.push({
+						iri: extracted,
+						form: config.form,
+						entryIndex,
+						remove
+					});
+					entry.iri = extracted;
+					entry.form = config.form;
+					entry.remove = remove;
+				}
+				result.entries.push(entry);
+				processed = true;
 				break;
 			}
-			s || (n.predicates.push({
-				iri: e,
-				form: "",
-				entryIndex: a,
-				remove: o
-			}), n.entries.push({
-				kind: "property",
-				iri: e,
-				form: "",
-				relRange: {
-					start: t,
-					end: r
-				},
-				raw: i[0],
-				remove: o
-			}));
+			if (!processed) {
+				result.predicates.push({
+					iri: token,
+					form: "",
+					entryIndex,
+					remove
+				});
+				result.entries.push({
+					kind: "property",
+					iri: token,
+					form: "",
+					relRange: {
+						start: relStart,
+						end: relEnd
+					},
+					raw: m[0],
+					remove
+				});
+			}
 		}
-		return n;
-	} catch (t) {
-		return console.error(`Error parsing semantic block ${e}:`, t), {
+		return result;
+	} catch (error) {
+		console.error(`Error parsing semantic block ${raw}:`, error);
+		return {
 			subject: null,
 			object: null,
 			types: [],
@@ -274,451 +405,629 @@ function w(e) {
 		};
 	}
 }
-function T(e, t, n) {
-	let r = n.termType === "Literal" ? JSON.stringify({
+function quadIndexKey(subject, predicate, object) {
+	const objKey = object.termType === "Literal" ? JSON.stringify({
 		t: "Literal",
-		v: n.value,
-		lang: n.language || "",
-		dt: n.datatype?.value || ""
+		v: object.value,
+		lang: object.language || "",
+		dt: object.datatype?.value || ""
 	}) : JSON.stringify({
-		t: n.termType,
-		v: n.value
+		t: object.termType,
+		v: object.value
 	});
 	return JSON.stringify([
-		e.value,
-		t.value,
-		r
+		subject.value,
+		predicate.value,
+		objKey
 	]);
 }
-function ee(e) {
-	return e ? T(e.subject, e.predicate, e.object) : null;
+function quadToKeyForOrigin(q) {
+	return q ? quadIndexKey(q.subject, q.predicate, q.object) : null;
 }
-function te(e, t, n, r, i) {
-	return t ? i.literal(e, i.namedNode(x(t, r))) : n ? i.literal(e, n) : i.literal(e);
+function createLiteral(value, datatype, language, context, dataFactory) {
+	if (datatype) return dataFactory.literal(value, dataFactory.namedNode(expandIRI(datatype, context)));
+	if (language) return dataFactory.literal(value, language);
+	return dataFactory.literal(value);
 }
 //#endregion
 //#region src/tokenizers.js
-function ne(e) {
-	if (e.length < 3) return null;
-	let t = e[0];
-	if (t !== "`" && t !== "~") return null;
-	let n = 1;
-	for (; n < e.length && e[n] === t;) n++;
-	if (n < 3) return null;
-	let r = e.slice(n).trimStart(), i = r.match(/^([^\s{]+)/), a = i ? i[1] : "", o = r.match(/\{([^}]+)\}/), s = o ? o[1] : null;
+/**
+* Character-based Tokenizers for MDLD
+* 
+* Replaces regex patterns with direct character scanning for better performance.
+* Each tokenizer follows the EBNF grammar exactly.
+*/
+/**
+* Detect code fence: 3+ backticks or tildes at line start
+* EBNF: backticks = "`", "`", "`", { "`" } | tildes = "~", "~", "~", { "~" }
+*/
+function detectFence(line) {
+	if (line.length < 3) return null;
+	const char = line[0];
+	if (char !== "`" && char !== "~") return null;
+	let count = 1;
+	while (count < line.length && line[count] === char) count++;
+	if (count < 3) return null;
+	const infoString = line.slice(count).trimStart();
+	const langMatch = infoString.match(/^([^\s{]+)/);
+	const lang = langMatch ? langMatch[1] : "";
+	const attrsMatch = infoString.match(/\{([^}]+)\}/);
+	const attrs = attrsMatch ? attrsMatch[1] : null;
 	return {
-		fenceChar: t,
-		fenceLength: n,
-		lang: a,
-		attrs: s,
-		infoString: r
+		fenceChar: char,
+		fenceLength: count,
+		lang,
+		attrs,
+		infoString
 	};
 }
-function re(e) {
-	if (e[0] !== "[") return null;
-	let t = e.indexOf("]", 1);
-	if (t === -1) return null;
-	let n = e.slice(1, t).trim();
-	if (!n) return null;
-	let r = t + 1;
-	for (; r < e.length && (e[r] === " " || e[r] === "	");) r++;
-	if (r >= e.length || e[r] !== "<") return null;
-	let i = e.indexOf(">", r + 1);
-	if (i === -1) return null;
-	let a = e.slice(r + 1, i).trim();
-	return a ? {
-		prefix: n,
-		iri: a
-	} : null;
-}
-function ie(e) {
-	if (e[0] !== "#") return null;
-	let t = 1;
-	for (; t < e.length && t < 6 && e[t] === "#";) t++;
-	if (t >= e.length || e[t] !== " " && e[t] !== "	") return null;
-	let n = t;
-	for (; n < e.length && (e[n] === " " || e[n] === "	");) n++;
-	let r = e.slice(n), i = r.match(/\s*\{([^}]+)\}\s*$/), a = r, o = null;
-	return i && (o = i[1], a = r.slice(0, -i[0].length).trim()), {
-		depth: t,
-		content: a,
-		attrs: o
+/**
+* Detect prefix declaration: [prefix] <IRI>
+* EBNF: contextDecl = "[", contextKey, "]", whitespace, "<", contextIri, ">"
+*/
+function detectPrefix(line) {
+	if (line[0] !== "[") return null;
+	const closeBracket = line.indexOf("]", 1);
+	if (closeBracket === -1) return null;
+	const prefix = line.slice(1, closeBracket).trim();
+	if (!prefix) return null;
+	let pos = closeBracket + 1;
+	while (pos < line.length && (line[pos] === " " || line[pos] === "	")) pos++;
+	if (pos >= line.length || line[pos] !== "<") return null;
+	const closeAngle = line.indexOf(">", pos + 1);
+	if (closeAngle === -1) return null;
+	const iri = line.slice(pos + 1, closeAngle).trim();
+	if (!iri) return null;
+	return {
+		prefix,
+		iri
 	};
 }
-function ae(e) {
-	let t = 0;
-	for (; t < e.length && (e[t] === " " || e[t] === "	");) t++;
-	let n = t;
-	if (t >= e.length) return null;
-	let r = e[t], i, a = t + 1;
-	if (r === "-" || r === "*" || r === "+") i = r;
-	else if (r >= "0" && r <= "9") {
-		let n = t + 1;
-		for (; n < e.length && e[n] >= "0" && e[n] <= "9";) n++;
-		if (n >= e.length || e[n] !== ".") return null;
-		i = e.slice(t, n + 1), a = n + 1;
+/**
+* Detect heading: 1-6 # characters followed by space and text
+* EBNF: heading = "#", { "#" }, whitespace, text
+*/
+function detectHeading(line) {
+	if (line[0] !== "#") return null;
+	let depth = 1;
+	while (depth < line.length && depth < 6 && line[depth] === "#") depth++;
+	if (depth >= line.length || line[depth] !== " " && line[depth] !== "	") return null;
+	let contentStart = depth;
+	while (contentStart < line.length && (line[contentStart] === " " || line[contentStart] === "	")) contentStart++;
+	const trimmed = line.slice(contentStart);
+	const attrsMatch = trimmed.match(/\s*\{([^}]+)\}\s*$/);
+	let content = trimmed;
+	let attrs = null;
+	if (attrsMatch) {
+		attrs = attrsMatch[1];
+		content = trimmed.slice(0, -attrsMatch[0].length).trim();
+	}
+	return {
+		depth,
+		content,
+		attrs
+	};
+}
+/**
+* Detect list item: -, *, +, or digits followed by .
+* EBNF: listMarker = "-" | "*" | "+" | digit, { digit }, "."
+*/
+function detectList(line) {
+	let pos = 0;
+	while (pos < line.length && (line[pos] === " " || line[pos] === "	")) pos++;
+	const indent = pos;
+	if (pos >= line.length) return null;
+	const char = line[pos];
+	let marker;
+	let contentStart = pos + 1;
+	if (char === "-" || char === "*" || char === "+") marker = char;
+	else if (char >= "0" && char <= "9") {
+		let numEnd = pos + 1;
+		while (numEnd < line.length && line[numEnd] >= "0" && line[numEnd] <= "9") numEnd++;
+		if (numEnd >= line.length || line[numEnd] !== ".") return null;
+		marker = line.slice(pos, numEnd + 1);
+		contentStart = numEnd + 1;
 	} else return null;
-	if (a >= e.length || e[a] !== " " && e[a] !== "	") return null;
-	for (; a < e.length && (e[a] === " " || e[a] === "	");) a++;
-	let o = e.slice(a), s = null, c = o.match(/\s*\{([^}]+)\}\s*$/);
-	return c && (s = c[1], o = o.slice(0, -c[0].length).trim()), {
-		indent: n,
-		marker: i,
-		content: o,
-		attrs: s
+	if (contentStart >= line.length || line[contentStart] !== " " && line[contentStart] !== "	") return null;
+	while (contentStart < line.length && (line[contentStart] === " " || line[contentStart] === "	")) contentStart++;
+	let content = line.slice(contentStart);
+	let attrs = null;
+	const attrsMatch = content.match(/\s*\{([^}]+)\}\s*$/);
+	if (attrsMatch) {
+		attrs = attrsMatch[1];
+		content = content.slice(0, -attrsMatch[0].length).trim();
+	}
+	return {
+		indent,
+		marker,
+		content,
+		attrs
 	};
 }
-function oe(e) {
-	if (e[0] !== ">" || e.length > 1 && e[1] !== " " && e[1] !== "	") return null;
-	let t = 1;
-	for (; t < e.length && (e[t] === " " || e[t] === "	");) t++;
-	let n = e.slice(t), r = null, i = n.match(/\s*\{([^}]+)\}\s*$/);
-	return i && (r = i[1], n = n.slice(0, -i[0].length).trim()), {
-		content: n,
-		attrs: r
+/**
+* Detect blockquote: > followed by space and text
+* EBNF: blockquote = ">", whitespace, text
+*/
+function detectBlockquote(line) {
+	if (line[0] !== ">") return null;
+	if (line.length > 1 && line[1] !== " " && line[1] !== "	") return null;
+	let contentStart = 1;
+	while (contentStart < line.length && (line[contentStart] === " " || line[contentStart] === "	")) contentStart++;
+	let content = line.slice(contentStart);
+	let attrs = null;
+	const attrsMatch = content.match(/\s*\{([^}]+)\}\s*$/);
+	if (attrsMatch) {
+		attrs = attrsMatch[1];
+		content = content.slice(0, -attrsMatch[0].length).trim();
+	}
+	return {
+		content,
+		attrs
 	};
 }
-function E(e) {
-	let t = 0;
-	for (; t < e.length && (e[t] === " " || e[t] === "	");) t++;
-	if (t >= e.length || e[t] !== "{" || (t++, t >= e.length || e[t] !== "=")) return null;
-	t++;
-	let n = t, r = 1;
-	for (; t < e.length && r > 0;) e[t] === "{" && r++, e[t] === "}" && r--, r > 0 && t++;
-	if (r > 0) return null;
-	let i = e.slice(n, t).trim();
-	for (t++; t < e.length && (e[t] === " " || e[t] === "	");) t++;
-	return t < e.length ? null : { content: i };
+/**
+* Detect standalone subject: {=...} with optional whitespace
+* EBNF: standaloneSubject = whitespace*, "{", "=", ( iriRef | "#", fragment ), "}", whitespace*
+*/
+function detectStandaloneSubject(line) {
+	let pos = 0;
+	while (pos < line.length && (line[pos] === " " || line[pos] === "	")) pos++;
+	if (pos >= line.length || line[pos] !== "{") return null;
+	pos++;
+	if (pos >= line.length || line[pos] !== "=") return null;
+	pos++;
+	const contentStart = pos;
+	let braceCount = 1;
+	while (pos < line.length && braceCount > 0) {
+		if (line[pos] === "{") braceCount++;
+		if (line[pos] === "}") braceCount--;
+		if (braceCount > 0) pos++;
+	}
+	if (braceCount > 0) return null;
+	const content = line.slice(contentStart, pos).trim();
+	pos++;
+	while (pos < line.length && (line[pos] === " " || line[pos] === "	")) pos++;
+	if (pos < line.length) return null;
+	return { content };
 }
-function se(e, t, n = "[", r = "]") {
-	let i = 1, a = t + 1;
-	for (; a < e.length && i > 0;) e[a] === n && i++, e[a] === r && i--, i > 0 && a++;
-	return i === 0 ? a : null;
+/**
+* Find matching closing bracket, accounting for nesting
+*/
+function findMatchingBracket(text, startPos, openChar = "[", closeChar = "]") {
+	let depth = 1;
+	let pos = startPos + 1;
+	while (pos < text.length && depth > 0) {
+		if (text[pos] === openChar) depth++;
+		if (text[pos] === closeChar) depth--;
+		if (depth > 0) pos++;
+	}
+	return depth === 0 ? pos : null;
 }
-function D(e, t) {
-	let n = t;
-	for (; n < e.length && (e[n] === " " || e[n] === "	");) n++;
-	if (n >= e.length || e[n] !== "{") return null;
-	let r = e.indexOf("}", n + 1);
-	return r === -1 ? null : {
-		attrs: e.slice(n + 1, r),
-		endPos: r + 1
+/**
+* Extract attributes block after a position: {...}
+*/
+function extractAttributes(text, startPos) {
+	let pos = startPos;
+	while (pos < text.length && (text[pos] === " " || text[pos] === "	")) pos++;
+	if (pos >= text.length || text[pos] !== "{") return null;
+	const closeBrace = text.indexOf("}", pos + 1);
+	if (closeBrace === -1) return null;
+	return {
+		attrs: text.slice(pos + 1, closeBrace),
+		endPos: closeBrace + 1
 	};
 }
-function ce(e, t) {
-	if (e[t] !== "<") return null;
-	let n = e.indexOf(">", t + 1);
-	if (n === -1) return null;
-	let r = e.slice(t + 1, n).trim();
-	return r.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/) ? {
-		url: r,
-		endPos: n + 1,
-		contentStart: t + 1,
-		contentEnd: n
-	} : null;
+/**
+* Detect URL in angle brackets: <URL>
+* Returns null if not a valid URL per EBNF scheme rules
+*/
+function detectAngleBracketUrl(text, startPos) {
+	if (text[startPos] !== "<") return null;
+	const closeAngle = text.indexOf(">", startPos + 1);
+	if (closeAngle === -1) return null;
+	const url = text.slice(startPos + 1, closeAngle).trim();
+	if (!url.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/)) return null;
+	return {
+		url,
+		endPos: closeAngle + 1,
+		contentStart: startPos + 1,
+		contentEnd: closeAngle
+	};
 }
-function le(e, t) {
-	let n = e[t];
-	if (n !== "*" && n !== "_") return null;
-	let r = 1;
-	for (; t + r < e.length && e[t + r] === n;) r++;
-	if (r > 2) return null;
-	let i = r === 1 ? "emphasis" : "strong", a = n.repeat(r), o = t + r, s = o;
-	for (; s < e.length;) {
-		if (e.slice(s, s + r) === a) {
-			if (s + r < e.length && e[s + r] === n) {
-				s++;
+/**
+* Detect emphasis/strong spans: *text* or _text_
+* EBNF: emphasisSpan = "*", text, "*" | "_", text, "_"
+*       strongSpan = "**", text, "**" | "__", text, "__"
+*/
+function detectEmphasis(text, startPos) {
+	const char = text[startPos];
+	if (char !== "*" && char !== "_") return null;
+	let delimCount = 1;
+	while (startPos + delimCount < text.length && text[startPos + delimCount] === char) delimCount++;
+	if (delimCount > 2) return null;
+	const type = delimCount === 1 ? "emphasis" : "strong";
+	const closer = char.repeat(delimCount);
+	const contentStart = startPos + delimCount;
+	let pos = contentStart;
+	while (pos < text.length) {
+		if (text.slice(pos, pos + delimCount) === closer) {
+			if (pos + delimCount < text.length && text[pos + delimCount] === char) {
+				pos++;
 				continue;
 			}
-			let t = e.slice(o, s), a = s + r, c = D(e, a), l = c ? c.endPos : a;
+			const content = text.slice(contentStart, pos);
+			const endPos = pos + delimCount;
+			const attrsResult = extractAttributes(text, endPos);
+			const finalPos = attrsResult ? attrsResult.endPos : endPos;
 			return {
-				type: i,
-				content: t,
-				attrs: c?.attrs || null,
-				endPos: l,
-				contentStart: o,
-				contentEnd: s
+				type,
+				content,
+				attrs: attrsResult?.attrs || null,
+				endPos: finalPos,
+				contentStart,
+				contentEnd: pos
 			};
 		}
-		s++;
+		pos++;
 	}
 	return null;
 }
-function ue(e, t) {
-	if (e[t] !== "`") return null;
-	let n = 1;
-	for (; t + n < e.length && e[t + n] === "`";) n++;
-	if (n > 2) return null;
-	let r = "`".repeat(n), i = t + n, a = i;
-	for (; a < e.length;) {
-		if (e.slice(a, a + n) === r) {
-			let t = e.slice(i, a), r = a + n, o = D(e, r), s = o ? o.endPos : r;
+/**
+* Detect code span: `text` or ``text``
+* EBNF: codeSpan = "`", text, "`" | "``", text, "``"
+*/
+function detectCodeSpan(text, startPos) {
+	if (text[startPos] !== "`") return null;
+	let backtickCount = 1;
+	while (startPos + backtickCount < text.length && text[startPos + backtickCount] === "`") backtickCount++;
+	if (backtickCount > 2) return null;
+	const opener = "`".repeat(backtickCount);
+	const contentStart = startPos + backtickCount;
+	let pos = contentStart;
+	while (pos < text.length) {
+		if (text.slice(pos, pos + backtickCount) === opener) {
+			const content = text.slice(contentStart, pos);
+			const endPos = pos + backtickCount;
+			const attrsResult = extractAttributes(text, endPos);
+			const finalPos = attrsResult ? attrsResult.endPos : endPos;
 			return {
 				type: "code",
-				content: t,
-				attrs: o?.attrs || null,
-				endPos: s,
-				contentStart: i,
-				contentEnd: a
+				content,
+				attrs: attrsResult?.attrs || null,
+				endPos: finalPos,
+				contentStart,
+				contentEnd: pos
 			};
 		}
-		a++;
+		pos++;
 	}
 	return null;
 }
-function de(e, t) {
-	if (e[t] !== "[") return null;
-	let n = se(e, t, "[", "]");
-	if (!n) return null;
-	let r = e.slice(t + 1, n), i = n + 1, a = null;
-	if (i < e.length && e[i] === "(") {
-		let t = e.indexOf(")", i + 1);
-		t !== -1 && (a = e.slice(i + 1, t), i = t + 1);
-	} else if (i < e.length && e[i] === "<") {
-		let t = e.indexOf(">", i + 1);
-		if (t !== -1) {
-			let n = e.slice(i + 1, t).trim();
-			n.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/) && (a = n, i = t + 1);
+/**
+* Detect bracket link: [text](url) or [text]{...} or [text] alone
+* EBNF: linkSpan = "[", text, "](", text, ")" | "[", text, "]"
+*/
+function detectBracketLink(text, startPos) {
+	if (text[startPos] !== "[") return null;
+	const bracketEnd = findMatchingBracket(text, startPos, "[", "]");
+	if (!bracketEnd) return null;
+	const linkText = text.slice(startPos + 1, bracketEnd);
+	let pos = bracketEnd + 1;
+	let url = null;
+	if (pos < text.length && text[pos] === "(") {
+		const parenEnd = text.indexOf(")", pos + 1);
+		if (parenEnd !== -1) {
+			url = text.slice(pos + 1, parenEnd);
+			pos = parenEnd + 1;
+		}
+	} else if (pos < text.length && text[pos] === "<") {
+		const closeAngle = text.indexOf(">", pos + 1);
+		if (closeAngle !== -1) {
+			const angleUrl = text.slice(pos + 1, closeAngle).trim();
+			if (angleUrl.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/)) {
+				url = angleUrl;
+				pos = closeAngle + 1;
+			}
 		}
 	}
-	let o = D(e, i), s = o ? o.endPos : i;
+	const attrsResult = extractAttributes(text, pos);
+	const finalPos = attrsResult ? attrsResult.endPos : pos;
 	return {
-		type: a ? "link" : "span",
-		text: r,
-		url: a,
-		attrs: o?.attrs || null,
-		endPos: s,
-		contentStart: t + 1,
-		contentEnd: n
+		type: url ? "link" : "span",
+		text: linkText,
+		url,
+		attrs: attrsResult?.attrs || null,
+		endPos: finalPos,
+		contentStart: startPos + 1,
+		contentEnd: bracketEnd
 	};
 }
-function O(e, t = 0) {
-	let n = [], r = e.length, i = 0;
-	for (; i < r;) {
-		let r = e[i], a = null;
-		switch (r) {
+/**
+* Scan text for all inline carriers using character-based detection
+* Memory-optimized version - minimizes object allocations
+*/
+function scanInlineCarriers(text, baseOffset = 0) {
+	const carriers = [];
+	const len = text.length;
+	let pos = 0;
+	while (pos < len) {
+		const char = text[pos];
+		let detected = null;
+		switch (char) {
 			case "<":
-				if (a = ce(e, i), a) {
-					let t = D(e, a.endPos);
-					t && (a.attrs = t.attrs, a.endPos = t.endPos), a.type = "link", a.text = a.url;
+				detected = detectAngleBracketUrl(text, pos);
+				if (detected) {
+					const attrsResult = extractAttributes(text, detected.endPos);
+					if (attrsResult) {
+						detected.attrs = attrsResult.attrs;
+						detected.endPos = attrsResult.endPos;
+					}
+					detected.type = "link";
+					detected.text = detected.url;
 				}
 				break;
 			case "[":
-				a = de(e, i);
+				detected = detectBracketLink(text, pos);
 				break;
 			case "*":
 			case "_":
-				a = le(e, i);
+				detected = detectEmphasis(text, pos);
 				break;
 			case "`":
-				a = ue(e, i);
+				detected = detectCodeSpan(text, pos);
 				break;
 		}
-		if (!a) {
-			i++;
+		if (!detected) {
+			pos++;
 			continue;
 		}
-		let o = a.url, s = a.type, c = a.attrs;
-		if (o?.startsWith("=") || s === "link" && !c && !o) {
-			i = a.endPos;
+		const url = detected.url;
+		const type = detected.type;
+		const attrs = detected.attrs;
+		if (url?.startsWith("=") || type === "link" && !attrs && !url) {
+			pos = detected.endPos;
 			continue;
 		}
-		let l = t + i, u = t + a.endPos, d = t + a.contentEnd, f = [t + a.contentStart, t + a.contentEnd], p = {
-			type: s,
-			text: a.content === void 0 ? a.text === void 0 ? o : a.text : a.content,
-			range: [l, u],
-			valueRange: f,
-			attrs: c,
-			url: o,
-			pos: a.endPos
+		const absStart = baseOffset + pos;
+		const absEnd = baseOffset + detected.endPos;
+		const absContentEnd = baseOffset + detected.contentEnd;
+		const valueRange = [baseOffset + detected.contentStart, baseOffset + detected.contentEnd];
+		const carrier = {
+			type,
+			text: detected.content !== void 0 ? detected.content : detected.text !== void 0 ? detected.text : url,
+			range: [absStart, absEnd],
+			valueRange,
+			attrs,
+			url,
+			pos: detected.endPos
 		};
-		c && (p.attrsRange = [d, u]), n.push(p), i = a.endPos;
+		if (attrs) carrier.attrsRange = [absContentEnd, absEnd];
+		carriers.push(carrier);
+		pos = detected.endPos;
 	}
-	return n;
+	return carriers;
 }
 //#endregion
 //#region src/shared.js
-var k = /* @__PURE__ */ new Map();
-function fe(e) {
-	return k.has(e) || k.set(e, RegExp(`^(${e}{3,})`)), k.get(e);
+var FENCE_CLOSE_PATTERNS = /* @__PURE__ */ new Map();
+function getFenceClosePattern(fenceChar) {
+	if (!FENCE_CLOSE_PATTERNS.has(fenceChar)) FENCE_CLOSE_PATTERNS.set(fenceChar, new RegExp(`^(${fenceChar}{3,})`));
+	return FENCE_CLOSE_PATTERNS.get(fenceChar);
 }
-function pe(e, t, n, r, i) {
-	let a = r + (r < e.length && e[r] === " " ? 1 : e.slice(r).match(/^\s+/)?.[0]?.length || 0);
+function calcRangeInfo(line, attrs, lineStart, prefixLength, valueLength) {
+	const valueStartInLine = prefixLength + (prefixLength < line.length && line[prefixLength] === " " ? 1 : line.slice(prefixLength).match(/^\s+/)?.[0]?.length || 0);
 	return {
-		valueRange: [n + a, n + a + i],
-		attrsRange: me(e, t, n)
+		valueRange: [lineStart + valueStartInLine, lineStart + valueStartInLine + valueLength],
+		attrsRange: calcAttrsRange(line, attrs, lineStart)
 	};
 }
-function me(e, t, n) {
-	if (!t) return null;
-	let r = e.lastIndexOf(t);
-	return r >= 0 ? [n + r, n + r + t.length] : null;
+function calcAttrsRange(line, attrs, lineStart) {
+	if (!attrs) return null;
+	const attrsStartInLine = line.lastIndexOf(attrs);
+	return attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrs.length] : null;
 }
-function A(e, t, n, r = null, i = null, a = null, o = {}) {
-	let s = {
-		type: e,
-		range: t,
-		text: n,
-		attrs: r,
-		attrsRange: i,
-		valueRange: a,
-		...o
+function createToken(type, range, text, attrs = null, attrsRange = null, valueRange = null, extra = {}) {
+	const token = {
+		type,
+		range,
+		text,
+		attrs,
+		attrsRange,
+		valueRange,
+		...extra
 	};
-	return Object.defineProperty(s, "_carriers", {
-		enumerable: !1,
-		writable: !0,
+	Object.defineProperty(token, "_carriers", {
+		enumerable: false,
+		writable: true,
 		value: null
-	}), s;
+	});
+	return token;
 }
-function he(e, t, n, r, i) {
-	let a = i[4] || null, o = pe(t, a, n, i[1].length + (i[2] ? i[2].length : 0), i[3].length);
-	return A(e, [n, r - 1], i[3].trim(), a, o.attrsRange, o.valueRange, { indent: i[1].length });
+function createListToken(type, line, lineStart, pos, match) {
+	const attrs = match[4] || null;
+	const rangeInfo = calcRangeInfo(line, attrs, lineStart, match[1].length + (match[2] ? match[2].length : 0), match[3].length);
+	return createToken(type, [lineStart, pos - 1], match[3].trim(), attrs, rangeInfo.attrsRange, rangeInfo.valueRange, { indent: match[1].length });
 }
-var ge = {}, _e = Object.freeze({
+var semCache = {};
+var EMPTY_SEM = Object.freeze({
 	predicates: [],
 	types: [],
 	subject: null
 });
-function j(e) {
-	if (!e) return _e;
-	let t = ge[e];
-	return t || (t = Object.freeze(w(e)), ge[e] = t), t;
+function parseSemCached(attrs) {
+	if (!attrs) return EMPTY_SEM;
+	let sem = semCache[attrs];
+	if (!sem) {
+		sem = Object.freeze(parseSemanticBlock(attrs));
+		semCache[attrs] = sem;
+	}
+	return sem;
 }
-function ve(e, t) {
-	if (!e.range || !t) return 0;
-	let n = t.substring(e.range.start, e.range.end).match(/^(\s*)/), r = n ? n[1].length : 0;
-	return Math.floor(r / 2);
-}
-function ye(e, t, n = null) {
-	if (!t || !e) return "";
-	let r = e.substring(t[0], t[1]);
-	return n && (r = r.substring(0, n[0] - t[0]) + r.substring(n[1] - t[0])), r.trim();
-}
-function be(e) {
-	if (!e.text) return "";
-	let t = e.text;
-	e.attrsRange && (t = t.substring(0, e.attrsRange[0] - (e.range?.[0] || 0)) + t.substring(e.attrsRange[1] - (e.range?.[0] || 0)));
-	let n = (e._carriers || []).filter((e) => e.attrsRange).map((t) => t.attrsRange.map((t) => t - (e.range?.[0] || 0))).filter(([e, n]) => e >= 0 && n <= t.length).sort((e, t) => t[0] - e[0]);
-	for (let [e, r] of n) t = t.substring(0, e) + t.substring(r);
-	switch (e.type) {
-		case "heading": return t.replace(/^#+\s*/, "").trim();
-		case "list": return t.replace(/^[-*+]\s*/, "").trim();
-		case "blockquote": return t.replace(/^>\s*/, "").trim();
-		default: return t.trim();
+function extractCleanText(token) {
+	if (!token.text) return "";
+	let text = token.text;
+	if (token.attrsRange) text = text.substring(0, token.attrsRange[0] - (token.range?.[0] || 0)) + text.substring(token.attrsRange[1] - (token.range?.[0] || 0));
+	const inlineRanges = (token._carriers || []).filter((carrier) => carrier.attrsRange).map((carrier) => carrier.attrsRange.map((pos) => pos - (token.range?.[0] || 0))).filter(([start, end]) => start >= 0 && end <= text.length).sort((a, b) => b[0] - a[0]);
+	for (const [relativeStart, relativeEnd] of inlineRanges) text = text.substring(0, relativeStart) + text.substring(relativeEnd);
+	switch (token.type) {
+		case "heading": return text.replace(/^#+\s*/, "").trim();
+		case "list": return text.replace(/^[-*+]\s*/, "").trim();
+		case "blockquote": return text.replace(/^>\s*/, "").trim();
+		default: return text.trim();
 	}
 }
-function xe(e, t, n, r = null) {
+function createLeanOriginEntry(block, subject, predicate, meta = null) {
 	return {
-		blockId: e.id,
-		range: e.range,
-		valueRange: e.valueRange || null,
-		carrierType: e.carrierType,
-		subject: t.value,
-		predicate: n.value,
-		context: e.context,
-		polarity: r?.remove ? "-" : "+",
-		value: e.text || ""
+		blockId: block.id,
+		range: block.range,
+		valueRange: block.valueRange || null,
+		carrierType: block.carrierType,
+		subject: subject.value,
+		predicate: predicate.value,
+		context: block.context,
+		polarity: meta?.remove ? "-" : "+",
+		value: block.text || ""
 	};
 }
-function Se(e, t, n) {
-	if (!t) return null;
-	let r = t.value, i = r.indexOf("#"), a = i > -1 ? r.slice(0, i) : r;
-	return n.namedNode(a + "#" + e);
+function resolveFragment(fragment, currentSubject, dataFactory) {
+	if (!currentSubject) return null;
+	const subjectValue = currentSubject.value;
+	const hashIndex = subjectValue.indexOf("#");
+	const baseIRI = hashIndex > -1 ? subjectValue.slice(0, hashIndex) : subjectValue;
+	return dataFactory.namedNode(baseIRI + "#" + fragment);
 }
-function Ce(e, t) {
-	return e.subject ? e.subject === "RESET" ? (t.currentSubject = null, null) : e.subject.startsWith("=#") ? Se(e.subject.substring(2), t.currentSubject, t.df) : t.df.namedNode(x(e.subject, t.ctx)) : null;
+function resolveSubject(sem, state) {
+	if (!sem.subject) return null;
+	if (sem.subject === "RESET") {
+		state.currentSubject = null;
+		return null;
+	}
+	if (sem.subject.startsWith("=#")) return resolveFragment(sem.subject.substring(2), state.currentSubject, state.df);
+	return state.df.namedNode(expandIRI(sem.subject, state.ctx));
 }
-function we(e, t) {
-	return e.object ? e.object.startsWith("#") ? Se(e.object.substring(1), t.currentSubject, t.df) : t.df.namedNode(x(e.object, t.ctx)) : null;
+function resolveObject(sem, state) {
+	if (!sem.object) return null;
+	if (sem.object.startsWith("#")) return resolveFragment(sem.object.substring(1), state.currentSubject, state.df);
+	return state.df.namedNode(expandIRI(sem.object, state.ctx));
 }
-function M(e) {
-	return e ? e.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;") : "";
+function escapeHtml$1(text) {
+	if (!text) return "";
+	return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
 }
-function N(e) {
-	return e?.termType === "Literal";
+function isLiteral(term) {
+	return term?.termType === "Literal";
 }
-function Te(e) {
-	return e?.termType === "NamedNode";
+function isNamedNode(term) {
+	return term?.termType === "NamedNode";
 }
-function Ee(e) {
-	return e?.value === n;
+function isRdfType(term) {
+	return term?.value === RDF_TYPE;
 }
-function P(e, t) {
-	if (!e) return null;
-	let n = S(e, t);
-	return n.includes(":") ? n.split(":")[0] : null;
+function getPrefixFromIRI(iri, context) {
+	if (!iri) return null;
+	const shortened = shortenIRI(iri, context);
+	if (shortened.includes(":")) return shortened.split(":")[0];
+	return null;
 }
-function De(e, t) {
-	let n = /* @__PURE__ */ new Set();
-	for (let r of e.values()) for (let e of r) {
-		let r = P(e.subject.value, t);
-		r && n.add(r);
-		let i = P(e.predicate.value, t);
-		if (i && n.add(i), Te(e.object)) {
-			let r = P(e.object.value, t);
-			r && n.add(r);
+function collectUsedPrefixes(subjectGroups, context) {
+	const usedPrefixes = /* @__PURE__ */ new Set();
+	for (const subjectQuads of subjectGroups.values()) for (const quad of subjectQuads) {
+		const subjectPrefix = getPrefixFromIRI(quad.subject.value, context);
+		if (subjectPrefix) usedPrefixes.add(subjectPrefix);
+		const predicatePrefix = getPrefixFromIRI(quad.predicate.value, context);
+		if (predicatePrefix) usedPrefixes.add(predicatePrefix);
+		if (isNamedNode(quad.object)) {
+			const objectPrefix = getPrefixFromIRI(quad.object.value, context);
+			if (objectPrefix) usedPrefixes.add(objectPrefix);
 		}
-		if (e.object.datatype && e.object.datatype.value) {
-			let r = P(e.object.datatype.value, t);
-			r && n.add(r);
+		if (quad.object.datatype && quad.object.datatype.value) {
+			const datatypePrefix = getPrefixFromIRI(quad.object.datatype.value, context);
+			if (datatypePrefix) usedPrefixes.add(datatypePrefix);
 		}
 	}
-	return n;
+	return usedPrefixes;
 }
-function F(e, t, n, r, i = []) {
-	let a = r(e, t);
-	t.currentBlock = a, t.blockStack.push(a.id), i.forEach((n) => n(e, t)), n(e, t, e.type), t.blockStack.pop(), t.currentBlock = t.blockStack.length > 0 ? t.origin.blocks.get(t.blockStack[t.blockStack.length - 1]) : null;
+function processTokenWithBlockTracking(token, state, processAnnotations, createBlockEntry, additionalProcessors = []) {
+	const blockEntry = createBlockEntry(token, state);
+	state.currentBlock = blockEntry;
+	state.blockStack.push(blockEntry.id);
+	additionalProcessors.forEach((processor) => processor(token, state));
+	processAnnotations(token, state, token.type);
+	state.blockStack.pop();
+	state.currentBlock = state.blockStack.length > 0 ? state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
 }
-function I(e) {
-	return e.sort((e, t) => e.predicate.value.localeCompare(t.predicate.value));
+function sortQuadsByPredicate(quads) {
+	return quads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
 }
-var Oe = (e, t) => `[${e}] <${t}>\n`;
-function ke(e, t) {
-	let n = S(e.predicate.value, t);
-	e.object.language ? n += ` @${e.object.language}` : e.object.datatype.value !== "http://www.w3.org/2001/XMLSchema#string" && (n += ` ^^${S(e.object.datatype.value, t)}`);
-	let r = e.object.value || e.object, i = typeof r == "string" ? r : String(r), a = e.object.datatype?.value || "";
-	return i.includes("\n") ? `~~~ {${n}}\n${i}\n~~~\n\n` : a.includes("integer") || a.includes("decimal") || a.includes("double") || a.includes("float") ? `\`${i}\` {${n}}\n` : a.includes("date") || a.includes("time") ? `*${i}* {${n}}\n` : a.includes("boolean") ? `**${i}** {${n}}\n` : `[${i}] {${n}}\n`;
+var generatePrefixDeclaration = (prefix, namespace) => `[${prefix}] <${namespace}>\n`;
+function generateLiteralText(quad, context) {
+	let annotation = shortenIRI(quad.predicate.value, context);
+	if (quad.object.language) annotation += ` @${quad.object.language}`;
+	else if (quad.object.datatype.value !== "http://www.w3.org/2001/XMLSchema#string") annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
+	const rawValue = quad.object.value || quad.object;
+	const value = typeof rawValue === "string" ? rawValue : String(rawValue);
+	const datatype = quad.object.datatype?.value || "";
+	if (value.includes("\n")) return `~~~ {${annotation}}\n${value}\n~~~\n\n`;
+	if (datatype.includes("integer") || datatype.includes("decimal") || datatype.includes("double") || datatype.includes("float")) return `\`${value}\` {${annotation}}\n`;
+	if (datatype.includes("date") || datatype.includes("time")) return `*${value}* {${annotation}}\n`;
+	if (datatype.includes("boolean")) return `**${value}** {${annotation}}\n`;
+	return `[${value}] {${annotation}}\n`;
 }
-var Ae = (e, n, r = null, i = null, a = null, o = !0, s = null) => {
-	let c = S(e.object.value, n), l = S(e.predicate.value, n), u = r && r.has(e.object.value) ? r.get(e.object.value) : c, d = "";
-	if (o && i && r && a) {
-		let o = i.get(e.object.value);
-		if (o) {
-			let { types: i } = o, c = r.has(e.object.value);
-			if (!(i.some((e) => a.has(e)) || c && i.some((e) => e.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && a.has(e)))) {
-				let e = i.length > 0 ? i.map((e) => "." + S(e.object.value, n)).sort().join(" ") : "", r = c ? "label" : "";
-				if ((e || r) && (d = " " + [e, r].filter(Boolean).join(" "), s && s.inlineAnnotations++, i.forEach((e) => a.add(e)), c)) {
-					let e = i.find((e) => e.predicate.value === t);
-					e && a.add(e);
+var generateObjectText = (quad, context, labelLookup = null, filteredGroups = null, renderedQuads = null, compactInline = true, compactStats = null) => {
+	const objShort = shortenIRI(quad.object.value, context);
+	const predShort = shortenIRI(quad.predicate.value, context);
+	const displayText = labelLookup && labelLookup.has(quad.object.value) ? labelLookup.get(quad.object.value) : objShort;
+	let inlineAnnotation = "";
+	if (compactInline && filteredGroups && labelLookup && renderedQuads) {
+		const filtered = filteredGroups.get(quad.object.value);
+		if (filtered) {
+			const { types } = filtered;
+			const hasLabel = labelLookup.has(quad.object.value);
+			if (!(types.some((t) => renderedQuads.has(t)) || hasLabel && types.some((t) => t.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && renderedQuads.has(t)))) {
+				const typeAnnotations = types.length > 0 ? types.map((t) => "." + shortenIRI(t.object.value, context)).sort().join(" ") : "";
+				const labelAnnotation = hasLabel ? "label" : "";
+				if (typeAnnotations || labelAnnotation) {
+					inlineAnnotation = " " + [typeAnnotations, labelAnnotation].filter(Boolean).join(" ");
+					if (compactStats) compactStats.inlineAnnotations++;
+					types.forEach((q) => renderedQuads.add(q));
+					if (hasLabel) {
+						const labelQuad = types.find((q) => q.predicate.value === RDFS_LABEL);
+						if (labelQuad) renderedQuads.add(labelQuad);
+					}
 				}
 			}
 		}
 	}
-	return `[${u}] {+${c} ?${l}${d}}\n`;
+	return `[${displayText}] {+${objShort} ?${predShort}${inlineAnnotation}}\n`;
 };
-function je(e) {
-	let t = [], n = [], r = [];
-	for (let i of e) Ee(i.predicate) ? t.push(i) : N(i.object) ? n.push(i) : Te(i.object) && r.push(i);
+function filterQuadsByType(subjectQuads) {
+	const types = [], literals = [], objects = [];
+	for (const q of subjectQuads) if (isRdfType(q.predicate)) types.push(q);
+	else if (isLiteral(q.object)) literals.push(q);
+	else if (isNamedNode(q.object)) objects.push(q);
 	return {
-		types: t,
-		literals: n,
-		objects: r
+		types,
+		literals,
+		objects
 	};
 }
 //#endregion
 //#region src/parse.js
-function L(t, n = {}) {
-	let r = typeof t == "object" && !!t && "text" in t, i = r ? t.text : t, a = r ? {
-		context: t.context,
-		dataFactory: t.dataFactory,
-		graph: t.graph
-	} : n, o = {
+function parse(firstArg, secondArg = {}) {
+	const isNamedParams = typeof firstArg === "object" && firstArg !== null && "text" in firstArg;
+	const text = isNamedParams ? firstArg.text : firstArg;
+	const options = isNamedParams ? {
+		context: firstArg.context,
+		dataFactory: firstArg.dataFactory,
+		graph: firstArg.graph
+	} : secondArg;
+	const state = {
 		ctx: {
-			...e,
-			...a.context || {}
+			...DEFAULT_CONTEXT,
+			...options.context || {}
 		},
-		df: a.dataFactory || _,
-		graph: a.graph ? _.namedNode(a.graph) : _.defaultGraph(),
+		df: options.dataFactory || DataFactory,
+		graph: options.graph ? DataFactory.namedNode(options.graph) : DataFactory.defaultGraph(),
 		quads: [],
 		quadBuffer: /* @__PURE__ */ new Map(),
 		removeSet: /* @__PURE__ */ new Set(),
@@ -737,1114 +1046,1266 @@ function L(t, n = {}) {
 		statementCandidates: /* @__PURE__ */ new Map(),
 		currentBlock: null,
 		blockStack: []
-	}, s = Me(i);
-	o.tokens = s.tokens;
-	for (let e = 0; e < o.tokens.length; e++) {
-		let t = o.tokens[e];
-		if (o.currentTokenIndex = e, t.type === "prefix") {
-			let e = t.iri;
-			if (t.iri.includes(":")) {
-				let n = t.iri.indexOf(":"), r = t.iri.substring(0, n), i = t.iri.substring(n + 1);
-				o.ctx[r] && r !== "@vocab" && (e = o.ctx[r] + i);
+	};
+	const scanResult = scanTokens(text);
+	state.tokens = scanResult.tokens;
+	for (let i = 0; i < state.tokens.length; i++) {
+		const token = state.tokens[i];
+		state.currentTokenIndex = i;
+		if (token.type === "prefix") {
+			let resolvedIri = token.iri;
+			if (token.iri.includes(":")) {
+				const colonIndex = token.iri.indexOf(":");
+				const potentialPrefix = token.iri.substring(0, colonIndex);
+				const reference = token.iri.substring(colonIndex + 1);
+				if (state.ctx[potentialPrefix] && potentialPrefix !== "@vocab") resolvedIri = state.ctx[potentialPrefix] + reference;
 			}
-			o.ctx[t.prefix] = e;
+			state.ctx[token.prefix] = resolvedIri;
 			continue;
 		}
-		Ue[t.type]?.(t, o);
+		TOKEN_PROCESSORS[token.type]?.(token, state);
 	}
-	let c = /* @__PURE__ */ new Set();
-	for (let e of o.quads) c.add(T(e.subject, e.predicate, e.object));
-	let l = [];
-	for (let e of o.removeSet) {
-		let t = T(e.subject, e.predicate, e.object);
-		c.has(t) || l.push(e);
+	const quadKeys = /* @__PURE__ */ new Set();
+	for (const quad of state.quads) quadKeys.add(quadIndexKey(quad.subject, quad.predicate, quad.object));
+	const filteredRemove = [];
+	for (const quad of state.removeSet) {
+		const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
+		if (!quadKeys.has(key)) filteredRemove.push(quad);
 	}
-	let u = {
-		subject: o.primarySubject,
-		type: o.primaryType,
-		label: o.primaryLabel,
-		comment: o.primaryComment
+	const primary = {
+		subject: state.primarySubject,
+		type: state.primaryType,
+		label: state.primaryLabel,
+		comment: state.primaryComment
 	};
 	return {
-		quads: o.quads,
-		remove: l,
-		statements: o.statements,
-		origin: o.origin,
-		context: o.ctx,
-		primarySubject: o.primarySubject,
-		primary: u,
-		md: s.md
+		quads: state.quads,
+		remove: filteredRemove,
+		statements: state.statements,
+		origin: state.origin,
+		context: state.ctx,
+		primarySubject: state.primarySubject,
+		primary,
+		md: scanResult.md
 	};
 }
-function R(e) {
-	return e.type === "code" ? [] : e._carriers || (e._carriers = Ne(e.text, e.range[0]));
+function getCarriers(token) {
+	if (token.type === "code") return [];
+	return token._carriers || (token._carriers = extractInlineCarriers(token.text, token.range[0]));
 }
-function Me(e) {
-	let t = [], n = [], r = e.split("\n"), i = 0, a = null, o = [
+function scanTokens(text) {
+	const tokens = [];
+	const mdLines = [];
+	const lines = text.split("\n");
+	let pos = 0;
+	let codeBlock = null;
+	const PROCESSORS = [
 		{
 			type: "fence",
-			test: (e) => ne(e.trim()),
-			process: s
+			test: (line) => detectFence(line.trim()),
+			process: handleFence
 		},
 		{
 			type: "content",
-			test: () => a,
-			process: (e) => a.content.push(e)
+			test: () => codeBlock,
+			process: (line) => codeBlock.content.push(line)
 		},
 		{
 			type: "prefix",
-			test: (e) => re(e),
-			process: c
+			test: (line) => detectPrefix(line),
+			process: handlePrefix
 		},
 		{
 			type: "standalone",
-			test: (e) => E(e),
-			process: p
+			test: (line) => detectStandaloneSubject(line),
+			process: handleStandaloneSubject
 		},
 		{
 			type: "heading",
-			test: (e) => ie(e),
-			process: l
+			test: (line) => detectHeading(line),
+			process: handleHeading
 		},
 		{
 			type: "list",
-			test: (e) => ae(e),
-			process: u
+			test: (line) => detectList(line),
+			process: handleList
 		},
 		{
 			type: "blockquote",
-			test: (e) => oe(e),
-			process: d
+			test: (line) => detectBlockquote(line),
+			process: handleBlockquote
 		},
 		{
 			type: "para",
-			test: (e) => e.trim(),
-			process: f
+			test: (line) => line.trim(),
+			process: handlePara
 		}
 	];
-	function s(e, r, i) {
-		let o = e.trim();
-		if (a) {
-			let i = a.fence[0], s = i.repeat(a.fence.length), c = o.match(fe(i));
-			if (c && c[1] === s) {
-				let i = a.valueRangeStart, o = Math.max(i, r - 1);
-				t.push({
-					type: "code",
-					range: [a.start, r],
-					text: a.content.join("\n"),
-					lang: a.lang,
-					attrs: a.attrs,
-					attrsRange: a.attrsRange,
-					valueRange: [i, o]
-				});
-				for (let e of a.content) n.push(e);
-				a = null;
-				let s = e.replace(/\r?\n.*$/, "");
-				n.push(s);
-			}
-		} else {
-			let t = ne(o);
-			if (!t) return !1;
-			let i = t.attrs, s = i ? e.indexOf(i) : -1, c = r + e.length + 1;
-			a = {
-				fence: t.fenceChar.repeat(t.fenceLength),
-				start: r,
+	function handleFence(line, lineStart, pos) {
+		const trimmedLine = line.trim();
+		if (!codeBlock) {
+			const fenceResult = detectFence(trimmedLine);
+			if (!fenceResult) return false;
+			const attrsText = fenceResult.attrs;
+			const attrsStartInLine = attrsText ? line.indexOf(attrsText) : -1;
+			const contentStart = lineStart + line.length + 1;
+			codeBlock = {
+				fence: fenceResult.fenceChar.repeat(fenceResult.fenceLength),
+				start: lineStart,
 				content: [],
-				lang: t.lang,
-				attrs: i,
-				attrsRange: i && s >= 0 ? [r + s, r + s + i.length] : null,
-				valueRangeStart: c
+				lang: fenceResult.lang,
+				attrs: attrsText,
+				attrsRange: attrsText && attrsStartInLine >= 0 ? [lineStart + attrsStartInLine, lineStart + attrsStartInLine + attrsText.length] : null,
+				valueRangeStart: contentStart
 			};
-			let l = e.replace(/\s*\{[^}]+\}\s*$/, "");
-			n.push(l);
+			const cleanFence = line.replace(/\s*\{[^}]+\}\s*$/, "");
+			mdLines.push(cleanFence);
+		} else {
+			const fenceChar = codeBlock.fence[0];
+			const expectedFence = fenceChar.repeat(codeBlock.fence.length);
+			const fenceMatch = trimmedLine.match(getFenceClosePattern(fenceChar));
+			if (fenceMatch && fenceMatch[1] === expectedFence) {
+				const valueStart = codeBlock.valueRangeStart;
+				const valueEnd = Math.max(valueStart, lineStart - 1);
+				tokens.push({
+					type: "code",
+					range: [codeBlock.start, lineStart],
+					text: codeBlock.content.join("\n"),
+					lang: codeBlock.lang,
+					attrs: codeBlock.attrs,
+					attrsRange: codeBlock.attrsRange,
+					valueRange: [valueStart, valueEnd]
+				});
+				for (const contentLine of codeBlock.content) mdLines.push(contentLine);
+				codeBlock = null;
+				const closingFence = line.replace(/\r?\n.*$/, "");
+				mdLines.push(closingFence);
+			}
 		}
-		return !0;
+		return true;
 	}
-	function c(e, n, r) {
-		let i = re(e);
-		return t.push({
+	function handlePrefix(line, lineStart, pos) {
+		const result = detectPrefix(line);
+		tokens.push({
 			type: "prefix",
-			prefix: i.prefix,
-			iri: i.iri
-		}), !0;
+			prefix: result.prefix,
+			iri: result.iri
+		});
+		return true;
 	}
-	function l(e, r, i) {
-		let a = ie(e), o = a.attrs, s = a.depth, c = pe(e, o, r, s, a.content.length);
-		t.push(A("heading", [r, i - 1], a.content, o, c.attrsRange, c.valueRange, { depth: a.depth }));
-		let l = `${"#".repeat(a.depth)} ${a.content}`;
-		return n.push(l), !0;
+	function handleHeading(line, lineStart, pos) {
+		const result = detectHeading(line);
+		const attrs = result.attrs;
+		const afterHashes = result.depth;
+		const rangeInfo = calcRangeInfo(line, attrs, lineStart, afterHashes, result.content.length);
+		tokens.push(createToken("heading", [lineStart, pos - 1], result.content, attrs, rangeInfo.attrsRange, rangeInfo.valueRange, { depth: result.depth }));
+		const cleanHeading = `${"#".repeat(result.depth)} ${result.content}`;
+		mdLines.push(cleanHeading);
+		return true;
 	}
-	function u(e, r, i) {
-		let a = ae(e), o = " ".repeat(a.indent), s = [
-			e,
-			o,
-			a.marker,
-			a.content,
-			a.attrs
+	function handleList(line, lineStart, pos) {
+		const result = detectList(line);
+		const indentStr = " ".repeat(result.indent);
+		const match = [
+			line,
+			indentStr,
+			result.marker,
+			result.content,
+			result.attrs
 		];
-		t.push(he("list", e, r, i, s));
-		let c = `${o}${a.marker} ${a.content}`;
-		return n.push(c), !0;
+		tokens.push(createListToken("list", line, lineStart, pos, match));
+		const cleanList = `${indentStr}${result.marker} ${result.content}`;
+		mdLines.push(cleanList);
+		return true;
 	}
-	function d(e, r, i) {
-		let a = oe(e), o = a.attrs, s = e.startsWith("> ") ? 2 : e.indexOf(">") + 1, c = s + a.content.length;
-		t.push(A("blockquote", [r, i - 1], a.content, o, me(e, o, r), [r + s, r + c]));
-		let l = `> ${a.content}`;
-		return n.push(l), !0;
+	function handleBlockquote(line, lineStart, pos) {
+		const result = detectBlockquote(line);
+		const attrs = result.attrs;
+		const valueStartInLine = line.startsWith("> ") ? 2 : line.indexOf(">") + 1;
+		const valueEndInLine = valueStartInLine + result.content.length;
+		tokens.push(createToken("blockquote", [lineStart, pos - 1], result.content, attrs, calcAttrsRange(line, attrs, lineStart), [lineStart + valueStartInLine, lineStart + valueEndInLine]));
+		const cleanBlockquote = `> ${result.content}`;
+		mdLines.push(cleanBlockquote);
+		return true;
 	}
-	function f(e, r, i) {
-		t.push(A("para", [r, i - 1], e.trim()));
-		let a = e, o = O(a, 0);
-		for (let e of o) if (e.attrs && (e.type === "emphasis" || e.type === "code")) {
-			let t = a.substring(0, e.range[0]), n = a.substring(e.range[1]);
-			a = t + (e.text || "") + n;
+	function handlePara(line, lineStart, pos) {
+		tokens.push(createToken("para", [lineStart, pos - 1], line.trim()));
+		let cleanPara = line;
+		const carriers = scanInlineCarriers(cleanPara, 0);
+		for (const carrier of carriers) if (carrier.attrs && (carrier.type === "emphasis" || carrier.type === "code")) {
+			const before = cleanPara.substring(0, carrier.range[0]);
+			const after = cleanPara.substring(carrier.range[1]);
+			cleanPara = before + (carrier.text || "") + after;
 		}
-		return a = a.replace(/\[([^\]]+)\]\s*\{[^}]+\}/g, "$1"), a = a.replace(/\s*\{[^}]+\}\s*/g, " "), a = a.replace(/\s+/g, " ").trim(), n.push(a), !0;
+		cleanPara = cleanPara.replace(/\[([^\]]+)\]\s*\{[^}]+\}/g, "$1");
+		cleanPara = cleanPara.replace(/\s*\{[^}]+\}\s*/g, " ");
+		cleanPara = cleanPara.replace(/\s+/g, " ").trim();
+		mdLines.push(cleanPara);
+		return true;
 	}
-	function p(e, n, r) {
-		return t.push({
+	function handleStandaloneSubject(line, lineStart, pos) {
+		tokens.push({
 			type: "standalone",
-			text: e.trim(),
-			range: [n, r - 1]
-		}), !0;
+			text: line.trim(),
+			range: [lineStart, pos - 1]
+		});
+		return true;
 	}
-	for (let e = 0; e < r.length; e++) {
-		let t = r[e], n = i;
-		i += t.length + 1;
-		for (let e of o) if (e.test(t) && e.process(t, n, i)) break;
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		const lineStart = pos;
+		pos += line.length + 1;
+		for (const processor of PROCESSORS) if (processor.test(line) && processor.process(line, lineStart, pos)) break;
 	}
 	return {
-		tokens: t,
-		md: n.join("\n")
+		tokens,
+		md: mdLines.join("\n")
 	};
 }
-function Ne(e, t = 0) {
-	return O(e, t);
+function extractInlineCarriers(text, baseOffset = 0) {
+	return scanInlineCarriers(text, baseOffset);
 }
-function z(e, t) {
-	let n = e._blockId || y(`${e.type}:${e.range?.[0]}:${e.range?.[1]}`);
-	e._blockId = n;
-	let r = R(e), i = be(e), a = {
-		id: n,
-		type: e.type,
-		range: e.range,
-		text: i,
+function createBlockEntry(token, state) {
+	const blockId = token._blockId || hash(`${token.type}:${token.range?.[0]}:${token.range?.[1]}`);
+	token._blockId = blockId;
+	const carriers = getCarriers(token);
+	const cleanText = extractCleanText(token);
+	const blockEntry = {
+		id: blockId,
+		type: token.type,
+		range: token.range,
+		text: cleanText,
 		subject: null,
 		types: [],
 		predicates: [],
 		carriers: [],
-		listLevel: e.indent || 0,
-		parentBlockId: t.blockStack.length > 0 ? t.blockStack[t.blockStack.length - 1] : null,
+		listLevel: token.indent || 0,
+		parentBlockId: state.blockStack.length > 0 ? state.blockStack[state.blockStack.length - 1] : null,
 		quadKeys: []
 	};
-	for (let e of r) {
-		let t = {
-			type: e.type,
-			range: e.range,
-			text: e.text,
+	for (const carrier of carriers) {
+		const carrierInfo = {
+			type: carrier.type,
+			range: carrier.range,
+			text: carrier.text,
 			subject: null,
 			predicates: [],
 			sem: null
 		};
-		if (e.attrs) {
-			let n = j(e.attrs);
-			t.sem = n, t.predicates = n.predicates || [], t.subject = n.subject, t.types = n.types || [];
+		if (carrier.attrs) {
+			const carrierSem = parseSemCached(carrier.attrs);
+			carrierInfo.sem = carrierSem;
+			carrierInfo.predicates = carrierSem.predicates || [];
+			carrierInfo.subject = carrierSem.subject;
+			carrierInfo.types = carrierSem.types || [];
 		}
-		a.carriers.push(t);
+		blockEntry.carriers.push(carrierInfo);
 	}
-	return t.origin.blocks.set(n, a), t.origin.documentStructure.push(a), a;
+	state.origin.blocks.set(blockId, blockEntry);
+	state.origin.documentStructure.push(blockEntry);
+	return blockEntry;
 }
-function Pe(e, t, n, r) {
-	if (t.subject && t.subject !== "RESET") {
-		let n = Ce(t, r);
-		n && (e.subject = n.value);
+function enrichBlockFromAnnotation(blockEntry, sem, carrier, state) {
+	if (sem.subject && sem.subject !== "RESET") {
+		const resolvedSubject = resolveSubject(sem, state);
+		if (resolvedSubject) blockEntry.subject = resolvedSubject.value;
 	}
-	if (t.types && t.types.length > 0 && t.types.forEach((t) => {
-		let n = x(typeof t == "string" ? t : t.iri, r.ctx);
-		e.types.includes(n) || e.types.push(n);
-	}), t.predicates && t.predicates.length > 0 && t.predicates.forEach((t) => {
-		let n = {
-			iri: x(t.iri, r.ctx),
-			form: t.form || "",
+	if (sem.types && sem.types.length > 0) sem.types.forEach((t) => {
+		const expanded = expandIRI(typeof t === "string" ? t : t.iri, state.ctx);
+		if (!blockEntry.types.includes(expanded)) blockEntry.types.push(expanded);
+	});
+	if (sem.predicates && sem.predicates.length > 0) sem.predicates.forEach((pred) => {
+		const expandedPred = {
+			iri: expandIRI(pred.iri, state.ctx),
+			form: pred.form || "",
 			object: null
 		};
-		e.predicates.push(n);
-	}), n) {
-		let t = {
-			type: n.type,
-			range: n.range,
-			text: n.text,
+		blockEntry.predicates.push(expandedPred);
+	});
+	if (carrier) {
+		const carrierInfo = {
+			type: carrier.type,
+			range: carrier.range,
+			text: carrier.text,
 			subject: null,
 			predicates: []
 		};
-		if (n.attrs) {
-			let e = j(n.attrs);
-			t.sem = e, t.predicates = e.predicates || [], t.subject = e.subject, t.types = e.types || [];
+		if (carrier.attrs) {
+			const carrierSem = parseSemCached(carrier.attrs);
+			carrierInfo.sem = carrierSem;
+			carrierInfo.predicates = carrierSem.predicates || [];
+			carrierInfo.subject = carrierSem.subject;
+			carrierInfo.types = carrierSem.types || [];
 		}
-		e.carriers.push(t);
+		blockEntry.carriers.push(carrierInfo);
 	}
 }
-function Fe(e, t, n, r = {}) {
-	let { preserveGlobalSubject: i = !1, implicitSubject: a = null } = r;
-	if (t.subject === "RESET") {
-		n.currentSubject = null;
+function processAnnotationWithBlockTracking(carrier, sem, state, options = {}) {
+	const { preserveGlobalSubject = false, implicitSubject = null } = options;
+	if (sem.subject === "RESET") {
+		state.currentSubject = null;
 		return;
 	}
-	let o = n.currentSubject, s = Ce(t, n), c = we(t, n);
-	s && !n.primarySubject && !t.subject.startsWith("=#") && (n.primarySubject = s.value), s && !i && !a && (n.currentSubject = s);
-	let l = i ? s || o : a || n.currentSubject;
-	if (!l) return;
-	let u = Ie(l.value, t.types, t.predicates, e.range, e.attrsRange || null, e.valueRange || null, e.type || null, n.ctx, e.text), d = te(e.text, t.datatype, t.language, n.ctx, n.df), f = e.url ? n.df.namedNode(x(e.url, n.ctx)) : null, p = s || f;
-	n.currentBlock && Pe(n.currentBlock, t, e, n), ze(t, s, c, f, l, u, n, e), Ve(t, s, o, c, p, l, d, u, n, e);
+	const previousSubject = state.currentSubject;
+	const newSubject = resolveSubject(sem, state);
+	const localObject = resolveObject(sem, state);
+	if (newSubject && !state.primarySubject && !sem.subject.startsWith("=#")) state.primarySubject = newSubject.value;
+	if (newSubject && !preserveGlobalSubject && !implicitSubject) state.currentSubject = newSubject;
+	const S = preserveGlobalSubject ? newSubject || previousSubject : implicitSubject || state.currentSubject;
+	if (!S) return;
+	const block = createBlock(S.value, sem.types, sem.predicates, carrier.range, carrier.attrsRange || null, carrier.valueRange || null, carrier.type || null, state.ctx, carrier.text);
+	const L = createLiteral(carrier.text, sem.datatype, sem.language, state.ctx, state.df);
+	const carrierO = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
+	const newSubjectOrCarrierO = newSubject || carrierO;
+	if (state.currentBlock) enrichBlockFromAnnotation(state.currentBlock, sem, carrier, state);
+	processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier);
+	processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier);
 }
-function Ie(e, t, n, r, i, a, o, s, c) {
-	let l = {
-		subject: e,
-		types: t.map((e) => x(typeof e == "string" ? e : e.iri, s)),
-		predicates: n.map((e) => ({
-			iri: x(e.iri, s),
-			form: e.form
+function createBlock(subject, types, predicates, range, attrsRange, valueRange, carrierType, ctx, text) {
+	const expanded = {
+		subject,
+		types: types.map((t) => expandIRI(typeof t === "string" ? t : t.iri, ctx)),
+		predicates: predicates.map((p) => ({
+			iri: expandIRI(p.iri, ctx),
+			form: p.form
 		}))
 	};
 	return {
-		id: y([
-			e,
-			o || "unknown",
-			l.types.join(","),
-			l.predicates.map((e) => `${e.form}${e.iri}`).join(",")
+		id: hash([
+			subject,
+			carrierType || "unknown",
+			expanded.types.join(","),
+			expanded.predicates.map((p) => `${p.form}${p.iri}`).join(",")
 		].join("|")),
 		range: {
-			start: r[0],
-			end: r[1]
+			start: range[0],
+			end: range[1]
 		},
-		valueRange: a ? {
-			start: a[0],
-			end: a[1]
+		valueRange: valueRange ? {
+			start: valueRange[0],
+			end: valueRange[1]
 		} : null,
-		carrierType: o || null,
-		subject: e,
-		types: l.types,
-		predicates: l.predicates,
-		context: s,
-		text: c || ""
+		carrierType: carrierType || null,
+		subject,
+		types: expanded.types,
+		predicates: expanded.predicates,
+		context: ctx,
+		text: text || ""
 	};
 }
-function B(e, t, n, r, i, a, o, s, c, l = null, u = null, d = null, f = null) {
-	if (!a || !o || !s) return;
-	let p = c.quad(a, o, s);
-	if (l?.remove) {
-		let i = T(p.subject, p.predicate, p.object);
-		if (t.has(i)) {
-			t.delete(i);
-			let n = e.findIndex((e) => e.subject.value === p.subject.value && e.predicate.value === p.predicate.value && e.object.value === p.object.value);
-			n !== -1 && e.splice(n, 1), r.delete(i);
-		} else n.add(p);
+function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null, statements = null, statementCandidates = null, state = null) {
+	if (!subject || !predicate || !object) return;
+	const quad = dataFactory.quad(subject, predicate, object);
+	if (meta?.remove || false) {
+		const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
+		if (quadBuffer.has(quadKey)) {
+			quadBuffer.delete(quadKey);
+			const index = quads.findIndex((q) => q.subject.value === quad.subject.value && q.predicate.value === quad.predicate.value && q.object.value === quad.object.value);
+			if (index !== -1) quads.splice(index, 1);
+			quadIndex.delete(quadKey);
+		} else removeSet.add(quad);
 	} else {
-		let n = T(p.subject, p.predicate, p.object);
-		t.set(n, p), e.push(p), f && (!f.primaryType && o.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && (f.primaryType = s.value), !f.primaryLabel && o.value === "http://www.w3.org/2000/01/rdf-schema#label" && s.termType === "Literal" && (f.primaryLabel = s.value), !f.primaryComment && o.value === "http://www.w3.org/2000/01/rdf-schema#comment" && s.termType === "Literal" && (f.primaryComment = s.value)), Le(p, c, l, u, d);
-		let m = xe(i, a, o, l);
-		r.set(n, m), f.currentBlock && i.id === f.currentBlock.id && (f.currentBlock.quadKeys || (f.currentBlock.quadKeys = []), f.currentBlock.quadKeys.push(n));
+		const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
+		quadBuffer.set(quadKey, quad);
+		quads.push(quad);
+		if (state) {
+			if (!state.primaryType && predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") state.primaryType = object.value;
+			if (!state.primaryLabel && predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && object.termType === "Literal") state.primaryLabel = object.value;
+			if (!state.primaryComment && predicate.value === "http://www.w3.org/2000/01/rdf-schema#comment" && object.termType === "Literal") state.primaryComment = object.value;
+		}
+		detectStatementPatternSinglePass(quad, dataFactory, meta, statements, statementCandidates);
+		const originEntry = createLeanOriginEntry(block, subject, predicate, meta);
+		quadIndex.set(quadKey, originEntry);
+		if (state.currentBlock && block.id === state.currentBlock.id) {
+			if (!state.currentBlock.quadKeys) state.currentBlock.quadKeys = [];
+			state.currentBlock.quadKeys.push(quadKey);
+		}
 	}
 }
-function Le(e, t, n, r = null, i = null) {
-	if (!r || !i) return;
-	let a = e.predicate.value;
-	if (a !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && a !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject" && a !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate" && a !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#object") return;
-	if (a === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && e.object.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement") {
-		i.set(e.subject.value, { spo: {} });
+function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = null, statementCandidates = null) {
+	if (!statements || !statementCandidates) return;
+	const predicate = quad.predicate.value;
+	if (predicate !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && predicate !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject" && predicate !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate" && predicate !== "http://www.w3.org/1999/02/22-rdf-syntax-ns#object") return;
+	if (predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && quad.object.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement") {
+		statementCandidates.set(quad.subject.value, { spo: {} });
 		return;
 	}
-	let o = i.get(e.subject.value);
-	if (o && (a === "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject" ? o.spo.subject = e.object : a === "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate" ? o.spo.predicate = e.object : a === "http://www.w3.org/1999/02/22-rdf-syntax-ns#object" && (o.spo.object = e.object, o.objectQuad = e), o.spo.subject && o.spo.predicate && o.spo.object)) {
-		let n = t.quad(o.spo.subject, o.spo.predicate, o.spo.object);
-		r.push(n), i.delete(e.subject.value);
+	const candidate = statementCandidates.get(quad.subject.value);
+	if (!candidate) return;
+	if (predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject") candidate.spo.subject = quad.object;
+	else if (predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate") candidate.spo.predicate = quad.object;
+	else if (predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#object") {
+		candidate.spo.object = quad.object;
+		candidate.objectQuad = quad;
+	}
+	if (candidate.spo.subject && candidate.spo.predicate && candidate.spo.object) {
+		const spoQuad = dataFactory.quad(candidate.spo.subject, candidate.spo.predicate, candidate.spo.object);
+		statements.push(spoQuad);
+		statementCandidates.delete(quad.subject.value);
 	}
 }
-var Re = (e, t, n, r, i = null) => {
-	let a = x(e, n.ctx), o = typeof i == "object" ? i : {
-		entryIndex: i,
-		remove: !1
+var createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
+	const expandedType = expandIRI(typeIRI, state.ctx);
+	const typeInfo = typeof entryIndex === "object" ? entryIndex : {
+		entryIndex,
+		remove: false
 	};
-	B(n.quads, n.quadBuffer, n.removeSet, n.origin.quadIndex, r, t, n.df.namedNode(x("rdf:type", n.ctx)), n.df.namedNode(a), n.df, {
+	emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block, subject, state.df.namedNode(expandIRI("rdf:type", state.ctx)), state.df.namedNode(expandedType), state.df, {
 		kind: "type",
-		token: `.${e}`,
-		expandedType: a,
-		entryIndex: o.entryIndex,
-		remove: o.remove
-	}, n.statements, n.statementCandidates, n);
+		token: `.${typeIRI}`,
+		expandedType,
+		entryIndex: typeInfo.entryIndex,
+		remove: typeInfo.remove
+	}, state.statements, state.statementCandidates, state);
 };
-function ze(e, t, n, r, i, a, o, s) {
-	e.types.forEach((e) => {
-		Re(typeof e == "string" ? e : e.iri, t || n || r || i, o, a, typeof e == "string" ? {
+function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier) {
+	sem.types.forEach((t) => {
+		createTypeQuad(typeof t === "string" ? t : t.iri, newSubject || localObject || carrierO || S, state, block, typeof t === "string" ? {
 			entryIndex: null,
-			remove: !1
-		} : e);
+			remove: false
+		} : t);
 	});
 }
-var Be = (e, t, n, r, i, a, o, s) => {
-	if (e.form === "" && t?.type === "link" && t?.url && t.text === t.url) return null;
-	switch (e.form) {
-		case "": return n ? {
-			subject: i || o,
-			object: s
-		} : t?.type === "link" && t?.url && t.text !== t.url ? {
-			subject: a,
-			object: s
+var determinePredicateRole = (pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L) => {
+	if (pred.form === "" && carrier?.type === "link" && carrier?.url && carrier.text === carrier.url) return null;
+	switch (pred.form) {
+		case "": return newSubject ? {
+			subject: localObject || S,
+			object: L
+		} : carrier?.type === "link" && carrier?.url && carrier.text !== carrier.url ? {
+			subject: newSubjectOrCarrierO,
+			object: L
 		} : {
-			subject: i || o,
-			object: s
+			subject: localObject || S,
+			object: L
 		};
 		case "?": return {
-			subject: n ? r : o,
-			object: i || a
+			subject: newSubject ? previousSubject : S,
+			object: localObject || newSubjectOrCarrierO
 		};
 		case "!": return {
-			subject: i || a,
-			object: n ? r : o
+			subject: localObject || newSubjectOrCarrierO,
+			object: newSubject ? previousSubject : S
 		};
 		default: return null;
 	}
 };
-function Ve(e, t, n, r, i, a, o, s, c, l) {
-	e.predicates.forEach((e) => {
-		let u = Be(e, l, t, n, r, i, a, o);
-		if (u) {
-			let t = c.df.namedNode(x(e.iri, c.ctx));
-			B(c.quads, c.quadBuffer, c.removeSet, c.origin.quadIndex, s, u.subject, t, u.object, c.df, {
+function processPredicateAnnotations(sem, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L, block, state, carrier) {
+	sem.predicates.forEach((pred) => {
+		const role = determinePredicateRole(pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L);
+		if (role) {
+			const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
+			emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block, role.subject, P, role.object, state.df, {
 				kind: "pred",
-				token: `${e.form}${e.iri}`,
-				form: e.form,
-				expandedPredicate: t.value,
-				entryIndex: e.entryIndex,
-				remove: e.remove || !1
-			}, c.statements, c.statementCandidates, c);
+				token: `${pred.form}${pred.iri}`,
+				form: pred.form,
+				expandedPredicate: P.value,
+				entryIndex: pred.entryIndex,
+				remove: pred.remove || false
+			}, state.statements, state.statementCandidates, state);
 		}
 	});
 }
-function V(e, t, n, r = {}) {
-	Fe(e, t, n, r);
+function processAnnotation(carrier, sem, state, options = {}) {
+	processAnnotationWithBlockTracking(carrier, sem, state, options);
 }
-function H(e, t, n) {
-	if (e.attrs) {
-		let r = j(e.attrs);
-		V({
-			type: n,
-			text: e.text,
-			range: e.range,
-			attrsRange: e.attrsRange || null,
-			valueRange: e.valueRange || null
-		}, r, t);
+function processTokenAnnotations(token, state, tokenType) {
+	if (token.attrs) {
+		const sem = parseSemCached(token.attrs);
+		processAnnotation({
+			type: tokenType,
+			text: token.text,
+			range: token.range,
+			attrsRange: token.attrsRange || null,
+			valueRange: token.valueRange || null
+		}, sem, state);
 	}
-	R(e).forEach((e) => {
-		e.attrs && V(e, j(e.attrs), t);
+	getCarriers(token).forEach((carrier) => {
+		if (carrier.attrs) processAnnotation(carrier, parseSemCached(carrier.attrs), state);
 	});
 }
-function He(e, t) {
-	let n = E(e.text);
-	if (!n) return;
-	let r = j(`{=${n.content}}`), i = e.range[0] + e.text.indexOf("{=");
-	V({
+function processStandaloneSubject(token, state) {
+	const result = detectStandaloneSubject(token.text);
+	if (!result) return;
+	const sem = parseSemCached(`{=${result.content}}`);
+	const attrsStart = token.range[0] + token.text.indexOf("{=");
+	processAnnotation({
 		type: "standalone",
 		text: "",
-		range: e.range,
-		attrsRange: [i, i + (n.content ? n.content.length : 0)],
+		range: token.range,
+		attrsRange: [attrsStart, attrsStart + (result.content ? result.content.length : 0)],
 		valueRange: null
-	}, r, t);
+	}, sem, state);
 }
-var Ue = {
-	heading: (e, t) => F(e, t, H, z),
-	code: (e, t) => F(e, t, H, z),
-	blockquote: (e, t) => F(e, t, H, z),
-	para: (e, t) => F(e, t, H, z, [He]),
-	list: (e, t) => F(e, t, H, z),
-	standalone: (e, t) => He(e, t)
+var TOKEN_PROCESSORS = {
+	heading: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
+	code: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
+	blockquote: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
+	para: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry, [processStandaloneSubject]),
+	list: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
+	standalone: (token, state) => processStandaloneSubject(token, state)
 };
 //#endregion
 //#region src/merge.js
-function U(e) {
-	return ee(e);
+/**
+* Creates a unique key for quad identity matching - using shared utility
+* @param {Quad} quad 
+* @returns {string}
+*/
+function quadKey(quad) {
+	return quadToKeyForOrigin(quad);
 }
-function We(e, t, n) {
-	return typeof e == "string" ? L({
-		text: e,
-		...t,
+/**
+* Normalizes merge input to ParseResult format
+* @param {string|ParseResult} input 
+* @param {Object} options
+* @param {Object} docContext
+* @returns {ParseResult}
+*/
+function normalizeInput(input, options, docContext) {
+	if (typeof input === "string") return parse({
+		text: input,
+		...options,
 		context: {
-			...n,
-			...t.context
+			...docContext,
+			...options.context
 		}
-	}) : e;
+	});
+	return input;
 }
-function Ge(t, n = {}) {
-	let r = /* @__PURE__ */ new Map(), i = /* @__PURE__ */ new Set(), a = [], o = /* @__PURE__ */ new Map(), s = [], c = /* @__PURE__ */ new Map(), l = [], u = [];
-	for (let d = 0; d < t.length; d++) {
-		let f = t[d], p = We(f, n, {
-			...e,
-			...n.context
+/**
+* Merges multiple MDLD documents with diff polarity resolution
+* @param {Array<string|ParseResult>} docs
+* @param {Object} options
+* @returns {Object} Merge result with quads, remove, statements, origin, and context
+*/
+function merge(docs, options = {}) {
+	const sessionBuffer = /* @__PURE__ */ new Map();
+	const sessionRemoveSet = /* @__PURE__ */ new Set();
+	const allDocuments = [];
+	const quadIndex = /* @__PURE__ */ new Map();
+	const allStatements = [];
+	const accumulatedContext = /* @__PURE__ */ new Map();
+	const primaryObjects = [];
+	const primarySubjects = [];
+	for (let i = 0; i < docs.length; i++) {
+		const input = docs[i];
+		const doc = normalizeInput(input, options, {
+			...DEFAULT_CONTEXT,
+			...options.context
 		});
-		if (p.context) for (let [t, n] of Object.entries(p.context)) !c.has(t) && !e[t] && c.set(t, n);
-		let m = {
-			index: d,
-			input: typeof f == "string" ? "string" : "ParseResult",
-			origin: p.origin,
-			context: p.context,
-			statementsCount: p.statements?.length || 0
+		if (doc.context) {
+			for (const [prefix, namespace] of Object.entries(doc.context)) if (!accumulatedContext.has(prefix) && !DEFAULT_CONTEXT[prefix]) accumulatedContext.set(prefix, namespace);
+		}
+		const documentOrigin = {
+			index: i,
+			input: typeof input === "string" ? "string" : "ParseResult",
+			origin: doc.origin,
+			context: doc.context,
+			statementsCount: doc.statements?.length || 0
 		};
-		a.push(m), p.statements && p.statements.length > 0 && s.push(...p.statements), p.primary && (p.primary.subject || p.primary.type || p.primary.label) && l.push(p.primary), p.primarySubject && u.push(p.primarySubject);
-		for (let e of p.quads) {
-			let t = U(e);
-			r.set(t, e);
-			let n = p.origin.quadIndex.get(t);
-			o.set(t, {
-				...n || {},
-				documentIndex: d,
+		allDocuments.push(documentOrigin);
+		if (doc.statements && doc.statements.length > 0) allStatements.push(...doc.statements);
+		if (doc.primary && (doc.primary.subject || doc.primary.type || doc.primary.label)) primaryObjects.push(doc.primary);
+		if (doc.primarySubject) primarySubjects.push(doc.primarySubject);
+		for (const quad of doc.quads) {
+			const key = quadKey(quad);
+			sessionBuffer.set(key, quad);
+			const existingOrigin = doc.origin.quadIndex.get(key);
+			quadIndex.set(key, {
+				...existingOrigin || {},
+				documentIndex: i,
 				polarity: "+"
 			});
 		}
-		for (let e of p.remove) {
-			let t = U(e);
-			r.has(t) ? r.delete(t) : i.add(e);
-			let n = p.origin.quadIndex.get(t);
-			o.set(t, {
-				...n || {},
-				documentIndex: d,
+		for (const quad of doc.remove) {
+			const key = quadKey(quad);
+			if (sessionBuffer.has(key)) sessionBuffer.delete(key);
+			else sessionRemoveSet.add(quad);
+			const existingOrigin = doc.origin.quadIndex.get(key);
+			quadIndex.set(key, {
+				...existingOrigin || {},
+				documentIndex: i,
 				polarity: "-"
 			});
 		}
 	}
-	let d = Array.from(r.values()), f = Array.from(i), p = {
-		documents: a,
-		quadIndex: o
-	}, m = {
-		...e,
-		...n.context,
-		...Object.fromEntries(c)
-	}, h = new Set(d.map(U)), g = new Set(f.map(U));
+	const finalQuads = Array.from(sessionBuffer.values());
+	const finalRemove = Array.from(sessionRemoveSet);
+	const mergeOrigin = {
+		documents: allDocuments,
+		quadIndex
+	};
+	const finalContext = {
+		...DEFAULT_CONTEXT,
+		...options.context,
+		...Object.fromEntries(accumulatedContext)
+	};
+	const quadKeys = new Set(finalQuads.map(quadKey));
+	const removeKeys = new Set(finalRemove.map(quadKey));
 	return {
-		quads: d.filter((e) => !g.has(U(e))),
-		remove: f.filter((e) => !h.has(U(e))),
-		statements: s,
-		origin: p,
-		context: m,
-		primarySubjects: u,
-		primary: l
+		quads: finalQuads.filter((quad) => !removeKeys.has(quadKey(quad))),
+		remove: finalRemove.filter((quad) => !quadKeys.has(quadKey(quad))),
+		statements: allStatements,
+		origin: mergeOrigin,
+		context: finalContext,
+		primarySubjects,
+		primary: primaryObjects
 	};
 }
 //#endregion
 //#region src/generate.js
-var W = /* @__PURE__ */ new Map(), Ke = 1e3;
-function G(e, t) {
-	let n = `${e}|${JSON.stringify(t)}`;
-	if (W.has(n)) return W.get(n);
-	let r = S(e, t);
-	return W.size >= Ke && Array.from(W.keys()).slice(0, Math.floor(Ke / 2)).forEach((e) => W.delete(e)), W.set(n, r), r;
+var iriCache = /* @__PURE__ */ new Map();
+var CACHE_SIZE_LIMIT = 1e3;
+function getCachedShortIRI(iri, context) {
+	const cacheKey = `${iri}|${JSON.stringify(context)}`;
+	if (iriCache.has(cacheKey)) return iriCache.get(cacheKey);
+	const result = shortenIRI(iri, context);
+	if (iriCache.size >= CACHE_SIZE_LIMIT) Array.from(iriCache.keys()).slice(0, Math.floor(CACHE_SIZE_LIMIT / 2)).forEach((key) => iriCache.delete(key));
+	iriCache.set(cacheKey, result);
+	return result;
 }
-function qe(e, t = {}) {
-	if (!e) return e;
-	for (let [n, r] of Object.entries(t)) if (e.startsWith(r) || e.startsWith(r.slice(0, -1))) return e.substring(r.length);
-	for (let t of [
+function extractLocalName(iri, ctx = {}) {
+	if (!iri) return iri;
+	for (const [prefix, namespace] of Object.entries(ctx)) if (iri.startsWith(namespace) || iri.startsWith(namespace.slice(0, -1))) return iri.substring(namespace.length);
+	for (const sep of [
 		"#",
 		"/",
 		":"
 	]) {
-		let n = e.lastIndexOf(t);
-		if (n !== -1 && n < e.length - 1) return e.substring(n + 1);
+		const lastSep = iri.lastIndexOf(sep);
+		if (lastSep !== -1 && lastSep < iri.length - 1) return iri.substring(lastSep + 1);
 	}
-	return e;
+	return iri;
 }
-function Je({ quads: t, context: n = {}, primarySubject: r = null, compactInline: i = !0 }) {
-	let a = Object.assign({}, e, n), { subjectGroups: o, reverseIndex: s } = Ze(Xe(t)), { text: c, compactStats: l } = $e(o, a, r, r ? s : null, i);
+/**
+* Generate deterministic MDLD from RDF quads
+* Purpose: TTL→MDLD conversion with canonical structure
+* Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean)
+* Output: MDLD text + context + compactStats
+*/
+function generate({ quads, context = {}, primarySubject = null, compactInline = false, renderReverse = false }) {
+	const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
+	const { subjectGroups, reverseIndex } = groupQuadsBySubject(normalizeAndSortQuads(quads));
+	const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, primarySubject && renderReverse ? reverseIndex : null, compactInline);
 	return {
-		text: c,
-		context: a,
-		compactStats: l
+		text,
+		context: fullContext,
+		compactStats
 	};
 }
-function Ye({ quads: t, focusIRI: n, context: r = {}, compactInline: i = !0 }) {
-	if (!t?.length || !n) return {
+/**
+* Generate node-centric MDLD showing all quads where a specific IRI appears
+* in any position: subject, object, predicate, type, or datatype.
+* Perfect for exploring individual nodes and their complete relationship graph.
+*/
+function generateNode({ quads, focusIRI, context = {}, compactInline = true, renderReverse = true }) {
+	if (!quads?.length || !focusIRI) return {
 		text: "",
-		context: Object.assign({}, e, r),
+		context: Object.assign({}, DEFAULT_CONTEXT, context),
 		compactStats: null
 	};
-	let a = Object.assign({}, e, r), { nodeGroups: o, reverseIndex: s } = Qe(Xe(t));
-	if (!o.has(n)) return {
+	const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
+	const { nodeGroups, reverseIndex } = groupQuadsByNode(normalizeAndSortQuads(quads));
+	if (!nodeGroups.has(focusIRI)) return {
 		text: "",
-		context: a,
+		context: fullContext,
 		compactStats: null
 	};
-	let { text: c, compactStats: l } = $e(o, a, n, s, i);
+	const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI, renderReverse ? reverseIndex : null, compactInline);
 	return {
-		text: c,
-		context: a,
-		compactStats: l
+		text,
+		context: fullContext,
+		compactStats
 	};
 }
-function Xe(e) {
-	return !e || e.length === 0 ? [] : e.map((e) => e.subject.termType && e.predicate.termType && e.object.termType ? e : {
-		subject: _.fromTerm(e.subject),
-		predicate: _.fromTerm(e.predicate),
-		object: _.fromTerm(e.object)
-	}).sort((e, t) => {
-		let n = e.subject.value.localeCompare(t.subject.value);
-		if (n !== 0) return n;
-		let r = e.predicate.value.localeCompare(t.predicate.value);
-		if (r !== 0) return r;
-		let i = (N(e.object), e.object.value), a = (N(t.object), t.object.value);
-		return i.localeCompare(a);
+function normalizeAndSortQuads(quads) {
+	if (!quads || quads.length === 0) return [];
+	return quads.map((quad) => {
+		if (quad.subject.termType && quad.predicate.termType && quad.object.termType) return quad;
+		return {
+			subject: DataFactory.fromTerm(quad.subject),
+			predicate: DataFactory.fromTerm(quad.predicate),
+			object: DataFactory.fromTerm(quad.object)
+		};
+	}).sort((a, b) => {
+		const sComp = a.subject.value.localeCompare(b.subject.value);
+		if (sComp !== 0) return sComp;
+		const pComp = a.predicate.value.localeCompare(b.predicate.value);
+		if (pComp !== 0) return pComp;
+		const oA = isLiteral(a.object) ? a.object.value : a.object.value;
+		const oB = isLiteral(b.object) ? b.object.value : b.object.value;
+		return oA.localeCompare(oB);
 	});
 }
-function Ze(e) {
-	let t = /* @__PURE__ */ new Map(), n = /* @__PURE__ */ new Map();
-	for (let r of e) {
-		let e = r.subject.value, i = t.get(e);
-		if (i ? i.push(r) : t.set(e, [r]), r.object.termType === "NamedNode") {
-			let e = r.object.value, t = n.get(e);
-			t ? t.push(r) : n.set(e, [r]);
+function groupQuadsBySubject(quads) {
+	const groups = /* @__PURE__ */ new Map();
+	const reverseIndex = /* @__PURE__ */ new Map();
+	for (const quad of quads) {
+		const subjectValue = quad.subject.value;
+		const existing = groups.get(subjectValue);
+		if (existing) existing.push(quad);
+		else groups.set(subjectValue, [quad]);
+		if (quad.object.termType === "NamedNode") {
+			const objectValue = quad.object.value;
+			const reverseList = reverseIndex.get(objectValue);
+			if (reverseList) reverseList.push(quad);
+			else reverseIndex.set(objectValue, [quad]);
 		}
 	}
 	return {
-		subjectGroups: t,
-		reverseIndex: n
+		subjectGroups: groups,
+		reverseIndex
 	};
 }
-function Qe(e) {
-	let t = /* @__PURE__ */ new Map(), n = /* @__PURE__ */ new Map(), r = (e) => {
-		let n = t.get(e);
-		if (n) return n;
-		let r = [];
-		return t.set(e, r), r;
+function groupQuadsByNode(quads) {
+	const groups = /* @__PURE__ */ new Map();
+	const reverseIndex = /* @__PURE__ */ new Map();
+	const ensure = (key) => {
+		const existing = groups.get(key);
+		if (existing) return existing;
+		const newArray = [];
+		groups.set(key, newArray);
+		return newArray;
 	};
-	for (let t of e) {
-		let { subject: e, predicate: i, object: a } = t;
-		if (r(e.value).push(t), a.termType === "NamedNode") {
-			r(a.value).push(t);
-			let e = a.value, i = n.get(e);
-			i ? i.push(t) : n.set(e, [t]);
+	for (const quad of quads) {
+		const { subject, predicate, object } = quad;
+		ensure(subject.value).push(quad);
+		if (object.termType === "NamedNode") {
+			ensure(object.value).push(quad);
+			const objectValue = object.value;
+			const reverseList = reverseIndex.get(objectValue);
+			if (reverseList) reverseList.push(quad);
+			else reverseIndex.set(objectValue, [quad]);
 		}
-		r(i.value).push(t), i.value === RDFS_TYPE && a.termType === "NamedNode" && r(a.value).push(t), a.termType === "Literal" && a.datatype && r(a.datatype.value || a.datatype).push(t);
+		ensure(predicate.value).push(quad);
+		if (predicate.value === RDFS_TYPE && object.termType === "NamedNode") ensure(object.value).push(quad);
+		if (object.termType === "Literal" && object.datatype) ensure(object.datatype.value || object.datatype).push(quad);
 	}
 	return {
-		nodeGroups: t,
-		reverseIndex: n
+		nodeGroups: groups,
+		reverseIndex
 	};
 }
-function $e(n, r, i = null, a = null, o = !0) {
-	let s = [], c = De(n, r), l = et(n), u = {
+function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true) {
+	const textParts = [];
+	const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
+	const labelLookup = buildLabelLookup(subjectGroups);
+	const compactStats = {
 		compactedSubjects: 0,
 		skippedHeadings: 0,
 		inlineAnnotations: 0
-	}, d = /* @__PURE__ */ new Set(), f = /* @__PURE__ */ new Map();
-	for (let [e, t] of n.entries()) f.set(e, je(t));
-	let p = Object.entries(r).sort(([e], [t]) => e.localeCompare(t));
-	for (let [t, n] of p) t !== "@vocab" && !t.startsWith("@") && !e[t] && c.has(t) && s.push(Oe(t, n));
-	p.length > 0 && s.push("\n");
-	let m = Array.from(n.keys()).sort(), h = i, g = h ? [h, ...m.filter((e) => e !== h)] : m;
-	for (let e of g) {
-		let i = n.get(e);
-		if (!i) continue;
-		if (i.every((e) => d.has(e))) {
-			u.skippedHeadings++, u.compactedSubjects++;
+	};
+	const renderedQuads = /* @__PURE__ */ new Set();
+	const filteredGroups = /* @__PURE__ */ new Map();
+	for (const [subjectIRI, quads] of subjectGroups.entries()) filteredGroups.set(subjectIRI, filterQuadsByType(quads));
+	const sortedPrefixes = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
+	for (const [prefix, namespace] of sortedPrefixes) if (prefix !== "@vocab" && !prefix.startsWith("@") && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) textParts.push(generatePrefixDeclaration(prefix, namespace));
+	if (sortedPrefixes.length > 0) textParts.push("\n");
+	const sortedSubjects = Array.from(subjectGroups.keys()).sort();
+	const primarySubjectIRI = primarySubject;
+	const orderedSubjects = primarySubjectIRI ? [primarySubjectIRI, ...sortedSubjects.filter((s) => s !== primarySubjectIRI)] : sortedSubjects;
+	for (const subjectIRI of orderedSubjects) {
+		const subjectQuads = subjectGroups.get(subjectIRI);
+		if (!subjectQuads) continue;
+		if (subjectQuads.every((q) => renderedQuads.has(q))) {
+			compactStats.skippedHeadings++;
+			compactStats.compactedSubjects++;
 			continue;
 		}
-		let { types: c, literals: p, objects: m } = f.get(e), g = G(e, r), _ = l.has(e), v = _ ? l.get(e) : qe(e, r), y = c.filter((e) => !d.has(e)), b = y.length > 0 ? y.map((e) => "." + G(e.object.value, r)).sort().join(" ") : "", x = i.find((e) => e.predicate.value === t);
-		_ && (!x || !d.has(x)) && (b += (b ? " " : "") + "label");
-		let S = b ? " " + b : "";
-		s.push(`# ${v} {=${g}${S}}\n`), c.forEach((e) => d.add(e)), x && d.add(x);
-		let C = _ ? l.get(e) : null;
-		if (I(p).forEach((e) => {
-			e.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && e.object.value === C || s.push(ke(e, r));
-		}), I(m).forEach((e) => {
-			d.has(e) || s.push(Ae(e, r, l, f, d, o, u));
-		}), e === h && a && a.has(e)) {
-			let i = a.get(e);
-			i.sort((e, t) => e.predicate.value.localeCompare(t.predicate.value));
-			for (let e of i) {
-				d.add(e);
-				let i = n.get(e.subject.value), a = l.has(e.subject.value) ? l.get(e.subject.value) : qe(e.subject.value, r), c = G(e.subject.value, r), p = G(e.predicate.value, r), m = "";
-				if (o && i) {
-					let { types: n } = f.get(e.subject.value) || { types: [] }, a = l.has(e.subject.value), o = n.length > 0 ? n.map((e) => "." + G(e.object.value, r)).sort().join(" ") : "", s = a ? "label" : "";
-					if ((o || s) && (m = " " + [o, s].filter(Boolean).join(" "), u.inlineAnnotations++, n.forEach((e) => d.add(e)), a)) {
-						let e = i.find((e) => e.predicate.value === t);
-						e && d.add(e);
+		const { types, literals, objects } = filteredGroups.get(subjectIRI);
+		const shortSubject = getCachedShortIRI(subjectIRI, context);
+		const hasLabel = labelLookup.has(subjectIRI);
+		const displayName = hasLabel ? labelLookup.get(subjectIRI) : extractLocalName(subjectIRI, context);
+		const typesNotRendered = types.filter((t) => !renderedQuads.has(t));
+		let annotations = typesNotRendered.length > 0 ? typesNotRendered.map((t) => "." + getCachedShortIRI(t.object.value, context)).sort().join(" ") : "";
+		const labelQuad = subjectQuads.find((q) => q.predicate.value === RDFS_LABEL);
+		if (hasLabel && (!labelQuad || !renderedQuads.has(labelQuad))) annotations += (annotations ? " " : "") + "label";
+		const annotationStr = annotations ? " " + annotations : "";
+		textParts.push(`# ${displayName} {=${shortSubject}${annotationStr}}\n`);
+		types.forEach((t) => renderedQuads.add(t));
+		if (labelQuad) renderedQuads.add(labelQuad);
+		const headingLabel = hasLabel ? labelLookup.get(subjectIRI) : null;
+		sortQuadsByPredicate(literals).forEach((quad) => {
+			if (quad.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && quad.object.value === headingLabel) return;
+			textParts.push(generateLiteralText(quad, context));
+		});
+		sortQuadsByPredicate(objects).forEach((quad) => {
+			if (renderedQuads.has(quad)) return;
+			textParts.push(generateObjectText(quad, context, labelLookup, filteredGroups, renderedQuads, compactInline, compactStats));
+		});
+		if (subjectIRI === primarySubjectIRI && reverseIndex && reverseIndex.has(subjectIRI)) {
+			const reverseQuads = reverseIndex.get(subjectIRI);
+			reverseQuads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
+			for (const quad of reverseQuads) {
+				renderedQuads.add(quad);
+				const subjectQuads = subjectGroups.get(quad.subject.value);
+				const subjectLabel = labelLookup.has(quad.subject.value) ? labelLookup.get(quad.subject.value) : extractLocalName(quad.subject.value, context);
+				const shortSubject = getCachedShortIRI(quad.subject.value, context);
+				const shortPredicate = getCachedShortIRI(quad.predicate.value, context);
+				let inlineAnnotation = "";
+				if (compactInline && subjectQuads) {
+					const { types } = filteredGroups.get(quad.subject.value) || { types: [] };
+					const hasLabel = labelLookup.has(quad.subject.value);
+					const typeAnnotations = types.length > 0 ? types.map((t) => "." + getCachedShortIRI(t.object.value, context)).sort().join(" ") : "";
+					const labelAnnotation = hasLabel ? "label" : "";
+					if (typeAnnotations || labelAnnotation) {
+						inlineAnnotation = " " + [typeAnnotations, labelAnnotation].filter(Boolean).join(" ");
+						compactStats.inlineAnnotations++;
+						types.forEach((q) => renderedQuads.add(q));
+						if (hasLabel) {
+							const labelQuad = subjectQuads.find((q) => q.predicate.value === RDFS_LABEL);
+							if (labelQuad) renderedQuads.add(labelQuad);
+						}
 					}
-					i.every((e) => d.has(e)) && (u.skippedHeadings++, u.compactedSubjects++);
+					if (subjectQuads.every((q) => renderedQuads.has(q))) {
+						compactStats.skippedHeadings++;
+						compactStats.compactedSubjects++;
+					}
 				}
-				s.push(`[${a}] {+${c} !${p}${m}}\n`);
+				textParts.push(`[${subjectLabel}] {+${shortSubject} !${shortPredicate}${inlineAnnotation}}\n`);
 			}
 		}
-		s.push("\n");
+		textParts.push("\n");
 	}
 	return {
-		text: s.join(""),
-		compactStats: u
+		text: textParts.join(""),
+		compactStats
 	};
 }
-function et(e) {
-	let t = /* @__PURE__ */ new Map();
-	for (let n of e.values()) for (let e of n) e.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && e.object.termType === "Literal" && t.set(e.subject.value, e.object.value);
-	return t;
+function buildLabelLookup(subjectGroups) {
+	const labelLookup = /* @__PURE__ */ new Map();
+	for (const subjectQuads of subjectGroups.values()) for (const quad of subjectQuads) if (quad.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && quad.object.termType === "Literal") labelLookup.set(quad.subject.value, quad.object.value);
+	return labelLookup;
 }
 //#endregion
 //#region src/render.js
-function tt(e, t = {}) {
-	let n = L({
-		text: e,
-		context: t.context || {}
-	}), r = nt(n, t, e), i = {
-		html: St(rt(n.origin.blocks, r), r.ctx),
-		context: r.ctx,
+/**
+* Render MD-LD to clean HTML (minimal, no RDFa)
+* 
+* This implementation provides a minimal HTML renderer that:
+* 1. Preserves document structure (headings, paragraphs, lists, etc.)
+* 2. Handles inline formatting (bold, italic, code, links)
+* 3. Strips MDLD annotations from output
+* 4. Uses the same parsing foundation as generate()
+* 
+* @param {string} mdld - MD-LD input string
+* @param {Object} options - Rendering options
+* @param {Object} options.context - Additional context prefixes
+* @returns {Object} Render result with HTML and metadata
+*/
+function render(mdld, options = {}) {
+	const parsed = parse({
+		text: mdld,
+		context: options.context || {}
+	});
+	return {
+		html: renderToHTML(parsed, mdld),
+		context: parsed.context,
 		metadata: {
-			blockCount: n.origin.blocks.size,
-			quadCount: n.quads.length,
-			renderedRDFaCount: r.renderedRDFaCount,
+			blockCount: parsed.origin.blocks.size,
+			quadCount: parsed.quads.length,
 			renderTime: Date.now()
 		}
 	};
-	return t.debug && (i.debug = {
-		originBlocks: Array.from(n.origin.blocks.values()),
-		quadIndex: Array.from(n.origin.quadIndex.entries()),
-		renderMap: r.renderMap
-	}), i;
 }
-function nt(t, n, r) {
-	return {
-		ctx: t.context || {
-			...e,
-			...n.context || {}
-		},
-		df: n.dataFactory || _,
-		baseIRI: n.baseIRI || "",
-		sourceText: r,
-		output: [],
-		currentSubject: null,
-		quadIndex: t.origin.quadIndex,
-		blocks: t.origin.blocks,
-		renderMap: /* @__PURE__ */ new Map(),
-		renderedRDFaCount: 0,
-		validation: n.validate || !1
-	};
+/**
+* Render parsed MDLD to clean HTML
+* Uses the md field from parse result (already stripped of annotations)
+*/
+function renderToHTML(parsed, sourceText) {
+	return markdownToHTML(stripOnlyMDLDAnnotations(sourceText));
 }
-function rt(e, t) {
-	let n = Array.from(e.values()).sort((e, t) => (e.range?.start || 0) - (t.range?.start || 0)), r = n.filter((e) => e.carrierType === "list");
-	return n.filter((e) => e.carrierType !== "list").forEach((e) => {
-		it(e, t);
-	}), r.length > 0 && gt(r, t), t.output.join("");
+/**
+* Strip only MDLD annotations, preserve markdown formatting
+*/
+function stripOnlyMDLDAnnotations(text) {
+	let cleaned = text;
+	cleaned = cleaned.replace(/^\[[^\]]+\]\s*<[^>]+>\s*$/gm, "");
+	cleaned = cleaned.replace(/^(#{1,6}\s+[^\n]+)\s*\{[^}]*\}\s*$/gm, "$1");
+	cleaned = cleaned.replace(/\s*\{[^}]*\}\s*$/gm, "");
+	cleaned = cleaned.replace(/^\[([^\]]+)\]\s*\{[?!][^}]*\}\s*$/gm, "");
+	return cleaned;
 }
-function it(e, t) {
-	e.subject && e.subject !== "RESET" && (t.currentSubject = e.subject);
-	let n = at(e, t);
-	switch (n && t.renderMap.set(e.id || Ct(e), n), e.type || e.carrierType) {
-		case "heading":
-			st(e, n, t);
-			break;
-		case "para":
-			ct(e, n, t);
-			break;
-		case "list": break;
-		case "quote":
-			lt(e, n, t);
-			break;
-		case "code":
-			ut(e, n, t);
-			break;
-		default: dt(e, n, t);
-	}
-}
-function at(e, t) {
-	let n = [];
-	if (!e.subject || e.subject === "RESET" || e.subject.startsWith("=#") || e.subject.startsWith("+")) return "";
-	let r = x(e.subject, t.ctx);
-	if (n.push(`about="${M(r)}"`), e.types && e.types.length > 0) {
-		let r = e.types.map((e) => x(typeof e == "string" ? e : e.iri, t.ctx)).join(" ");
-		n.push(`typeof="${M(r)}"`);
-	}
-	let i = [];
-	if (e.predicates && e.predicates.length > 0 && i.push(...e.predicates), e.carriers && e.carriers.length > 0) for (let t of e.carriers) t.predicates && t.predicates.length > 0 && i.push(...t.predicates);
-	if (i.length > 0) {
-		let { literalProps: e, objectProps: r, reverseProps: a } = ot(i, t.ctx);
-		e.length > 0 && n.push(`property="${M(e.join(" "))}"`), r.length > 0 && n.push(`rel="${M(r.join(" "))}"`), a.length > 0 && n.push(`rev="${M(a.join(" "))}"`);
-	}
-	return n.length > 1 && t.renderedRDFaCount++, n.length > 0 ? ` ${n.join(" ")}` : "";
-}
-function ot(e, t) {
-	let n = [], r = [], i = [];
-	for (let a of e) {
-		let e = x(typeof a == "string" ? a : a.iri, t);
-		a.polarity === "-" ? i.push(e) : a.object && a.object.termType === "NamedNode" ? r.push(e) : n.push(e);
-	}
-	return {
-		literalProps: n,
-		objectProps: r,
-		reverseProps: i
-	};
-}
-function st(e, t, n) {
-	let r = `h${e.text && e.text.match(/^#+/)?.[0]?.length || 1}`, i = ye(n.sourceText, e.range);
-	i = i.replace(/\s*\{[^}]+\}\s*$/g, "").trim(), n.output.push(`<${r}${t}>${M(i)}</${r}>`);
-}
-function ct(e, t, n) {
-	let r = K(e, n);
-	n.output.push(`<p${t}>${r}</p>`);
-}
-function lt(e, t, n) {
-	let r = K(e, n);
-	n.output.push(`<blockquote${t}>${r}</blockquote>`);
-}
-function ut(e, t, n) {
-	let r = e.info || "", i = e.text || "";
-	n.output.push(`<pre><code${t}${r ? ` class="language-${M(r)}"` : ""}>${M(i)}</code></pre>`);
-}
-function dt(e, t, n) {
-	let r = K(e, n);
-	n.output.push(`<div${t}>${r}</div>`);
-}
-function K(e, t) {
-	if (!e.carriers || e.carriers.length === 0) return M(ft(t.sourceText, e.range));
-	let n = pt(e);
-	return mt(ft(t.sourceText, e.range), n, t);
-}
-function ft(e, t) {
-	if (!t || !e) return "";
-	let n = e.substring(t[0], t[1]);
-	return n = n.replace(/\s*\{[^}]*\}\s*$/gm, ""), n = n.replace(/\{[^}]*\}/g, ""), n = n.replace(/\s+/g, " ").trim(), n = n.replace(/\]$/, ""), n;
-}
-function pt(e) {
-	let t = [];
-	if (!e.carriers) return t;
-	for (let n of e.carriers) !n.text || !n.range || t.push({
-		pos: n.range[0] - e.range[0],
-		carrier: n,
-		length: n.text.length
+/**
+* Convert markdown to HTML (minimal implementation)
+*/
+function markdownToHTML(markdown) {
+	let html = markdown;
+	html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+		return `<pre><code${lang ? ` class="language-${escapeHtml$1(lang)}"` : ""}>${escapeHtml$1(code.trim())}</code></pre>`;
 	});
-	return t.sort((e, t) => e.pos - t.pos);
-}
-function mt(e, t, n) {
-	if (t.length === 0) return M(e);
-	let r = "", i = 0;
-	for (let a of t) a.pos > i && (r += M(e.substring(i, a.pos))), r += ht(a.carrier, n), i = a.pos + a.length;
-	return i < e.length && (r += M(e.substring(i))), r;
-}
-function ht(e, t) {
-	let n = [], r = e.subject || t.currentSubject;
-	if (!r || r === "RESET" || r.startsWith("=#") || r.startsWith("+")) return M(e.text || "");
-	let i = S(x(r, t.ctx), t.ctx);
-	if (n.push(`about="${M(i)}"`), e.types && e.types.length > 0) {
-		let r = e.types.map((e) => S(x(typeof e == "string" ? e : e.iri, t.ctx), t.ctx)).join(" ");
-		n.push(`typeof="${M(r)}"`);
-	}
-	if (e.predicates && e.predicates.length > 0) {
-		let { literalProps: r, objectProps: i, reverseProps: a } = ot(e.predicates, t.ctx);
-		if (r.length > 0) {
-			let e = r.map((e) => S(e, t.ctx)).join(" ");
-			n.push(`property="${M(e)}"`);
-		}
-		if (i.length > 0) {
-			let e = i.map((e) => S(e, t.ctx)).join(" ");
-			n.push(`rel="${M(e)}"`);
-		}
-		if (a.length > 0) {
-			let e = a.map((e) => S(e, t.ctx)).join(" ");
-			n.push(`rev="${M(e)}"`);
-		}
-	}
-	let a = n.length > 0 ? ` ${n.join(" ")}` : "";
-	switch (e.type) {
-		case "emphasis": return `<em${a}>${M(e.text || "")}</em>`;
-		case "strong": return `<strong${a}>${M(e.text || "")}</strong>`;
-		case "code": return `<code${a}>${M(e.text || "")}</code>`;
-		case "link": return `<a href="${M(e.url || "")}"${a}>${M(e.text || "")}</a>`;
-		default: return `<span${a}>${M(e.text || "")}</span>`;
-	}
-}
-function gt(e, t) {
-	_t(e, t.sourceText).forEach((e) => {
-		vt(e, t);
+	html = html.replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, text) => {
+		const level = hashes.length;
+		return `<h${level}>${escapeHtml$1(text.trim())}</h${level}>`;
 	});
-}
-function _t(e, t) {
-	let n = [], r = null, i = e.sort((e, t) => (e.range?.start || 0) - (t.range?.start || 0));
-	for (let e of i) ve(e, t) === 0 ? (r && n.push(r), r = {
-		contextName: "Items",
-		blocks: [e]
-	}) : r ? r.blocks.push(e) : r = {
-		contextName: "Items",
-		blocks: [e]
-	};
-	return r && n.push(r), n;
-}
-function vt(e, t) {
-	t.output.push("<ul>");
-	for (let n of e.blocks) yt(n, t);
-	t.output.push("</ul>");
-}
-function yt(e, t) {
-	let n = at(e, t), r = K(e, t);
-	t.output.push(`<li${n}>${r}</li>`);
-}
-function bt(e) {
-	let t = [];
-	for (let [n, r] of Object.entries(e)) n !== "@vocab" && t.push(`${n}: ${r}`);
-	return t.length > 0 ? ` prefix="${t.join(" ")}"` : "";
-}
-function xt(e) {
-	return e["@vocab"] ? ` vocab="${e["@vocab"]}"` : "";
-}
-function St(e, t) {
-	return `<div${bt(t)}${xt(t)}>${e}</div>`;
-}
-function Ct(e) {
-	return wt(`${e.type || e.carrierType}|${e.subject || ""}|${e.text || ""}`);
-}
-function wt(e) {
-	let t = 0;
-	for (let n = 0; n < e.length; n++) {
-		let r = e.charCodeAt(n);
-		t = (t << 5) - t + r, t &= t;
+	html = html.replace(/^>\s+(.+)$/gm, "<blockquote>$1</blockquote>");
+	html = html.replace(/^[-*]\s+(.+)$/gm, "<li>$1</li>");
+	html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+	html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+	html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+	html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, "<a href=\"$2\">$1</a>");
+	const lines = html.split("\n");
+	const output = [];
+	let inParagraph = false;
+	for (const line of lines) if (line.trim() === "") {
+		if (inParagraph) {
+			output.push("</p>");
+			inParagraph = false;
+		}
+	} else if (line.match(/^(<h|<pre|<blockquote|<li|<ul)/)) {
+		if (inParagraph) {
+			output.push("</p>");
+			inParagraph = false;
+		}
+		output.push(line);
+	} else {
+		if (!inParagraph) {
+			output.push("<p>");
+			inParagraph = true;
+		}
+		if (line.includes("<") && line.includes(">")) output.push(line + " ");
+		else output.push(escapeHtml$1(line) + " ");
 	}
-	return t.toString(36);
+	if (inParagraph) output.push("</p>");
+	return output.join("\n");
 }
 //#endregion
 //#region src/highlight.js
-function q(e) {
-	return String(e).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;").replaceAll("'", "&#39;");
+/**
+* MD-LD Syntax Highlighter
+* 
+* A performant, token-based syntax highlighter for MD-LD (Markdown Linked Data).
+* Uses simple string operations rather than complex grammars for reliability
+* and maintainability.
+* 
+* Features:
+* - Token-based parsing with string operations
+* - Markdown formatting support with semantic distinction
+* - Lookahead detection for legal value carriers
+* - Orange semantic markers vs default markdown spans
+* - Annotation, value carrier, and heading highlighting
+*/
+function escapeHtml(s) {
+	return String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;").replaceAll("'", "&#39;");
 }
-var J = {
+var TOKEN_COLORS = {
 	text: "#6b7280",
 	marker: "#f97316",
 	retraction: "#dc2626",
 	value: "#eab308",
 	annotation: "#4b5563"
 };
-function Y(e, t) {
-	let n = t;
-	for (; n < e.length && e[n] !== "\n" && e[n] !== "\r";) {
-		if (e[n] === "{") return !0;
-		n++;
+function hasFollowingAnnotation(code, endPos) {
+	let i = endPos;
+	while (i < code.length && code[i] !== "\n" && code[i] !== "\r") {
+		if (code[i] === "{") return true;
+		i++;
 	}
-	return !1;
+	return false;
 }
-function Tt(e, t) {
-	let n = e[t];
-	if (n === "*" && t + 1 < e.length && e[t + 1] === "*") {
-		let n = e.indexOf("**", t + 2);
-		if (n !== -1) {
-			let r = e.slice(t + 2, n), i = Y(e, n + 2) ? ` style="color: ${J.marker}"` : "";
+function processMarkdownFormattingAtPosition(code, startPos) {
+	const char = code[startPos];
+	if (char === "*" && startPos + 1 < code.length && code[startPos + 1] === "*") {
+		const endPos = code.indexOf("**", startPos + 2);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 2, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 2) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
 			return {
-				html: `<span${i}>**</span><strong>${q(r)}</strong><span${i}>**</span>`,
-				nextIndex: n + 2
+				html: `<span${color}>**</span><strong>${escapeHtml(content)}</strong><span${color}>**</span>`,
+				nextIndex: endPos + 2
 			};
 		}
 	}
-	if (n === "_" && t + 1 < e.length && e[t + 1] === "_") {
-		let n = e.indexOf("__", t + 2);
-		if (n !== -1) {
-			let r = e.slice(t + 2, n), i = Y(e, n + 2) ? ` style="color: ${J.marker}"` : "";
+	if (char === "_" && startPos + 1 < code.length && code[startPos + 1] === "_") {
+		const endPos = code.indexOf("__", startPos + 2);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 2, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 2) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
 			return {
-				html: `<span${i}>__</span><strong>${q(r)}</strong><span${i}>__</span>`,
-				nextIndex: n + 2
+				html: `<span${color}>__</span><strong>${escapeHtml(content)}</strong><span${color}>__</span>`,
+				nextIndex: endPos + 2
 			};
 		}
 	}
-	if (n === "*") {
-		let n = e.indexOf("*", t + 1);
-		if (n !== -1) {
-			let r = e.slice(t + 1, n), i = Y(e, n + 1) ? ` style="color: ${J.marker}"` : "";
+	if (char === "*") {
+		const endPos = code.indexOf("*", startPos + 1);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 1, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
 			return {
-				html: `<span${i}>*</span><em>${q(r)}</em><span${i}>*</span>`,
-				nextIndex: n + 1
+				html: `<span${color}>*</span><em>${escapeHtml(content)}</em><span${color}>*</span>`,
+				nextIndex: endPos + 1
 			};
 		}
 	}
-	if (n === "_") {
-		let n = e.indexOf("_", t + 1);
-		if (n !== -1) {
-			let r = e.slice(t + 1, n), i = Y(e, n + 1) ? ` style="color: ${J.marker}"` : "";
+	if (char === "_") {
+		const endPos = code.indexOf("_", startPos + 1);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 1, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
 			return {
-				html: `<span${i}>_</span><em>${q(r)}</em><span${i}>_</span>`,
-				nextIndex: n + 1
+				html: `<span${color}>_</span><em>${escapeHtml(content)}</em><span${color}>_</span>`,
+				nextIndex: endPos + 1
 			};
 		}
 	}
-	if (n === "`") {
-		let n = e.indexOf("`", t + 1);
-		if (n !== -1) {
-			let r = e.slice(t + 1, n), i = Y(e, n + 1) ? ` style="color: ${J.marker}"` : "";
+	if (char === "`") {
+		const endPos = code.indexOf("`", startPos + 1);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 1, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
 			return {
-				html: `<span${i}>\`</span><code style="background-color:#7773">${q(r)}</code><span${i}>\`</span>`,
-				nextIndex: n + 1
+				html: `<span${color}>\`</span><code style="background-color:#7773">${escapeHtml(content)}</code><span${color}>\`</span>`,
+				nextIndex: endPos + 1
 			};
 		}
 	}
 	return null;
 }
-var X = /* @__PURE__ */ new Map();
-function Z(e) {
-	let t = 0;
-	for (let n = 0; n < e.length; n++) {
-		let r = e.charCodeAt(n);
-		t = (t << 5) - t + r, t &= t;
+var colorCache = /* @__PURE__ */ new Map();
+function hashIRI(iri) {
+	let hash = 0;
+	for (let i = 0; i < iri.length; i++) {
+		const char = iri.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash = hash & hash;
 	}
-	return Math.abs(t);
+	return Math.abs(hash);
 }
-function Q(e) {
-	if (X.has(e)) return X.get(e);
-	let t = Z(e), n = `hsl(${t % 360}, ${15 + t % 10}%, ${45 + t % 10}%)`;
-	return X.set(e, n), n;
+function getIRIColor(iri) {
+	if (colorCache.has(iri)) return colorCache.get(iri);
+	const hash = hashIRI(iri);
+	const color = `hsl(${hash % 360}, ${15 + hash % 10}%, ${45 + hash % 10}%)`;
+	colorCache.set(iri, color);
+	return color;
 }
-function Et(t) {
-	let n = /* @__PURE__ */ new Map(), r = /^\[(\w+)\]\s*<([^>]*)>\s*$/gm, i;
-	for (; (i = r.exec(t)) !== null;) {
-		let e = i[1], t = i[2];
-		if (t.includes(":")) {
-			let e = t.indexOf(":");
-			if (e > 0) {
-				let r = t.slice(0, e), i = t.slice(e + 1);
-				n.has(r) && (t = n.get(r) + i);
+function extractPrefixes(code) {
+	const prefixes = /* @__PURE__ */ new Map();
+	const prefixRegex = /^\[(\w+)\]\s*<([^>]*)>\s*$/gm;
+	let match;
+	while ((match = prefixRegex.exec(code)) !== null) {
+		const prefixName = match[1];
+		let iri = match[2];
+		if (iri.includes(":")) {
+			const colonIndex = iri.indexOf(":");
+			if (colonIndex > 0) {
+				const refPrefix = iri.slice(0, colonIndex);
+				const refSuffix = iri.slice(colonIndex + 1);
+				if (prefixes.has(refPrefix)) iri = prefixes.get(refPrefix) + refSuffix;
 			}
 		}
-		n.set(e, t);
+		prefixes.set(prefixName, iri);
 	}
-	for (let [t, r] of Object.entries(e)) t !== "@vocab" && n.set(t, r);
-	return n;
+	for (const [key, iri] of Object.entries(DEFAULT_CONTEXT)) if (key !== "@vocab") prefixes.set(key, iri);
+	return prefixes;
 }
-function $(e, t, n) {
-	let r = t ? J.retraction : J.text, i = e.indexOf(":");
-	if (i > 0) {
-		let t = e.slice(0, i), r = e.slice(i + 1);
-		if (n.has(t)) {
-			let e = n.get(t), i = Q(e), a = e + r, o = Q(a);
-			return `<span style="color: ${i}">${q(t)}</span><span style="color: ${J.marker}">:</span><span data-iri="${a}" style="color: ${o}">${q(r)}</span> `;
+function renderTerm(part, isRetracted, prefixes) {
+	const baseColor = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.text;
+	const colonIndex = part.indexOf(":");
+	if (colonIndex > 0) {
+		const prefix = part.slice(0, colonIndex);
+		const local = part.slice(colonIndex + 1);
+		if (prefixes.has(prefix)) {
+			const prefixIRI = prefixes.get(prefix);
+			const prefixColor = getIRIColor(prefixIRI);
+			const fullIRI = prefixIRI + local;
+			const localColor = getIRIColor(fullIRI);
+			return `<span style="color: ${prefixColor}">${escapeHtml(prefix)}</span><span style="color: ${TOKEN_COLORS.marker}">:</span><span data-iri="${fullIRI}" style="color: ${localColor}">${escapeHtml(local)}</span> `;
 		}
 	}
-	return e.startsWith("http:") || e.startsWith("https:") || e.startsWith("tag:") || e.startsWith("urn:") ? `<span style="color: ${Q(e)}">${q(e)}</span> ` : `<span style="color: ${r}">${q(e)}</span> `;
+	if (part.startsWith("http:") || part.startsWith("https:") || part.startsWith("tag:") || part.startsWith("urn:")) return `<span style="color: ${getIRIColor(part)}">${escapeHtml(part)}</span> `;
+	return `<span style="color: ${baseColor}">${escapeHtml(part)}</span> `;
 }
-function Dt(e, t) {
-	let n = e.trim().split(/\s+/), r = "", i = !1;
-	for (let e = 0; e < n.length; e++) {
-		let a = n[e];
-		if (!a) continue;
-		if (a.startsWith("=") || a.startsWith("+")) {
-			let e = a[0], n = a.slice(1);
-			r += `<span style="color: ${J.marker}">${q(e)}</span>${$(n, !1, t)}`;
+function parseAnnotation(content, prefixes) {
+	const parts = content.trim().split(/\s+/);
+	let result = "";
+	let nextTermIsRetracted = false;
+	for (let i = 0; i < parts.length; i++) {
+		const part = parts[i];
+		if (!part) continue;
+		if (part.startsWith("=") || part.startsWith("+")) {
+			const marker = part[0];
+			const rest = part.slice(1);
+			result += `<span style="color: ${TOKEN_COLORS.marker}">${escapeHtml(marker)}</span>${renderTerm(rest, false, prefixes)}`;
 			continue;
 		}
-		if (a === "-") {
-			i = !0, r += `<span style="color: ${J.retraction}">${q(a)}</span> `;
+		if (part === "-") {
+			nextTermIsRetracted = true;
+			result += `<span style="color: ${TOKEN_COLORS.retraction}">${escapeHtml(part)}</span> `;
 			continue;
 		}
-		if (a.startsWith("-") && a.length > 1) {
-			r += `<span style="color: ${J.retraction}">${q(a)}</span> `;
+		if (part.startsWith("-") && part.length > 1) {
+			result += `<span style="color: ${TOKEN_COLORS.retraction}">${escapeHtml(part)}</span> `;
 			continue;
 		}
-		let o = i;
-		if (i = !1, a.startsWith("?") || a.startsWith("!")) {
-			let e = a[0], n = a.slice(1), i = o ? J.retraction : J.marker;
-			r += `<span style="color: ${i}">${q(e)}</span>${$(n, o, t)}`;
+		const isRetracted = nextTermIsRetracted;
+		nextTermIsRetracted = false;
+		if (part.startsWith("?") || part.startsWith("!")) {
+			const marker = part[0];
+			const rest = part.slice(1);
+			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
 			continue;
 		}
-		if (a.startsWith("^^")) {
-			let e = a.slice(2), n = o ? J.retraction : J.marker;
-			r += `<span style="color: ${n}">${q("^^")}</span>${$(e, o, t)}`;
+		if (part.startsWith("^^")) {
+			const marker = "^^";
+			const rest = part.slice(2);
+			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
 			continue;
 		}
-		if (a.startsWith("@")) {
-			let e = a.slice(1), n = o ? J.retraction : J.marker;
-			r += `<span style="color: ${n}">${q("@")}</span>${$(e, o, t)}`;
+		if (part.startsWith("@")) {
+			const marker = "@";
+			const rest = part.slice(1);
+			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
 			continue;
 		}
-		if (a.startsWith(".")) {
-			let e = a.slice(1), n = o ? J.retraction : J.marker;
-			r += `<span style="color: ${n}">${q(".")}</span>${$(e, o, t)}`;
+		if (part.startsWith(".")) {
+			const marker = ".";
+			const rest = part.slice(1);
+			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
 			continue;
 		}
-		r += $(a, o, t);
+		result += renderTerm(part, isRetracted, prefixes);
 	}
-	return r.trim();
+	return result.trim();
 }
-function Ot(e) {
-	let t = Et(e), n = "", r = 0;
-	for (; r < e.length;) {
-		let i = e[r];
-		if (i === "{") {
-			let a = e.indexOf("}", r);
-			if (a === -1) {
-				n += q(i), r++;
+function highlightMDLD(code) {
+	const prefixes = extractPrefixes(code);
+	let result = "";
+	let i = 0;
+	while (i < code.length) {
+		const char = code[i];
+		if (char === "{") {
+			const endIdx = code.indexOf("}", i);
+			if (endIdx === -1) {
+				result += escapeHtml(char);
+				i++;
 				continue;
 			}
-			let o = Dt(e.slice(r + 1, a), t);
-			n += `<span style="color: ${J.annotation}; opacity: 0.75">{</span>`, n += o, n += `<span style="color: ${J.annotation}; opacity: 0.75">}</span>`, r = a + 1;
+			const parsed = parseAnnotation(code.slice(i + 1, endIdx), prefixes);
+			result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>`;
+			result += parsed;
+			result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span>`;
+			i = endIdx + 1;
 			continue;
 		}
-		if (i === "[") {
-			let a = e.indexOf("]", r);
-			if (a === -1) {
-				n += q(i), r++;
+		if (char === "[") {
+			const endBracket = code.indexOf("]", i);
+			if (endBracket === -1) {
+				result += escapeHtml(char);
+				i++;
 				continue;
 			}
-			let o = e.slice(r + 1, a), s = a + 1;
-			for (; s < e.length && /\s/.test(e[s]);) s++;
-			if (s < e.length && e[s] === "<") {
-				let i = e.indexOf(">", s);
-				if (i !== -1) {
-					let a = e.slice(s + 1, i), c = t.has(o) ? Q(t.get(o)) : J.text;
-					n += `<span style="color: ${J.annotation}; opacity: 0.75">[</span><span style="color: ${c}">${q(o)}</span><span style="color: ${J.annotation}; opacity: 0.75">]</span> <span style="color: ${J.text}; opacity: 0.6">&lt;${q(a)}&gt;</span>`, r = i + 1;
+			const prefixName = code.slice(i + 1, endBracket);
+			let j = endBracket + 1;
+			while (j < code.length && /\s/.test(code[j])) j++;
+			if (j < code.length && code[j] === "<") {
+				const iriEnd = code.indexOf(">", j);
+				if (iriEnd !== -1) {
+					const iriContent = code.slice(j + 1, iriEnd);
+					const prefixColor = prefixes.has(prefixName) ? getIRIColor(prefixes.get(prefixName)) : TOKEN_COLORS.text;
+					result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">[</span><span style="color: ${prefixColor}">${escapeHtml(prefixName)}</span><span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">]</span> <span style="color: ${TOKEN_COLORS.text}; opacity: 0.6">&lt;${escapeHtml(iriContent)}&gt;</span>`;
+					i = iriEnd + 1;
 					continue;
 				}
 			}
-			let c = e.slice(r + 1, a), l = Y(e, a + 1) ? J.marker : J.value, u = q(c);
-			n += `<span style="color: ${l}; opacity: 0.85">[</span><span style=" opacity: 1.0">${u}</span><span style="color: ${l}; opacity: 0.85">]</span>`, r = a + 1;
+			const content = code.slice(i + 1, endBracket);
+			const bracketColor = hasFollowingAnnotation(code, endBracket + 1) ? TOKEN_COLORS.marker : TOKEN_COLORS.value;
+			const escapedContent = escapeHtml(content);
+			result += `<span style="color: ${bracketColor}; opacity: 0.85">[</span><span style=" opacity: 1.0">${escapedContent}</span><span style="color: ${bracketColor}; opacity: 0.85">]</span>`;
+			i = endBracket + 1;
 			continue;
 		}
-		if (i === "*" || i === "_" || i === "`") {
-			let t = Tt(e, r);
-			if (t) {
-				n += t.html, r = t.nextIndex;
+		if (char === "*" || char === "_" || char === "`") {
+			const processed = processMarkdownFormattingAtPosition(code, i);
+			if (processed) {
+				result += processed.html;
+				i = processed.nextIndex;
 				continue;
 			}
 		}
-		if (i === "#") {
-			let i = 0, a = r;
-			for (; a < e.length && e[a] === "#";) i++, a++;
-			if (i <= 6 && (a >= e.length || e[a] === " " || e[a] === "	")) {
-				let o = e.indexOf("\n", a), s = o === -1 ? e.length : o, c = e.slice(a, s).trim(), l = "", u = 0, d = c.indexOf("{");
-				for (; d !== -1;) {
-					let e = c.indexOf("}", d);
-					if (e === -1) break;
-					let n = c.slice(u, d);
-					l += q(n);
-					let r = Dt(c.slice(d + 1, e), t);
-					l += `<span style="color: ${J.annotation}; opacity: 0.75">{</span>` + r + `<span style="color: ${J.annotation}; opacity: 0.75">}</span>`, u = e + 1, d = c.indexOf("{", u);
+		if (char === "#") {
+			let hashCount = 0;
+			let j = i;
+			while (j < code.length && code[j] === "#") {
+				hashCount++;
+				j++;
+			}
+			if (hashCount <= 6 && (j >= code.length || code[j] === " " || code[j] === "	")) {
+				const lineEnd = code.indexOf("\n", j);
+				const endIdx = lineEnd === -1 ? code.length : lineEnd;
+				const headerText = code.slice(j, endIdx).trim();
+				let processedHeaderText = "";
+				let lastIndex = 0;
+				let annotationStart = headerText.indexOf("{");
+				while (annotationStart !== -1) {
+					const annotationEnd = headerText.indexOf("}", annotationStart);
+					if (annotationEnd === -1) break;
+					const beforeText = headerText.slice(lastIndex, annotationStart);
+					processedHeaderText += escapeHtml(beforeText);
+					const parsedAnnotation = parseAnnotation(headerText.slice(annotationStart + 1, annotationEnd), prefixes);
+					processedHeaderText += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>` + parsedAnnotation + `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span>`;
+					lastIndex = annotationEnd + 1;
+					annotationStart = headerText.indexOf("{", lastIndex);
 				}
-				l += q(c.slice(u));
-				let f = c.includes("{") && c.includes("}"), p = `h${i}`, m = "#".repeat(i), h = f ? `color: ${J.marker}; opacity: 0.8` : "";
-				n += `<${p} style="margin: 0; font-weight: 600;"><span style="${h}">${m}</span> ${l}</${p}>`, r = s;
+				processedHeaderText += escapeHtml(headerText.slice(lastIndex));
+				const hasAnnotation = headerText.includes("{") && headerText.includes("}");
+				const headingTag = `h${hashCount}`;
+				const headingStyle = `margin: 0; font-weight: 600;`;
+				const hashes = "#".repeat(hashCount);
+				const hashColor = hasAnnotation ? `color: ${TOKEN_COLORS.marker}; opacity: 0.8` : "";
+				result += `<${headingTag} style="${headingStyle}"><span style="${hashColor}">${hashes}</span> ${processedHeaderText}</${headingTag}>`;
+				i = endIdx;
 				continue;
 			}
 		}
-		if (i === "-" || i === "*") {
-			let t = r > 0 ? e[r - 1] : "\n";
-			if ((t === "\n" || t === "\r" || t === " " || t === "	") && e[r + 1] === " ") {
-				let t = Y(e, r + 2) ? `color: ${J.marker}; opacity: 0.85` : "";
-				n += `<span style="${t}">${q(i)}</span>`, r++;
-				continue;
+		if (char === "-" || char === "*") {
+			const prevChar = i > 0 ? code[i - 1] : "\n";
+			if (prevChar === "\n" || prevChar === "\r" || prevChar === " " || prevChar === "	") {
+				if (code[i + 1] === " ") {
+					const markerColor = hasFollowingAnnotation(code, i + 2) ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : "";
+					result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
+					i++;
+					continue;
+				}
 			}
 		}
-		if (i === ">") {
-			let t = r > 0 ? e[r - 1] : "\n";
-			if ((t === "\n" || t === "\r" || t === " " || t === "	") && e[r + 1] === " ") {
-				let t = Y(e, r + 2) ? `color: ${J.marker}; opacity: 0.85` : "";
-				n += `<span style="${t}">${q(i)}</span>`, r++;
-				continue;
+		if (char === ">") {
+			const prevChar = i > 0 ? code[i - 1] : "\n";
+			if (prevChar === "\n" || prevChar === "\r" || prevChar === " " || prevChar === "	") {
+				if (code[i + 1] === " ") {
+					const markerColor = hasFollowingAnnotation(code, i + 2) ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : "";
+					result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
+					i++;
+					continue;
+				}
 			}
 		}
-		n += q(i), r++;
+		result += escapeHtml(char);
+		i++;
 	}
-	return n;
+	return result;
 }
 //#endregion
 //#region src/index.js
-function kt({ text: e, quad: t, value: n, origin: r }) {
-	let i = v(t, r?.quadIndex ? r : L({ text: e }).origin);
-	return !i || !i.valueRange ? e : e.substring(0, i.valueRange.start) + n + e.substring(i.valueRange.end);
+/**
+* Update the value of a quad in MDLD text and return the updated text
+*
+* @param {Object} params - Parameters object
+* @param {string} params.text - The original MDLD text
+* @param {Object} params.quad - The quad to update (subject, predicate, object)
+* @param {string} params.value - The new value to set
+* @param {Object} [params.origin] - Origin object or ParseResult (if not provided, text will be parsed)
+* @returns {string} Updated MDLD text, or original if update fails
+*/
+function updateValue({ text, quad, value, origin }) {
+	const location = locate(quad, origin?.quadIndex ? origin : parse({ text }).origin);
+	if (!location || !location.valueRange) return text;
+	return text.substring(0, location.valueRange.start) + value + text.substring(location.valueRange.end);
 }
 //#endregion
-export { e as DEFAULT_CONTEXT, _ as DataFactory, x as expandIRI, Je as generate, Ye as generateNode, Q as getIRIColor, y as hash, Z as hashIRI, Ot as highlightMDLD, v as locate, Ge as merge, L as parse, w as parseSemanticBlock, tt as render, S as shortenIRI, kt as updateValue };
+export { DEFAULT_CONTEXT, DataFactory, expandIRI, generate, generateNode, getIRIColor, hash, hashIRI, highlightMDLD, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue };

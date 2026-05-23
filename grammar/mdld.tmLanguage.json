@@ -1,0 +1,489 @@
+{
+  "displayName": "MD-LD",
+  "name": "mdld",
+  "scopeName": "source.mdld",
+  "fileTypes": [".md", ".mdld"],
+  "uuid": "mdld-textmate-grammar-2026",
+  "patterns": [
+    {
+      "include": "#contextDecl"
+    },
+    {
+      "include": "#annotation"
+    },
+    {
+      "include": "#markdown"
+    },
+    {
+      "match": "-[?!]?[a-zA-Z][a-zA-Z0-9+.-]*:[^\\s}]*|-?[?!][a-zA-Z][a-zA-Z0-9_.-]*|-?[.][a-zA-Z][a-zA-Z0-9_.-]*",
+      "name": "keyword.operator.remove.mdld"
+    }
+  ],
+  "repository": {
+    "contextDecl": {
+      "comment": "Prefix declaration: [prefix] <IRI>",
+      "match": "^\\s*(\\[)(@vocab|[A-Za-z][A-Za-z0-9_-]*)(\\])\\s+(<)([^>]+)(>)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.bracket.mdld"
+        },
+        "2": {
+          "name": "entity.name.tag.prefix.mdld"
+        },
+        "3": {
+          "name": "punctuation.definition.bracket.mdld"
+        },
+        "4": {
+          "name": "punctuation.definition.iri.mdld"
+        },
+        "5": {
+          "name": "string.unquoted.iri.mdld"
+        },
+        "6": {
+          "name": "punctuation.definition.iri.mdld"
+        }
+      }
+    },
+    "annotation": {
+      "comment": "Annotation attachment points with attribute blocks",
+      "patterns": [
+        {
+          "include": "#standaloneSubject"
+        },
+        {
+          "include": "#headingAnnotation"
+        },
+        {
+          "include": "#listItemAnnotation"
+        },
+        {
+          "include": "#blockquoteAnnotation"
+        },
+        {
+          "include": "#codeFenceAnnotation"
+        },
+        {
+          "include": "#inlineAnnotation"
+        }
+      ]
+    },
+    "standaloneSubject": {
+      "comment": "Standalone subject: {=iri} or {=#fragment}",
+      "match": "(\\{=)(#[A-Za-z0-9][A-Za-z0-9_.-]*|[A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*|[A-Za-z][A-Za-z0-9_.-]*)(\\})",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.subject.mdld"
+        },
+        "2": {
+          "name": "entity.name.subject.mdld"
+        },
+        "3": {
+          "name": "punctuation.definition.subject.mdld"
+        }
+      }
+    },
+    "headingAnnotation": {
+      "comment": "Heading with attribute block",
+      "begin": "^(#{1,6}\\s+)(.+?)(\\s*\\{)",
+      "end": "\\}",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.heading.mdld"
+        },
+        "2": {
+          "name": "entity.name.section.mdld"
+        },
+        "3": {
+          "name": "punctuation.definition.attrsBlock.begin.mdld"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.attrsBlock.end.mdld"
+        }
+      },
+      "contentName": "meta.attrsBlock.mdld",
+      "patterns": [
+        {
+          "include": "#attrsBlockContent"
+        }
+      ]
+    },
+    "listItemAnnotation": {
+      "comment": "List item with optional attribute block",
+      "begin": "^(\\s*)([-*+]|\\d+\\.)(\\s+)(.+?)(\\s*\\{)",
+      "end": "\\}",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.list.mdld"
+        },
+        "2": {
+          "name": "punctuation.definition.list.mdld"
+        },
+        "3": {
+          "name": "text.mdld"
+        },
+        "4": {
+          "name": "markup.list.item.mdld"
+        },
+        "5": {
+          "name": "punctuation.definition.attrsBlock.begin.mdld"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.attrsBlock.end.mdld"
+        }
+      },
+      "contentName": "meta.attrsBlock.mdld",
+      "patterns": [
+        {
+          "include": "#attrsBlockContent"
+        }
+      ]
+    },
+    "blockquoteAnnotation": {
+      "comment": "Blockquote with attribute block",
+      "begin": "^(>\\s*)(.+?)(\\s*\\{)",
+      "end": "\\}",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.blockquote.mdld"
+        },
+        "2": {
+          "name": "markup.quote.mdld"
+        },
+        "3": {
+          "name": "punctuation.definition.attrsBlock.begin.mdld"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.attrsBlock.end.mdld"
+        }
+      },
+      "contentName": "meta.attrsBlock.mdld",
+      "patterns": [
+        {
+          "include": "#attrsBlockContent"
+        }
+      ]
+    },
+    "codeFenceAnnotation": {
+      "comment": "Code fence with optional attribute block",
+      "begin": "^(```|~~~)([^\\n]*\\n)",
+      "end": "^(```|~~~)\\s*(\\{[^}]*\\})?",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.codefence.mdld"
+        },
+        "2": {
+          "name": "entity.name.function.mdld"
+        }
+      },
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.codefence.mdld"
+        },
+        "2": {
+          "name": "meta.attrsBlock.mdld"
+        }
+      },
+      "contentName": "markup.raw.block.mdld",
+      "patterns": [
+        {
+          "match": ".*"
+        }
+      ]
+    },
+    "inlineAnnotation": {
+      "comment": "Inline span with attribute block",
+      "begin": "(\\[)([^\\]]+)(\\])(\\([^)]+\\)|\\[\\^[^\\]]*\\])?\\s*(\\{)",
+      "end": "\\}",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.link.mdld"
+        },
+        "2": {
+          "name": "string.other.link.title.mdld"
+        },
+        "3": {
+          "name": "punctuation.definition.link.mdld"
+        },
+        "4": {
+          "name": "markup.underline.link.mdld"
+        },
+        "5": {
+          "name": "punctuation.definition.attrsBlock.begin.mdld"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.attrsBlock.end.mdld"
+        }
+      },
+      "contentName": "meta.attrsBlock.mdld",
+      "patterns": [
+        {
+          "include": "#attrsBlockContent"
+        }
+      ]
+    },
+    "attrsBlockContent": {
+      "comment": "Content inside attribute block { ... }",
+      "patterns": [
+        {
+          "include": "#removeMod"
+        },
+        {
+          "include": "#subjectDecl"
+        },
+        {
+          "include": "#fragmentDecl"
+        },
+        {
+          "include": "#objectDecl"
+        },
+        {
+          "include": "#typeDecl"
+        },
+        {
+          "include": "#predicate"
+        },
+        {
+          "include": "#objectPredicate"
+        },
+        {
+          "include": "#reversePredicate"
+        },
+        {
+          "include": "#datatype"
+        },
+        {
+          "include": "#language"
+        },
+        {
+          "include": "#iri"
+        }
+      ]
+    },
+    "removeMod": {
+      "comment": "Remove polarity modifier: -",
+      "match": "-[?!]?[a-zA-Z][a-zA-Z0-9+.-]*:[^\\s}]*|-?[?!][a-zA-Z][a-zA-Z0-9_.-]*|-?[.][a-zA-Z][a-zA-Z0-9_.-]*",
+      "name": "keyword.operator.remove.mdld"
+    },
+    "subjectDecl": {
+      "comment": "Subject declaration: =iri, =#fragment, or = (reset)",
+      "match": "(=)(#[A-Za-z0-9][A-Za-z0-9_.-]*|[A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*|[A-Za-z][A-Za-z0-9_.-]*|=)?",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.subject.mdld"
+        },
+        "2": {
+          "name": "entity.name.subject.mdld"
+        }
+      }
+    },
+    "fragmentDecl": {
+      "comment": "Fragment declaration: =#fragment",
+      "match": "(=#)([A-Za-z0-9][A-Za-z0-9_.-]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.fragment.mdld"
+        },
+        "2": {
+          "name": "entity.name.fragment.mdld"
+        }
+      }
+    },
+    "objectDecl": {
+      "comment": "Object declaration: +iri or +#fragment",
+      "match": "(\\+)(#?[A-Za-z0-9][A-Za-z0-9_.-]*|[A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.object.mdld"
+        },
+        "2": {
+          "name": "entity.name.object.mdld"
+        }
+      }
+    },
+    "typeDecl": {
+      "comment": "Type declaration: .TypeIri",
+      "match": "(\\.)([A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*|[A-Za-z][A-Za-z0-9_.-]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.type.mdld"
+        },
+        "2": {
+          "name": "entity.name.type.mdld"
+        }
+      }
+    },
+    "predicate": {
+      "comment": "Literal predicate: predicateIri (no prefix)",
+      "match": "(?<!\\s|^[-?!.^^@+])([A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*|[A-Za-z][A-Za-z0-9_.-]*)(?!\\s*[=+.#?!^^@])",
+      "captures": {
+        "1": {
+          "name": "variable.other.predicate.mdld"
+        }
+      }
+    },
+    "objectPredicate": {
+      "comment": "Object predicate: ?predicateIri",
+      "match": "(\\?)([A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*|[A-Za-z][A-Za-z0-9_.-]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.objectPredicate.mdld"
+        },
+        "2": {
+          "name": "variable.other.predicate.object.mdld"
+        }
+      }
+    },
+    "reversePredicate": {
+      "comment": "Reverse predicate: !predicateIri",
+      "match": "(!)([A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*|[A-Za-z][A-Za-z0-9_.-]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.reversePredicate.mdld"
+        },
+        "2": {
+          "name": "variable.other.predicate.reverse.mdld"
+        }
+      }
+    },
+    "datatype": {
+      "comment": "Datatype modifier: ^^datatypeIri",
+      "match": "(\\^\\^)([A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*|[A-Za-z][A-Za-z0-9_.-]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.datatype.mdld"
+        },
+        "2": {
+          "name": "entity.name.type.datatype.mdld"
+        }
+      }
+    },
+    "language": {
+      "comment": "Language tag: @lang",
+      "match": "(@)([A-Za-z][A-Za-z0-9-]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.language.mdld"
+        },
+        "2": {
+          "name": "entity.name.language.mdld"
+        }
+      }
+    },
+    "iri": {
+      "comment": "IRI reference",
+      "match": "[A-Za-z][A-Za-z0-9+.-]*:[^\\s}]*",
+      "name": "string.unquoted.iri.mdld"
+    },
+    "markdown": {
+      "comment": "Standard Markdown constructs without MD-LD annotations",
+      "patterns": [
+        {
+          "include": "#markdownHeading"
+        },
+        {
+          "include": "#markdownList"
+        },
+        {
+          "include": "#markdownBlockquote"
+        },
+        {
+          "include": "#markdownCodeFence"
+        },
+        {
+          "include": "#markdownInline"
+        }
+      ]
+    },
+    "markdownHeading": {
+      "match": "^(#{1,6}\\s+)(.+)$",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.heading.mdld"
+        },
+        "2": {
+          "name": "entity.name.section.mdld"
+        }
+      }
+    },
+    "markdownList": {
+      "match": "^(\\s*)([-*+]|\\d+\\.)(\\s+)(.+)$",
+      "captures": {
+        "1": {
+          "name": "text.mdld"
+        },
+        "2": {
+          "name": "punctuation.definition.list.mdld"
+        },
+        "3": {
+          "name": "text.mdld"
+        },
+        "4": {
+          "name": "markup.list.item.mdld"
+        }
+      }
+    },
+    "markdownBlockquote": {
+      "match": "^(>\\s*)(.+)$",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.blockquote.mdld"
+        },
+        "2": {
+          "name": "markup.quote.mdld"
+        }
+      }
+    },
+    "markdownCodeFence": {
+      "begin": "^(```|~~~)",
+      "end": "^(```|~~~)$",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.codefence.mdld"
+        }
+      },
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.codefence.mdld"
+        }
+      },
+      "contentName": "markup.raw.block.mdld",
+      "patterns": [
+        {
+          "match": ".*"
+        }
+      ]
+    },
+    "markdownInline": {
+      "patterns": [
+        {
+          "match": "\\*\\*([^*]+)\\*\\*",
+          "captures": {
+            "1": {
+              "name": "markup.bold.mdld"
+            }
+          }
+        },
+        {
+          "match": "\\*([^*]+)\\*",
+          "captures": {
+            "1": {
+              "name": "markup.italic.mdld"
+            }
+          }
+        },
+        {
+          "match": "`([^`]+)`",
+          "name": "markup.inline.raw.string.mdld"
+        }
+      ]
+    }
+  }
+}
