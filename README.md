@@ -274,8 +274,9 @@ Generate deterministic MDLD from RDF quads with visual styling.
 **Parameters (named object):**
 - `quads` (array, required) — Array of RDF/JS Quads to convert
 - `context` (object, optional) — Prefix mappings (default: `{}`)
-- `primarySubject` (string, optional) — String IRI to place first in output and enable reverse connection rendering. If not provided, reverse connections are not rendered (deterministic, order-independent behavior).
-- `compactInline` (boolean, optional) — Enable inline type/label compaction for referenced subjects (default: `true`)
+- `primarySubject` (string, optional) — String IRI to place first in output (requires `renderReverse: true` for reverse connections)
+- `compactInline` (boolean, optional) — Enable inline type/label compaction for referenced subjects (default: `false`)
+- `renderReverse` (boolean, optional) — Enable reverse connection rendering as `!p` annotations (default: `false`)
 
 **Returns:** `{ text, context, compactStats }`
 
@@ -303,7 +304,8 @@ Generate node-centric MDLD showing all quads where a specific IRI appears in any
 - `quads` (array, required) — Array of RDF/JS Quads to search
 - `focusIRI` (string, required) — The IRI to center the view on
 - `context` (object, optional) — Prefix mappings (default: `{}`)
-- `compactInline` (boolean, optional) — Enable inline type/label compaction (default: `true`)
+- `compactInline` (boolean, optional) — Enable inline type/label compaction (default: `true`, opinionated for exploration)
+- `renderReverse` (boolean, optional) — Enable reverse connection rendering as `!p` annotations (default: `true`, opinionated for exploration)
 
 **Returns:** `{ text, context, compactStats }`
 

@@ -5,7 +5,8 @@
 ### Production Release
 
 ### Breaking Changes
-- **Reverse connection rendering now requires explicit `primarySubject`** — When `primarySubject` is not provided to `generate()`, reverse connections (`!p` annotations) are not rendered. This ensures deterministic, order-independent behavior and prevents quad duplication issues from order-sensitive fallbacks.
+- **Reverse connection rendering now requires explicit `renderReverse` parameter** — When `renderReverse` is not set to `true` in `generate()`, reverse connections (`!p` annotations) are not rendered. This ensures deterministic, order-independent behavior and prevents quad duplication issues from order-sensitive fallbacks. `generateNode()` retains `renderReverse: true` by default for opinionated node exploration.
+- **`compactInline` default changed to `false` in `generate()`** — Canonical serialization now produces full headings for all subjects by default. Use `compactInline: true` for inline type/label compaction. `generateNode()` retains `compactInline: true` by default for opinionated node exploration.
 
 ### Performance Improvements
 - **Pre-computed filtered groups** — Replaced lazy caching with upfront computation of filtered quad groups for O(1) access during rendering
@@ -34,16 +35,30 @@
 - **All quad stability tests passing** — Round-trip safety verified
 
 ### Migration Guide
-If you were relying on reverse connection rendering without explicitly setting `primarySubject`:
+If you were relying on reverse connection rendering by default in `generate()`:
+
+```javascript
+// Before (v0.10.0)
+const { text } = generate({ quads, context, primarySubject: 'http://example.org/subject' });
+// Reverse connections rendered with primarySubject
+
+// After (v1.0.0)
+const { text } = generate({ quads, context, primarySubject: 'http://example.org/subject', renderReverse: true });
+// Reverse connections require explicit renderReverse parameter
+// Use generateNode() for opinionated exploration with renderReverse: true by default
+```
+
+If you were relying on inline type/label compaction by default in `generate()`:
 
 ```javascript
 // Before (v0.10.0)
 const { text } = generate({ quads, context });
-// Reverse connections rendered with order-sensitive fallback
+// Inline compaction enabled by default
 
 // After (v1.0.0)
-const { text } = generate({ quads, context, primarySubject: 'http://example.org/subject' });
-// Reverse connections rendered only when primarySubject explicitly provided
+const { text } = generate({ quads, context, compactInline: true });
+// Inline compaction must be explicitly enabled for canonical serialization
+// Use generateNode() for opinionated exploration with compactInline: true by default
 ```
 
 ## v0.10.0 (2026-05-05)

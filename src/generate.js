@@ -59,7 +59,7 @@ export function extractLocalName(iri, ctx = {}) {
  * Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean)
  * Output: MDLD text + context + compactStats
  */
-export function generate({ quads, context = {}, primarySubject = null, compactInline = true }) {
+export function generate({ quads, context = {}, primarySubject = null, compactInline = false, renderReverse = false }) {
     // Optimized context merging - avoid spread operator overhead
     const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
 
@@ -67,9 +67,9 @@ export function generate({ quads, context = {}, primarySubject = null, compactIn
 
     const { subjectGroups, reverseIndex } = groupQuadsBySubject(normalizedQuads);
 
-    // Only use reverseIndex if primarySubject is explicitly provided
+    // Only use reverseIndex if primarySubject is explicitly provided AND renderReverse is true
     // Avoids order-sensitive fallback that could break with quad ordering changes
-    const effectiveReverseIndex = primarySubject ? reverseIndex : null;
+    const effectiveReverseIndex = (primarySubject && renderReverse) ? reverseIndex : null;
 
     const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, effectiveReverseIndex, compactInline);
 
@@ -81,7 +81,7 @@ export function generate({ quads, context = {}, primarySubject = null, compactIn
  * in any position: subject, object, predicate, type, or datatype.
  * Perfect for exploring individual nodes and their complete relationship graph.
  */
-export function generateNode({ quads, focusIRI, context = {}, compactInline = true }) {
+export function generateNode({ quads, focusIRI, context = {}, compactInline = true, renderReverse = true }) {
     // Validate: must have quads and a focus IRI
     if (!quads?.length || !focusIRI) {
         return { text: '', context: Object.assign({}, DEFAULT_CONTEXT, context), compactStats: null };
@@ -97,7 +97,10 @@ export function generateNode({ quads, focusIRI, context = {}, compactInline = tr
         return { text: '', context: fullContext, compactStats: null };
     }
 
-    const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI, reverseIndex, compactInline);
+    // Only use reverseIndex if renderReverse is true
+    const effectiveReverseIndex = renderReverse ? reverseIndex : null;
+
+    const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI, effectiveReverseIndex, compactInline);
 
     return { text, context: fullContext, compactStats };
 }
