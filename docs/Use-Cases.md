@@ -330,6 +330,236 @@ Manage websites, blogs, and content with structured metadata.
 - **Automated validation** - Self-checking test cases
 - **Continuous integration** - Automated test execution
 
+## Diff-Based Workflows
+
+Use automatic diff generation for CRDT-style state management and collaborative editing.
+
+### Version Control with Diffs
+
+Track document changes as append-only diff operations:
+
+```javascript
+import { parse, generate, merge } from 'mdld-parse';
+
+// Initial state
+const v1 = parse({ text: `
+[ex] <http://example.org/>
+
+# Document {=ex:doc .ex:Article}
+[Alice] {ex:author}
+[Draft] {ex:status}
+`});
+
+// Updated state
+const v2 = parse({ text: `
+[ex] <http://example.org/>
+
+# Document {=ex:doc .ex:Article}
+[Bob] {ex:author}
+[Published] {ex:status}
+`});
+
+// Calculate diff
+const added = v2.quads.filter(q =>
+  !v1.quads.some(c =>
+    c.subject.value === q.subject.value &&
+    c.predicate.value === q.predicate.value &&
+    c.object.value === q.object.value
+  ))
+);
+
+const removed = v1.quads.filter(q =>
+  !v2.quads.some(c =>
+    c.subject.value === q.subject.value &&
+    c.predicate.value === q.predicate.value &&
+    c.object.value === q.object.value
+  ))
+);
+
+// Generate diff document
+const diff = generate({ quads: added, remove: removed, context: { ex: 'http://example.org/' } });
+
+// Store diff for replay
+const operations = [v1.text, diff.text];
+
+// Replay to get current state
+const currentState = merge(operations);
+```
+
+**Benefits:**
+- **Space efficient** - Store only changes, not full snapshots
+- **Time travel** - Navigate to any point in history
+- **Conflict resolution** - Merge concurrent edits deterministically
+
+### Collaborative Editing
+
+Multiple users editing the same document with automatic conflict resolution:
+
+```javascript
+// User A's changes
+const userAState = parse({ text: `
+[ex] <http://example.org/>
+
+# Document {=ex:doc}
+[Alice] {ex:author}
+[Task 1] {ex:task}
+`});
+
+// User B's changes
+const userBState = parse({ text: `
+[ex] <http://example.org/>
+
+# Document {=ex:doc}
+[Bob] {ex:author}
+[Task 2] {ex:task}
+`});
+
+// Calculate diffs from base
+const base = parse({ text: `
+[ex] <http://example.org/>
+
+# Document {=ex:doc}
+[Alice] {ex:author}
+`});
+
+const userADiff = generate({
+  quads: userAState.quads.filter(q => !base.quads.includes(q)),
+  remove: base.quads.filter(q => !userAState.quads.includes(q)),
+  context: { ex: 'http://example.org/' }
+});
+
+const userBDiff = generate({
+  quads: userBState.quads.filter(q => !base.quads.includes(q)),
+  remove: base.quads.filter(q => !userBState.quads.includes(q)),
+  context: { ex: 'http://example.org/' }
+});
+
+// Merge both diffs
+const merged = merge([base.text, userADiff.text, userBDiff.text]);
+```
+
+**Result:** Both users' changes are merged with last-write-wins resolution.
+
+### Audit Trail with Provenance
+
+Maintain complete history of changes with metadata:
+
+```javascript
+const operations = [];
+
+function recordChange(author, previousState, newState, context) {
+  const added = newState.quads.filter(q =>
+    !previousState.quads.some(c =>
+      c.subject.value === q.subject.value &&
+      c.predicate.value === q.predicate.value &&
+      c.object.value === q.object.value
+    ))
+  );
+
+  const removed = previousState.quads.filter(q =>
+    !newState.quads.some(c =>
+      c.subject.value === q.subject.value &&
+      c.predicate.value === q.predicate.value &&
+      c.object.value === q.object.value
+    ))
+  );
+
+  const diff = generate({ quads: added, remove: removed, context });
+
+  operations.push({
+    timestamp: new Date().toISOString(),
+    author,
+    diff: diff.text,
+    hash: hash(diff.text)
+  });
+
+  return operations;
+}
+
+// Usage
+const state1 = parse({ text: initialDoc });
+const state2 = parse({ text: updatedDoc });
+
+const history = recordChange('alice@example.com', state1, state2, { ex: 'http://example.org/' });
+
+// Replay history
+const replayedState = merge(history.map(op => op.diff));
+```
+
+### LLM State Operations
+
+LLMs can propose and author state changes with human review:
+
+```javascript
+// LLM proposes changes
+const llmProposed = generate({
+  quads: [
+    DataFactory.quad(
+      namedNode('http://example.org/doc'),
+      namedNode('http://example.org/author'),
+      literal('AI Assistant')
+    )
+  ],
+  remove: [
+    DataFactory.quad(
+      namedNode('http://example.org/doc'),
+      namedNode('http://example.org/author'),
+      literal('Human')
+    )
+  ],
+  context: { ex: 'http://example.org/' }
+});
+
+// Human reviews the diff
+const humanReview = parse({ text: llmProposed.text });
+
+// If approved, merge with current state
+if (isApproved(humanReview)) {
+  const finalState = merge([currentState.text, llmProposed.text]);
+}
+```
+
+### Incremental Backups
+
+Store space-efficient incremental backups:
+
+```javascript
+const backups = [];
+let lastState = initialState;
+
+for (const operation of operations) {
+  const currentState = parse({ text: operation });
+
+  const added = currentState.quads.filter(q =>
+    !lastState.quads.some(c =>
+      c.subject.value === q.subject.value &&
+      c.predicate.value === q.predicate.value &&
+      c.object.value === q.object.value
+    ))
+  );
+
+  const removed = lastState.quads.filter(q =>
+    !currentState.quads.some(c =>
+      c.subject.value === q.subject.value &&
+      c.predicate.value === q.predicate.value &&
+      c.object.value === q.object.value
+    ))
+  );
+
+  const diff = generate({
+    quads: added,
+    remove: removed,
+    context: { ex: 'http://example.org/' }
+  });
+
+  backups.push(diff.text);
+  lastState = currentState;
+}
+
+// Restore from backups
+const restored = merge([initialState.text, ...backups]);
+```
+
 ## Best Practices
 
 ### Document Structure
@@ -352,3 +582,11 @@ Manage websites, blogs, and content with structured metadata.
 2. **Test round-trips** - Verify parse/generate cycles
 3. **Monitor performance** - Check parsing times and memory usage
 4. **Handle errors** - Graceful error recovery and reporting
+
+### Diff Workflow Guidelines
+
+1. **Calculate diffs correctly** - Use exact SPO matching for diff calculation
+2. **Store operation metadata** - Include author, timestamp, and hash
+3. **Test replay behavior** - Verify that diffs replay correctly
+4. **Handle conflicts** - Implement conflict resolution for concurrent edits
+5. **Use incremental backups** - Store diffs instead of full snapshots for space efficiency

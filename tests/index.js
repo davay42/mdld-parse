@@ -5,6 +5,7 @@ import { originLeanTests } from './origin-lean.tests.js';
 import { elevatedStatementTests } from './elevated-statements.tests.js';
 import { mdTests } from './md.tests.js';
 import { runReverseAnnotationTests } from './reverse-annotation.tests.js';
+import { generateRemoveTests } from './generate-remove.tests.js';
 
 const tests = [
     ...parseTests,
@@ -13,6 +14,7 @@ const tests = [
     ...originLeanTests,
     ...elevatedStatementTests,
     ...mdTests,
+    ...generateRemoveTests,
 ];
 
 let passed = 0;

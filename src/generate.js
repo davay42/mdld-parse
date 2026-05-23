@@ -7,6 +7,7 @@ import {
     generatePrefixDeclaration,
     generateLiteralText,
     generateObjectText,
+    generateRetractionText,
     filterQuadsByType
 } from './shared.js';
 
@@ -56,22 +57,24 @@ export function extractLocalName(iri, ctx = {}) {
 /**
  * Generate deterministic MDLD from RDF quads
  * Purpose: TTL→MDLD conversion with canonical structure
- * Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean)
+ * Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean) + remove (array)
  * Output: MDLD text + context + compactStats
  */
-export function generate({ quads, context = {}, primarySubject = null, compactInline = false, renderReverse = false }) {
+export function generate({ quads, context = {}, primarySubject = null, compactInline = false, renderReverse = false, remove = [] }) {
     // Optimized context merging - avoid spread operator overhead
     const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
 
     const normalizedQuads = normalizeAndSortQuads(quads);
+    const normalizedRemove = normalizeAndSortQuads(remove);
 
     const { subjectGroups, reverseIndex } = groupQuadsBySubject(normalizedQuads);
+    const removeBySubject = groupQuadsBySubject(normalizedRemove).subjectGroups;
 
     // Only use reverseIndex if primarySubject is explicitly provided AND renderReverse is true
     // Avoids order-sensitive fallback that could break with quad ordering changes
     const effectiveReverseIndex = (primarySubject && renderReverse) ? reverseIndex : null;
 
-    const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, effectiveReverseIndex, compactInline);
+    const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, effectiveReverseIndex, compactInline, removeBySubject);
 
     return { text, context: fullContext, compactStats };
 }
@@ -216,7 +219,7 @@ function groupQuadsByNode(quads) {
     return { nodeGroups: groups, reverseIndex };
 }
 
-function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true) {
+function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true, removeBySubject = new Map()) {
     const textParts = [];
     const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 
@@ -373,6 +376,26 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
             }
         }
 
+        // Append retractions for this subject
+        if (removeBySubject.has(subjectIRI)) {
+            const removeQuads = removeBySubject.get(subjectIRI);
+            for (const quad of removeQuads) {
+                textParts.push(generateRetractionText(quad, context));
+            }
+            removeBySubject.delete(subjectIRI);
+        }
+
+        textParts.push('\n');
+    }
+
+    // Handle external retractions (subjects in remove but not in quads)
+    for (const [subjectIRI, removeQuads] of removeBySubject) {
+        const shortSubject = getCachedShortIRI(subjectIRI, context);
+        const displayName = extractLocalName(subjectIRI, context);
+        textParts.push(`# ${displayName} {=${shortSubject}}\n`);
+        for (const quad of removeQuads) {
+            textParts.push(generateRetractionText(quad, context));
+        }
         textParts.push('\n');
     }
 

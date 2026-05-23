@@ -398,3 +398,54 @@ export function processPredicates(predicates, ctx) {
     return { literalProps, objectProps, reverseProps };
 }
 
+// Retraction text generation - for generate() remove parameter
+export function generateRetractionText(quad, context) {
+    const predShort = shortenIRI(quad.predicate.value, context);
+    let annotation;
+
+    // Type declaration
+    if (quad.predicate.value === RDF_TYPE) {
+        const typeShort = shortenIRI(quad.object.value, context);
+        annotation = `-.${typeShort}`;
+        return `> {${annotation}}\n`;
+    }
+    // Object property (named node object)
+    else if (isNamedNode(quad.object)) {
+        const objShort = shortenIRI(quad.object.value, context);
+        annotation = `-?${predShort}`;
+        return `[${objShort}] {+${objShort} ${annotation}}\n`;
+    }
+    // Literal property
+    else {
+        annotation = `-${predShort}`;
+        if (quad.object.language) {
+            annotation += ` @${quad.object.language}`;
+        } else if (quad.object.datatype.value !== XSD_STRING) {
+            annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
+        }
+
+        // Format value
+        const rawValue = quad.object.value || quad.object;
+        const value = typeof rawValue === 'string' ? rawValue : String(rawValue);
+        const datatype = quad.object.datatype?.value || '';
+
+        // Multiline values
+        if (value.includes('\n')) {
+            return `~~~ {${annotation}}\n${value}\n~~~\n`;
+        }
+
+        // Numbers: code spans
+        if (datatype.includes('integer') || datatype.includes('decimal') || datatype.includes('double') || datatype.includes('float')) {
+            return `\`${value}\` {${annotation}}\n`;
+        }
+
+        // Booleans: bold
+        if (datatype.includes('boolean')) {
+            return `**${value}** {${annotation}}\n`;
+        }
+
+        // Everything else: square brackets
+        return `[${value}] {${annotation}}\n`;
+    }
+}
+

@@ -578,6 +578,118 @@ console.log(location.polarity); // '+' for quads, '-' for removes
 5. **Use type migration** - Change data structures safely with type retractions
 6. **Ensure proper context** - Reverse properties need subject and object declarations
 
+## Automatic Diff Generation
+
+The `generate()` function supports automatic diff document generation through the `remove` parameter. This enables programmatic creation of polarity-based diff documents.
+
+### Diff Generation with `generate()`
+
+```javascript
+import { generate, DataFactory } from 'mdld-parse';
+
+const { namedNode, literal } = DataFactory;
+
+const quads = [
+  DataFactory.quad(
+    namedNode('http://example.org/doc'),
+    namedNode('http://example.org/author'),
+    literal('Alice')
+  )
+];
+
+const remove = [
+  DataFactory.quad(
+    namedNode('http://example.org/doc'),
+    namedNode('http://example.org/author'),
+    literal('Smith')
+  )
+];
+
+const { text } = generate({
+  quads,
+  remove,
+  context: { ex: 'http://example.org/' }
+});
+```
+
+**Generated MDLD:**
+```markdown
+[ex] <http://example.org/>
+
+# doc {=ex:doc}
+[Alice] {ex:author}
+[Smith] {-ex:author}
+```
+
+### State Diffing Example
+
+Compare two states and generate a diff document:
+
+```javascript
+import { parse, generate } from 'mdld-parse';
+
+const currentState = parse({ text: doc1 });
+const newState = parse({ text: doc2 });
+
+// Calculate diff
+const added = newState.quads.filter(q =>
+  !currentState.quads.some(c =>
+    c.subject.value === q.subject.value &&
+    c.predicate.value === q.predicate.value &&
+    c.object.value === q.object.value
+  ))
+);
+
+const removed = currentState.quads.filter(q =>
+  !newState.quads.some(c =>
+    c.subject.value === q.subject.value &&
+    c.predicate.value === q.predicate.value &&
+    c.object.value === q.object.value
+  ))
+);
+
+// Generate diff document
+const diff = generate({ quads: added, remove: removed });
+```
+
+### Retraction Formats
+
+The `generate()` function automatically formats retractions based on quad type:
+
+| Quad Type | Input | Output |
+|-----------|-------|--------|
+| Literal | `literal('Smith')` | `[Smith] {-ex:author}` |
+| Object | `namedNode('ex:bob')` | `[bob] {+ex:bob -?ex:author}` |
+| Type | `namedNode('ex:Draft')` | `> {-.Draft}` |
+| Language | `literal('Hola', 'es')` | `[Hola] {-ex:title @es}` |
+| Datatype | `literal('25', xsd:integer)` | `` `25` {-ex:age ^^xsd:integer}` `` |
+
+### Round-Trip Safety
+
+Generated diff documents parse correctly and preserve the `remove` array:
+
+```javascript
+const { text } = generate({ quads, remove, context });
+const parsed = parse({ text, context });
+
+// parsed.quads contains the additions
+// parsed.remove contains the retractions
+```
+
+### Integration with Merge
+
+The `remove` parameter works seamlessly with `merge()` for CRDT-style workflows:
+
+```javascript
+// Create a diff document
+const diff = generate({ quads: added, remove: removed });
+
+// Merge with existing state
+const newState = merge([currentState, diff]);
+```
+
+See [Diff Generation](./diff.md) for comprehensive diff documentation.
+
 ## Limitations
 
 - **Exact SPO matching** - Only exact subject-predicate-object triples cancel

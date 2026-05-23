@@ -128,6 +128,7 @@ const merged = merge([...userA, ...userB]);
 - **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
 - **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
 - **📋 [Specification](./spec/index.md)** — Formal specification and test suite
+- **🔄 [Diff Generation](./docs/diff.md)** — Automatic diff document generation for CRDT workflows
 
 ## ✨ Core Features
 
@@ -285,7 +286,7 @@ Merge multiple MDLD documents with diff polarity resolution.
 
 **Use case:** CRDT-style state management with append-only documents.
 
-### `generate({ quads, context, primarySubject, compactInline, renderReverse })`
+### `generate({ quads, context, primarySubject, compactInline, renderReverse, remove })`
 
 Generate deterministic MDLD from RDF quads.
 
@@ -295,6 +296,7 @@ Generate deterministic MDLD from RDF quads.
 - `primarySubject` (string, optional) — IRI to place first in output
 - `compactInline` (boolean, optional) — Inline type/label compaction (default: `false`)
 - `renderReverse` (boolean, optional) — Reverse connections as `!p` (default: `false`)
+- `remove` (array, optional) — RDF/JS Quads to retract (for diff generation)
 
 **Returns:** `{ text, context, compactStats }`
 
@@ -302,7 +304,7 @@ Generate deterministic MDLD from RDF quads.
 - `context` — Full context with prefixes
 - `compactStats` — Compaction metrics
 
-**Features:** Visual styling, label-in-heading, round-trip safe.
+**Features:** Visual styling, label-in-heading, round-trip safe, diff generation.
 
 ### `generateNode({ quads, focusIRI, context, compactInline, renderReverse })`
 
