@@ -1,8 +1,8 @@
 # MD-LD
 
-**Markdown-Linked Data (MD-LD)** — Human-readable RDF authoring for knowledge graph applications.
+**Markdown-Linked Data** — Human-friendly knowledge graph authoring.
 
-Write semantic data in natural Markdown. Parse to RDF quads. Build deterministic state machines.
+Write semantic data in natural Markdown, parse to RDF quads, build deterministic state machines.
 
 [![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
 
@@ -10,9 +10,19 @@ Write semantic data in natural Markdown. Parse to RDF quads. Build deterministic
 
 ## 🎯 What is MD-LD?
 
-MD-LD makes RDF quads easy to write and read by humans. It extends Markdown with explicit `{...}` annotations to create a **human-readable CRDT-style semantic state machine**.
+MD-LD is not just another RDF syntax. It's a **universal semantic writing interface** that removes the intermediary between human text and machine-readable graphs.
 
-**Core value:** Author and maintain knowledge graphs as plain text with deterministic round-trip safety.
+Traditional systems require:
+```
+Human → UI → App Logic → Hidden Database → APIs → Exports
+```
+
+MD-LD enables:
+```
+Human text → Graph immediately
+```
+
+**Core value:** Author and maintain knowledge graphs as plain text with deterministic round-trip safety. No platforms, databases, or proprietary SaaS mediation required.
 
 ```markdown
 [ex] <http://example.org/>
@@ -37,6 +47,9 @@ import { parse, generate, merge } from 'mdld-parse';
 // Parse MDLD to RDF quads
 const result = parse({ text: mdldString });
 console.log(result.quads); // RDF/JS quads
+console.log(result.primary); // Primary metadata (subject, type, label, comment)
+console.log(result.statements); // Elevated statements
+console.log(result.origin); // Provenance tracking
 
 // Generate MDLD from quads
 const { text } = generate({ quads: result.quads });
@@ -45,83 +58,68 @@ const { text } = generate({ quads: result.quads });
 const merged = merge([doc1, doc2, doc3]);
 ```
 
-## 💡 Use Cases
+## 💡 Why MD-LD?
 
-### 1. **App State Management**
-Store application state as append-only document arrays with diff resolution:
+### The Problem with Current Systems
 
-```javascript
-const session = {
-  documents: [
-    initialState,    // Document 1: initial state
-    userAction1,     // Document 2: user added data
-    userAction2,     // Document 3: user modified data
-    userAction3      // Document 4: user deleted data (with retractions)
-  ]
-};
+Most software today uses graphs internally but hides them behind UIs:
+- **Notion, Slack, Google Docs** — Human interfaces over hidden graphs
+- **CRMs, task apps, note apps** — Proprietary data silos
+- **Social networks** — Platform-controlled knowledge prisons
 
-const currentState = merge(session.documents);
+Users cannot access the graph directly. Semantics are hidden. Data is locked in products.
+
+### The MD-LD Solution
+
+MD-LD removes the intermediary. Writing becomes publishing. Publishing becomes graph construction.
+
+**Key benefits:**
+- **Graph sovereignty** — You own text, graph, provenance, execution, history
+- **No central platform required** — Works offline, in browsers, on servers
+- **Universal semantic substrate** — Agents can read, reason, write, execute, validate
+- **Continuous semantic narrative** — Unifies chat, tasks, notes, emails, calendar, files
+- **Native time dimension** — Every action, statement, correction becomes part of the graph
+- **Decentralized authority** — RFC 4151 tag: URIs enable self-sovereign identity without central registries
+
+### Real-World Applications
+
+#### Personal Knowledge Management
+```markdown
+[alice] <tag:alice@example.com,2026:>
+
+# Meeting Notes {=alice:meeting-2024-01-15 .alice:Meeting}
+
+Attendees:
+- **Alice** {+alice:alice ?alice:attendee label}
+- **Bob** {+alice:bob ?alice:attendee label}
+
+Action items:
+- **Review proposal** {+alice:task-1 ?alice:actionItem label}
 ```
 
-**Benefits:** Time travel, undo/redo, offline-first sync, audit trails.
+#### Developer Documentation
+```markdown
+# API Endpoint {=api:/users/:id .api:Endpoint}
 
-### 2. **State Exchange Between Apps**
-Reliably exchange semantic state between microservices or client-server:
-
-```javascript
-// App A sends state to App B
-const stateTransfer = {
-  documents: appA.documents.slice(-10),  // Last 10 operations
-  context: appA.context
-};
-
-// App B receives and merges
-const mergedState = merge([...appB.documents, ...stateTransfer.documents]);
+[GET] {api:method}
+[/users/:id] {api:path}
 ```
 
-**Benefits:** Deterministic resolution, conflict handling, human-readable format.
+#### Academic Research
+```markdown
+# Paper {=alice:paper-semantic-markdown .alice:ScholarlyArticle}
 
-### 3. **LLM Knowledge Graph Operations**
-LLMs can author MDLD, filter quads, and generate readable summaries:
-
-```javascript
-// LLM authors MDLD
-const llmAuthored = `
-# Analysis {=ex:analysis .Analysis}
-[High priority] {ex:priority}
-[Complete] {ex:status}
-`;
-
-// Parse to quads
-const { quads } = parse({ text: llmAuthored });
-
-// LLM filters quads (semantic reasoning)
-const highPriority = quads.filter(q => 
-  q.predicate.value === 'http://example.org/priority' &&
-  q.object.value === 'High priority'
-);
-
-// Generate readable MDLD from filtered quads
-const { text } = generate({ quads: highPriority });
+[Semantic Web] {label}
+[Alice Johnson] {=alice:alice-johnson ?alice:author}
+[2024-01] {alice:datePublished ^^xsd:gYear}
 ```
 
-**Benefits:** LLMs get both structured data (quads) and human-readable text (MDLD).
+#### Content Management
+```markdown
+# Understanding MD-LD {=blog:post-mdld .blog:Post}
 
-### 4. **Multi-User Collaboration**
-Collaborative editing with automatic conflict resolution:
-
-```javascript
-// User A's session
-const userA = [initialState, userA_addsTask, userA_updatesTask];
-
-// User B's session
-const userB = [initialState, userB_addsTask, userB_updatesTask];
-
-// Merge both sessions
-const merged = merge([...userA, ...userB]);
+[MD-LD] {blog:emphasized label} allows you to embed RDF directly in Markdown.
 ```
-
-**Benefits:** Last-write-wins resolution, preserved history, manual review possible.
 
 ## 📚 Documentation Hub
 
@@ -132,7 +130,7 @@ const merged = merge([...userA, ...userB]);
 
 ## ✨ Core Features
 
-- **🔗 Prefix folding** — Build hierarchical namespaces with lightweight IRI authoring
+- **🔗 Prefix folding** — Build hierarchical namespaces with CURIE-based IRI authoring
 - **📍 Subject declarations** — `{=IRI}` and `{=#fragment}` for context setting
 - **🎯 Object IRIs** — `{+IRI}` and `{+#fragment}` for temporary object declarations
 - **🔄 Three predicate forms** — `p` (S→L), `?p` (S→O), `!p` (O→S)
@@ -142,7 +140,8 @@ const merged = merge([...userA, ...userB]);
 - **⚡ Polarity system** — Sophisticated diff authoring with `+` and `-` prefixes
 - **📍 Origin tracking** — Complete provenance with lean quad-to-source mapping
 - **🎯 Elevated statements** — Automatic rdf:Statement pattern detection
-- **🏷️ Primary metadata** — Structured primary object for document identity
+- **🏷️ Primary metadata quartet** — Subject, type, label, comment for document identity
+- **🔄 Round-trip safety** — Deterministic parse ↔ generate cycles
 
 ## 📦 Installation
 
@@ -164,6 +163,8 @@ const mdld = `[ex] <http://example.org/>
 
 const result = parse({ text: mdld });
 console.log(result.quads); // RDF/JS quads
+console.log(result.primary); // { subject, type, label, comment }
+console.log(result.statements); // Elevated statements
 ```
 
 ### Browser (ES Modules)
@@ -174,6 +175,8 @@ console.log(result.quads); // RDF/JS quads
   const result = parse('[ex] <http://example.org/>\n\n# Hello {=ex:hello label}');
 </script>
 ```
+
+**Bundle size:** 84KB unminified, 19KB gzipped
 
 ## 🧠 Semantic Model
 
@@ -258,12 +261,12 @@ Parse MDLD to RDF quads with lean origin tracking.
 **Returns:** `{ quads, remove, statements, origin, context, primarySubject, primary, md }`
 
 - `quads` — RDF/JS Quads (final resolved graph state)
-- `remove` — RDF/JS Quads (external retractions)
+- `remove` — RDF/JS Quads (external retractions for diff workflows)
 - `statements` — Elevated SPO quads from rdf:Statement patterns
 - `origin` — Lean origin tracking for UI navigation
 - `context` — Final context with prefixes
 - `primarySubject` — String IRI or null (canonical append identity)
-- `primary` — Primary metadata (subject, type, label)
+- `primary` — Primary metadata quartet: `{ subject, type, label, comment }`
 - `md` — Clean Markdown with annotations stripped
 
 ### `merge(docs, options)`
@@ -275,10 +278,11 @@ Merge multiple MDLD documents with diff polarity resolution.
 - `options` (object, optional):
   - `context` (object) — Prefix mappings
 
-**Returns:** `{ quads, remove, origin, context, primarySubjects, primary }`
+**Returns:** `{ quads, remove, statements, origin, context, primarySubjects, primary }`
 
 - `quads` — RDF/JS Quads (final resolved graph state)
 - `remove` — RDF/JS Quads (external retractions)
+- `statements` — Elevated statements from all documents
 - `origin` — Merge origin with document tracking
 - `context` — Final context with prefixes
 - `primarySubjects` — Array of string IRIs (canonical identities)
@@ -357,11 +361,18 @@ import {
 ## 🏗️ Architecture
 
 ### Design Principles
-- **Zero dependencies** — Pure JavaScript, ~15KB minified
+- **Zero dependencies** — Pure JavaScript, 84KB unminified (19KB gzipped)
 - **Streaming-first** — Single-pass parsing, O(n) complexity
-- **Standards-compliant** — RDF/JS data model
+- **Character-based tokenization** — 20-28% faster than regex-based approaches
+- **Standards-compliant** — RDF/JS data model, W3C CURIE 1.0 syntax
 - **Deterministic** — Same input always produces same output
 - **Explicit semantics** — No guessing, inference, or heuristics
+
+### Performance Characteristics
+- **Real-time (60fps):** Up to 4,527 quads per frame
+- **Batch processing:** Up to 225,059 quads per second
+- **Memory efficient:** ~640 bytes per quad retained after GC
+- **Streaming-friendly:** Full document never in memory
 
 ### RDF/JS Compatibility
 Quads work with:
@@ -370,10 +381,32 @@ Quads work with:
 - [`sparqljs`](https://github.com/RubenVerborgh/SPARQL.js) — SPARQL queries
 - [`rdf-ext`](https://github.com/rdf-ext/rdf-ext) — RDF utilities
 
+### Standards Compliance
+- **RDF 1.1** — Core RDF concepts
+- **RDFS** — Schema vocabulary
+- **PROV-O** — Provenance ontology
+- **SHACL** — Constraint validation
+- **W3C CURIE 1.0** — Compact URI syntax
+
 ## 🧪 Testing
 
 ```bash
 pnpm test
 ```
 
-132 tests covering all spec requirements.
+Comprehensive test suite covering:
+- Syntax parsing and tokenization
+- Context management and prefix folding
+- Polarity system and retractions
+- Elevated statements detection
+- Primary metadata extraction
+- Round-trip parse/generate cycles
+- Origin tracking and provenance
+
+## 📚 Additional Resources
+
+- **[Documentation](./docs/index.md)** — Complete guides and references
+- **[Specification](./spec/index.md)** — Formal specification
+- **[Examples](./examples/index.md)** — Real-world examples
+- **[Grammar](./grammar/mdld.ebnf)** — EBNF grammar specification
+- **[VS Code Extension](https://marketplace.visualstudio.com/)** — Syntax highlighting (coming soon)
