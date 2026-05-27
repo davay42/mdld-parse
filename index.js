@@ -972,7 +972,7 @@ function generateLiteralText(quad, context) {
 var generateObjectText = (quad, context, labelLookup = null, filteredGroups = null, renderedQuads = null, compactInline = true, compactStats = null) => {
 	const objShort = shortenIRI(quad.object.value, context);
 	const predShort = shortenIRI(quad.predicate.value, context);
-	const displayText = labelLookup && labelLookup.has(quad.object.value) ? labelLookup.get(quad.object.value) : objShort;
+	const displayText = labelLookup && labelLookup.has(quad.object.value) ? labelLookup.get(quad.object.value).value : objShort;
 	let inlineAnnotation = "";
 	if (compactInline && filteredGroups && labelLookup && renderedQuads) {
 		const filtered = filteredGroups.get(quad.object.value);
