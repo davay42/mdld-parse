@@ -59,6 +59,7 @@ export function parse(firstArg, secondArg = {}) {
         origin: {
             quadIndex: new Map(),
             blocks: new Map(),
+            spans: new Map(),
             documentStructure: []
         },
         currentSubject: null,
@@ -70,7 +71,10 @@ export function parse(firstArg, secondArg = {}) {
         statements: [],
         statementCandidates: new Map(),
         currentBlock: null,
-        blockStack: []
+        blockStack: [],
+        lastBlockEnd: 0,
+        lastBlockId: null,
+        lastSpanId: null
     };
 
     const scanResult = scanTokens(text);
@@ -338,6 +342,44 @@ function createBlockEntry(token, state) {
 
     const cleanText = extractCleanText(token);
 
+    const blockStart = token.range[0];
+    const blockEnd = token.range[1];
+
+    // Construct span between previous block and this block (single-pass, O(1))
+    let prevSpanId = null;
+    if (state.lastBlockId !== null) {
+        const spanStart = state.lastBlockEnd;
+        const spanEnd = blockStart;
+        if (spanEnd > spanStart) {
+            const spanId = hash(`span:${spanStart}:${spanEnd}`);
+            const span = {
+                id: spanId,
+                range: [spanStart, spanEnd],
+                prevBlockId: state.lastBlockId,
+                nextBlockId: blockId,
+                prevSpanId: state.lastSpanId || null,
+                nextSpanId: null,
+                byteLength: spanEnd - spanStart
+            };
+            state.origin.spans.set(spanId, span);
+
+            // Link previous span's nextSpanId
+            if (state.lastSpanId) {
+                const prevSpan = state.origin.spans.get(state.lastSpanId);
+                if (prevSpan) prevSpan.nextSpanId = spanId;
+            }
+
+            // Link previous block's nextSpanId
+            const prevBlock = state.origin.blocks.get(state.lastBlockId);
+            if (prevBlock) prevBlock.nextSpanId = spanId;
+
+            state.lastSpanId = spanId;
+            prevSpanId = spanId;
+        }
+    }
+    state.lastBlockEnd = blockEnd;
+    state.lastBlockId = blockId;
+
     const blockEntry = {
         id: blockId,
         type: token.type,
@@ -349,7 +391,9 @@ function createBlockEntry(token, state) {
         carriers: [],
         listLevel: token.indent || 0,
         parentBlockId: state.blockStack.length > 0 ? state.blockStack[state.blockStack.length - 1] : null,
-        quadKeys: [] // Will be populated during quad emission
+        quadKeys: [],
+        prevSpanId,
+        nextSpanId: null
     };
 
     // Process carriers and add to block

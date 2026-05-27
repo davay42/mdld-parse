@@ -60,7 +60,12 @@ const state = {
     quads: [],                  // Final resolved graph state
     quadBuffer: new Map(),      // Current parsing buffer
     removeSet: new Set(),      // External retractions
-    origin: { quadIndex: new Map() }, // Lean origin tracking
+    origin: {
+        quadIndex: new Map(),  // Lean quad provenance
+        blocks: new Map(),     // Semantic anchors
+        spans: new Map(),      // Textual topology
+        documentStructure: []
+    },
     currentSubject: null,       // Current subject context
     primarySubject: null,       // First non-fragment subject declaration
     primaryType: null,         // First rdf:type declaration
@@ -69,7 +74,10 @@ const state = {
     tokens: null,              // Tokenized input
     currentTokenIndex: -1,     // Current processing position
     statements: [],            // Elevated statements array
-    statementCandidates: new Map() // Incomplete rdf:Statement patterns
+    statementCandidates: new Map(), // Incomplete rdf:Statement patterns
+    lastBlockEnd: 0,           // Byte position after last block (span construction)
+    lastBlockId: null,         // ID of previous block (span construction)
+    lastSpanId: null           // ID of previous span (span chain linking)
 };
 ```
 
@@ -81,7 +89,7 @@ const state = {
 | **quads** | Final graph output | Accumulated throughout parsing |
 | **quadBuffer** | Intra-document cancel tracking | Modified during quad emission |
 | **removeSet** | External retractions | Accumulated for removal operations |
-| **origin** | Provenance tracking | Updated with each quad |
+| **origin** | Provenance tracking: `quadIndex`, `blocks`, `spans`, `documentStructure` | Updated with each block and quad |
 | **currentSubject** | Subject context management | Reset and updated during parsing |
 | **primarySubject** | First non-fragment subject | Set once, never changed |
 | **primaryType** | First rdf:type declaration | Set once, never changed |

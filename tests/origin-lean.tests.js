@@ -220,5 +220,273 @@ export const originLeanTests = [
             assertEqual(ageLocation.value, '25', 'Value should match datatype literal text');
             assertEqual(knowsLocation.value, 'alice', 'Value should match object reference text');
         }
+    },
+
+    // Test 8: Spans Map exists on origin
+    {
+        name: 'Origin Spans - spans Map present',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+> Alice Smith {author}`;
+
+            const result = parse({ text: mdld });
+
+            assert(result.origin.spans instanceof Map, 'origin.spans should be a Map');
+        }
+    },
+
+    // Test 9: Spans are created between consecutive blocks
+    {
+        name: 'Origin Spans - spans created between blocks',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+> Alice Smith {author}`;
+
+            const result = parse({ text: mdld });
+            const { blocks, spans } = result.origin;
+
+            assert(spans.size > 0, 'Should have at least one span between blocks');
+
+            for (const span of spans.values()) {
+                assert(typeof span.id === 'string', 'Span should have string id');
+                assert(Array.isArray(span.range), 'Span should have range array');
+                assert(span.range[0] < span.range[1], 'Span range start should be before end');
+                assert(typeof span.byteLength === 'number', 'Span should have byteLength');
+                assert(span.byteLength === span.range[1] - span.range[0], 'byteLength should equal range difference');
+                assert(span.prevBlockId === null || blocks.has(span.prevBlockId), 'prevBlockId should reference existing block or null');
+                assert(span.nextBlockId === null || blocks.has(span.nextBlockId), 'nextBlockId should reference existing block or null');
+            }
+        }
+    },
+
+    // Test 10: Block↔span bidirectional links are consistent
+    {
+        name: 'Origin Spans - block and span links are consistent',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+> Alice Smith {author}
+
+> Bob Jones {author}`;
+
+            const result = parse({ text: mdld });
+            const { blocks, spans } = result.origin;
+
+            for (const span of spans.values()) {
+                // nextBlockId's prevSpanId should point back to this span
+                if (span.nextBlockId) {
+                    const nextBlock = blocks.get(span.nextBlockId);
+                    assert(nextBlock, 'nextBlockId should resolve to a block');
+                    assertEqual(nextBlock.prevSpanId, span.id, 'nextBlock.prevSpanId should point to this span');
+                }
+                // prevBlockId's nextSpanId should point to this span
+                if (span.prevBlockId) {
+                    const prevBlock = blocks.get(span.prevBlockId);
+                    assert(prevBlock, 'prevBlockId should resolve to a block');
+                    assertEqual(prevBlock.nextSpanId, span.id, 'prevBlock.nextSpanId should point to this span');
+                }
+            }
+        }
+    },
+
+    // Test 11: Span text is recoverable from source via range
+    {
+        name: 'Origin Spans - span text recoverable from range',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .ex:Article}
+
+> Alice Smith {author}`;
+
+            const result = parse({ text: mdld });
+            const { spans } = result.origin;
+
+            for (const span of spans.values()) {
+                const recovered = mdld.slice(span.range[0], span.range[1]);
+                assert(typeof recovered === 'string', 'Should recover string from range');
+                assert(recovered.length === span.byteLength, 'Recovered text length should match byteLength');
+            }
+        }
+    },
+
+    // Test 12: Span chain is ordered (prevSpanId/nextSpanId links form valid sequence)
+    {
+        name: 'Origin Spans - span chain is sequentially ordered',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Section One {=ex:s1 .ex:Section}
+
+> First blockquote {label}
+
+# Section Two {=ex:s2 .ex:Section}
+
+> Second blockquote {label}`;
+
+            const result = parse({ text: mdld });
+            const { spans } = result.origin;
+
+            // Walk chain: find first span (prevSpanId === null), walk forward
+            let head = null;
+            for (const span of spans.values()) {
+                if (span.prevSpanId === null) { head = span; break; }
+            }
+
+            if (head && spans.size > 1) {
+                let current = head;
+                let steps = 0;
+                while (current.nextSpanId) {
+                    const next = spans.get(current.nextSpanId);
+                    assert(next, 'nextSpanId should resolve to an existing span');
+                    assert(next.range[0] >= current.range[1], 'Spans should not overlap');
+                    current = next;
+                    steps++;
+                    assert(steps < 100, 'Span chain should not be circular');
+                }
+            }
+        }
+    },
+
+    // Test 13: Mini-autocomplete using span chain (text ending with {= or {+)
+    {
+        name: 'Origin Spans - mini-autocomplete for incomplete annotations',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Document {=ex:doc .Article}
+
+[Alice] {+ex:alice ?ex:author .Person label}
+[Bob] {+ex:bob ?ex:author .Person label}
+[Charlie] {+ex:charlie ?ex:author .Person label}`;
+
+            const result = parse({ text: mdld });
+            const { blocks, spans } = result.origin;
+
+            // Simulate autocomplete: find similar patterns in the document
+            // Given text ending with "{+", suggest completing with similar object patterns
+            function suggestCompletion(origin, sourceText, prefix) {
+                const suggestions = [];
+                for (const block of blocks.values()) {
+                    // Look at carriers within blocks (inline carriers like [Alice])
+                    for (const carrier of block.carriers || []) {
+                        // For {+} syntax, object is in carrier.sem.object (string)
+                        if (carrier.sem && carrier.sem.object && carrier.sem.object.startsWith(prefix)) {
+                            suggestions.push(carrier.sem.object);
+                        }
+                    }
+                }
+                return suggestions;
+            }
+
+            const suggestions = suggestCompletion(result.origin, mdld, 'ex:');
+            assert(suggestions.length > 0, 'Should find objects with given prefix');
+            assert(suggestions.includes('ex:alice'), 'Should include ex:alice');
+            assert(suggestions.includes('ex:bob'), 'Should include ex:bob');
+        }
+    },
+
+    // Test 14: Annotation proposal based on span similarity
+    {
+        name: 'Origin Spans - annotation proposal from similar text',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# People
+
+[Alice] {=ex:alice  .Person label}
+[Bob] {=ex:bob  .Person label}
+
+# More People
+
+[Carol] {=ex:carol .Person label}
+[David] {=ex:david .Person label}`;
+
+            const result = parse({ text: mdld });
+            const { blocks, spans } = result.origin;
+
+            // Given plain text "Alice", find similar patterns and propose annotation
+            function proposeAnnotation(origin, sourceText, plainText) {
+                const proposals = [];
+                for (const block of blocks.values()) {
+                    // Look at carriers within blocks
+                    for (const carrier of block.carriers || []) {
+                        if (carrier.text === plainText) {
+                            proposals.push({
+                                subject: carrier.subject,
+                                types: carrier.sem?.types || [],
+                                predicates: carrier.predicates
+                            });
+                        }
+                    }
+                }
+                return proposals;
+            }
+
+            // "Alice" appears with annotation, so we can propose it
+            const proposals = proposeAnnotation(result.origin, mdld, 'Alice');
+            assert(proposals.length > 0, 'Should find annotation proposals for Alice');
+            assertEqual(proposals[0].subject, 'ex:alice', 'Should propose ex:alice subject');
+        }
+    },
+
+    // Test 15: Span-based context recovery for autocomplete
+    {
+        name: 'Origin Spans - context recovery for autocomplete',
+        fn: () => {
+            const mdld = `[ex] <http://example.org/>
+
+# Article {=ex:article .Article}
+
+The author is [Alice] {+ex:alice ?ex:author .Person label}.
+The editor is [Bob] {+ex:bob ?ex:editor .Person label}.`;
+
+            const result = parse({ text: mdld });
+            const { blocks, spans } = result.origin;
+
+            // Function to recover context around a block using span chain
+            function recoverContext(origin, sourceText, blockId, spanCount = 1) {
+                const block = origin.blocks.get(blockId);
+                if (!block) return null;
+
+                let start = block.range[0];
+                let end = block.range[1];
+
+                // Walk backward through spans
+                let span = block.prevSpanId ? origin.spans.get(block.prevSpanId) : null;
+                for (let i = 0; i < spanCount && span; i++) {
+                    start = span.range[0];
+                    span = span.prevSpanId ? origin.spans.get(span.prevSpanId) : null;
+                }
+
+                // Walk forward through spans
+                span = block.nextSpanId ? origin.spans.get(block.nextSpanId) : null;
+                for (let i = 0; i < spanCount && span; i++) {
+                    end = span.range[1];
+                    span = span.nextSpanId ? origin.spans.get(span.nextSpanId) : null;
+                }
+
+                return sourceText.slice(start, end);
+            }
+
+            // Find the paragraph block containing Alice carrier
+            const aliceBlock = Array.from(blocks.values()).find(b =>
+                b.carriers && b.carriers.some(c => c.text === 'Alice')
+            );
+            assert(aliceBlock, 'Should find block containing Alice carrier');
+
+            const context = recoverContext(result.origin, mdld, aliceBlock.id, 1);
+            assert(context, 'Should recover context');
+            assert(context.includes('The author is'), 'Context should include preceding text');
+            assert(context.includes('Alice'), 'Context should include the carrier text');
+        }
     }
 ];
