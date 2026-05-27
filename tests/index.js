@@ -6,6 +6,7 @@ import { elevatedStatementTests } from './elevated-statements.tests.js';
 import { mdTests } from './md.tests.js';
 import { runReverseAnnotationTests } from './reverse-annotation.tests.js';
 import { generateRemoveTests } from './generate-remove.tests.js';
+import { generateLangTests } from './generate-lang.tests.js';
 
 const testGroups = [
     { name: 'Parse Tests', tests: parseTests },
@@ -15,6 +16,7 @@ const testGroups = [
     { name: 'Elevated Statement Tests', tests: elevatedStatementTests },
     { name: 'MD Tests', tests: mdTests },
     { name: 'Generate Remove Tests', tests: generateRemoveTests },
+    { name: 'Generate Lang Tests', tests: generateLangTests },
 ];
 
 const allTests = testGroups.flatMap(g => g.tests);

@@ -57,10 +57,10 @@ export function extractLocalName(iri, ctx = {}) {
 /**
  * Generate deterministic MDLD from RDF quads
  * Purpose: TTL→MDLD conversion with canonical structure
- * Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean) + remove (array)
+ * Input: RDF quads + context + optional primarySubject (string IRI) + compactInline (boolean) + remove (array) + lang (string)
  * Output: MDLD text + context + compactStats
  */
-export function generate({ quads, context = {}, primarySubject = null, compactInline = false, renderReverse = false, remove = [] }) {
+export function generate({ quads, context = {}, primarySubject = null, compactInline = false, renderReverse = false, remove = [], lang = null }) {
     // Optimized context merging - avoid spread operator overhead
     const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
 
@@ -74,7 +74,7 @@ export function generate({ quads, context = {}, primarySubject = null, compactIn
     // Avoids order-sensitive fallback that could break with quad ordering changes
     const effectiveReverseIndex = (primarySubject && renderReverse) ? reverseIndex : null;
 
-    const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, effectiveReverseIndex, compactInline, removeBySubject);
+    const { text, compactStats } = buildDeterministicMDLD(subjectGroups, fullContext, primarySubject, effectiveReverseIndex, compactInline, removeBySubject, lang);
 
     return { text, context: fullContext, compactStats };
 }
@@ -84,7 +84,7 @@ export function generate({ quads, context = {}, primarySubject = null, compactIn
  * in any position: subject, object, predicate, type, or datatype.
  * Perfect for exploring individual nodes and their complete relationship graph.
  */
-export function generateNode({ quads, focusIRI, context = {}, compactInline = true, renderReverse = true }) {
+export function generateNode({ quads, focusIRI, context = {}, compactInline = true, renderReverse = true, lang = null }) {
     // Validate: must have quads and a focus IRI
     if (!quads?.length || !focusIRI) {
         return { text: '', context: Object.assign({}, DEFAULT_CONTEXT, context), compactStats: null };
@@ -103,7 +103,7 @@ export function generateNode({ quads, focusIRI, context = {}, compactInline = tr
     // Only use reverseIndex if renderReverse is true
     const effectiveReverseIndex = renderReverse ? reverseIndex : null;
 
-    const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI, effectiveReverseIndex, compactInline);
+    const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI, effectiveReverseIndex, compactInline, new Map(), lang);
 
     return { text, context: fullContext, compactStats };
 }
@@ -219,12 +219,12 @@ function groupQuadsByNode(quads) {
     return { nodeGroups: groups, reverseIndex };
 }
 
-function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true, removeBySubject = new Map()) {
+function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true, removeBySubject = new Map(), lang = null) {
     const textParts = [];
     const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 
-    // Build label lookup map for all IRIs that have rdfs:label
-    const labelLookup = buildLabelLookup(subjectGroups);
+    // Build label lookup map for all IRIs that have rdfs:label (stores { value, language })
+    const labelLookup = buildLabelLookup(subjectGroups, lang);
 
     // Track compaction statistics
     const compactStats = {
@@ -281,8 +281,9 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
         const shortSubject = getCachedShortIRI(subjectIRI, context);
 
         // Check if this subject has a label
-        const hasLabel = labelLookup.has(subjectIRI);
-        const displayName = hasLabel ? labelLookup.get(subjectIRI) : extractLocalName(subjectIRI, context);
+        const labelEntry = labelLookup.get(subjectIRI);
+        const hasLabel = !!labelEntry;
+        const displayName = hasLabel ? labelEntry.value : extractLocalName(subjectIRI, context);
 
         // Build annotations: types + label indicator if present
         // Exclude types already rendered inline to maintain quad stability
@@ -293,7 +294,8 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
         // Only add label indicator if label quad not already rendered inline
         const labelQuad = subjectQuads.find(q => q.predicate.value === RDFS_LABEL);
         if (hasLabel && (!labelQuad || !renderedQuads.has(labelQuad))) {
-            annotations += (annotations ? ' ' : '') + 'label';
+            const langTag = labelEntry.language ? ' @' + labelEntry.language : '';
+            annotations += (annotations ? ' ' : '') + 'label' + langTag;
         }
 
         const annotationStr = annotations ? ' ' + annotations : '';
@@ -304,7 +306,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
         if (labelQuad) renderedQuads.add(labelQuad);
 
         // Add literals (excluding the label used in heading) and objects
-        const headingLabel = hasLabel ? labelLookup.get(subjectIRI) : null;
+        const headingLabel = hasLabel ? labelEntry.value : null;
         sortQuadsByPredicate(literals).forEach(quad => {
             // Skip only the label that matches the heading display, render additional labels
             if (quad.predicate.value === RDFS_LABEL && quad.object.value === headingLabel) {
@@ -333,9 +335,8 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
 
                 const subjectQuads = subjectGroups.get(quad.subject.value);
 
-                const subjectLabel = labelLookup.has(quad.subject.value)
-                    ? labelLookup.get(quad.subject.value)
-                    : extractLocalName(quad.subject.value, context);
+                const subjectLabelEntry = labelLookup.get(quad.subject.value);
+                const subjectLabel = subjectLabelEntry ? subjectLabelEntry.value : extractLocalName(quad.subject.value, context);
                 const shortSubject = getCachedShortIRI(quad.subject.value, context);
                 const shortPredicate = getCachedShortIRI(quad.predicate.value, context);
 
@@ -344,12 +345,13 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
                 let inlineAnnotation = '';
                 if (compactInline && subjectQuads) {
                     const { types } = filteredGroups.get(quad.subject.value) || { types: [] };
-                    const hasLabel = labelLookup.has(quad.subject.value);
+                    const reverseSubjectLabelEntry = labelLookup.get(quad.subject.value);
+                    const hasLabel = !!reverseSubjectLabelEntry;
 
                     const typeAnnotations = types.length > 0
                         ? types.map(t => '.' + getCachedShortIRI(t.object.value, context)).sort().join(' ')
                         : '';
-                    const labelAnnotation = hasLabel ? 'label' : '';
+                    const labelAnnotation = hasLabel ? 'label' + (reverseSubjectLabelEntry.language ? ' @' + reverseSubjectLabelEntry.language : '') : '';
 
                     if (typeAnnotations || labelAnnotation) {
                         inlineAnnotation = ' ' + [typeAnnotations, labelAnnotation].filter(Boolean).join(' ');
@@ -402,14 +404,67 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
     return { text: textParts.join(''), compactStats };
 }
 
-function buildLabelLookup(subjectGroups) {
+function buildLabelLookup(subjectGroups, lang = null) {
     const labelLookup = new Map();
+    const labelsBySubject = new Map(); // Track all labels per subject to select best one
 
     for (const subjectQuads of subjectGroups.values()) {
         for (const quad of subjectQuads) {
             if (quad.predicate.value === RDFS_LABEL && quad.object.termType === 'Literal') {
-                labelLookup.set(quad.subject.value, quad.object.value);
+                const subjectIRI = quad.subject.value;
+                if (!labelsBySubject.has(subjectIRI)) {
+                    labelsBySubject.set(subjectIRI, []);
+                }
+                labelsBySubject.get(subjectIRI).push(quad.object);
             }
+        }
+    }
+
+    // Helper function to select best label from a candidate list with tie-breaking
+    const selectBestLabel = (candidates) => {
+        if (candidates.length === 0) return null;
+        // Sort by: length (ascending), then value (alphabetically)
+        candidates.sort((a, b) => {
+            const lenDiff = a.value.length - b.value.length;
+            return lenDiff !== 0 ? lenDiff : a.value.localeCompare(b.value);
+        });
+        return candidates[0];
+    };
+
+    // Select best label for each subject: prioritize by language preference, then untagged, then English, then any language
+    for (const [subjectIRI, labels] of labelsBySubject) {
+        let selectedLabel = null;
+
+        // If lang is specified, try to find that language first
+        if (lang) {
+            const langLabels = labels.filter(lit => lit.language === lang);
+            selectedLabel = selectBestLabel(langLabels);
+        }
+
+        // Try to find untagged label (most generic)
+        if (!selectedLabel) {
+            const untaggedLabels = labels.filter(lit => !lit.language);
+            selectedLabel = selectBestLabel(untaggedLabels);
+        }
+
+        // Fall back to English label
+        if (!selectedLabel) {
+            const englishLabels = labels.filter(lit => lit.language === 'en');
+            selectedLabel = selectBestLabel(englishLabels);
+        }
+
+        // Fall back to any language-tagged label
+        if (!selectedLabel) {
+            const taggedLabels = labels.filter(lit => lit.language);
+            selectedLabel = selectBestLabel(taggedLabels);
+        }
+
+        // Store the selected label value and language
+        if (selectedLabel) {
+            labelLookup.set(subjectIRI, {
+                value: selectedLabel.value,
+                language: selectedLabel.language || null
+            });
         }
     }
 

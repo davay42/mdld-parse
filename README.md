@@ -291,7 +291,7 @@ Merge multiple MDLD documents with diff polarity resolution.
 
 **Use case:** CRDT-style state management with append-only documents.
 
-### `generate({ quads, context, primarySubject, compactInline, renderReverse, remove })`
+### `generate({ quads, context, primarySubject, compactInline, renderReverse, remove, lang })`
 
 Generate deterministic MDLD from RDF quads.
 
@@ -302,6 +302,7 @@ Generate deterministic MDLD from RDF quads.
 - `compactInline` (boolean, optional) — Inline type/label compaction (default: `false`)
 - `renderReverse` (boolean, optional) — Reverse connections as `!p` (default: `false`)
 - `remove` (array, optional) — RDF/JS Quads to retract (for diff generation)
+- `lang` (string, optional) — Preferred language for labels (e.g., `'en'`, `'es'`, `'fr'`). Priority: specified lang → untagged → English → any language
 
 **Returns:** `{ text, context, compactStats }`
 
@@ -309,9 +310,17 @@ Generate deterministic MDLD from RDF quads.
 - `context` — Full context with prefixes
 - `compactStats` — Compaction metrics
 
-**Features:** Visual styling, label-in-heading, round-trip safe, diff generation.
+**Features:** Visual styling, label-in-heading, round-trip safe, diff generation, language preference.
 
-### `generateNode({ quads, focusIRI, context, compactInline, renderReverse })`
+**Example with language preference:**
+```javascript
+const { text } = generate({
+  quads: result.quads,
+  lang: 'es'  // Prefer Spanish labels
+});
+```
+
+### `generateNode({ quads, focusIRI, context, compactInline, renderReverse, lang })`
 
 Generate node-centric MDLD for a specific IRI.
 
@@ -321,6 +330,7 @@ Generate node-centric MDLD for a specific IRI.
 - `context` (object, optional) — Prefix mappings
 - `compactInline` (boolean, optional) — Inline compaction (default: `true`)
 - `renderReverse` (boolean, optional) — Reverse connections (default: `true`)
+- `lang` (string, optional) — Preferred language for labels (e.g., `'en'`, `'es'`, `'fr'`). Priority: specified lang → untagged → English → any language
 
 **Returns:** `{ text, context, compactStats }`
 
