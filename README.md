@@ -139,6 +139,7 @@ Action items:
 - **🧩 Fragments** — Document structuring with `{=#fragment}`
 - **⚡ Polarity system** — Sophisticated diff authoring with `+` and `-` prefixes
 - **📍 Origin tracking** — Complete provenance with lean quad-to-source mapping
+- **🔗 Span chains** — Walkable textual topology between semantic blocks for context recovery and resonance
 - **🎯 Elevated statements** — Automatic rdf:Statement pattern detection
 - **🏷️ Primary metadata quartet** — Subject, type, label, comment for document identity
 - **🔄 Round-trip safety** — Deterministic parse ↔ generate cycles
@@ -263,7 +264,7 @@ Parse MDLD to RDF quads with lean origin tracking.
 - `quads` — RDF/JS Quads (final resolved graph state)
 - `remove` — RDF/JS Quads (external retractions for diff workflows)
 - `statements` — Elevated SPO quads from rdf:Statement patterns
-- `origin` — Lean origin tracking for UI navigation
+- `origin` — Lean origin tracking: `quadIndex`, `blocks`, `spans`, `documentStructure`
 - `context` — Final context with prefixes
 - `primarySubject` — String IRI or null (canonical append identity)
 - `primary` — Primary metadata quartet: `{ subject, type, label, comment }`
@@ -290,7 +291,7 @@ Merge multiple MDLD documents with diff polarity resolution.
 
 **Use case:** CRDT-style state management with append-only documents.
 
-### `generate({ quads, context, primarySubject, compactInline, renderReverse, remove })`
+### `generate({ quads, context, primarySubject, compactInline, renderReverse, remove, lang })`
 
 Generate deterministic MDLD from RDF quads.
 
@@ -301,6 +302,7 @@ Generate deterministic MDLD from RDF quads.
 - `compactInline` (boolean, optional) — Inline type/label compaction (default: `false`)
 - `renderReverse` (boolean, optional) — Reverse connections as `!p` (default: `false`)
 - `remove` (array, optional) — RDF/JS Quads to retract (for diff generation)
+- `lang` (string, optional) — Preferred language for labels (e.g., `'en'`, `'es'`, `'fr'`). Priority: specified lang → untagged → English → any language
 
 **Returns:** `{ text, context, compactStats }`
 
@@ -308,9 +310,17 @@ Generate deterministic MDLD from RDF quads.
 - `context` — Full context with prefixes
 - `compactStats` — Compaction metrics
 
-**Features:** Visual styling, label-in-heading, round-trip safe, diff generation.
+**Features:** Visual styling, label-in-heading, round-trip safe, diff generation, language preference.
 
-### `generateNode({ quads, focusIRI, context, compactInline, renderReverse })`
+**Example with language preference:**
+```javascript
+const { text } = generate({
+  quads: result.quads,
+  lang: 'es'  // Prefer Spanish labels
+});
+```
+
+### `generateNode({ quads, focusIRI, context, compactInline, renderReverse, lang })`
 
 Generate node-centric MDLD for a specific IRI.
 
@@ -320,6 +330,7 @@ Generate node-centric MDLD for a specific IRI.
 - `context` (object, optional) — Prefix mappings
 - `compactInline` (boolean, optional) — Inline compaction (default: `true`)
 - `renderReverse` (boolean, optional) — Reverse connections (default: `true`)
+- `lang` (string, optional) — Preferred language for labels (e.g., `'en'`, `'es'`, `'fr'`). Priority: specified lang → untagged → English → any language
 
 **Returns:** `{ text, context, compactStats }`
 
@@ -367,6 +378,20 @@ import {
 - **Standards-compliant** — RDF/JS data model, W3C CURIE 1.0 syntax
 - **Deterministic** — Same input always produces same output
 - **Explicit semantics** — No guessing, inference, or heuristics
+- **Dual-layer origin** — Every parse emits both a semantic quad graph and a walkable textual topology graph simultaneously
+
+### Origin: Blocks and Spans
+
+The parser output includes a complete document chain at no extra cost:
+
+```
+[Block] --(Span)-- [Block] --(Span)-- [Block]
+```
+
+- **Blocks** (`origin.blocks`) — semantic anchors: tokens that produced RDF quads, with `prevSpanId`/`nextSpanId` links
+- **Spans** (`origin.spans`) — textual observations: raw byte ranges between blocks, with bidirectional block and span links
+
+Spans store no text — content is always recovered via `sourceText.slice(span.range[0], span.range[1])`. This unlocks context-aware UI, autocomplete neighborhood retrieval, and cross-document topology without any parser-level interpretation.
 
 ### Performance Characteristics
 - **Real-time (60fps):** Up to 4,527 quads per frame

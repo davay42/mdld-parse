@@ -1,40 +1,109 @@
-# Origin System - Lean Quad Tracking
+# Origin System - Lean Quad Tracking and Span Chains
 
-The MDLD parser includes a sophisticated **origin tracking system** that provides complete provenance for every RDF quad generated from markdown. This system enables powerful use cases like UI navigation, debugging, and audit trails.
+The MDLD parser includes a sophisticated **origin tracking system** that provides complete provenance for every RDF quad generated from markdown, together with a **span chain** that preserves the weak textual topology between semantic blocks.
 
 ## Overview
 
-The origin system is a **lean, read-only source map** that connects each RDF quad back to its exact location in the original markdown text. Unlike complex mutable systems, the lean origin focuses on three core use cases:
+The origin system is a **lean, read-only source map** with two complementary layers:
+
+1. **Blocks** — strong semantic anchors: every token that carries RDF quads
+2. **Spans** — weak textual topology: the raw text between adjacent blocks
+
+Together they form a walkable document chain:
+
+```
+[Block] --(Span)-- [Block] --(Span)-- [Block]
+```
+
+This layering serves four core use cases:
 
 1. **UI Navigation** - Click-to-jump functionality in editors
-2. **Provenance Audit** - Complete relationship tracking for knowledge graphs  
-3. **Parser Error Reporting** - Precise error location reporting
+2. **Provenance Audit** - Complete relationship tracking for knowledge graphs
+3. **Textual Context** - Recover surrounding prose for any semantic annotation
+4. **Resonance Systems** - Foundation for autocomplete, clustering, and cross-document linking
 
 ## Architecture
 
-### Lean Origin Structure
+### Full Origin Structure
 
 ```javascript
-{
-  quadIndex: Map<string, OriginEntry>
+origin: {
+  quadIndex: Map<string, OriginEntry>,  // quad key → provenance
+  blocks:    Map<string, BlockEntry>,   // block id → semantic anchor
+  spans:     Map<string, SpanEntry>,    // span id  → textual topology
+  documentStructure: BlockEntry[]       // ordered block list
 }
 ```
 
-Each `OriginEntry` contains:
+### QuadIndex Entry
+
+Each `OriginEntry` connects a quad back to its source location:
 
 ```javascript
 {
-  blockId: string,        // Unique identifier for the containing block
-  range: { start: number, end: number },  // Character range including carrier markers
-  valueRange: { start: number, end: number } | null,  // Character range excluding carrier markers
-  carrierType: string,    // 'heading', 'blockquote', 'span'
+  blockId: string,        // Containing block identifier
+  range: { start: number, end: number },      // Character range including carrier markers
+  valueRange: { start: number, end: number } | null,  // Character range excluding markers
+  carrierType: string,    // 'heading', 'blockquote', 'list', 'para', 'code'
   subject: string,        // Subject IRI of the quad
-  predicate: string,       // Predicate IRI of the quad
-  context: object,        // Context object inherited from parsing
+  predicate: string,      // Predicate IRI of the quad
+  context: object,        // Prefix context inherited from parsing
   value: string,          // Raw carrier text content
   polarity: '+' | '-'     // Assertion (+) or retraction (-)
 }
 ```
+
+### Block Entry
+
+A `BlockEntry` is a **strong semantic anchor** — every token that produced at least one RDF quad:
+
+```javascript
+{
+  id: string,             // djb2 hash of type:rangeStart:rangeEnd
+  type: string,           // 'heading' | 'para' | 'list' | 'blockquote' | 'code'
+  range: [start, end],    // Byte range in source text
+  text: string,           // Clean text (annotations stripped)
+  subject: string | null, // Resolved subject IRI
+  types: string[],        // rdf:type IRIs declared on this block
+  predicates: Array,      // Predicates asserted on this block
+  carriers: Array,        // Inline carrier details
+  listLevel: number,      // Indentation depth (list items)
+  parentBlockId: string | null,  // Enclosing block (for nesting)
+  quadKeys: string[],     // Keys of quads emitted from this block
+  prevSpanId: string | null,     // Span leading into this block
+  nextSpanId: string | null      // Span leaving this block
+}
+```
+
+### Span Entry
+
+A `SpanEntry` is a **weak topological observation** — the raw text between two adjacent blocks:
+
+```javascript
+{
+  id: string,             // djb2 hash of 'span:rangeStart:rangeEnd'
+  range: [start, end],    // Byte range in source text
+  prevBlockId: string | null,  // Block immediately before this span
+  nextBlockId: string | null,  // Block immediately after this span
+  prevSpanId: string | null,   // Previous span in chain
+  nextSpanId: string | null,   // Next span in chain
+  byteLength: number           // end - start
+}
+```
+
+**Key property:** spans store no text. Text is always recovered on demand:
+
+```javascript
+const spanText = sourceText.slice(span.range[0], span.range[1]);
+```
+
+This is deliberate — it keeps memory usage O(blocks + spans) without duplication.
+
+### Architectural Principle
+
+> **Blocks are semantics. Spans are observations.**
+
+The parser emits observations only — byte ranges, block IDs, adjacency. It never interprets, ranks, tokenizes, or embeds span content. All higher-level uses (autocomplete, clustering, resonance) emerge from this substrate without modifying the parser.
 
 ### Key Benefits
 
@@ -94,6 +163,138 @@ function buildProvenanceChain(quads, origin) {
   });
 }
 ```
+
+## Span Chain
+
+### Walking the Document
+
+The span chain is a doubly-linked list connecting every block through the spans between them. Both directions are O(1) per step.
+
+**Forward walk from a block:**
+
+```javascript
+function walkForward(origin, startBlockId) {
+  const results = [];
+  let block = origin.blocks.get(startBlockId);
+  while (block) {
+    results.push(block);
+    if (!block.nextSpanId) break;
+    const span = origin.spans.get(block.nextSpanId);
+    if (!span) break;
+    block = origin.blocks.get(span.nextBlockId);
+  }
+  return results;
+}
+```
+
+**Backward walk from a block:**
+
+```javascript
+function walkBackward(origin, startBlockId) {
+  const results = [];
+  let block = origin.blocks.get(startBlockId);
+  while (block) {
+    results.push(block);
+    if (!block.prevSpanId) break;
+    const span = origin.spans.get(block.prevSpanId);
+    if (!span) break;
+    block = origin.blocks.get(span.prevBlockId);
+  }
+  return results;
+}
+```
+
+**Recover the text of a span:**
+
+```javascript
+function spanText(span, sourceText) {
+  return sourceText.slice(span.range[0], span.range[1]);
+}
+```
+
+**Extract a readable fragment around a block (n spans of context):**
+
+```javascript
+function extractFragment(origin, sourceText, blockId, contextSpans = 1) {
+  const block = origin.blocks.get(blockId);
+  let start = block.range[0];
+  let end = block.range[1];
+
+  let span = block.prevSpanId ? origin.spans.get(block.prevSpanId) : null;
+  for (let i = 0; i < contextSpans && span; i++) {
+    start = span.range[0];
+    span = span.prevSpanId ? origin.spans.get(span.prevSpanId) : null;
+  }
+
+  span = block.nextSpanId ? origin.spans.get(block.nextSpanId) : null;
+  for (let i = 0; i < contextSpans && span; i++) {
+    end = span.range[1];
+    span = span.nextSpanId ? origin.spans.get(span.nextSpanId) : null;
+  }
+
+  return sourceText.slice(start, end);
+}
+```
+
+### Use Cases
+
+#### 1. Autocomplete with Textual Neighborhood
+
+An autocomplete engine can recover the surrounding prose for any quad without storing it at parse time:
+
+```javascript
+function getNeighborhoodText(quad, origin, sourceText) {
+  const entry = locate(quad, origin);
+  if (!entry) return null;
+  return extractFragment(origin, sourceText, entry.blockId, 2);
+}
+```
+
+#### 2. Cross-Document Topology
+
+Span IDs are stable positional hashes. The same span boundaries appearing in two document versions identify a structural match without semantic interpretation.
+
+#### 3. Future: Spans as RDF Subjects
+
+Spans are first-class observations and can become RDF subjects in higher layers using the `nih:` URI scheme (content-addressed, computed post-parse). The parser never computes these — they are authored or derived above:
+
+```markdown
+## Span {=nih:sha-256;xxxx .prov:Entity label}
+
+~~~~~~ {prov:value}
+the text between those two blocks
+~~~~~~
+```
+
+#### 4. Gram Indexes (Higher Layer)
+
+The span chain provides the substrate for byte-ngram, skip-gram, and token-gram indexes. These are built above the parser — never inside it:
+
+```javascript
+// Example: build a simple bigram index from all spans
+function buildBigramIndex(origin, sourceText) {
+  const index = new Map();
+  for (const span of origin.spans.values()) {
+    const text = spanText(span, sourceText);
+    for (let i = 0; i < text.length - 1; i++) {
+      const gram = text.slice(i, i + 2);
+      if (!index.has(gram)) index.set(gram, new Set());
+      index.get(gram).add(span.id);
+    }
+  }
+  return index;
+}
+```
+
+### Design Invariants
+
+| Property | Guarantee |
+|---|---|
+| Non-overlapping | `span.range[1] <= nextSpan.range[0]` always |
+| Bidirectional consistency | `block.nextSpanId` → span whose `prevBlockId` is that block |
+| No text stored | spans store only ranges; text recovered via `slice()` |
+| O(1) per step | walking is pointer-following, no iteration |
+| Single-pass construction | built during block creation, no post-processing |
 
 ## API Reference
 
