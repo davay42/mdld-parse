@@ -12,7 +12,7 @@
 
 MD-LD provides these built-in prefixes and vocabulary:
 
-Default vocabulary and prefixes: {mdld:includes .Class label}
+Default vocabulary and prefixes:
 - `@vocab`: `http://www.w3.org/2000/01/rdf-schema#` {=mdld:vocab}
 - `rdf`: `http://www.w3.org/1999/02/22-rdf-syntax-ns#` {=mdld:rdf-prefix}
 - `rdfs`: `http://www.w3.org/2000/01/rdf-schema#` {=mdld:rdfs-prefix}
