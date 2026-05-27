@@ -313,7 +313,7 @@ export const generateObjectText = (quad, context, labelLookup = null, filteredGr
 
     // Use rdfs:label if available, otherwise use shortened IRI
     const displayText = labelLookup && labelLookup.has(quad.object.value)
-        ? labelLookup.get(quad.object.value)
+        ? labelLookup.get(quad.object.value).value
         : objShort;
 
     // Build inline type/label annotation if available
