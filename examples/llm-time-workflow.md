@@ -7,6 +7,7 @@ responding to a user's request for the current time.
 
 The workflow shows: user query → plan creation → time tool execution → response generation
 
+We use RFC 6920 defined nih:* IRIs - [Naming Things with Hashes](https://www.rfc-editor.org/info/rfc6920/) + prov:value/prov:atLocation to validate the hash against
 ---
 
 # User and Agent {=llm:participants .prov:Collection}
