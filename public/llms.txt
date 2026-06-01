@@ -1,0 +1,8 @@
+# mdld.js.org
+
+This site documents MD-LD (Markdown-Linked Data).
+
+The full documentation is at https://mdld.js.org/README.md
+
+MD-LD is a craft project by Denis Starov. No open-source license applies.
+Individuals and small groups are welcome to use. Organizations need a license grant.
