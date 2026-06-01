@@ -132,9 +132,9 @@
     .nav-link {
         color: var(--color-primary);
         text-decoration: none;
-        padding: 0.25rem 0.75rem;
+        padding: 0.5rem 1rem;
         border: 1px solid var(--border-primary);
-        border-radius: 0.25rem;
+        border-radius: 1rem;
         font-size: 0.875rem;
         transition: all 200ms;
     }
@@ -152,6 +152,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 1em;
+        z-index: 200;
     }
 
     .section-title {
@@ -1580,4 +1581,8 @@
     .details summary span[style*="flex"] {
         flex: 1;
         min-width: 0;
+    }
+
+    #example-selector button {
+        flex: 1 1 80px;
     }

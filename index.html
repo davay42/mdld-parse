@@ -37,6 +37,8 @@
         import { loadExample as loadExampleData } from './demo/examples.js';
         import { highlightMDLD, TOKEN_COLORS } from './src/highlight.js';
         import { CodeJar } from 'codejar';
+        // Import RDF Graph Visualizer
+        import './demo/visual.js';
 
         // import 'virtual:uno.css'
 
@@ -510,13 +512,9 @@
 
             setTimeout(() => {
                 runAllTests();
-                // Load spec with longer delay to ensure app is responsive
-                setTimeout(() => loadSpec(), 100);
             }, 500);
         });
 
-        // Handle hash changes for back/forward navigation
-        window.addEventListener('hashchange', handleHashNavigation);
 
         // Load initial example (moved to async load above)
         // loadExample('journal');
@@ -529,149 +527,8 @@
             breaks: true
         });
 
-        async function loadMarkdownFile(filePath) {
-            const specContent = document.getElementById('spec-content');
-            const specStatus = document.getElementById('spec-status');
 
-            specStatus.textContent = `Loading ${filePath}...`;
-            specContent.innerHTML = '<p class="text-center text-gray-600 dark:text-gray-400 p-8">Loading markdown...</p>';
 
-            try {
-                const response = await fetch(filePath);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch ${filePath}: ${response.status}`);
-                }
-
-                const markdown = await response.text();
-
-                // Defer rendering to non-blocking time
-                requestIdleCallback(() => {
-                    renderMarkdownContent(markdown, filePath, specContent, specStatus);
-                }, { timeout: 100 });
-
-            } catch (error) {
-                specStatus.textContent = `Error loading ${filePath}`;
-                specContent.innerHTML = `<p class="text-center text-red-600 dark:text-red-400 p-8">Error: ${error.message}</p>`;
-            }
-        }
-
-        function renderMarkdownContent(markdown, filePath, specContent, specStatus) {
-            try {
-                const html = md.render(markdown);
-
-                // Apply custom styling and intercept links
-                specContent.innerHTML = `
-                                <style>
-                                    #spec-content h1 { color: var(--error, #dc2626); border-bottom: 2px solid var(--border-primary, #d1d5db); padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0; }
-                                    #spec-content h2 { color: var(--text-primary, #111827); border-bottom: 1px solid var(--border-primary, #d1d5db); padding-bottom: 0.25rem; margin: 1.25rem 0 0.75rem 0; }
-                                    #spec-content h3 { color: var(--text-primary, #111827); margin: 1rem 0 0.5rem 0; }
-                                    #spec-content h4 { color: var(--text-secondary, #6b7280); margin: 0.75rem 0 0.25rem 0; }
-                                    #spec-content p { margin-bottom: 0.75rem; }
-                                    #spec-content ul, #spec-content ol { margin: 0.5rem 0 0.75rem 1.5rem; }
-                                    #spec-content li { margin-bottom: 0.25rem; }
-                                    #spec-content code { background: var(--bg-tertiary, #f3f4f6); padding: 0.125rem 0.25rem; border-radius: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 0.875em; }
-                                    #spec-content pre { background: var(--bg-tertiary, #f3f4f6); padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.75rem 0; }
-                                    #spec-content pre code { background: none; padding: 0; }
-                                    #spec-content blockquote { border-left: 3px solid var(--error, #dc2626); padding-left: 1rem; margin: 0.75rem 0; color: var(--text-secondary, #6b7280); font-style: italic; }
-                                    #spec-content a { color: var(--error, #dc2626); text-decoration: none; }
-                                    #spec-content a:hover { text-decoration: underline; }
-                                    #spec-content table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
-                                    #spec-content th, #spec-content td { border: 1px solid var(--border-primary, #d1d5db); padding: 0.5rem; text-align: left; }
-                                    #spec-content th { background: var(--bg-tertiary, #f3f4f6); color: var(--text-primary, #111827); font-weight: 600; }
-                                    #spec-content hr { border: none; border-top: 1px solid var(--border-primary, #d1d5db); margin: 1.5rem 0; }
-                                </style>
-                                ${html}
-                            `;
-
-                // Intercept markdown file links (deferred)
-                requestIdleCallback(() => {
-                    specContent.querySelectorAll('a[href$=".md"]').forEach(link => {
-                        link.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            const href = link.getAttribute('href');
-                            const currentPath = decodeURIComponent(window.location.hash.slice(1)) || './README.md';
-
-                            let newPath;
-                            if (href.startsWith('./')) {
-                                // Relative to current directory
-                                const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                                newPath = currentDir + href.slice(2);
-                            } else if (href.startsWith('/')) {
-                                // Absolute from root
-                                newPath = '.' + href;
-                            } else {
-                                // Relative to current directory
-                                const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                                newPath = currentDir + href;
-                            }
-
-                            window.location.hash = '#' + newPath;
-                        });
-                    });
-                }, { timeout: 50 });
-
-                specStatus.textContent = `Loaded ${filePath}`;
-            } catch (error) {
-                console.error('Error loading markdown:', error);
-                specContent.innerHTML = `<p style="text-align: center; color: var(--color-error); padding: 2rem;">Error loading ${filePath}: ${error.message}</p>`;
-                specStatus.textContent = `Error loading ${filePath}`;
-            }
-        }
-
-        // Handle hash navigation
-        function handleHashNavigation() {
-            const hash = window.location.hash.slice(1);
-
-            // Handle special navigation cases
-            if (hash === 'test') {
-                // Scroll to test section and run tests
-                const testSection = document.getElementById('tests');
-                if (testSection) {
-                    testSection.scrollIntoView({ behavior: 'smooth' });
-                    // Run tests if not already run
-                    const testList = document.getElementById('test-list');
-                    if (testList && testList.innerHTML.includes('Tests will run automatically')) {
-                        runAllTests();
-                    }
-                }
-                return;
-            }
-
-            if (hash === 'index.md' || hash === 'README.md') {
-                // Load main documentation
-                loadMarkdownFile('./README.md');
-                return;
-            }
-
-            // Handle file paths for markdown files
-            if (hash) {
-                try {
-                    const filePath = decodeURIComponent(hash);
-                    if (filePath.endsWith('.md')) {
-                        loadMarkdownFile(filePath);
-                    } else {
-                        // Try as markdown file if no extension
-                        loadMarkdownFile(filePath + '.md');
-                    }
-                } catch (e) {
-                    console.error('Invalid hash:', hash);
-                    loadMarkdownFile('./README.md');
-                }
-            } else {
-                loadMarkdownFile('./README.md');
-            }
-        }
-
-        // Load and render specification (non-blocking)
-        async function loadSpec() {
-            // Defer spec loading to non-blocking time
-            requestIdleCallback(() => {
-                handleHashNavigation();
-            }, { timeout: 200 });
-        }
-
-        // Import RDF Graph Visualizer
-        import './demo/visual.js';
 
         // TTL Export functionality
         let currentTTL = '';
@@ -784,6 +641,7 @@
 
 <body class="main-content">
     <main class="container max-w-4xl mx-auto p-4">
+
         <header class="header">
             <div class="logo">
                 <span class="opacity-50">{</span><span class="text-orange-600 dark:text-orange-400">=+ .?!</span><span
@@ -793,30 +651,30 @@
             <h2 class="subtitle">Markdown Linked Data</h2>
             <p class="tagline">Human-friendly knowledge graph authoring</p>
             <nav class="nav">
-                <a href="https://github.com/davay42/mdld-parse" target="blank" class="nav-link">📦 GitHub</a>
-                <a href="https://www.npmjs.com/package/mdld-parse" target="blank" class="nav-link">📦 npm</a>
+                <a href="/docs.html" target="_blank" class="nav-link">Documentation</a>
+                <a href="/docs.html#/./docs/guide" target="_blank" class="nav-link">Guide</a>
             </nav>
         </header>
-
-        <div id="example-selector" class="p-2 mb-4 flex gap-2 justify-center flex-wrap">
-            <button class="button" onclick="loadExample('minimal')">Minimal</button>
-            <button class="button" onclick="loadExample('journal')">Journal</button>
-            <button class="button" onclick="loadExample('recipe')">Recipe</button>
-            <button class="button" onclick="loadExample('project')">Project</button>
-            <button class="button" onclick="loadExample('space-mission')">Space Mission</button>
-            <button class="button" onclick="loadExample('research')">Research</button>
-            <button class="button" style="background-color: #E006;" onclick="clearPlayground()">
-                🗑️ Clear
-            </button>
-        </div>
-
 
         <section id="playground" class="section">
             <!-- MD-LD Input Section -->
             <div style="flex: 1 0 220px; max-width:100%;">
+
+                <div id="example-selector" class="p-2 mb-4 flex gap-2 justify-center flex-wrap">
+                    <button class="button" onclick="loadExample('minimal')">Minimal</button>
+                    <button class="button" onclick="loadExample('journal')">Journal</button>
+                    <button class="button" onclick="loadExample('recipe')">Recipe</button>
+                    <button class="button" onclick="loadExample('project')">Project</button>
+                    <button class="button" onclick="loadExample('space-mission')">Space Mission</button>
+                    <button class="button" onclick="loadExample('research')">Research</button>
+                    <button class="button" style="background-color: #E006;" onclick="clearPlayground()">
+                        🗑️ Clear
+                    </button>
+                </div>
+
                 <div class="editor-container" style="position: relative;">
                     <div id="editor" class="editor"
-                        style="min-width: 100%;max-height:90svh; min-height: 400px;hyphens: auto; overflow-wrap:break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.5; padding: 12px; background: var(--bg-primary, white); color: var(--text-primary, #1f2937); border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+                        style="min-width: 100%;max-height:80svh; min-height: 400px;hyphens: auto; overflow-wrap:break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.5; padding: 12px; background: var(--bg-primary, white); color: var(--text-primary, #1f2937); border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
                     </div>
                     <style>
                         .editor {
@@ -866,8 +724,8 @@
                     </summary>
                     <div class="m-2">
                         <div class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 w-full"
-                            style="height: 300px; min-height: 300px;">
-                            <rdf-graph id="statements-graph" height="300" charge="-120" link-dist="180"></rdf-graph>
+                            style="height: 400px;">
+                            <rdf-graph id="statements-graph" height="400" charge="-120" link-dist="180"></rdf-graph>
                         </div>
                     </div>
                 </details>
@@ -924,6 +782,8 @@
         </section>
 
 
+
+
         <section class="section">
             <section id="format">
                 <h3 class="section-title">📖 What is MD-LD?</h3>
@@ -953,61 +813,55 @@
             </section>
 
 
-            <details class="w-full details max-w-4xl mx-auto" id="spec">
-                <summary class="font-bold text-xl cursor-pointer">
-                    <span>MD-LD Specification</span>
-                    <span style="flex:1"></span>
-                    <span id="spec-status" class="stats"></span>
-                </summary>
 
-                <div class="flex gap-2 mb-2 items-center"></div>
-                <article id="spec-content" class="max-h-96 overflow-y-scroll  rounded p-4 ">
-                    <p class="text-center text-gray-600 dark:text-gray-400 p-8">Loading specification...</p>
-                </article>
-            </details>
-
-            <details class="details mx-auto w-full" id="tests">
-                <summary class="p-4 text-xl font-bold cursor-pointer">
-                    <span>Test Suite</span>
-                    <span style="flex:1"></span>
-                    <span id="test-status" class="stats"></span>
-                </summary>
-                <div class="p-2">
-                    <div class="flex gap-2 m-2 items-center">
-                        <button onclick="runAllTests()" class="button primary">▶ Run Tests</button>
-                        <button onclick="clearTests()" class="button">🗑️ Clear</button>
-                    </div>
-                    <div id="test-progress"
-                        class="h-1 bg-gray-600 dark:bg-gray-500 rounded-sm overflow-hidden mb-2 hidden">
-                        <progress id="test-progress-bar" class="h-full bg-green-600 transition-all duration-300"
-                            role="progressbar" aria-label="Test progress"></progress>
-                    </div>
-                    <div id="test-stats" class="test-grid hidden">
-                        <article class="stat-card">
-                            <div id="passed-count" class="stat-number text-green-600 dark:text-green-400">0</div>
-                            <div class="stat-label">Passed</div>
-                        </article>
-                        <article class="stat-card">
-                            <div id="failed-count" class="stat-number text-red-600 dark:text-red-400">0</div>
-                            <div class="stat-label">Failed</div>
-                        </article>
-                        <article class="stat-card">
-                            <div id="total-count" class="stat-number text-blue-600 dark:text-blue-400">0</div>
-                            <div class="stat-label">Total</div>
-                        </article>
-                        <article class="stat-card">
-                            <div id="duration" class="stat-number">0ms</div>
-                            <div class="stat-label">Duration</div>
-                        </article>
-                    </div>
-                    <div id="test-list" class="max-h-80 overflow-y-auto">
-                        <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on page
-                            load...</p>
-                    </div>
-                </div>
-            </details>
         </section>
+
+        <details class="details mx-auto w-full" id="tests">
+            <summary class="p-4 text-xl font-bold cursor-pointer">
+                <span>Test Suite</span>
+                <span style="flex:1"></span>
+                <span id="test-status" class="stats"></span>
+            </summary>
+            <div class="p-2">
+                <div class="flex gap-2 m-2 items-center">
+                    <button onclick="runAllTests()" class="button primary">▶ Run Tests</button>
+                    <button onclick="clearTests()" class="button">🗑️ Clear</button>
+                </div>
+                <div id="test-progress" class="h-1 bg-gray-600 dark:bg-gray-500 rounded-sm overflow-hidden mb-2 hidden">
+                    <progress id="test-progress-bar" class="h-full bg-green-600 transition-all duration-300"
+                        role="progressbar" aria-label="Test progress"></progress>
+                </div>
+                <div id="test-stats" class="test-grid hidden">
+                    <article class="stat-card">
+                        <div id="passed-count" class="stat-number text-green-600 dark:text-green-400">0</div>
+                        <div class="stat-label">Passed</div>
+                    </article>
+                    <article class="stat-card">
+                        <div id="failed-count" class="stat-number text-red-600 dark:text-red-400">0</div>
+                        <div class="stat-label">Failed</div>
+                    </article>
+                    <article class="stat-card">
+                        <div id="total-count" class="stat-number text-blue-600 dark:text-blue-400">0</div>
+                        <div class="stat-label">Total</div>
+                    </article>
+                    <article class="stat-card">
+                        <div id="duration" class="stat-number">0ms</div>
+                        <div class="stat-label">Duration</div>
+                    </article>
+                </div>
+                <div id="test-list" class="max-h-80 overflow-y-auto">
+                    <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on page
+                        load...</p>
+                </div>
+            </div>
+        </details>
     </main>
+
+    <nav class="nav" style="padding-bottom:2em">
+
+        <a href="https://github.com/davay42/mdld-parse" target="blank" class="nav-link">GitHub</a>
+        <a href="https://www.npmjs.com/package/mdld-parse" target="blank" class="nav-link">NPM</a>
+    </nav>
 
 
 

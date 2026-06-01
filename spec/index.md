@@ -6,15 +6,6 @@ Complete MD-LD specification with grammar and formal definitions
 ## 📄 [Compact Spec](./Spec-compact.md)
 Concise specification reference for quick lookup
 
-## 📚 [CHANGELOG](../CHANGELOG.md)
-Version history and breaking changes
-
-## 🏗️ [Architecture](../docs/Architecture.md)
-Design principles, processing pipeline, and performance characteristics
-
-## 🧪 [Test Suite](../tests/)
-Comprehensive test coverage (105 tests) with examples and validation
-
 ## Specification Overview
 
 MD-LD is a **markdown-linked data** format that combines:

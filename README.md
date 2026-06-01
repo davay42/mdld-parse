@@ -35,6 +35,14 @@ Human text → Graph immediately
 
 **Generates RDF quads** that work with n3.js, rdflib, and any RDF/JS-compatible library.
 
+## 📚 Documentation Hub
+
+- **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
+- **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
+- **📋 [Specification](./spec/index.md)** — Formal specification and test suite
+- **📚 [Grammar](./grammar/index.md)** — EBNF grammar specification
+- **🧩 [Ontologies](./ontologies/index.md)** — W3C and related standard ontologies used in RDF
+
 ## 🚀 Quick Start
 
 ```bash
@@ -120,13 +128,6 @@ Action items:
 
 [MD-LD] {blog:emphasized label} allows you to embed RDF directly in Markdown.
 ```
-
-## 📚 Documentation Hub
-
-- **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
-- **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
-- **📋 [Specification](./spec/index.md)** — Formal specification and test suite
-- **🔄 [Diff Generation](./docs/diff.md)** — Automatic diff document generation for CRDT workflows
 
 ## ✨ Core Features
 
@@ -428,10 +429,3 @@ Comprehensive test suite covering:
 - Round-trip parse/generate cycles
 - Origin tracking and provenance
 
-## 📚 Additional Resources
-
-- **[Documentation](./docs/index.md)** — Complete guides and references
-- **[Specification](./spec/index.md)** — Formal specification
-- **[Examples](./examples/index.md)** — Real-world examples
-- **[Grammar](./grammar/mdld.ebnf)** — EBNF grammar specification
-- **[VS Code Extension](https://marketplace.visualstudio.com/)** — Syntax highlighting (coming soon)

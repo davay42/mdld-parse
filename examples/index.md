@@ -4,12 +4,12 @@ A collection of example documents demonstrating MD-LD capabilities and patterns.
 
 ## Examples by Category
 
-### � Quick Start Examples
+### 📝 Quick Start Examples
 - **[minimal.md](demo/minimal.md)** - Minimal document with subject and author
-
-### � Cooking & Recipes
-- **[Cookbook.md](./Cookbook.md)** - Complete recipe with ingredients, equipment, and nutritional information using explicit list annotations
 - **[dogfood.md](./dogfood.md)** - Comprehensive example showing complex relationships, nested structures, and various MD-LD features
+
+### 🍚 Cooking & Recipes
+- **[Cookbook.md](./Cookbook.md)** - Complete recipe with ingredients, equipment, and nutritional information using explicit list annotations
 
 ### 🔧 Validation & SHACL
 - **[Status-SHACL.md](./Status-SHACL.md)** - SHACL validation patterns with self-validating constraint definitions

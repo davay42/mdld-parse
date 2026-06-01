@@ -1,5 +1,10 @@
 # Documentation Hub
 
+## Guide
+
+### [MD-LD Authoring Guide](./Guide.md)
+Single document to learn the syntax and authoring techniques
+
 ## 🎯 Core Documentation
 
 ### 🎯 [Elevated Statements](./statements.md)
