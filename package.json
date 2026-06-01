@@ -1,7 +1,8 @@
 {
 	"name": "mdld-parse",
 	"version": "1.0.4",
-	"description": "A standards-compliant parser for **MD-LD (Markdown-Linked Data)** — a human-friendly RDF authoring format that extends Markdown with semantic annotations.",
+  "description": "Write RDF knowledge graphs as plain Markdown. Parse to quads, generate back, merge documents. The human-friendly semantic web format.",
+  "keywords": ["rdf", "linked-data", "semantic-web", "knowledge-graph", "markdown","semantic-annotations", "provenance", "prov-o", "shacl", "agent-memory", "llm", "md-ld", "mdld", "semantic-markdown", "quad-store", "crdt", "rdfs", "ontology", "triple-store"],
 	"type": "module",
 	"packageManager": "pnpm@10.33.4+sha512.1c67b3b359b2d408119ba1ed289f34b8fc3c6873412bec6fd264fbdc82489e510fcbecb9ce9d22dae7f3b76269d8441046014bdca53b9979cd7a561ad631b800",
 	"main": "./dist/index.js",
@@ -16,21 +17,6 @@
 		"dev": "vite dev",
 		"build": "vite build && vite build --config vite.config.lib.js && cp -r docs/ dist/docs/ && cp -r examples/ dist/examples/ && cp -r grammar/ dist/grammar/  && cp -r ontologies/ dist/ontologies/ && cp -r spec/ dist/spec/ && cp -r README.md dist/README.md && cp -r docs.html dist/docs.html && cp -r demo/ dist/demo/"
 	},
-	"keywords": [
-		"mdld",
-		"markdown",
-		"rdf",
-		"semantic-web",
-		"linked-data",
-		"n3",
-		"rdfjs",
-		"browser",
-		"web-worker",
-		"parser",
-		"prefix-folding",
-		"curie",
-		"iri-authoring"
-	],
 	"author": "davay42",
 	"repository": {
 		"type": "git",

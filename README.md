@@ -2,7 +2,7 @@
 
 **Markdown-Linked Data** — Write RDF knowledge graphs as plain Markdown. Parse to quads, generate back, merge documents. Zero dependencies, round-trip safe.
 
-Unlike Turtle, JSON-LD, or RDF/XML, MD-LD embeds semantic annotations directly into natural Markdown text. A Markdown file becomes a knowledge graph — readable by humans and machines simultaneously.
+MD-LD is the only RDF format that is both writable by humans and parseable by machines in the same document. Unlike Turtle (write-only), JSON-LD (machine-only), and RDFa (embedded-in-HTML-only), MD-LD annotations flow with natural Markdown prose — making knowledge graphs readable without a renderer.
 
 [![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
 
