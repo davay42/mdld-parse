@@ -126,4 +126,6 @@ Because MD-LD is flat (not tree-based), the mapping between text ranges and sema
 
 - [Spec.md](../spec/Spec.md) - Normative MD-LD specification
 - [Syntax.md](../docs/Syntax.md) - Human-friendly syntax guide
-- [GRAMMAR_AUDIT.md](./GRAMMAR_AUDIT.md) - Grammar alignment notes
+
+
+[mdld.tmLanguage.json](./mdld.tmLanguage.json ':include :type=json')

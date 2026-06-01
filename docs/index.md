@@ -1,61 +1,96 @@
 # Documentation Hub
 
-## Guide
+## 📚 Getting Started
 
-### [MD-LD Authoring Guide](./Guide.md)
-Single document to learn the syntax and authoring techniques
+### [MD-LD Authoring Guide](./guide.md)
+Single comprehensive document to learn MD-LD syntax and authoring techniques. Start here for the mental model and core patterns.
 
-## 🎯 Core Documentation
+### [One Page Guide](./one-page.md)
+Quick reference card with essential patterns, quick start examples, and a cheat sheet for frequent use cases.
 
-### 🎯 [Elevated Statements](./statements.md)
-Automatic rdf:Statement pattern detection for "golden graph" extraction
+---
 
-### 📍 [Origin System](./origin.md)
-Complete guide to lean origin tracking for UI navigation and provenance
+## 🎯 Core Concepts
 
-### ⚡ [Polarity & Retraction](./polarity.md)
-Sophisticated diff authoring and document evolution with `+` and `-` prefixes
+These documents explain the fundamental features that make MD-LD unique.
 
-### 📖 [API Reference](./API.md)
-Complete API documentation with tested examples and usage patterns
+### [Semantic Infrastructure as Readable Text](./Semantic-Text.md)
+The philosophical foundation: how MD-LD transforms semantic systems into directly writable, inspectable, mergeable plain text. Explains the shift from "yet another RDF syntax" to "semantic-native infrastructure."
 
-### 📝 [Syntax Reference](./Syntax.md)
-Complete syntax reference with examples for all MD-LD constructs
+### [Elevated Statements](./statements.md)
+Automatic `rdf:Statement` pattern detection that extracts the "golden graph" of meta-level facts. Enables reification and statement-level metadata without verbose syntax.
 
-### 📖 [One Page Guide](./Guide.md)
-Quick start guide with mental model and patterns
+### [Primary Metadata System](./primary-subject.md)
+The dual-layer architecture for document identity: `primarySubject` (canonical storage identity) and `primary` (semantic surface). Provides immediate access to type, label, and comment for the document without parsing the quads.
 
-### 🏷️ [Subject System](./Subject.md)
-Subject declaration and context management
+### [Origin System](./origin.md)
+Lean, efficient provenance tracking with line-to-quad mapping. Enables UI navigation, source attribution, and round-trip document regeneration without bloating the source text.
 
-## 🏗️ Architecture & Performance
+### [Polarity & Retraction](./polarity.md)
+Sophisticated diff authoring using `+` and `-` prefixes for document evolution. Model state transitions, diffs, and collaborative edits as first-class semantic citizens.
 
-### 🏛️ [Architecture](./Architecture.md)
-Design principles, processing pipeline, and performance characteristics
+### [Subject System](./Subject.md)
+Subject declaration and context management. How `{=IRI}` establishes persistent scope, how subjects chain through blocks, and how prefix contexts fold and compose.
 
-### ⚙️ [Parser Architecture](./Parser.md)
-Core parser structures, token processing, and implementation details
+---
 
-### 🧪 [Testing](../tests/)
-Comprehensive test suite with 109 tests covering all functionality
+## 🛠️ API Reference & Code Generation
 
-## 🎯 Real-World Applications
+### [API Reference](./API.md)
+Complete API documentation with tested examples. Core functions: `parse()`, `generate()`, and RDF/JS compatibility patterns.
 
-### 📋 [Use Cases](./Use-Cases.md)
+### [Generate: Quads to MDLD](./generate.md)
+Convert RDF quads back to deterministic, human-readable MDLD text. Control inline compaction, reverse connections and primary subject positioning. Essential for round-trip safety and document regeneration.
+
+### [Diff Documents](./diff.md)
+Automatic diff document generation via the `remove` parameter. Enables CRDT-style workflows, state management, and collaborative editing with human-readable diffs using polarity retractions syntax.
+
+---
+
+## 📖 Reference Documentation
+
+### [Syntax Reference](./Syntax.md)
+Complete syntax reference with inline examples. Covers carriers, predicates, datatype annotations, reverse properties, and all MD-LD constructs.
+
+### [Architecture & Design](./Architecture.md)
+Design principles, processing pipeline, and implementation philosophy. Covers why certain decisions were made and how the system achieves determinism and performance.
+
+### [Parser Architecture](./Parser.md)
+Deep dive into parser internals: token structures, state machines, and processing stages. For contributors and those implementing MD-LD in other languages.
+
+---
+
+## 🚀 Performance & Philosophy
+
+### [Performance Benchmarks](./Performance.md)
+Grounded performance metrics from real-world ontologies (PROV-O, RDF+RDFS, SHACL). 60fps limits (~4.5K quads), 1-second batch processing (~225K quads), and sustained throughput (252K quads/sec).
+
+### [Human-Scale Software & Semantic Infrastructure](./Human-Scale.md)
+Philosophy manifesto: why semantic systems drift toward complexity, and how MD-LD enables human-readable, deterministic, locally-inspectable computation. Addresses preservation, long-term comprehensibility, and operational sustainability.
+
+---
+
+## 📋 Real-World Applications
+
+### [Use Cases](./Use-Cases.md)
 Practical examples and applications across different domains:
 
-- **Personal Knowledge Management** - Journal entries, project tracking
-- **Developer Documentation** - API specs, schema documentation  
-- **Academic Research** - Papers, citations, provenance tracking
-- **Content Management** - Blogs, product catalogs, documentation
-- **Data Integration** - Database schemas, workflow automation
-- **Business Processes** - Invoice processing, approval workflows
+- **Personal Knowledge Management** — Journal entries, project tracking, learning logs
+- **Developer Documentation** — API specifications, schema documentation, architecture diagrams
+- **Academic Research** — Papers with embedded citations, provenance tracking, experimental workflows
+- **Content Management** — Blogs, product catalogs, documentation sites
+- **Data Integration** — Database schemas, ETL workflows, data lineage
+- **Business Processes** — Invoice processing, approval workflows, audit trails
 
-## Key Features
+---
 
-- **🎯 Elevated statements** - Automatic rdf:Statement pattern detection for "golden graph" extraction
-- **📍 Origin tracking** - Complete provenance with lean quad-to-source mapping
-- **⚡ Polarity system** - Sophisticated diff authoring with `+` and `-` prefixes
-- **📝 Rich syntax** - Multiple carrier types and predicate forms
-- **🏷️ Context management** - Subject declarations and prefix folding
-- **🔗 RDF/JS compatibility** - Works with n3.js, rdflib, and other RDF libraries
+## 🔑 Key Features At a Glance
+
+- **🎯 Elevated statements** — Automatic `rdf:Statement` pattern detection for golden graph extraction
+- **📍 Origin tracking** — Lean quad-to-source mapping for provenance and UI navigation
+- **⚡ Polarity system** — Diff authoring with `+` and `-` prefixes for state transitions
+- **🏷️ Primary metadata** — Immediate document identity without full parsing
+- **📝 Rich syntax** — Multiple carrier types and predicate forms
+- **🏷️ Subject management** — Persistent scope and prefix folding
+- **🔗 RDF/JS compatible** — Works with n3.js, rdflib, and standard RDF ecosystems
+- **⚡ High performance** — Sub-100ms parsing for real-world ontologies

@@ -1,12 +1,18 @@
-# Specification Hub
+# Specifications
 
 ## 📋 [Formal Specification](./Spec.md)
-Complete MD-LD specification with grammar and formal definitions
+
+Complete canonical MD-LD specification with grammar and formal definitions
 
 ## 📄 [Compact Spec](./Spec-compact.md)
+
 Concise specification reference for quick lookup
 
-## Specification Overview
+## 📄 [Ultra Compact Spec](./Spec-ultra.md)
+
+Most short meaningful MD-LD definition
+
+## Overview
 
 MD-LD is a **markdown-linked data** format that combines:
 
@@ -23,15 +29,3 @@ MD-LD is a **markdown-linked data** format that combines:
 - **Value carriers** - `[text]`, `**bold**`, `code blocks`, etc.
 - **Polarity** - `+` (default) and `-` prefixes for diff authoring
 - **Origin tracking** - Lean mapping from quads to source locations
-
-### Grammar Highlights
-
-```
-Document ::= Prefix* Subject* Annotation*
-Subject   ::= '=IRI' | '=#fragment' | '='
-Annotation ::= Carrier Predicate*
-Predicate  ::= 'p' | '?p' | '!p' | '.Class'
-Carrier   ::= InlineCarrier | BlockCarrier
-```
-
-See [Formal Specification](./Spec.md) for complete grammar and semantics.

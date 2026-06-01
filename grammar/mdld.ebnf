@@ -1,11 +1,5 @@
 (* MD-LD EBNF Grammar (W3C/ISO 14977 compliant) *)
-(* Version: 1.1 (2024-05-04) *)
-(* Updated to match actual parser implementation *)
-(* - Added remove polarity (- prefix) *)
-(* - Added subject reset (= alone) *)
-(* - Added prefix folding (CURIE in context declarations) *)
-(* - Fixed predicate/objectPredicate distinction *)
-(* - Fixed code fence matching (3+ backticks/tildes) *)
+(* Version: 1.1 (2026-05-04) *)
 (* Defines syntax of MD-LD annotations embedded in CommonMark Markdown *)
 
 (* 1. Lexical elements *)

@@ -14,22 +14,22 @@
 
 This catalog presents the complete RDF 1.1 Concepts vocabulary in MDLD format, featuring:
 
-- **7 Classes** - Core RDF modeling constructs
-- **5 Datatypes** - Specialized literal types
-- **9 Properties** - Structural and reification properties
-- **1 Instance** - The empty list (rdf:nil)
+**7 Classes** - Core RDF modeling constructs
+**5 Datatypes** - Specialized literal types
+**9 Properties** - Structural and reification properties
+**1 Instance** - The empty list (rdf:nil)
 
 ## Classes
 
 Core RDF classes for modeling:
 
-- **rdf:Property** {+rdf:Property .Class ?mrdf:includes} - The class of RDF properties
-- **rdf:Statement** {+rdf:Statement .Class ?mrdf:includes} - The class of RDF statements (reification)
-- **rdf:Bag** {+rdf:Bag .Class ?mrdf:includes} - The class of unordered containers
-- **rdf:Seq** {+rdf:Seq .Class ?mrdf:includes} - The class of ordered containers
-- **rdf:Alt** {+rdf:Alt .Class ?mrdf:includes} - The class of containers of alternatives
-- **rdf:List** {+rdf:List .Class ?mrdf:includes} - The class of RDF lists
-- **rdf:CompoundLiteral** {+rdf:CompoundLiteral .Class ?mrdf:includes} - A class representing a compound literal
+**rdf:Property** {+rdf:Property .Class ?mrdf:includes} - The class of RDF properties
+**rdf:Statement** {+rdf:Statement .Class ?mrdf:includes} - The class of RDF statements (reification)
+**rdf:Bag** {+rdf:Bag .Class ?mrdf:includes} - The class of unordered containers
+**rdf:Seq** {+rdf:Seq .Class ?mrdf:includes} - The class of ordered containers
+**rdf:Alt** {+rdf:Alt .Class ?mrdf:includes} - The class of containers of alternatives
+**rdf:List** {+rdf:List .Class ?mrdf:includes} - The class of RDF lists
+**rdf:CompoundLiteral** {+rdf:CompoundLiteral .Class ?mrdf:includes} - A class representing a compound literal
 
 [See all RDF classes](#rdf-classes)
 
@@ -37,11 +37,11 @@ Core RDF classes for modeling:
 
 RDF provides these specialized literal datatypes:
 
-- **rdf:HTML** {+rdf:HTML .Datatype ?mrdf:includes} - The datatype of RDF literals storing fragments of HTML content
-- **rdf:langString** {+rdf:langString .Datatype ?mrdf:includes} - The datatype of language-tagged string values
-- **rdf:PlainLiteral** {+rdf:PlainLiteral .Datatype ?mrdf:includes} - The class of plain (i.e. untyped) literal values
-- **rdf:XMLLiteral** {+rdf:XMLLiteral .Datatype ?mrdf:includes} - The datatype of XML literal values
-- **rdf:JSON** {+rdf:JSON .Datatype ?mrdf:includes} - The datatype of RDF literals storing JSON content
+**rdf:HTML** {+rdf:HTML .Datatype ?mrdf:includes} - The datatype of RDF literals storing fragments of HTML content
+**rdf:langString** {+rdf:langString .Datatype ?mrdf:includes} - The datatype of language-tagged string values
+**rdf:PlainLiteral** {+rdf:PlainLiteral .Datatype ?mrdf:includes} - The class of plain (i.e. untyped) literal values
+**rdf:XMLLiteral** {+rdf:XMLLiteral .Datatype ?mrdf:includes} - The datatype of XML literal values
+**rdf:JSON** {+rdf:JSON .Datatype ?mrdf:includes} - The datatype of RDF literals storing JSON content
 
 [See all RDF datatypes](#rdf-datatypes)
 
@@ -49,21 +49,21 @@ RDF provides these specialized literal datatypes:
 
 Structural and reification properties for RDF modeling:
 
-- **rdf:type** {+rdf:type .rdf:Property ?mrdf:includes} - The subject is an instance of a class
-- **rdf:subject** {+rdf:subject .rdf:Property ?mrdf:includes} - The subject of the subject RDF statement
-- **rdf:predicate** {+rdf:predicate .rdf:Property ?mrdf:includes} - The predicate of the subject RDF statement
-- **rdf:object** {+rdf:object .rdf:Property ?mrdf:includes} - The object of the subject RDF statement
-- **rdf:value** {+rdf:value .rdf:Property ?mrdf:includes} - Idiomatic property used for structured values
-- **rdf:first** {+rdf:first .rdf:Property ?mrdf:includes} - The first item in the subject RDF list
-- **rdf:rest** {+rdf:rest .rdf:Property ?mrdf:includes} - The rest of the subject RDF list after the first item
-- **rdf:language** {+rdf:language .rdf:Property ?mrdf:includes} - The language component of a CompoundLiteral
-- **rdf:direction** {+rdf:direction .rdf:Property ?mrdf:includes} - The base direction component of a CompoundLiteral
+**rdf:type** {+rdf:type .rdf:Property ?mrdf:includes} - The subject is an instance of a class
+**rdf:subject** {+rdf:subject .rdf:Property ?mrdf:includes} - The subject of the subject RDF statement
+**rdf:predicate** {+rdf:predicate .rdf:Property ?mrdf:includes} - The predicate of the subject RDF statement
+**rdf:object** {+rdf:object .rdf:Property ?mrdf:includes} - The object of the subject RDF statement
+**rdf:value** {+rdf:value .rdf:Property ?mrdf:includes} - Idiomatic property used for structured values
+**rdf:first** {+rdf:first .rdf:Property ?mrdf:includes} - The first item in the subject RDF list
+**rdf:rest** {+rdf:rest .rdf:Property ?mrdf:includes} - The rest of the subject RDF list after the first item
+**rdf:language** {+rdf:language .rdf:Property ?mrdf:includes} - The language component of a CompoundLiteral
+**rdf:direction** {+rdf:direction .rdf:Property ?mrdf:includes} - The base direction component of a CompoundLiteral
 
 [See all RDF properties](#rdf-properties)
 
 ## Instances
 
-- **[rdf:nil](http://www.w3.org/1999/02/22-rdf-syntax-ns#nil)** {+rdf:nil .rdf:List ?mrdf:includes} - The empty list
+**[rdf:nil](http://www.w3.org/1999/02/22-rdf-syntax-ns#nil)** {+rdf:nil .rdf:List ?mrdf:includes} - The empty list
 
 The terminating node for all RDF lists.
 
@@ -90,13 +90,13 @@ The terminating node for all RDF lists.
 
 RDF provides 7 core classes that form the foundation of the RDF data model:
 
-- **rdf:Property** - The class of RDF properties
-- **rdf:Statement** - The class of RDF statements (reification)
-- **rdf:Bag** - The class of unordered containers
-- **rdf:Seq** - The class of ordered containers
-- **rdf:Alt** - The class of containers of alternatives
-- **rdf:List** - The class of RDF lists
-- **rdf:CompoundLiteral** - A class representing a compound literal
+**rdf:Property** - The class of RDF properties
+**rdf:Statement** - The class of RDF statements (reification)
+**rdf:Bag** - The class of unordered containers
+**rdf:Seq** - The class of ordered containers
+**rdf:Alt** - The class of containers of alternatives
+**rdf:List** - The class of RDF lists
+**rdf:CompoundLiteral** - A class representing a compound literal
 
 ---
 
@@ -209,11 +209,11 @@ A class representing a compound literal.
 
 RDF provides 5 specialized literal datatypes for representing different kinds of data:
 
-- **rdf:HTML** - The datatype of RDF literals storing fragments of HTML content
-- **rdf:langString** - The datatype of language-tagged string values
-- **rdf:PlainLiteral** - The class of plain (i.e. untyped) literal values
-- **rdf:XMLLiteral** - The datatype of XML literal values
-- **rdf:JSON** - The datatype of RDF literals storing JSON content
+**rdf:HTML** - The datatype of RDF literals storing fragments of HTML content
+**rdf:langString** - The datatype of language-tagged string values
+**rdf:PlainLiteral** - The class of plain (i.e. untyped) literal values
+**rdf:XMLLiteral** - The datatype of XML literal values
+**rdf:JSON** - The datatype of RDF literals storing JSON content
 
 ---
 
@@ -302,15 +302,15 @@ The datatype of RDF literals storing JSON content.
 
 RDF provides 9 core properties for modeling relationships and reification:
 
-- **rdf:type** - The subject is an instance of a class
-- **rdf:subject** - The subject of the subject RDF statement
-- **rdf:predicate** - The predicate of the subject RDF statement
-- **rdf:object** - The object of the subject RDF statement
-- **rdf:value** - Idiomatic property used for structured values
-- **rdf:first** - The first item in the subject RDF list
-- **rdf:rest** - The rest of the subject RDF list after the first item
-- **rdf:language** - The language component of a CompoundLiteral
-- **rdf:direction** - The base direction component of a CompoundLiteral
+**rdf:type** - The subject is an instance of a class
+**rdf:subject** - The subject of the subject RDF statement
+**rdf:predicate** - The predicate of the subject RDF statement
+**rdf:object** - The object of the subject RDF statement
+**rdf:value** - Idiomatic property used for structured values
+**rdf:first** - The first item in the subject RDF list
+**rdf:rest** - The rest of the subject RDF list after the first item
+**rdf:language** - The language component of a CompoundLiteral
+**rdf:direction** - The base direction component of a CompoundLiteral
 
 ---
 

@@ -5,17 +5,21 @@ A collection of example documents demonstrating MD-LD capabilities and patterns.
 ## Examples by Category
 
 ### 📝 Quick Start Examples
+
 - **[minimal.md](demo/minimal.md)** - Minimal document with subject and author
 - **[dogfood.md](./dogfood.md)** - Comprehensive example showing complex relationships, nested structures, and various MD-LD features
+- **[few-shot.md](./few-shot.md)** - Few-shot learning examples and MD-LD grammar reference
 
 ### 🍚 Cooking & Recipes
+
 - **[Cookbook.md](./Cookbook.md)** - Complete recipe with ingredients, equipment, and nutritional information using explicit list annotations
 
 ### 🔧 Validation & SHACL
+
 - **[Status-SHACL.md](./Status-SHACL.md)** - SHACL validation patterns with self-validating constraint definitions
 
 ### 🤖 LLM & AI Workflows  
-- **[few-shot.md](./few-shot.md)** - Few-shot learning examples and MD-LD grammar reference
+
 - **[llm-time-workflow.md](./llm-time-workflow.md)** - Complete LLM workflow with provenance tracking using PROV-O
 - **[workflow.md](./workflow.md)** - Research workflow demonstration with PROV-O activities and SHACL validation
 
