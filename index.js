@@ -1837,7 +1837,7 @@ function groupQuadsByNode(quads) {
 			else reverseIndex.set(objectValue, [quad]);
 		}
 		ensure(predicate.value).push(quad);
-		if (predicate.value === RDFS_TYPE && object.termType === "NamedNode") ensure(object.value).push(quad);
+		if (predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && object.termType === "NamedNode") ensure(object.value).push(quad);
 		if (object.termType === "Literal" && object.datatype) ensure(object.datatype.value || object.datatype).push(quad);
 	}
 	return {

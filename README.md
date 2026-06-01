@@ -1,8 +1,8 @@
 # MD-LD
 
-**Markdown-Linked Data** — Human-friendly knowledge graph authoring.
+**Markdown-Linked Data** — Write RDF knowledge graphs as plain Markdown. Parse to quads, generate back, merge documents. Zero dependencies, round-trip safe.
 
-Write semantic data in natural Markdown, parse to RDF quads, build deterministic state machines.
+Unlike Turtle, JSON-LD, or RDF/XML, MD-LD embeds semantic annotations directly into natural Markdown text. A Markdown file becomes a knowledge graph — readable by humans and machines simultaneously.
 
 [![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
 
@@ -34,18 +34,12 @@ Human text → Graph immediately
 **Core value:** Author and maintain knowledge graphs as plain text with deterministic round-trip safety. No platforms, databases, or proprietary SaaS mediation required.
 
 ```markdown
-[ex] <tag:alice@example.com,2026:>
+[ex] <tag:ame@example.com,2026:>
 
-# My Bookmarks {=ex:bookmarks .prov:Entity .Container label}
+# Alice {=ex:alice .prov:Person label}
 
-> This is my first MD-LD document - a Bookmarks Collection {comment}
-
-Created by [Alice] {+ex:alice ?ex:author .prov:Person label} at `2026-06-01T11:54:22.153Z` {prov:wasGeneratedAt ^^xsd:dateTime}.
-
-## Main Sources
-
-[MD-LD website](https://mdld.js.org/) {?member label}
-[Temporal API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) {?member label}
+[Alice Smith] {ex:fullName}
+[alice@example.com] {ex:email}
 ```
 
 **Generates RDF quads** that work with n3.js, rdflib, and any RDF/JS-compatible library.
@@ -97,6 +91,7 @@ MD-LD removes the intermediary. Writing becomes publishing. Publishing becomes g
 - **Continuous semantic narrative** — Unifies chat, tasks, notes, emails, calendar, files
 - **Native time dimension** — Every action, statement, correction becomes part of the graph
 - **Decentralized authority** — RFC 4151 tag: URIs enable self-sovereign identity without central registries
+- **Text-native agent memory**  - LLM Agent memory substrate in plain text — parse context, write knowledge, merge with other agents, all as Markdown files. No database required.
 
 ### Real-World Applications
 
