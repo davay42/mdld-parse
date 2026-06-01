@@ -1252,7 +1252,7 @@ Quick start examples demonstrating core MD-LD patterns and features.
 `),r=x();ie(n),f(e),S({start:Math.min(r.start,r.end)+n.length,end:Math.min(r.start,r.end)+n.length,dir:`<-`})}function j(t){let n=x(),r=se();(t.originalEvent??t).clipboardData.setData(`text/plain`,r.toString()),a.execCommand(`delete`),f(e),S({start:Math.min(n.start,n.end),end:Math.min(n.start,n.end),dir:`<-`}),L(t)}function M(e,t){let n=[];e.firstChild&&n.push(e.firstChild);let r=n.pop();for(;r&&t(r)!==`stop`;)r.nextSibling&&n.push(r.nextSibling),r.firstChild&&n.push(r.firstChild),r=n.pop()}function N(e){return e.metaKey||e.ctrlKey}function ne(e){return N(e)&&!e.shiftKey&&re(e)===`Z`}function P(e){return N(e)&&e.shiftKey&&re(e)===`Z`}function F(e){return N(e)&&re(e)===`C`}function re(e){let t=e.key||e.keyCode||e.which;if(t)return(typeof t==`string`?t:String.fromCharCode(t)).toUpperCase()}function ie(e){e=e.replace(/&/g,`&amp;`).replace(/</g,`&lt;`).replace(/>/g,`&gt;`).replace(/"/g,`&quot;`).replace(/'/g,`&#039;`),a.execCommand(`insertHTML`,!1,e)}function ae(e,t){let n=0;return(...r)=>{clearTimeout(n),n=i.setTimeout(()=>e(...r),t)}}function I(e){let t=e.length-1;for(;t>=0&&e[t]!==`
 `;)t--;t++;let n=t;for(;n<e.length&&/[ \t]/.test(e[n]);)n++;return[e.substring(t,n)||``,t,n]}function oe(){return e.textContent||``}function L(e){e.preventDefault()}function se(){return e.getRootNode().getSelection()}return{updateOptions(e){Object.assign(r,e)},updateCode(t,n=!0){e.textContent=t,f(e),n&&u(t)},onUpdate(e){u=e},toString:oe,save:x,restore:S,recordHistory:A,destroy(){for(let[t,n]of o)e.removeEventListener(t,n)}}}var Rs=[[`#534AB7`,`#AFA9EC`],[`#0F6E56`,`#5DCAA5`],[`#993C1D`,`#F0997B`],[`#993556`,`#ED93B1`],[`#185FA5`,`#85B7EB`],[`#3B6D11`,`#97C459`],[`#854F0B`,`#EF9F27`],[`#A32D2D`,`#F09595`]],zs=`http://www.w3.org/1999/02/22-rdf-syntax-ns#type`,Bs=`http://www.w3.org/2000/01/rdf-schema#label`,Vs=`http://www.w3.org/2000/svg`;function Hs(e,t){if(!e||typeof e!=`string`)return e;if(t){for(let[n,r]of Object.entries(t))if(e.startsWith(r))return n+`:`+e.slice(r.length)}let n=e.match(/[#\/:]([^#\/:]+)$/);return n?n[1]:e}function Us(e){let t=5381;for(let n=0;n<e.length;n++)t=(t*33^e.charCodeAt(n))>>>0;return t}var Ws=class extends HTMLElement{static get observedAttributes(){return[`height`,`charge`,`link-dist`]}constructor(){super(),this._quads=[],this._ctx={},this._nodes=[],this._links=[],this._sim=null,this._raf=null,this._alpha=0,this._sleeping=!1,this._drag=null,this._grid=new Map,this._gridKeyBuffer=``,this._chargeCache=-120,this._linkDistCache=180,this._transformBuffer=``,this._colorBuffer=``,this._gridArrays=new Map}connectedCallback(){this._build()}attributeChangedCallback(){this._svg&&this._restart()}set quads(e){this._quads=e||[],this._build()}set context(e){this._ctx=e||{},this._build()}_build(){let e=new Map,t=new Map,n=new Map,r=new Map,i=new Map,a=[];for(let o of this._quads){if(!o||o.termType!==`Quad`)continue;let s=o.subject.value,c=o.predicate.value,l=o.object;if(e.has(s)||e.set(s,{id:s,size:10,r:10}),c===Bs&&l.termType===`Literal`&&r.set(s,l.value),i.has(c)||i.set(c,null),c===zs&&l.termType===`NamedNode`)t.set(s,l.value),e.has(l.value)||e.set(l.value,{id:l.value,size:8,r:8}),a.push({source:s,target:l.value,iri:c});else if(l.termType===`NamedNode`)e.has(l.value)||e.set(l.value,{id:l.value,size:8,r:8}),a.push({source:s,target:l.value,iri:c});else if(l.termType===`Literal`){let e=n.get(s)||0;n.set(s,e+1)}}for(let e of this._quads){if(!e||e.termType!==`Quad`)continue;let t=e.subject.value,n=e.predicate.value,r=e.object;n===Bs&&r.termType===`Literal`&&i.has(t)&&i.set(t,r.value)}for(let[t,r]of n){let n=e.get(t);n&&(n.size=Math.min(10+r*3,26))}let o=new Map,s=0;for(let[,e]of t)o.has(e)||o.set(e,Rs[s++%Rs.length]);for(let[n,r]of e){let e=t.get(n);r.color=e?o.get(e):Rs[7],r.r=r.size}for(let e of a)e.label=i.get(e.iri)||Hs(e.iri,this._ctx);this._types=t,this._nodes=[...e.values()],this._links=a,this._typeColors=o,this._nodeLabels=r,this._renderSvg(),this._initSim()}_renderSvg(){this.innerHTML=``;let e=parseInt(this.getAttribute(`height`)||`480`),t=document.createElement(`div`);t.className=`rdf-wrap`,t.style.height=e+`px`;let n=document.createElement(`div`);n.className=`rdf-hud`,this._statEl=document.createElement(`span`),this._statEl.textContent=this._nodes.length+`n · `+this._links.length+`e`;let r=document.createElement(`div`);r.className=`rdf-energy`,this._ebar=document.createElement(`div`),this._ebar.className=`rdf-ebar`,this._ebar.style.width=`100%`,r.appendChild(this._ebar),n.appendChild(this._statEl),n.appendChild(r),t.appendChild(n);let i=document.createElementNS(Vs,`svg`);i.setAttribute(`width`,`100%`),i.setAttribute(`height`,`100%`);let a=document.createElementNS(Vs,`defs`),o=new Set([...this._typeColors.values()].map(e=>e[0]));o.add(`#888`);for(let e of o){let t=document.createElementNS(Vs,`marker`),n=`arr`+Us(e);t.setAttribute(`id`,n),t.setAttribute(`viewBox`,`0 0 10 10`),t.setAttribute(`refX`,`9`),t.setAttribute(`refY`,`5`),t.setAttribute(`markerWidth`,`5`),t.setAttribute(`markerHeight`,`5`),t.setAttribute(`orient`,`auto-start-reverse`);let r=document.createElementNS(Vs,`path`);r.setAttribute(`d`,`M2 1L8 5L2 9`),r.setAttribute(`fill`,`none`),r.setAttribute(`stroke`,`gray`),r.setAttribute(`stroke-width`,`1.5`),r.setAttribute(`stroke-linecap`,`round`),t.appendChild(r),a.appendChild(t)}i.appendChild(a),this._gLinks=document.createElementNS(Vs,`g`),this._gLinkLabels=document.createElementNS(Vs,`g`),this._gNodes=document.createElementNS(Vs,`g`),this._linkEls=this._links.map(e=>{let t=document.createElementNS(Vs,`line`),n=this._nodeById(e.source),r=`arr`+Us(n&&n.color?n.color[0]:`#888`);if(t.setAttribute(`stroke`,ct(e?.iri||``)),t.setAttribute(`stroke-width`,`0.8`),t.setAttribute(`stroke-opacity`,`0.55`),t.setAttribute(`marker-end`,`url(#`+r+`)`),this._gLinks.appendChild(t),e.label){let t=document.createElementNS(Vs,`text`);t.setAttribute(`font-size`,`8`),t.setAttribute(`fill`,ct(e?.iri||``)),t.setAttribute(`text-anchor`,`middle`),t.setAttribute(`dominant-baseline`,`central`),t.setAttribute(`pointer-events`,`none`),t.setAttribute(`opacity`,`0.7`),t.textContent=e.label,this._gLinkLabels.appendChild(t),e._labelEl=t}return e._el=t,t}),this._nodeElMap=new Map;for(let e of this._nodes){let t=ct(e?.id),n=ct(this._types.get(e?.id)||e?.id),r=document.createElementNS(Vs,`g`);r.style.cursor=`grab`;let i=document.createElementNS(Vs,`circle`);i.setAttribute(`r`,e.r),i.setAttribute(`fill`,t),i.setAttribute(`stroke`,n),i.setAttribute(`stroke-width`,`2`),i.setAttribute(`fill-opacity`,`0.85`);let a=document.createElementNS(Vs,`text`);a.setAttribute(`font-size`,`8`),a.setAttribute(`font-weight`,`bold`),a.setAttribute(`fill`,ct(e?.id)),a.setAttribute(`text-anchor`,`middle`),a.setAttribute(`dominant-baseline`,`central`),a.setAttribute(`dy`,-e.r-10),a.setAttribute(`pointer-events`,`none`),a.setAttribute(`opacity`,`0.75`),a.textContent=this._nodeLabels.get(e.id)||Hs(e.id,this._ctx),r.appendChild(i),r.appendChild(a),this._gNodes.appendChild(r),this._nodeElMap.set(e.id,r),e._el=r,e._c=i,r.addEventListener(`pointerdown`,t=>this._dragStart(t,e))}i.appendChild(this._gLinks),i.appendChild(this._gLinkLabels),i.appendChild(this._gNodes),i.addEventListener(`pointermove`,e=>this._dragMove(e)),i.addEventListener(`pointerup`,e=>this._dragEnd(e)),i.addEventListener(`pointerleave`,e=>this._dragEnd(e)),t.appendChild(i),this.appendChild(t),this._svg=i,this._wrap=t}_nodeById(e){return this._nodes.find(t=>t.id===e)}_initSim(){let e=this._wrap.clientWidth||600,t=this._wrap.clientHeight||480;for(let n of this._nodes)n.x??(n.x=e/2+(Math.random()-.5)*200,n.y=t/2+(Math.random()-.5)*200),n.vx=n.vx||0,n.vy=n.vy||0,n.mass=Math.max(1,n.size/8);this._W=e,this._H=t,this._alpha=1,this._sleeping=!1,this._wake()}_restart(){this._alpha=Math.max(this._alpha,.8),this._sleeping=!1,this._wake()}_wake(){this._raf||=requestAnimationFrame(()=>{this._raf=null,this._tick()})}_tick(){if(this._sleeping){this._raf=null;return}let e=this._chargeCache===parseFloat(this.getAttribute(`charge`)||-120)?this._chargeCache:this._chargeCache=parseFloat(this.getAttribute(`charge`)||-120),t=this._linkDistCache===parseFloat(this.getAttribute(`link-dist`)||180)?this._linkDistCache:this._linkDistCache=parseFloat(this.getAttribute(`link-dist`)||180),n=this._nodes,r=this._links,i=this._W,a=this._H,o=this._alpha;for(let e of n)e.fx=0,e.fy=0;let s=Math.max(50,Math.sqrt(i*a/n.length)),c=this._grid;for(let[e,t]of c)t.length===0&&c.delete(e);let l=1/s;for(let e of n){let t=e.x*l|0,n=e.y*l|0;this._gridKeyBuffer=t+`,`+n;let r=c.get(this._gridKeyBuffer);r||(r=this._gridArrays.get(this._gridKeyBuffer),r||(r=[],this._gridArrays.set(this._gridKeyBuffer,r)),c.set(this._gridKeyBuffer,r)),r.length=0,r.push(e)}for(let t of n){let n=t.x*l|0,r=t.y*l|0;for(let i=-1;i<=1;i++)for(let a=-1;a<=1;a++){this._gridKeyBuffer=n+i+`,`+(r+a);let l=c.get(this._gridKeyBuffer);if(l)for(let n of l){if(t===n)continue;let r=n.x-t.x,i=n.y-t.y,a=r*r+i*i||1,c=Math.sqrt(a);if(c>s*2){let n=e*o/(a*l.length);t.fx-=r/c*n/t.mass,t.fy-=i/c*n/t.mass}else{let n=e*o/a;t.fx-=r/c*n/t.mass,t.fy-=i/c*n/t.mass}}}}for(let e of r){let n=typeof e.source==`object`?e.source:this._nodeById(e.source),r=typeof e.target==`object`?e.target:this._nodeById(e.target);if(!n||!r)continue;e.source=n,e.target=r;let i=r.x-n.x,a=r.y-n.y,s=Math.sqrt(i*i+a*a)||1,c=(s-t)*.02*o,l=i/s,u=a/s;n.fx+=l*c/n.mass,n.fy+=u*c/n.mass,r.fx-=l*c/r.mass,r.fy-=u*c/r.mass}let u=0,d=0;for(let e of n)u+=e.x,d+=e.y;u/=n.length||1,d/=n.length||1;let f=i/2-u,p=a/2-d;for(let e of n)e.fx+=f*.008*o,e.fy+=p*.008*o;let m=0;for(let e of n){if(e._pinned){e.vx=0,e.vy=0,e.fx=0,e.fy=0;continue}e.vx=(e.vx+e.fx)*.85,e.vy=(e.vy+e.fy)*.85;let t=Math.sqrt(e.vx*e.vx+e.vy*e.vy);t>8&&(e.vx=e.vx/t*8,e.vy=e.vy/t*8),e.x+=e.vx,e.y+=e.vy,e.x=Math.max(e.r+5,Math.min(i-e.r-5,e.x)),e.y=Math.max(e.r+5,Math.min(a-e.r-5,e.y)),m+=e.vx*e.vx+e.vy*e.vy}this._alpha*=.985;let h=Math.min(1,Math.sqrt(m/Math.max(n.length,1))/3),g=Math.round(h*100);if(h>.3?this._colorBuffer=`#1D9E75`:h>.08?this._colorBuffer=`#BA7517`:this._colorBuffer=`#888780`,this._ebar.style.width=g+`%`,this._ebar.style.background=this._colorBuffer,this._draw(),this._alpha<.002&&!this._drag){this._sleeping=!0,this._ebar.style.width=`0%`,this._raf=null;return}this._raf=requestAnimationFrame(()=>{this._raf=null,this._tick()})}_draw(){for(let e of this._links){let t=e.source,n=e.target;if(!t||!n||typeof t!=`object`)continue;let r=n.x-t.x,i=n.y-t.y,a=Math.sqrt(r*r+i*i)||1,o=r/a,s=i/a,c=t.x+o*(t.r+1),l=t.y+s*(t.r+1),u=n.x-o*(n.r+6),d=n.y-s*(n.r+6),f=e._el;f.setAttribute(`x1`,c),f.setAttribute(`y1`,l),f.setAttribute(`x2`,u),f.setAttribute(`y2`,d),e._labelEl&&(e._labelEl.setAttribute(`x`,(c+u)*.5),e._labelEl.setAttribute(`y`,(l+d)*.5-4))}for(let e of this._nodes)e._el&&(this._transformBuffer=`translate(`+e.x+`,`+e.y+`)`,e._el.setAttribute(`transform`,this._transformBuffer))}_dragStart(e,t){e.preventDefault(),this._drag={node:t,id:e.pointerId,startX:e.clientX,startY:e.clientY,moved:!1},this._svg.setPointerCapture(e.pointerId),t._pinned=!0,t._el.style.cursor=`grabbing`,this._sleeping=!1,this._alpha=Math.max(this._alpha,.5),this._wake()}_dragMove(e){if(!this._drag||e.pointerId!==this._drag.id)return;let t=this._svg.getBoundingClientRect(),n=this._svg.viewBox?.baseVal?.width||this._W,r=this._svg.viewBox?.baseVal?.height||this._H,i=(n||this._W)/t.width,a=(r||this._H)/t.height,o=this._drag.node;o.x=(e.clientX-t.left)*i,o.y=(e.clientY-t.top)*a,o.vx=0,o.vy=0;let s=e.clientX-this._drag.startX,c=e.clientY-this._drag.startY;(Math.abs(s)>3||Math.abs(c)>3)&&(this._drag.moved=!0),this._sleeping&&(this._sleeping=!1,this._alpha=.3,this._wake())}_dragEnd(e){if(!this._drag)return;let t=this._drag.node,n=this._drag.moved;t._pinned=!1,t._el.style.cursor=`grab`,t.vx=(Math.random()-.5)*.5,t.vy=(Math.random()-.5)*.5,this._alpha=Math.max(this._alpha,.25),this._drag=null,n||this.dispatchEvent(new CustomEvent(`node-click`,{detail:t.id,bubbles:!0})),this._wake()}};window&&customElements.define(`rdf-graph`,Ws);var Gs=[],Ks=null,qs=e=>{e.innerHTML=ft(Ks.toString())};window.loadExample=function(e){let t=Fs(e);t&&Ks?(Ks.updateCode(t),parseMDLD()):console.warn(Ks?`Example not found: ${e}`:`CodeJar editor not initialized`)};var Js=null;function Ys(e,t){return!e&&!t?!0:!e||!t||e.length!==t.length?!1:e.map(e=>`${e.subject.value}|${e.predicate.value}|${e.object.termType}|${e.object.value}|${e.object.language||``}|${e.object.datatype?.value||``}`).sort().join(`
 `)===t.map(e=>`${e.subject.value}|${e.predicate.value}|${e.object.termType}|${e.object.value}|${e.object.language||``}|${e.object.datatype?.value||``}`).sort().join(`
-`)}window.parseMDLD=function(){let e=Ks?Ks.toString():``,t=document.getElementById(`output`),n=document.getElementById(`parse-stats`);if(!e.trim()){t.textContent=`Quads will appear here...`,n.textContent=``;let e=document.getElementById(`primary-subject`);e&&(e.textContent=`No primary subject found...`,e.style.color=`var(--text-secondary, #6b7280)`);let r=document.getElementById(`statements-graph`),i=document.getElementById(`statements-stats`);r&&(r.quads=[],r.context={}),i&&(i.textContent=``);return}try{let t=performance.now(),r=B({text:e}),i=Math.round(performance.now()-t),{quads:a,context:o,primarySubject:s}=r;delete o[`@vocab`];let c=!Ys(a,Js);Js=a;let l=new Hn({format:`Turtle`,prefixes:o}),u=new wr;u.addQuads(a),l.addQuads(u.getQuads()),l.end((e,t)=>{let n=document.getElementById(`ttl`);e?(n.textContent=`Error: `+e,ac=``):(n.textContent=t||`No TTL output generated`,ac=t||``)});try{let{text:e}=V({quads:a,context:o,primarySubject:s}),t=document.getElementById(`mdld`);t&&(t.textContent=e||`No MDLD output generated`,oc=e||``)}catch(e){console.error(`Error generating MDLD:`,e);let t=document.getElementById(`mdld`);t&&(t.textContent=`Error generating MDLD: `+e.message,oc=``)}if(c){let e=document.getElementById(`rdf-graph`);e&&(e.quads=a,e.context=o)}let d=document.getElementById(`primary-subject`);s?(d.textContent=s,d.style.color=ct(s)):(d.textContent=`No primary subject found in this document`,d.style.color=`var(--text-secondary, #6b7280)`);let f=document.getElementById(`statements-graph`),p=document.getElementById(`statements-stats`);f&&r.statements&&r.statements.length>0?(f.quads=r.statements,f.context=o,p.textContent=`${r.statements.length} elevated statements`):f&&(f.quads=[],f.context=o,p.textContent=`No elevated statements`),n.textContent=`${r.quads.length} quads • ${i}ms${c?``:` (no change)`}`}catch(e){t.textContent=`Error: ${e.message}`,n.textContent=``}},window.parseTTL=async function(e){let t=e.target.files[0];if(t){try{let e=await t.text(),n=new Cn,r=await new Promise((t,r)=>{let i=[];n.parse(e,(e,n)=>{if(e){r(e);return}n?i.push(n):t(i)})}),i=Xs(e),a=V({quads:r,context:i}),o=a.text||a;Ks&&Ks.updateCode(o),parseMDLD(),console.log(`Successfully imported ${r.length} quads from TTL file with ${Object.keys(i).length} prefixes`)}catch(e){console.error(`Error parsing TTL file:`,e),alert(`Error parsing TTL file: ${e.message}`)}e.target.value=``}};function Xs(e){let t={},n=/@prefix\s+(\w+):\s*<([^>]+)>\s*\./gi,r;for(;(r=n.exec(e))!==null;){let e=r[1];t[e]=r[2]}return t}document.addEventListener(`DOMContentLoaded`,()=>{document.getElementById(`import-ttl-btn`).querySelector(`input[type="file"]`).addEventListener(`change`,window.parseTTL)});function Zs(e){let t=`"${e.value.replace(/"/g,`\\"`)}"`;return e.language?t+=`@${e.language}`:e.datatype&&e.datatype.value&&e.datatype.value!==`http://www.w3.org/2001/XMLSchema#string`&&(t+=`^^<${e.datatype.value}>`),t}window.clearPlayground=function(){Ks&&Ks.updateCode(``),document.getElementById(`output`).textContent=`Quads will appear here...`,document.getElementById(`parse-stats`).textContent=``,ac=``;let e=document.getElementById(`ttl`);e&&(e.textContent=`TTL loading...`);let t=document.getElementById(`rdf-graph`);t&&(t.quads=[],t.context={}),Js=null},window.runAllTests=async function(){Gs=[];let e=document.getElementById(`test-progress`),t=document.getElementById(`test-progress-bar`),n=document.getElementById(`test-stats`),r=document.getElementById(`test-list`),i=document.getElementById(`test-status`);e.style.display=`block`,n.style.display=`grid`,r.innerHTML=``,i.textContent=`Running tests...`;let a=0,o=0,s=0;for(let e=0;e<Rt.length;e++){let n=Rt[e],r=performance.now();try{let e=n.fn(),t=Math.round(performance.now()-r);s+=t,Gs.push({name:n.name,status:`passed`,duration:t,result:e}),a++,Qs(n.name,`passed`,t,e)}catch(e){let t=Math.round(performance.now()-r);s+=t,Gs.push({name:n.name,status:`failed`,duration:t,error:e.message}),o++,Qs(n.name,`failed`,t,null,e.message)}let i=(e+1)/Rt.length*100;t.style.width=`${i}%`,document.getElementById(`passed-count`).textContent=a,document.getElementById(`failed-count`).textContent=o,document.getElementById(`total-count`).textContent=Rt.length,await new Promise(e=>setTimeout(e,5))}document.getElementById(`duration`).textContent=`${Math.round(s)}ms`,setTimeout(()=>{e.style.display=`none`,i.textContent=`Completed: ${a} passed, ${o} failed`},500)};function Qs(e,t,n,r,i=null){let a=document.getElementById(`test-list`),o=document.createElement(`div`),s=``;t===`passed`?s=`passed`:t===`failed`&&(s=`failed`),o.className=`test-item ${s}`,o.innerHTML=`
+`)}window.parseMDLD=function(){let e=Ks?Ks.toString():``,t=document.getElementById(`output`),n=document.getElementById(`parse-stats`);if(!e.trim()){t.textContent=`Quads will appear here...`,n.textContent=``;let e=document.getElementById(`primary-subject`);e&&(e.textContent=`No primary subject found...`,e.style.color=`var(--text-secondary, #6b7280)`);let r=document.getElementById(`statements-graph`),i=document.getElementById(`statements-stats`);r&&(r.quads=[],r.context={}),i&&(i.textContent=``);return}try{let t=performance.now(),r=B({text:e}),i=Math.round(performance.now()-t),{quads:a,context:o,primarySubject:s}=r;delete o[`@vocab`];let c=!Ys(a,Js);Js=a;let l=new Hn({format:`Turtle`,prefixes:o}),u=new wr;u.addQuads(a),l.addQuads(u.getQuads()),l.end((e,t)=>{let n=document.getElementById(`ttl`);e?(n.textContent=`Error: `+e,ec=``):(n.textContent=t||`No TTL output generated`,ec=t||``)});try{let{text:e}=V({quads:a,context:o,primarySubject:s}),t=document.getElementById(`mdld`);t&&(t.textContent=e||`No MDLD output generated`,tc=e||``)}catch(e){console.error(`Error generating MDLD:`,e);let t=document.getElementById(`mdld`);t&&(t.textContent=`Error generating MDLD: `+e.message,tc=``)}if(c){let e=document.getElementById(`rdf-graph`);e&&(e.quads=a,e.context=o)}let d=document.getElementById(`primary-subject`);s?(d.textContent=s,d.style.color=ct(s)):(d.textContent=`No primary subject found in this document`,d.style.color=`var(--text-secondary, #6b7280)`);let f=document.getElementById(`statements-graph`),p=document.getElementById(`statements-stats`);f&&r.statements&&r.statements.length>0?(f.quads=r.statements,f.context=o,p.textContent=`${r.statements.length} elevated statements`):f&&(f.quads=[],f.context=o,p.textContent=`No elevated statements`),n.textContent=`${r.quads.length} quads • ${i}ms${c?``:` (no change)`}`}catch(e){t.textContent=`Error: ${e.message}`,n.textContent=``}},window.parseTTL=async function(e){let t=e.target.files[0];if(t){try{let e=await t.text(),n=new Cn,r=await new Promise((t,r)=>{let i=[];n.parse(e,(e,n)=>{if(e){r(e);return}n?i.push(n):t(i)})}),i=Xs(e),a=V({quads:r,context:i}),o=a.text||a;Ks&&Ks.updateCode(o),parseMDLD(),console.log(`Successfully imported ${r.length} quads from TTL file with ${Object.keys(i).length} prefixes`)}catch(e){console.error(`Error parsing TTL file:`,e),alert(`Error parsing TTL file: ${e.message}`)}e.target.value=``}};function Xs(e){let t={},n=/@prefix\s+(\w+):\s*<([^>]+)>\s*\./gi,r;for(;(r=n.exec(e))!==null;){let e=r[1];t[e]=r[2]}return t}document.addEventListener(`DOMContentLoaded`,()=>{document.getElementById(`import-ttl-btn`).querySelector(`input[type="file"]`).addEventListener(`change`,window.parseTTL)});function Zs(e){let t=`"${e.value.replace(/"/g,`\\"`)}"`;return e.language?t+=`@${e.language}`:e.datatype&&e.datatype.value&&e.datatype.value!==`http://www.w3.org/2001/XMLSchema#string`&&(t+=`^^<${e.datatype.value}>`),t}window.clearPlayground=function(){Ks&&Ks.updateCode(``),document.getElementById(`output`).textContent=`Quads will appear here...`,document.getElementById(`parse-stats`).textContent=``,ec=``;let e=document.getElementById(`ttl`);e&&(e.textContent=`TTL loading...`);let t=document.getElementById(`rdf-graph`);t&&(t.quads=[],t.context={}),Js=null},window.runAllTests=async function(){Gs=[];let e=document.getElementById(`test-progress`),t=document.getElementById(`test-progress-bar`),n=document.getElementById(`test-stats`),r=document.getElementById(`test-list`),i=document.getElementById(`test-status`);e.style.display=`block`,n.style.display=`grid`,r.innerHTML=``,i.textContent=`Running tests...`;let a=0,o=0,s=0;for(let e=0;e<Rt.length;e++){let n=Rt[e],r=performance.now();try{let e=n.fn(),t=Math.round(performance.now()-r);s+=t,Gs.push({name:n.name,status:`passed`,duration:t,result:e}),a++,Qs(n.name,`passed`,t,e)}catch(e){let t=Math.round(performance.now()-r);s+=t,Gs.push({name:n.name,status:`failed`,duration:t,error:e.message}),o++,Qs(n.name,`failed`,t,null,e.message)}let i=(e+1)/Rt.length*100;t.style.width=`${i}%`,document.getElementById(`passed-count`).textContent=a,document.getElementById(`failed-count`).textContent=o,document.getElementById(`total-count`).textContent=Rt.length,await new Promise(e=>setTimeout(e,5))}document.getElementById(`duration`).textContent=`${Math.round(s)}ms`,setTimeout(()=>{e.style.display=`none`,i.textContent=`Completed: ${a} passed, ${o} failed`},500)};function Qs(e,t,n,r,i=null){let a=document.getElementById(`test-list`),o=document.createElement(`div`),s=``;t===`passed`?s=`passed`:t===`failed`&&(s=`failed`),o.className=`test-item ${s}`,o.innerHTML=`
                     <div class="flex items-center gap-2 mb-2">
                       <span class="text-base">${t===`passed`?`✅`:`❌`}</span>
                       <span class="flex-1 font-medium text-sm">${e}</span>
@@ -1266,28 +1266,7 @@ Quick start examples demonstrating core MD-LD patterns and features.
                       `:``}
                       ${i?`<div class="text-red-600 dark:text-red-400 font-mono text-xs">${i}</div>`:``}
                     </div>
-                  `,o.addEventListener(`click`,()=>{o.querySelector(`#details-${e.replace(/\s+/g,`-`)}`).classList.toggle(`hidden`)}),a.appendChild(o)}window.clearTests=function(){Gs=[],document.getElementById(`test-list`).innerHTML=`<p class="text-center text-gray-600 dark:text-gray-400 p-4">Click "Run Tests" to see results</p>`,document.getElementById(`test-stats`).classList.add(`hidden`),document.getElementById(`test-progress`).classList.add(`hidden`),document.getElementById(`test-status`).textContent=``};var $s=()=>{Ks&&Ks.onUpdate(e=>{clearTimeout(window.parseTimeout),window.parseTimeout=setTimeout(parseMDLD,300)})};window.addEventListener(`load`,()=>{let e=document.getElementById(`editor`);e&&(Ks=new Ls(e,qs,{tab:`  `,indentOn:/[(\[{]$/,spellcheck:!1,catchTab:!0,preserveIdent:!0,addClosing:!0}),Ks.updateCode(``),$s()),loadExample(`recipe`),setTimeout(()=>{runAllTests(),setTimeout(()=>ic(),100)},500)}),window.addEventListener(`hashchange`,rc);var ec=new Ns({html:!0,linkify:!0,typographer:!0,breaks:!0});async function tc(e){let t=document.getElementById(`spec-content`),n=document.getElementById(`spec-status`);n.textContent=`Loading ${e}...`,t.innerHTML=`<p class="text-center text-gray-600 dark:text-gray-400 p-8">Loading markdown...</p>`;try{let r=await fetch(e);if(!r.ok)throw Error(`Failed to fetch ${e}: ${r.status}`);let i=await r.text();requestIdleCallback(()=>{nc(i,e,t,n)},{timeout:100})}catch(r){n.textContent=`Error loading ${e}`,t.innerHTML=`<p class="text-center text-red-600 dark:text-red-400 p-8">Error: ${r.message}</p>`}}function nc(e,t,n,r){try{n.innerHTML=`
-                                <style>
-                                    #spec-content h1 { color: var(--error, #dc2626); border-bottom: 2px solid var(--border-primary, #d1d5db); padding-bottom: 0.5rem; margin: 1.5rem 0 1rem 0; }
-                                    #spec-content h2 { color: var(--text-primary, #111827); border-bottom: 1px solid var(--border-primary, #d1d5db); padding-bottom: 0.25rem; margin: 1.25rem 0 0.75rem 0; }
-                                    #spec-content h3 { color: var(--text-primary, #111827); margin: 1rem 0 0.5rem 0; }
-                                    #spec-content h4 { color: var(--text-secondary, #6b7280); margin: 0.75rem 0 0.25rem 0; }
-                                    #spec-content p { margin-bottom: 0.75rem; }
-                                    #spec-content ul, #spec-content ol { margin: 0.5rem 0 0.75rem 1.5rem; }
-                                    #spec-content li { margin-bottom: 0.25rem; }
-                                    #spec-content code { background: var(--bg-tertiary, #f3f4f6); padding: 0.125rem 0.25rem; border-radius: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 0.875em; }
-                                    #spec-content pre { background: var(--bg-tertiary, #f3f4f6); padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.75rem 0; }
-                                    #spec-content pre code { background: none; padding: 0; }
-                                    #spec-content blockquote { border-left: 3px solid var(--error, #dc2626); padding-left: 1rem; margin: 0.75rem 0; color: var(--text-secondary, #6b7280); font-style: italic; }
-                                    #spec-content a { color: var(--error, #dc2626); text-decoration: none; }
-                                    #spec-content a:hover { text-decoration: underline; }
-                                    #spec-content table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
-                                    #spec-content th, #spec-content td { border: 1px solid var(--border-primary, #d1d5db); padding: 0.5rem; text-align: left; }
-                                    #spec-content th { background: var(--bg-tertiary, #f3f4f6); color: var(--text-primary, #111827); font-weight: 600; }
-                                    #spec-content hr { border: none; border-top: 1px solid var(--border-primary, #d1d5db); margin: 1.5rem 0; }
-                                </style>
-                                ${ec.render(e)}
-                            `,requestIdleCallback(()=>{n.querySelectorAll(`a[href$=".md"]`).forEach(e=>{e.addEventListener(`click`,t=>{t.preventDefault();let n=e.getAttribute(`href`),r=decodeURIComponent(window.location.hash.slice(1))||`./README.md`,i;i=n.startsWith(`./`)?r.substring(0,r.lastIndexOf(`/`)+1)+n.slice(2):n.startsWith(`/`)?`.`+n:r.substring(0,r.lastIndexOf(`/`)+1)+n,window.location.hash=`#`+i})})},{timeout:50}),r.textContent=`Loaded ${t}`}catch(e){console.error(`Error loading markdown:`,e),n.innerHTML=`<p style="text-align: center; color: var(--color-error); padding: 2rem;">Error loading ${t}: ${e.message}</p>`,r.textContent=`Error loading ${t}`}}function rc(){let e=window.location.hash.slice(1);if(e===`test`){let e=document.getElementById(`tests`);if(e){e.scrollIntoView({behavior:`smooth`});let t=document.getElementById(`test-list`);t&&t.innerHTML.includes(`Tests will run automatically`)&&runAllTests()}return}if(e===`index.md`||e===`README.md`){tc(`./README.md`);return}if(e)try{let t=decodeURIComponent(e);t.endsWith(`.md`)?tc(t):tc(t+`.md`)}catch{console.error(`Invalid hash:`,e),tc(`./README.md`)}else tc(`./README.md`)}async function ic(){requestIdleCallback(()=>{rc()},{timeout:200})}var ac=``,oc=``;document.getElementById(`copy-ttl-btn`).addEventListener(`click`,async()=>{if(!ac){sc(`No TTL content to copy`,`error`);return}try{await navigator.clipboard.writeText(ac),sc(`TTL copied to clipboard!`,`success`)}catch{let e=document.createElement(`textarea`);e.value=ac,document.body.appendChild(e),e.select(),document.execCommand(`copy`),document.body.removeChild(e),sc(`TTL copied to clipboard!`,`success`)}}),document.getElementById(`download-ttl-btn`).addEventListener(`click`,()=>{if(!ac){sc(`No TTL content to download`,`error`);return}let e=new Blob([ac],{type:`text/turtle`}),t=URL.createObjectURL(e),n=document.createElement(`a`);n.href=t,n.download=`output.ttl`,document.body.appendChild(n),n.click(),document.body.removeChild(n),URL.revokeObjectURL(t),sc(`TTL file downloaded`,`success`)}),document.getElementById(`copy-mdld-btn`).addEventListener(`click`,async()=>{if(!oc){sc(`No MDLD content to copy`,`error`);return}try{await navigator.clipboard.writeText(oc),sc(`MDLD copied to clipboard`,`success`)}catch(e){sc(`Failed to copy MDLD: `+e.message,`error`)}}),document.getElementById(`download-mdld-btn`).addEventListener(`click`,()=>{if(!oc){sc(`No MDLD content to download`,`error`);return}let e=new Blob([oc],{type:`text/markdown`}),t=URL.createObjectURL(e),n=document.createElement(`a`);n.href=t,n.download=`output.mdld.md`,document.body.appendChild(n),n.click(),document.body.removeChild(n),URL.revokeObjectURL(t),sc(`MDLD file downloaded`,`success`)});function sc(e,t=`info`){let n=document.createElement(`div`);n.style.cssText=`
+                  `,o.addEventListener(`click`,()=>{o.querySelector(`#details-${e.replace(/\s+/g,`-`)}`).classList.toggle(`hidden`)}),a.appendChild(o)}window.clearTests=function(){Gs=[],document.getElementById(`test-list`).innerHTML=`<p class="text-center text-gray-600 dark:text-gray-400 p-4">Click "Run Tests" to see results</p>`,document.getElementById(`test-stats`).classList.add(`hidden`),document.getElementById(`test-progress`).classList.add(`hidden`),document.getElementById(`test-status`).textContent=``};var $s=()=>{Ks&&Ks.onUpdate(e=>{clearTimeout(window.parseTimeout),window.parseTimeout=setTimeout(parseMDLD,300)})};window.addEventListener(`load`,()=>{let e=document.getElementById(`editor`);e&&(Ks=new Ls(e,qs,{tab:`  `,indentOn:/[(\[{]$/,spellcheck:!1,catchTab:!0,preserveIdent:!0,addClosing:!0}),Ks.updateCode(``),$s()),loadExample(`recipe`),setTimeout(()=>{runAllTests()},500)}),new Ns({html:!0,linkify:!0,typographer:!0,breaks:!0});var ec=``,tc=``;document.getElementById(`copy-ttl-btn`).addEventListener(`click`,async()=>{if(!ec){nc(`No TTL content to copy`,`error`);return}try{await navigator.clipboard.writeText(ec),nc(`TTL copied to clipboard!`,`success`)}catch{let e=document.createElement(`textarea`);e.value=ec,document.body.appendChild(e),e.select(),document.execCommand(`copy`),document.body.removeChild(e),nc(`TTL copied to clipboard!`,`success`)}}),document.getElementById(`download-ttl-btn`).addEventListener(`click`,()=>{if(!ec){nc(`No TTL content to download`,`error`);return}let e=new Blob([ec],{type:`text/turtle`}),t=URL.createObjectURL(e),n=document.createElement(`a`);n.href=t,n.download=`output.ttl`,document.body.appendChild(n),n.click(),document.body.removeChild(n),URL.revokeObjectURL(t),nc(`TTL file downloaded`,`success`)}),document.getElementById(`copy-mdld-btn`).addEventListener(`click`,async()=>{if(!tc){nc(`No MDLD content to copy`,`error`);return}try{await navigator.clipboard.writeText(tc),nc(`MDLD copied to clipboard`,`success`)}catch(e){nc(`Failed to copy MDLD: `+e.message,`error`)}}),document.getElementById(`download-mdld-btn`).addEventListener(`click`,()=>{if(!tc){nc(`No MDLD content to download`,`error`);return}let e=new Blob([tc],{type:`text/markdown`}),t=URL.createObjectURL(e),n=document.createElement(`a`);n.href=t,n.download=`output.mdld.md`,document.body.appendChild(n),n.click(),document.body.removeChild(n),URL.revokeObjectURL(t),nc(`MDLD file downloaded`,`success`)});function nc(e,t=`info`){let n=document.createElement(`div`);n.style.cssText=`
                 position: fixed;
                 bottom: 20px;
                 right: 20px;
@@ -1434,9 +1413,9 @@ Quick start examples demonstrating core MD-LD patterns and features.
     .nav-link {
         color: var(--color-primary);
         text-decoration: none;
-        padding: 0.25rem 0.75rem;
+        padding: 0.5rem 1rem;
         border: 1px solid var(--border-primary);
-        border-radius: 0.25rem;
+        border-radius: 1rem;
         font-size: 0.875rem;
         transition: all 200ms;
     }
@@ -1454,6 +1433,7 @@ Quick start examples demonstrating core MD-LD patterns and features.
         display: flex;
         flex-wrap: wrap;
         gap: 1em;
+        z-index: 200;
     }
 
     .section-title {
@@ -2882,11 +2862,16 @@ Quick start examples demonstrating core MD-LD patterns and features.
     .details summary span[style*="flex"] {
         flex: 1;
         min-width: 0;
+    }
+
+    #example-selector button {
+        flex: 1 1 80px;
     }/*$vite$:1*/</style>
 </head>
 
 <body class="main-content">
     <main class="container max-w-4xl mx-auto p-4">
+
         <header class="header">
             <div class="logo">
                 <span class="opacity-50">{</span><span class="text-orange-600 dark:text-orange-400">=+ .?!</span><span
@@ -2896,30 +2881,30 @@ Quick start examples demonstrating core MD-LD patterns and features.
             <h2 class="subtitle">Markdown Linked Data</h2>
             <p class="tagline">Human-friendly knowledge graph authoring</p>
             <nav class="nav">
-                <a href="https://github.com/davay42/mdld-parse" target="blank" class="nav-link">📦 GitHub</a>
-                <a href="https://www.npmjs.com/package/mdld-parse" target="blank" class="nav-link">📦 npm</a>
+                <a href="/docs.html" target="_blank" class="nav-link">Documentation</a>
+                <a href="/docs.html#/./docs/guide" target="_blank" class="nav-link">Guide</a>
             </nav>
         </header>
-
-        <div id="example-selector" class="p-2 mb-4 flex gap-2 justify-center flex-wrap">
-            <button class="button" onclick="loadExample('minimal')">Minimal</button>
-            <button class="button" onclick="loadExample('journal')">Journal</button>
-            <button class="button" onclick="loadExample('recipe')">Recipe</button>
-            <button class="button" onclick="loadExample('project')">Project</button>
-            <button class="button" onclick="loadExample('space-mission')">Space Mission</button>
-            <button class="button" onclick="loadExample('research')">Research</button>
-            <button class="button" style="background-color: #E006;" onclick="clearPlayground()">
-                🗑️ Clear
-            </button>
-        </div>
-
 
         <section id="playground" class="section">
             <!-- MD-LD Input Section -->
             <div style="flex: 1 0 220px; max-width:100%;">
+
+                <div id="example-selector" class="p-2 mb-4 flex gap-2 justify-center flex-wrap">
+                    <button class="button" onclick="loadExample('minimal')">Minimal</button>
+                    <button class="button" onclick="loadExample('journal')">Journal</button>
+                    <button class="button" onclick="loadExample('recipe')">Recipe</button>
+                    <button class="button" onclick="loadExample('project')">Project</button>
+                    <button class="button" onclick="loadExample('space-mission')">Space Mission</button>
+                    <button class="button" onclick="loadExample('research')">Research</button>
+                    <button class="button" style="background-color: #E006;" onclick="clearPlayground()">
+                        🗑️ Clear
+                    </button>
+                </div>
+
                 <div class="editor-container" style="position: relative;">
                     <div id="editor" class="editor"
-                        style="min-width: 100%;max-height:90svh; min-height: 400px;hyphens: auto; overflow-wrap:break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.5; padding: 12px; background: var(--bg-primary, white); color: var(--text-primary, #1f2937); border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+                        style="min-width: 100%;max-height:80svh; min-height: 400px;hyphens: auto; overflow-wrap:break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.5; padding: 12px; background: var(--bg-primary, white); color: var(--text-primary, #1f2937); border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
                     </div>
                     <style>
                         .editor {
@@ -2969,8 +2954,8 @@ Quick start examples demonstrating core MD-LD patterns and features.
                     </summary>
                     <div class="m-2">
                         <div class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 w-full"
-                            style="height: 300px; min-height: 300px;">
-                            <rdf-graph id="statements-graph" height="300" charge="-120" link-dist="180"></rdf-graph>
+                            style="height: 400px;">
+                            <rdf-graph id="statements-graph" height="400" charge="-120" link-dist="180"></rdf-graph>
                         </div>
                     </div>
                 </details>
@@ -3027,6 +3012,8 @@ Quick start examples demonstrating core MD-LD patterns and features.
         </section>
 
 
+
+
         <section class="section">
             <section id="format">
                 <h3 class="section-title">📖 What is MD-LD?</h3>
@@ -3056,61 +3043,55 @@ Quick start examples demonstrating core MD-LD patterns and features.
             </section>
 
 
-            <details class="w-full details max-w-4xl mx-auto" id="spec">
-                <summary class="font-bold text-xl cursor-pointer">
-                    <span>MD-LD Specification</span>
-                    <span style="flex:1"></span>
-                    <span id="spec-status" class="stats"></span>
-                </summary>
 
-                <div class="flex gap-2 mb-2 items-center"></div>
-                <article id="spec-content" class="max-h-96 overflow-y-scroll  rounded p-4 ">
-                    <p class="text-center text-gray-600 dark:text-gray-400 p-8">Loading specification...</p>
-                </article>
-            </details>
-
-            <details class="details mx-auto w-full" id="tests">
-                <summary class="p-4 text-xl font-bold cursor-pointer">
-                    <span>Test Suite</span>
-                    <span style="flex:1"></span>
-                    <span id="test-status" class="stats"></span>
-                </summary>
-                <div class="p-2">
-                    <div class="flex gap-2 m-2 items-center">
-                        <button onclick="runAllTests()" class="button primary">▶ Run Tests</button>
-                        <button onclick="clearTests()" class="button">🗑️ Clear</button>
-                    </div>
-                    <div id="test-progress"
-                        class="h-1 bg-gray-600 dark:bg-gray-500 rounded-sm overflow-hidden mb-2 hidden">
-                        <progress id="test-progress-bar" class="h-full bg-green-600 transition-all duration-300"
-                            role="progressbar" aria-label="Test progress"></progress>
-                    </div>
-                    <div id="test-stats" class="test-grid hidden">
-                        <article class="stat-card">
-                            <div id="passed-count" class="stat-number text-green-600 dark:text-green-400">0</div>
-                            <div class="stat-label">Passed</div>
-                        </article>
-                        <article class="stat-card">
-                            <div id="failed-count" class="stat-number text-red-600 dark:text-red-400">0</div>
-                            <div class="stat-label">Failed</div>
-                        </article>
-                        <article class="stat-card">
-                            <div id="total-count" class="stat-number text-blue-600 dark:text-blue-400">0</div>
-                            <div class="stat-label">Total</div>
-                        </article>
-                        <article class="stat-card">
-                            <div id="duration" class="stat-number">0ms</div>
-                            <div class="stat-label">Duration</div>
-                        </article>
-                    </div>
-                    <div id="test-list" class="max-h-80 overflow-y-auto">
-                        <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on page
-                            load...</p>
-                    </div>
-                </div>
-            </details>
         </section>
+
+        <details class="details mx-auto w-full" id="tests">
+            <summary class="p-4 text-xl font-bold cursor-pointer">
+                <span>Test Suite</span>
+                <span style="flex:1"></span>
+                <span id="test-status" class="stats"></span>
+            </summary>
+            <div class="p-2">
+                <div class="flex gap-2 m-2 items-center">
+                    <button onclick="runAllTests()" class="button primary">▶ Run Tests</button>
+                    <button onclick="clearTests()" class="button">🗑️ Clear</button>
+                </div>
+                <div id="test-progress" class="h-1 bg-gray-600 dark:bg-gray-500 rounded-sm overflow-hidden mb-2 hidden">
+                    <progress id="test-progress-bar" class="h-full bg-green-600 transition-all duration-300"
+                        role="progressbar" aria-label="Test progress"></progress>
+                </div>
+                <div id="test-stats" class="test-grid hidden">
+                    <article class="stat-card">
+                        <div id="passed-count" class="stat-number text-green-600 dark:text-green-400">0</div>
+                        <div class="stat-label">Passed</div>
+                    </article>
+                    <article class="stat-card">
+                        <div id="failed-count" class="stat-number text-red-600 dark:text-red-400">0</div>
+                        <div class="stat-label">Failed</div>
+                    </article>
+                    <article class="stat-card">
+                        <div id="total-count" class="stat-number text-blue-600 dark:text-blue-400">0</div>
+                        <div class="stat-label">Total</div>
+                    </article>
+                    <article class="stat-card">
+                        <div id="duration" class="stat-number">0ms</div>
+                        <div class="stat-label">Duration</div>
+                    </article>
+                </div>
+                <div id="test-list" class="max-h-80 overflow-y-auto">
+                    <p class="text-center text-gray-600 dark:text-gray-400 p-4">Tests will run automatically on page
+                        load...</p>
+                </div>
+            </div>
+        </details>
     </main>
+
+    <nav class="nav" style="padding-bottom:2em">
+
+        <a href="https://github.com/davay42/mdld-parse" target="blank" class="nav-link">GitHub</a>
+        <a href="https://www.npmjs.com/package/mdld-parse" target="blank" class="nav-link">NPM</a>
+    </nav>
 
 
 

@@ -6,7 +6,16 @@ Write semantic data in natural Markdown, parse to RDF quads, build deterministic
 
 [![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
 
-[Demo](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse)
+[Homepage](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse)
+
+
+## 📚 Documentation Hub
+
+- **📋 [Specification](./spec/index.md)** — Formal specification and test suite
+- **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
+- **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
+- **📚 [Grammar](./grammar/index.md)** — EBNF grammar specification
+- **🧩 [Ontologies](./ontologies/index.md)** — W3C and related standard ontologies used in RDF
 
 ## 🎯 What is MD-LD?
 
@@ -25,15 +34,22 @@ Human text → Graph immediately
 **Core value:** Author and maintain knowledge graphs as plain text with deterministic round-trip safety. No platforms, databases, or proprietary SaaS mediation required.
 
 ```markdown
-[ex] <http://example.org/>
+[ex] <tag:alice@example.com,2026:>
 
-# Document {=ex:doc .Article label}
+# My Bookmarks {=ex:bookmarks .prov:Entity .Container label}
 
-[Alice] {=ex:alice ?ex:author .prov:Person ex:firstName label}
-[Smith] {ex:lastName}
+> This is my first MD-LD document - a Bookmarks Collection {comment}
+
+Created by [Alice] {+ex:alice ?ex:author .prov:Person label} at `2026-06-01T11:54:22.153Z` {prov:wasGeneratedAt ^^xsd:dateTime}.
+
+## Main Sources
+
+[MD-LD website](https://mdld.js.org/) {?member label}
+[Temporal API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) {?member label}
 ```
 
 **Generates RDF quads** that work with n3.js, rdflib, and any RDF/JS-compatible library.
+
 
 ## 🚀 Quick Start
 
@@ -74,6 +90,7 @@ Users cannot access the graph directly. Semantics are hidden. Data is locked in 
 MD-LD removes the intermediary. Writing becomes publishing. Publishing becomes graph construction.
 
 **Key benefits:**
+
 - **Graph sovereignty** — You own text, graph, provenance, execution, history
 - **No central platform required** — Works offline, in browsers, on servers
 - **Universal semantic substrate** — Agents can read, reason, write, execute, validate
@@ -87,46 +104,42 @@ MD-LD removes the intermediary. Writing becomes publishing. Publishing becomes g
 ```markdown
 [alice] <tag:alice@example.com,2026:>
 
-# Meeting Notes {=alice:meeting-2024-01-15 .alice:Meeting}
+# Meeting Notes {=alice:meeting-2024-01-15 .alice:Meeting label}
 
 Attendees:
-- **Alice** {+alice:alice ?alice:attendee label}
-- **Bob** {+alice:bob ?alice:attendee label}
+**Alice** {+alice:alice ?alice:attendee label}
+**Bob** {+alice:bob ?alice:attendee label}
 
 Action items:
-- **Review proposal** {+alice:task-1 ?alice:actionItem label}
+**Review proposal** {+alice:task-1 ?alice:actionItem label}
 ```
 
 #### Developer Documentation
 ```markdown
-# API Endpoint {=api:/users/:id .api:Endpoint}
+[api] <tag:brian@example.org,2026:app/api/>
+# Get User by ID {=api:/users/:id .api:Endpoint label}
 
-[GET] {api:method}
-[/users/:id] {api:path}
+Method: [GET] {+api:methods/GET ?api:method}
+Path: [/users/:id] {api:path}
+Status: [OK] {api:status}
 ```
 
 #### Academic Research
 ```markdown
-# Paper {=alice:paper-semantic-markdown .alice:ScholarlyArticle}
+[alice] <tag:alice@example.org,2026:>
+# Semantic Web {=alice:research/paper-semantic-markdown .alice:ScholarlyArticle label}
+Is part of [semantic research] {+alice:research/semantic !member}
 
-[Semantic Web] {label}
-[Alice Johnson] {=alice:alice-johnson ?alice:author}
-[2024-01] {alice:datePublished ^^xsd:gYear}
+Authored by [Alice Johnson] {+alice:alice-johnson ?alice:author} on [2026-08-12] {alice:datePublished ^^xsd:date}.
 ```
 
 #### Content Management
 ```markdown
-# Understanding MD-LD {=blog:post-mdld .blog:Post}
+[blog] <tag:justin@example.org,2026:>
+# Understanding MD-LD {=blog:post-mdld .blog:Post label}
 
-[MD-LD] {blog:emphasized label} allows you to embed RDF directly in Markdown.
+[MD-LD] {blog:emphasized} allows you to embed RDF directly in Markdown.
 ```
-
-## 📚 Documentation Hub
-
-- **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
-- **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
-- **📋 [Specification](./spec/index.md)** — Formal specification and test suite
-- **🔄 [Diff Generation](./docs/diff.md)** — Automatic diff document generation for CRDT workflows
 
 ## ✨ Core Features
 
@@ -144,40 +157,92 @@ Action items:
 - **🏷️ Primary metadata quartet** — Subject, type, label, comment for document identity
 - **🔄 Round-trip safety** — Deterministic parse ↔ generate cycles
 
+**Bundle size:** 86KB unminified, 20KB gzipped
+
 ## 📦 Installation
 
 ### Node.js
 
 ```bash
 pnpm install mdld-parse
+node -e "
+import { parse } from 'mdld-parse';
+console.log(parse({ text: '# Test {=tag:test@example.org,2026:index .prov:Entity label}' }));
+"
 ```
 
-```javascript
-import { parse, generate, merge } from 'mdld-parse';
-
-const mdld = `[ex] <http://example.org/>
-
-# Document {=ex:doc .Article label}
-
-[Alice] {=ex:alice ?ex:author .prov:Person ex:firstName label}
-[Smith] {ex:lastName}`;
-
-const result = parse({ text: mdld });
-console.log(result.quads); // RDF/JS quads
-console.log(result.primary); // { subject, type, label, comment }
-console.log(result.statements); // Elevated statements
-```
-
-### Browser (ES Modules)
+### Browser ESM (importmap)
 
 ```html
+<script type="importmap">
+{
+  "imports": {
+    "mdld-parse": "https://cdn.jsdelivr.net/npm/mdld-parse/+esm",
+  }
+}
+</script>
 <script type="module">
-  import { parse } from 'https://cdn.jsdelivr.net/npm/mdld-parse/+esm';
-  const result = parse('[ex] <http://example.org/>\n\n# Hello {=ex:hello label}');
+  import { parse } from 'mdld-parse';
+  const result = parse('[ex] <tag:my@example.com,2026:test/>\n\n# Hello {=ex:init .prov:Activity label}');
 </script>
 ```
 
-**Bundle size:** 84KB unminified, 19KB gzipped
+### Example use in browser console
+
+You can copy and paste this code into your browser console to see the list of tasks as an easy to render JSON object. 
+
+```javascript
+const mdld = await import('https://cdn.jsdelivr.net/npm/mdld-parse/+esm')
+
+const text = `[my] <tag:alice@example.org:>
+
+# Tasks {=my:tasks .prov:Collection label}
+
+## Task 1 {=my:tasks/1 .prov:Activity label}
+One of my [urgent] {my:tasks/status} [tasks] {+my:tasks !prov:hadMember}
+> Explore deeper the concept of a triple in RDF {comment}
+
+## Task 2 {=my:tasks/2 .prov:Activity label}
+One of my [tasks] {+my:tasks !prov:hadMember}
+> Start building knowledge graphs {comment}
+`;
+
+const result = parse({ text });
+
+function extractByType (quads, type) {
+  return Object.values(
+    quads.reduce((acc, q) => {
+      const s = q.subject.value;
+      const key = q.predicate.value.split(/[#/]/).pop();
+
+      (acc[s] ??= { iri: s })[key] = q.object.value;
+
+      return acc;
+    }, {})
+  )
+  .filter(x => x.type === type)
+  .map(({ type, ...x }) => x);
+}
+
+const tasks = extractByType(result.quads,"http://www.w3.org/ns/prov#Activity")
+
+console.log(tasks);
+/*
+[
+  {
+    "iri": "tag:alice@example.org:tasks/1",
+    "label": "Task 1",
+    "status": "urgent",
+    "comment": "Explore deeper the concept of a triple in RDF"
+  },
+  {
+    "iri": "tag:alice@example.org:tasks/2",
+    "label": "Task 2",
+    "comment": "Start building knowledge graphs"
+  }
+]
+*/
+```
 
 ## 🧠 Semantic Model
 
@@ -200,20 +265,29 @@ Each predicate form determines the graph edge:
 ## 🎨 Syntax Quick Reference
 
 ### Subject Declaration
+
 Set current subject (emits no quads):
+
 ```markdown
+[ex] <tag:nasa@example.org,2026:>
 ## Apollo 11 {=ex:apollo11}
 ```
 
 ### Type Declaration
+
 Emit `rdf:type` triple:
+
 ```markdown
-## Apollo 11 {=ex:apollo11 .SpaceMission .Event}
+[ex] <tag:nasa@example.org,2026:>
+## Apollo 11 {=ex:apollo11 .ex:SpaceMission .prov:Entity}
 ```
 
 ### Literal Properties
+
 Inline value carriers emit literal properties:
+
 ```markdown
+[ex] <tag:nasa@example.org,2026:>
 # Mission {=ex:apollo11}
 [Neil Armstrong] {ex:commander}
 [1969] {ex:year ^^xsd:gYear}
@@ -221,31 +295,52 @@ Inline value carriers emit literal properties:
 ```
 
 ### Object Properties
+
 Links create relationships (use `?` prefix):
+
 ```markdown
+[ex] <tag:nasa@example.org,2026:>
 # Mission {=ex:apollo11}
 [NASA] {=ex:nasa ?ex:organizer}
 ```
 
 ### Resource Declaration
+
 Declare resources inline with `{+iri}`:
+
 ```markdown
+[ex] <tag:nasa@example.org,2026:>
 # Mission {=ex:apollo11}
 [Neil Armstrong] {+ex:armstrong ?ex:commander .Person}
 ```
 
 ### Diff Authoring (Polarity)
-Use `+` and `-` for retractions:
-```markdown
-# Update value
-[Person] {=ex:person}
-[Alice] {-ex:name}
-[Bob] {ex:name}
 
-# Remove triple
-[Person] {=ex:person}
-[Alice] {-ex:friend}
+Use `+` and `-` for retractions:
+
+```markdown
+[ex] <tag:carol@example.org,2026:>
+
+New student [Alice] {=ex:new-student .prov:Person ex:name} is our [class] {+ex:my-class !member}. I think she might know [Bob] {+ex:bob ?ex:knows}.
+
+**Correction:** [Her] {=ex:new-student} name is not [Alice] {-ex:name}, it's [Ellie] {ex:name}.
+
+**Correction:** I asked her directly - no, she doesn't know [him] {+ex:bob -?ex:knows}.
+
+**IRI replacement:** Let's create a proper [Class] {=ex:my-class} record for [Ellie] {+ex:Ellie .prov:Person ex:name label ?member} instead of temporary [Ellie] {+ex:new-student -.prov:Person -ex:name -?member} record created earlier.
 ```
+
+After `generate(parse({text}))` would look like this:
+```markdown
+[ex] <tag:carol@example.org,2026:>
+
+# Ellie {=ex:Ellie .prov:Person label}
+[Ellie] {ex:name}
+
+# my-class {=ex:my-class}
+[ex:Ellie] {+ex:Ellie ?member}
+```
+
 
 ## 🔧 API Reference
 
@@ -372,7 +467,7 @@ import {
 ## 🏗️ Architecture
 
 ### Design Principles
-- **Zero dependencies** — Pure JavaScript, 84KB unminified (19KB gzipped)
+- **Zero dependencies** — Pure JavaScript, 85KB unminified (20KB gzipped)
 - **Streaming-first** — Single-pass parsing, O(n) complexity
 - **Character-based tokenization** — 20-28% faster than regex-based approaches
 - **Standards-compliant** — RDF/JS data model, W3C CURIE 1.0 syntax
@@ -428,10 +523,26 @@ Comprehensive test suite covering:
 - Round-trip parse/generate cycles
 - Origin tracking and provenance
 
-## 📚 Additional Resources
+## Governance
 
-- **[Documentation](./docs/index.md)** — Complete guides and references
-- **[Specification](./spec/index.md)** — Formal specification
-- **[Examples](./examples/index.md)** — Real-world examples
-- **[Grammar](./grammar/mdld.ebnf)** — EBNF grammar specification
-- **[VS Code Extension](https://marketplace.visualstudio.com/)** — Syntax highlighting (coming soon)
+MD-LD is a craft project. Its coherence comes from a single evolving understanding of how semantic text should work — not from consensus, but from sustained attention to the same problem over time.
+
+This means:
+
+- Decisions are made by the steward, informed by discussion and use
+- The project prioritizes conceptual integrity over inclusiveness
+- Contributions that align with the model are welcomed and incorporated
+- Contributions that expand scope without deepening coherence are respectfully declined
+- The spec will not grow features to attract users — it will grow depth to serve understanding
+
+## Licensing
+
+MD-LD is published as copyrighted source material. No open-source license applies.
+
+Governance and licensing are determined by the author as the project evolves.
+
+Individuals and small groups are welcome to study, use, and build with MD-LD.
+
+Organizations that need a formal license grant are invited to contact the author.
+
+All rights remain reserved.
