@@ -532,12 +532,14 @@ This means:
 
 ## Licensing
 
-MD-LD is published as copyrighted source material. No open-source license applies.
+MD-LD is currently published as copyrighted source material.
 
-Governance and licensing are determined by the author as the project evolves.
+The project is under active development and no open-source license has been selected yet.
 
-Individuals and small groups are welcome to study, use, and build with MD-LD.
+Individuals, researchers, educators, and non-commercial users are welcome to experiment with the technology.
 
-Organizations that need a formal license grant are invited to contact the author.
+Organizations interested in production or commercial use should contact the author.
 
-All rights remain reserved.
+The long-term governance and licensing model remains under evaluation.
+
+The primary goal at this stage is preserving the simplicity, interoperability, and long-term integrity of the system while the ecosystem forms around it.
