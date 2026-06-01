@@ -523,14 +523,26 @@ Comprehensive test suite covering:
 - Round-trip parse/generate cycles
 - Origin tracking and provenance
 
+## Governance
+
+MD-LD is a craft project. Its coherence comes from a single evolving understanding of how semantic text should work — not from consensus, but from sustained attention to the same problem over time.
+
+This means:
+
+- Decisions are made by the steward, informed by discussion and use
+- The project prioritizes conceptual integrity over inclusiveness
+- Contributions that align with the model are welcomed and incorporated
+- Contributions that expand scope without deepening coherence are respectfully declined
+- The spec will not grow features to attract users — it will grow depth to serve understanding
+
 ## Licensing
 
-MD-LD is currently published as copyrighted source material.
+MD-LD is published as copyrighted source material. No open-source license applies.
 
-The project is under active development and no open-source license has been selected yet.
+Governance and licensing are determined by the author as the project evolves.
 
-Individuals, researchers, educators, and non-commercial users are welcome to experiment with the technology.
+Individuals and small groups are welcome to study, use, and build with MD-LD.
 
-Organizations interested in production or commercial use should contact the author.
+Organizations that need a formal license grant are invited to contact the author.
 
-The long-term governance and licensing model remains under evaluation.
+All rights remain reserved.
