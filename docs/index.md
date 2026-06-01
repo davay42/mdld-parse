@@ -2,7 +2,7 @@
 
 ## 📚 Getting Started
 
-### [MD-LD Authoring Guide](./guide.md)
+### [MD-LD Authoring Guide](./Guide.md)
 Single comprehensive document to learn MD-LD syntax and authoring techniques. Start here for the mental model and core patterns.
 
 ### [One Page Guide](./one-page.md)
