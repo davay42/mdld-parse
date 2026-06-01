@@ -207,7 +207,7 @@ function groupQuadsByNode(quads) {
         ensure(predicate.value).push(quad);
 
         // 4. Type (instances - where this IRI is the class/type)
-        if (predicate.value === RDFS_TYPE && object.termType === 'NamedNode') {
+        if (predicate.value === RDF_TYPE && object.termType === 'NamedNode') {
             ensure(object.value).push(quad);
         }
 
