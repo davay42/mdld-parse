@@ -511,7 +511,7 @@ Defines a thing that is of interest to an agent.
 ### focus {=foaf:focus .owl:ObjectProperty .rdf:Property label}
 [The underlying or 'focal' entity associated with some SKOS-described concept.] {comment}
 [testing] {vs:term_status}
-[Concept] {+http://www.w3.org/2004/02/skos/core#Concept ?domain}
+[Concept] {+skos:Concept ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
 [Thing] {+owl:Thing ?range}
 
@@ -614,7 +614,7 @@ Indicates creative provenance from an agent to a thing they produced.
 [Thing] {+owl:Thing ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
 [Agent] {+foaf:Agent ?range}
-[http://purl.org/dc/terms/creator] {+http://purl.org/dc/terms/creator ?owl:equivalentProperty}
+[creator] {+dct:creator ?owl:equivalentProperty}
 [made] {+foaf:made ?owl:inverseOf}
 
 Traces the origin of a thing back to the producing agent.
