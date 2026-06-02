@@ -277,42 +277,38 @@ Captures historical involvement with a project that is no longer current.
 ## The Digital Footprint
 ========================
 
-To bridge physical entities with their virtual actions, [FOAF] {=foaf:} provides an extensive framework for classifying **Online Accounts** {+OnlineAccount !isDefinedBy}. Rather than flattening account usernames into simple string attributes on a person, FOAF models an account as a standalone resource with a dedicated service home, separating real-world network actors from their provider spaces.
+To bridge physical entities with their virtual actions, [FOAF] {=foaf:} provides an extensive framework for classifying **Online Accounts** {+OnlineAccount !isDefinedBy}: **OnlineChatAccount** {+foaf:OnlineChatAccount !isDefinedBy}, **OnlineEcommerceAccount** {+foaf:OnlineEcommerceAccount !isDefinedBy}, **OnlineGamingAccount** {+foaf:OnlineGamingAccount !isDefinedBy}. Rather than flattening account usernames into simple string attributes on a person, FOAF models an account as a standalone resource with a dedicated service home, separating real-world network actors from their provider spaces.
 
 ### Online Account {=foaf:OnlineAccount .Class .owl:Class label}
-[An online account.] {comment}
+> An online account. {comment}
 [testing] {vs:term_status}
-[foaf:] {+foaf: ?isDefinedBy}
 [Thing] {+owl:Thing ?subClassOf}
 
 A structured account resource representing credentials, service URLs, or provider identity.
 
-### Online Chat Account {=foaf:OnlineChatAccount .Class .owl:Class label}
-[An online chat account.] {comment}
+### OnlineChatAccount {=foaf:OnlineChatAccount .Class .owl:Class label}
+> An online chat account. {comment}
 [unstable] {vs:term_status}
-[foaf:] {+foaf: ?isDefinedBy}
 [Online Account] {+foaf:OnlineAccount ?subClassOf}
 
 Models instant messaging accounts as typed resources.
 
 ### Online E-commerce Account {=foaf:OnlineEcommerceAccount .Class .owl:Class label}
-[An online e-commerce account.] {comment}
+> An online e-commerce account. {comment}
 [unstable] {vs:term_status}
-[foaf:] {+foaf: ?isDefinedBy}
 [Online Account] {+foaf:OnlineAccount ?subClassOf}
 
 Represents retail or payment-related online identities.
 
 ### Online Gaming Account {=foaf:OnlineGamingAccount .Class .owl:Class label}
-[An online gaming account.] {comment}
+> An online gaming account. {comment}
 [unstable] {vs:term_status}
-[foaf:] {+foaf: ?isDefinedBy}
 [Online Account] {+foaf:OnlineAccount ?subClassOf}
 
 Represents gaming profile identities with separate semantics.
 
 ### account {=foaf:account .owl:ObjectProperty .rdf:Property label}
-[Indicates an account held by this agent.] {comment}
+> Indicates an account held by this agent. {comment}
 [testing] {vs:term_status}
 [Agent] {+foaf:Agent ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -330,7 +326,7 @@ Links an agent to a structured online account resource.
 The identifier string associated with an account, such as a username.
 
 ### account service homepage {=foaf:accountServiceHomepage .owl:ObjectProperty .rdf:Property label}
-[Indicates a homepage of the service provide for this online account.] {comment}
+> Indicates a homepage of the service provide for this online account. {comment}
 [testing] {vs:term_status}
 [Online Account] {+foaf:OnlineAccount ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -339,7 +335,7 @@ The identifier string associated with an account, such as a username.
 A service homepage for the online provider behind the account.
 
 ### openid {=foaf:openid .owl:InverseFunctionalProperty .owl:ObjectProperty .rdf:Property label}
-[An OpenID for an Agent.] {comment}
+> An OpenID for an Agent. {comment}
 [testing] {vs:term_status}
 [Agent] {+foaf:Agent ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -349,7 +345,7 @@ A service homepage for the online provider behind the account.
 A unique federated identity used to authenticate an agent across services.
 
 ### personal mailbox {=foaf:mbox .owl:InverseFunctionalProperty .owl:ObjectProperty .rdf:Property label}
-[A  personal mailbox, ie. an Internet mailbox associated with exactly one owner, the first owner of this mailbox. This is a 'static inverse functional property', in that  there is (across time and change) at most one individual that ever has any particular value for foaf:mbox.] {comment}
+> A  personal mailbox, ie. an Internet mailbox associated with exactly one owner, the first owner of this mailbox. This is a 'static inverse functional property', in that  there is (across time and change) at most one individual that ever has any particular value for foaf:mbox. {comment}
 [stable] {vs:term_status}
 [Agent] {+foaf:Agent ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -358,7 +354,7 @@ A unique federated identity used to authenticate an agent across services.
 A unique mailbox URI used as a global identifier for an agent.
 
 ### sha1sum of a personal mailbox URI name {=foaf:mbox_sha1sum .owl:DatatypeProperty .owl:InverseFunctionalProperty .rdf:Property label}
-[The sha1sum of the URI of an Internet mailbox associated with exactly one owner, the  first owner of the mailbox.] {comment}
+> The sha1sum of the URI of an Internet mailbox associated with exactly one owner, the  first owner of the mailbox. {comment}
 [testing] {vs:term_status}
 [Agent] {+foaf:Agent ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -379,7 +375,7 @@ A hashed mailbox identifier useful for privacy-preserving agent references.
 Information delivery and publishing context are modeled in [FOAF] {=foaf:} via the **Document** {+Document !isDefinedBy} class. This section governs how resources link out to contextual hubs like personal blogs, corporate web instances, project definitions, or structured cryptographic checksum pointers.
 
 ### Document {=foaf:Document .Class .owl:Class label}
-[A document.] {comment}
+> A document. {comment}
 [stable] {vs:term_status}
 [foaf:] {+foaf: ?isDefinedBy}
 [Organization] {+foaf:Organization ?owl:disjointWith}
@@ -389,14 +385,36 @@ Information delivery and publishing context are modeled in [FOAF] {=foaf:} via t
 A generic web or publication resource used as the target of FOAF web and document relations.
 
 ### PersonalProfileDocument {=foaf:PersonalProfileDocument .Class .owl:Class label}
-[A personal profile RDF document.] {comment}
+> A personal profile RDF document. {comment}
 [testing] {vs:term_status}
 [Document] {+foaf:Document ?subClassOf}
 
 A specialized document class for personal FOAF profiles.
 
+### primaryTopic {=foaf:primaryTopic .owl:FunctionalProperty .owl:ObjectProperty .rdf:Property label}
+
+> The primary topic of some page or document. {comment}
+
+[stable] {vs:term_status}
+[Thing] {+owl:Thing ?range}
+[foaf:] {+foaf: ?isDefinedBy}
+[Document] {+foaf:Document ?domain}
+[isPrimaryTopicOf] {+foaf:isPrimaryTopicOf ?owl:inverseOf}
+[page] {+foaf:page ?subPropertyOf}
+
+### isPrimaryTopicOf {=foaf:isPrimaryTopicOf .owl:InverseFunctionalProperty .rdf:Property label}
+
+> A document that this thing is the primary topic of. {comment}
+
+[stable] {vs:term_status}
+[Thing] {+owl:Thing ?domain}
+[foaf:] {+foaf: ?isDefinedBy}
+[Document] {+foaf:Document ?range}
+[primaryTopic] {+foaf:primaryTopic ?owl:inverseOf}
+[page] {+foaf:page ?subPropertyOf}
+
 ### homepage {=foaf:homepage .owl:InverseFunctionalProperty .owl:ObjectProperty .rdf:Property label}
-[A homepage for some thing.] {comment}
+> A homepage for some thing. {comment}
 [stable] {vs:term_status}
 [Thing] {+owl:Thing ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -407,7 +425,7 @@ A specialized document class for personal FOAF profiles.
 A unique primary web page used to identify an entity online.
 
 ### weblog {=foaf:weblog .owl:InverseFunctionalProperty .owl:ObjectProperty .rdf:Property label}
-[A weblog of some thing (whether person, group, company etc.).] {comment}
+> A weblog of some thing (whether person, group, company etc.). {comment}
 [stable] {vs:term_status}
 [Agent] {+foaf:Agent ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -417,7 +435,7 @@ A unique primary web page used to identify an entity online.
 A blog or web log resource linked to an agent.
 
 ### page {=foaf:page .owl:ObjectProperty .rdf:Property label}
-[A page or document about this thing.] {comment}
+> A page or document about this thing. {comment}
 [stable] {vs:term_status}
 [Thing] {+owl:Thing ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -427,7 +445,7 @@ A blog or web log resource linked to an agent.
 A generic document or page related to a thing.
 
 ### publications {=foaf:publications .owl:ObjectProperty .rdf:Property label}
-[A link to the publications of this person.] {comment}
+> A link to the publications of this person. {comment}
 [testing] {vs:term_status}
 [Person] {+foaf:Person ?domain}
 [foaf:] {+foaf: ?isDefinedBy}
@@ -604,132 +622,4 @@ Traces the origin of a thing back to the producing agent.
 ## Deprecated and Historical Profile Properties
 ===============================================
 
-[FOAF] {=foaf:} has a long history and many old and abandoned terms that are kept around for backwards compatibility. They are marked as `archaic`: *fundedBy* {+foaf:fundedBy !isDefinedBy}, *theme* {+foaf:theme !isDefinedBy}
-
-### funded by {=foaf:fundedBy .owl:ObjectProperty .rdf:Property label}
-
-> An organization funding a project or person. {comment}
-
-[archaic] {vs:term_status}
-
-Connects two [Things] {+owl:Thing ?domain ?range}. An older property for financial support relationships, preserved here for legacy FOAF graphs.
-
-### theme {=foaf:theme .owl:ObjectProperty .rdf:Property label}
-
-> A theme. {comment}
-
-[archaic] {vs:term_status}
-
-Connects two [Things] {+owl:Thing ?domain ?range}
-
-A legacy document theme property preserved for historical FOAF graphs.
-
-### family_name {=foaf:family_name .owl:DatatypeProperty .rdf:Property label}
-[The family name of some person.] {comment}
-[archaic] {vs:term_status}
-[Person] {+foaf:Person ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-
-An older family name property retained for legacy FOAF data.
-
-### Given name {=foaf:givenName .owl:DatatypeProperty .rdf:Property label}
-[The given name of some person.] {comment}
-[archaic] {vs:term_status}
-[foaf:] {+foaf: ?isDefinedBy}
-
-A deprecated spelling variant of givenName.
-
-### Surname {=foaf:surname .owl:DatatypeProperty .rdf:Property label}
-[The surname of some person.] {comment}
-[archaic] {vs:term_status}
-[Person] {+foaf:Person ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-
-An older synonym for familyName.
-
-### geekcode {=foaf:geekcode .owl:DatatypeProperty .rdf:Property label}
-[A textual geekcode for this person, see http://www.geekcode.com/geek.html] {comment}
-[archaic] {vs:term_status}
-[Person] {+foaf:Person ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-
-A playful legacy property for old social profiles.
-
-### DNA checksum {=foaf:dnaChecksum .owl:DatatypeProperty .rdf:Property label}
-[A checksum for the DNA of some thing. Joke.] {comment}
-[archaic] {vs:term_status}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-
-A humorous legacy property, preserved only for historical FOAF content.
-
-### AIM chat ID {=foaf:aimChatID .owl:DatatypeProperty .owl:InverseFunctionalProperty .rdf:Property label}
-[An AIM chat ID] {comment}
-[testing] {vs:term_status}
-[Agent] {+foaf:Agent ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-[nickname] {+foaf:nick ?subPropertyOf}
-
-A legacy IM handle for AIM.
-
-### jabber ID {=foaf:jabberID .owl:DatatypeProperty .owl:InverseFunctionalProperty .rdf:Property label}
-[A jabber ID for something.] {comment}
-[testing] {vs:term_status}
-[Agent] {+foaf:Agent ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-
-A Jabber/XMPP handle for an agent.
-
-### ICQ chat ID {=foaf:icqChatID .owl:DatatypeProperty .owl:InverseFunctionalProperty .rdf:Property label}
-[An ICQ chat ID] {comment}
-[testing] {vs:term_status}
-[Agent] {+foaf:Agent ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-[nickname] {+foaf:nick ?subPropertyOf}
-
-A legacy chat handle for ICQ.
-
-### MSN chat ID {=foaf:msnChatID .owl:DatatypeProperty .owl:InverseFunctionalProperty .rdf:Property label}
-[An MSN chat ID] {comment}
-[testing] {vs:term_status}
-[Agent] {+foaf:Agent ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-[nickname] {+foaf:nick ?subPropertyOf}
-
-A legacy chat handle for MSN.
-
-### Yahoo chat ID {=foaf:yahooChatID .owl:DatatypeProperty .owl:InverseFunctionalProperty .rdf:Property label}
-[A Yahoo chat ID] {comment}
-[testing] {vs:term_status}
-[Agent] {+foaf:Agent ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-[nickname] {+foaf:nick ?subPropertyOf}
-
-A legacy chat handle for Yahoo Messenger.
-
-### Skype ID {=foaf:skypeID .owl:DatatypeProperty .rdf:Property label}
-[A Skype ID] {comment}
-[testing] {vs:term_status}
-[Agent] {+foaf:Agent ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Literal] {+Literal ?range}
-[nickname] {+foaf:nick ?subPropertyOf}
-
-A chat handle for Skype.
-
-### account {=foaf:holdsAccount .owl:ObjectProperty .rdf:Property label}
-[Indicates an account held by this agent.] {comment}
-[archaic] {vs:term_status}
-[Agent] {+foaf:Agent ?domain}
-[foaf:] {+foaf: ?isDefinedBy}
-[Online Account] {+foaf:OnlineAccount ?range}
-
-An older form of the account relationship, preserved for compatibility.
+[FOAF] {=foaf:} has a long history and many old and abandoned terms that are kept around for backwards compatibility. They are marked as `archaic` in original ontology and are excluded from this document completely: *fundedBy* {+foaf:fundedBy !isDefinedBy}, *theme* {+foaf:theme !isDefinedBy}, *family_name* {+foaf:family_name !isDefinedBy}, *givenname* {+foaf:givenname !isDefinedBy}, *surname* {+foaf:surname !isDefinedBy}, *geekcode* {+foaf:geekcode !isDefinedBy} and *dnaChecksum* {+foaf:dnaChecksum !isDefinedBy} joke. We also exclude old per-service accound IDs: *aimChatID* {+foaf:aimChatID !isDefinedBy}, *jabberID* {+foaf:jabberID !isDefinedBy}, *icqChatID* {+foaf:icqChatID !isDefinedBy}, *msnChatID* {+foaf:msnChatID !isDefinedBy}, *yahooChatID* {+foaf:yahooChatID !isDefinedBy}, *skypeID* {+foaf:skypeID !isDefinedBy}, and generic *holdsAccount* {+foaf:holdsAccount !isDefinedBy}.
