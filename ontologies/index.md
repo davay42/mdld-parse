@@ -76,6 +76,13 @@ A social ontology for describing people, organizations, and their relationships.
 
 **Use case (2026):** Model social networks, organizational structures, and contact information. FOAF enables decentralized identity systems, social graph queries, and machine-readable profiles. It bridges personal web pages, professional networks, and organizational directories. Though partly superseded by Schema.org, FOAF remains the core vocabulary for semantic social networks.
 
+### [VCard](./vcard.md)
+
+A vocabulary for expressing digital business cards and structured contact information. VCard defines `vcard:fn`, `vcard:given-name`, `vcard:family-name`, `vcard:email`, `vcard:tel`, `vcard:adr`, and `vcard:url`, making it ideal for interoperable contact records across people, organizations, and events.
+
+**Use case (2026):** Model rich contact profiles and directory data for personal or organizational use. VCard is the standard for sharing address books, contact pages, and semantic business card information between applications and the web.
+
+
 ---
 
 ## Time & Events Ontologies
