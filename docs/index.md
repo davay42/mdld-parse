@@ -65,6 +65,9 @@ Deep dive into parser internals: token structures, state machines, and processin
 ### [Performance Benchmarks](./Performance.md)
 Grounded performance metrics from real-world ontologies (PROV-O, RDF+RDFS, SHACL). 60fps limits (~4.5K quads), 1-second batch processing (~225K quads), and sustained throughput (252K quads/sec).
 
+### [Token Efficiency](./Token-Efficiency.md)
+Grounded token consumption comparison between MD-LD, JSON-LD and TTL - two tokenizers, 7 example cases + scaling tests - all discover  higher density of triples per token and per character and demostrate high density of meaning achievable with MD-LD.
+
 ### [Human-Scale Software & Semantic Infrastructure](./Human-Scale.md)
 Philosophy manifesto: why semantic systems drift toward complexity, and how MD-LD enables human-readable, deterministic, locally-inspectable computation. Addresses preservation, long-term comprehensibility, and operational sustainability.
 
