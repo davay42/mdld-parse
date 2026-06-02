@@ -71,6 +71,9 @@ Grounded token consumption comparison between MD-LD, JSON-LD and TTL - two token
 ### [Human-Scale Software & Semantic Infrastructure](./Human-Scale.md)
 Philosophy manifesto: why semantic systems drift toward complexity, and how MD-LD enables human-readable, deterministic, locally-inspectable computation. Addresses preservation, long-term comprehensibility, and operational sustainability.
 
+### [Quad[] as a Universal Semantic Runtime](./quad-runtime.md)
+The paradigm shift from databases and query languages to pure Text->Quads[]->Text loop with JS as the graph traversal and transformation language and its Array interface as a graph database substrate.
+
 ---
 
 ## 📋 Real-World Applications
