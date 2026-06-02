@@ -19,20 +19,6 @@ This catalog [includes] {+cat:includes .rdf:Property label} all constraints and 
 [Targeting](#targeting-index)
 [Constraints](#constraints-index)
 
-
-
-
-
-
-{=}
-
-
-
-<a id="teach-getting-started"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
 # Getting Started with MDLD SHACL
 
 > Learn the fundamentals of SHACL validation in MDLD (Markdown Linked Data) {comment}
@@ -89,20 +75,6 @@ Validates all [User] {+ex:User ?sh:targetClass} instances to have a [name] {+ex:
 - See practical examples in the constraint documentation
 
 
-
-
-
-
-{=}
-
-
-
-<a id="targeting-index"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[class] <cat:class/>
-
 # Catalog {=cat:index}
 
 ## Targeting Mechanism {+class:Targeting ?member .Class label}
@@ -117,22 +89,6 @@ These are targeting predicates that determine which nodes get validated (not con
 ---
 
 [Syntax Reference](#syntax-reference)
-
-
-
-
-
-
-{=}
-
-
-
-<a id="targeting-targetclass"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[ex] <mdld:shacl/example/targeting/>
-
 
 # Target Class {=sh:targetClass .class:TargetingMechanism label}
 
@@ -234,14 +190,6 @@ Target class targets all nodes that are instances of a specific RDF class for sh
 - ❌ Confusing target class with target node
 - ❌ Not considering performance for large datasets
 - ❌ Overusing target class when target node would be more appropriate
-
-
-
-
-
-
-{=}
-
 
 
 <a id="targeting-targetnode"></a>
