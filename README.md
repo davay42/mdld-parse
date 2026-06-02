@@ -4,9 +4,9 @@
 
 MD-LD is the only RDF format that is both writable by humans and parseable by machines in the same document. Unlike Turtle (write-only), JSON-LD (machine-only), and RDFa (embedded-in-HTML-only), MD-LD annotations flow with natural Markdown prose — making knowledge graphs readable without a renderer.
 
-[![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse)
+**[mdld.js.org](https://mdld.js.org/)**
 
-[Homepage](https://mdld.js.org) | [Repository](https://github.com/davay42/mdld-parse)
+[![NPM](https://img.shields.io/npm/v/mdld-parse)](https://www.npmjs.com/package/mdld-parse/)
 
 
 ## 📚 Documentation Hub
@@ -14,7 +14,7 @@ MD-LD is the only RDF format that is both writable by humans and parseable by ma
 - **📋 [Specification](./spec/index.md)** — Formal specification and test suite
 - **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
 - **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
-- **📚 [Grammar](./grammar/index.md)** — EBNF grammar specification
+- **📚 [Grammar](./grammar/index.md)** — EBNF+TextMate grammar specifications
 - **🧩 [Ontologies](./ontologies/index.md)** — W3C and related standard ontologies used in RDF
 
 ## 🎯 What is MD-LD?
