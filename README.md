@@ -14,7 +14,7 @@ MD-LD is the only RDF format that is both writable by humans and parseable by ma
 - **📋 [Specification](./spec/index.md)** — Formal specification and test suite
 - **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
 - **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
-- **📚 [Grammar](./grammar/index.md)** — EBNF grammar specification
+- **📚 [Grammar](./grammar/index.md)** — EBNF+TextMate grammar specifications
 - **🧩 [Ontologies](./ontologies/index.md)** — W3C and related standard ontologies used in RDF
 
 ## 🎯 What is MD-LD?
