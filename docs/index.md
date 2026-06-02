@@ -68,6 +68,9 @@ Grounded performance metrics from real-world ontologies (PROV-O, RDF+RDFS, SHACL
 ### [Token Efficiency](./Token-Efficiency.md)
 Grounded token consumption comparison between MD-LD, JSON-LD and TTL - two tokenizers, 7 example cases + scaling tests - all discover  higher density of triples per token and per character and demostrate high density of meaning achievable with MD-LD.
 
+### [Knowledge Round Trip](./Knowledge-Round-Trip.md)
+The breathing cycles of knowledge from text to quads and back to composable text records - human-scale semantic documents that can be transformed back into other documents using scalable JS functions. Everything is readable at all times.
+
 ### [Human-Scale Software & Semantic Infrastructure](./Human-Scale.md)
 Philosophy manifesto: why semantic systems drift toward complexity, and how MD-LD enables human-readable, deterministic, locally-inspectable computation. Addresses preservation, long-term comprehensibility, and operational sustainability.
 

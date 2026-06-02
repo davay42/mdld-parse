@@ -99,6 +99,54 @@ For now, the essential observation is that the entire document — its schema, i
 
 ---
 
+## Naming Things: IRIs, Prefixes, and Authority
+
+Every node in a knowledge graph needs an identifier — an IRI (Internationalized Resource Identifier) that distinguishes Alice from every other Alice in the world. IRIs are the addresses of the semantic web, and MD-LD gives you three strategies for creating them, each suited to a different relationship between the author and the knowledge.
+
+The first strategy is self-sovereign identity through the `tag:` scheme defined in RFC 4151. A tag IRI requires nothing beyond an email address or domain you control, and it carries your authority directly in the identifier itself:
+
+```
+tag:alice@example.com,2026:
+     │                       │   └─ your subspace starts here
+     │                       └──── year you controlled this email
+     └─────────────────────────── your authority (email or domain)
+```
+
+Declare it once at the top of your document as a prefix, and every short name that follows expands to a globally unique IRI under your authority. `alice:person` becomes `tag:alice@example.com,2026:person`. `alice:journal/2026-05-06` becomes `tag:alice@example.com,2026:journal/2026-05-06`. No central registry, no certificate authority, no platform permission. The `tag:` scheme is yours by right of controlling the email address embedded in it, and anyone who sees the IRI can verify that authority.
+
+The second strategy is content-addressed identity through the `nih:` scheme defined in RFC 6920. Where `tag:` identifies who created something, `nih:` identifies what something is — by its cryptographic hash. A `nih:sha-256;...` IRI is computed from the content itself, and two documents that produce the same hash are the same document, regardless of who wrote them or where they are stored. This is how you build local-first content-addressed graphs: each span of text, each code block, each embedded resource can receive an IRI that is intrinsic to its content. If the content changes, the IRI changes. If the content is the same across two machines, the IRI is the same. The `nih:` scheme gives you deduplication, integrity checking, and peer-to-peer synchronization without any coordination server.
+
+The third strategy is the open web — `https://` IRIs that point to real locations on the internet. These are useful when your knowledge is about things that already have web addresses: Wikipedia articles, Wikidata entities, Schema.org types, API endpoints. A contact who works at `https://acme.com/` carries that organization's web identity directly in the graph.
+
+All three strategies interoperate in the same document. Your personal nodes use `tag:` under your authority. Shared resources use `https://`. Content-addressed references use `nih:`. The graph does not care which strategy produced the IRI — it only cares that the IRI is unique and resolvable within the context of the documents that use it.
+
+### Prefix Folding: Hierarchy Without Boilerplate
+
+IRIs are long, and writing them out by hand would defeat the purpose of a human-readable format. MD-LD solves this with prefix declarations at the top of each document, and with prefix folding — the ability to build new prefixes on top of previously declared ones:
+
+```md
+[my] <tag:alice@example.com,2026:>
+[j]  <my:journal/>
+[p]  <my:projects/>
+```
+
+Now `j:2026-05-06` expands to `tag:alice@example.com,2026:journal/2026-05-06`, and `p:alpha` expands to `tag:alice@example.com,2026:projects/alpha`. The hierarchy emerges from the prefix chain, and the short forms keep the prose readable. Prefixes must be declared before they are referenced — no forward declarations, no circular references — and later declarations override earlier ones. This keeps parsing single-pass and deterministic.
+
+Prefix folding scales to deep hierarchies. An organization with its own domain can build layers of sub-namespaces:
+
+```md
+[org] <https://org.example.com/>
+[person] <org:person/>
+[emp] <person:employee/>
+[dev] <emp:developer/>
+```
+
+`dev:john` resolves through the chain to `https://org.example.com/person/employee/developer/john`. Each layer is a single declaration, and the full IRI is assembled at parse time. The document remains concise; the graph receives fully qualified identifiers.
+
+Five prefixes are built in and require no declaration: `rdf`, `rdfs`, `xsd`, `sh`, and `prov`. When you write `.prov:Person`, the parser already knows that `prov:` means `http://www.w3.org/ns/prov#`. When you write `^^xsd:dateTime`, it knows that `xsd:` means `http://www.w3.org/2001/XMLSchema#`. The default vocabulary is RDFS — so bare `label` means `rdfs:label`, bare `comment` means `rdfs:comment`, and bare `.Class` means `rdf:type rdfs:Class`.
+
+---
+
 ## The Array Is the Engine
 
 With the document parsed into `Quad[]`, every question about your contacts becomes a JavaScript expression. There is no query language to learn, no endpoint to configure, no result format to parse. The graph is already in memory, and the `Array` prototype is already your query engine.
@@ -273,6 +321,32 @@ This is the fourth crystallization point: the document is a unit of authorship, 
 
 ---
 
+## Document Trees and Named Graphs
+
+A knowledge base is rarely a single file. It is a tree — directories of documents, subdirectories of chapters, leaves of individual entries. The contacts file lives at `text/contacts.md`. Dave's profile lives at `text/people/dave.md`. The project spec lives at `text/projects/alpha.md`. Each file is an independent, self-contained MD-LD document that can be read, parsed, and understood on its own. But together they form a graph, and the merge operation needs to remember where each quad came from.
+
+The `graph` parameter in `parse` stamps every quad produced from a document with a named graph IRI, identifying the source. When you parse each file with its path, the provenance chain becomes complete:
+
+```js
+const docs = [
+  { path: 'text/contacts.md', text: contactsText },
+  { path: 'text/people/dave.md', text: daveText },
+  { path: 'text/projects/alpha.md', text: projectText }
+]
+
+const parsed = docs.map(d => parse({ text: d.text, graph: d.path }))
+
+const kb = merge(parsed)
+```
+
+The merged `kb.origin.documents[]` array preserves each document's full origin — its blocks, spans, and quadIndex — alongside the document index that `locate()` returns. When you locate a quad in the merged graph, the result carries a `documentIndex` that points directly into this array, giving you the block and span topology of the specific source file that produced the quad. The chain is unbroken: from any quad in the merged graph, you can reach the exact characters in the exact file that authored it, walk the span chain to recover the surrounding prose, and understand the quad in its original context.
+
+This is how directory trees and other data structures map to MD-LD texts. The file system is a natural hierarchy — directories contain documents, documents contain sections, sections contain annotations. The `graph` parameter preserves this structure in the semantic layer without forcing any coupling between files. Each document remains independent. The tree emerges when you compose them, and the provenance chain ensures that no fact in the merged graph is ever orphaned from the text that gave it life.
+
+The same principle applies beyond file trees. A chat log is a sequence of timestamped documents. A version history is a branch of diffs. A research notebook is a collection of dated observations. Whatever organizational structure humans use to arrange their documents, the `graph` parameter and the merge origin give the computational layer a complete map back to where every piece of knowledge was written.
+
+---
+
 ## Diffs as Documents
 
 Every annotation in MD-LD carries polarity — a `+` prefix for assertions and a `-` prefix for retractions. This turns every edit into a document. You never delete text from a file; you write a new entry that retracts a previous assertion and asserts a new one.
@@ -402,9 +476,58 @@ const loc = locate(knowsAlice, origin)
 
 The `locate` function returns the block that produced the quad, the character range in the source text, the type of Markdown element that carried the annotation, and whether it was an assertion or a retraction. This is how you build click-to-jump editors: when a user clicks a graph node, you locate the quad, get the range, and scroll the editor to that exact position. No search, no guessing. The bridge is already built.
 
-Origin goes deeper than point lookups. It structures the entire document as a walkable topology of blocks (semantic anchors that produced quads) connected by spans (the raw text between them), forming a doubly-linked chain: `[Block] --(Span)-- [Block] --(Span)-- [Block]`. You can walk this chain in both directions to recover context — the surrounding prose that gives any annotation its meaning. When an AI agent needs to understand not just what a fact says but what surrounds it in the author's original text, the span chain provides the neighborhood without any additional indexing. The parser never interprets span content; it just gives you byte ranges. Interpretation is your job, in your application layer, on top of the `Quad[]` runtime.
+When you are working with a merged knowledge base — documents parsed with their file paths and composed into one graph — the provenance chain extends across document boundaries. The `locate()` result includes a `documentIndex` that maps into `origin.documents[]`, where each entry holds the full origin of a single source file: its blocks, its spans, its quad index. You can follow the chain from any quad in the merged graph to its source document, then into that document's block, then along the span chain to recover the surrounding context:
+
+```js
+// From a merged knowledge base, trace Dave's email back to its source
+const daveEmail = kb.quads.find(q =>
+  q.subject.value.includes('person/dave') && q.predicate.value.includes('email')
+)
+
+const loc = locate(daveEmail, kb.origin)
+
+// loc.documentIndex → which file produced this quad
+// loc.blockId       → which block in that file
+// loc.range         → exact character positions
+
+// Recover the source document's span chain for context
+const srcDoc = kb.origin.documents[loc.documentIndex]
+const srcBlock = srcDoc.origin.blocks.get(loc.blockId)
+
+if (srcBlock.prevSpanId) {
+  const span = srcDoc.origin.spans.get(srcBlock.prevSpanId)
+  const prevBlock = srcDoc.origin.blocks.get(span.prevBlockId)
+  // Now you have the text before and after the quad's birthplace
+}
+```
+
+This is how you build tools that understand where knowledge comes from. An editor highlights the exact line. A validation tool reports errors with source locations. An AI agent traces a claim back through the document tree to the sentence that asserted it, reads the surrounding paragraph, and decides whether the claim is still valid. The provenance chain is not metadata added after the fact — it is produced during the same single pass that produces the quads themselves, and it survives the merge operation intact.
+
+Origin goes deeper than point lookups. It structures each document as a walkable topology of blocks (semantic anchors that produced quads) connected by spans (the raw text between them), forming a doubly-linked chain: `[Block] --(Span)-- [Block] --(Span)-- [Block]`. You can walk this chain in both directions to recover context — the surrounding prose that gives any annotation its meaning. When an AI agent needs to understand not just what a fact says but what surrounds it in the author's original text, the span chain provides the neighborhood without any additional indexing. The parser never interprets span content; it just gives you byte ranges. Interpretation is your job, in your application layer, on top of the `Quad[]` runtime.
 
 > **For the full origin API, span chain traversal, and context extraction patterns,** see [Origin System](./origin.md).
+
+---
+
+## A Shared Vocabulary: What Graphs Say to Each Other
+
+A graph built under `tag:alice@example.com,2026:` and a graph built under `tag:bob@example.org,2026:` use different IRIs for their subjects, but they can still talk to each other if they share predicates. The predicate is the contract: it defines what a relationship means, and any graph that uses the same predicate IRI is making the same kind of claim. This is where ontologies — shared vocabularies of classes and properties — become the connective tissue between independent knowledge graphs.
+
+MD-LD ships with five foundational W3C ontologies built into its default context. RDF provides the grammar: every statement is a subject-predicate-object triple, and `rdf:type` is how you declare what kind of thing a node is. RDFS provides the schema: `rdfs:label` for display names, `rdfs:comment` for descriptions, `rdfs:subClassOf` for type hierarchies, `rdfs:member` for collection membership. XSD provides literal types: `xsd:integer`, `xsd:dateTime`, `xsd:boolean`, and all the other datatypes that make a value parseable rather than merely readable. SHACL provides validation: `sh:NodeShape` and `sh:PropertyShape` define what valid data looks like, and every shape parses into the same `Quad[]` as the data it validates. PROV-O provides provenance: `prov:Entity`, `prov:Activity`, `prov:Agent` and the relationships between them trace who did what when, and how outputs were derived from inputs.
+
+These five ontologies are not optional accessories — they are the language that MD-LD speaks by default. When you write `.prov:Person`, you are asserting that a node belongs to a class defined by a W3C standard, and any other graph that uses `prov:Person` is talking about the same concept. When you write `^^xsd:dateTime`, you are asserting that a value can be parsed by any system that understands the XML Schema datetime format. The interoperability is not negotiated at runtime; it is embedded in the IRIs themselves.
+
+Beyond the built-in five, a growing ecosystem of public ontologies covers the domains that knowledge graphs commonly need. FOAF models people, organizations, and social relationships. DCTERMS provides metadata terms for describing any resource — title, creator, date, license. SKOS represents concept schemes, thesauri, and controlled vocabularies. Schema.org covers the structured data vocabulary that search engines understand. SOSA models sensor observations and IoT data. QUDT provides quantities, units, and dimensional analysis. Each of these ontologies can be declared as a prefix in your document, and their classes and properties become available as first-class citizens in your graph:
+
+```md
+[foaf] <http://xmlns.com/foaf/0.1/>
+[dct] <http://purl.org/dc/terms/>
+[skos] <http://www.w3.org/2004/02/skos/core#>
+```
+
+The choice of ontology is a choice of audience. If you use Schema.org predicates, your graph speaks directly to search engines. If you use FOAF predicates, your graph interoperates with the decades-old semantic social web. If you use PROV-O predicates, your graph carries the provenance that reproducibility and audit require. You can mix vocabularies freely — a person can be both `foaf:Person` and `prov:Agent` — and the graph simply accumulates the type assertions. The interoperability is in the predicates, and the predicates are IRIs that anyone can resolve.
+
+This is the fifth crystallization point: a knowledge graph is a social artifact. The IRIs you choose for your predicates determine who can understand your graph without translation. The built-in ontologies guarantee that every MD-LD document speaks a baseline of RDF, RDFS, XSD, SHACL, and PROV-O that any RDF tool can process. Additional ontologies extend this baseline into specific domains. And when no existing ontology fits, you author your own predicates under your `tag:` namespace — they are still IRIs, they are still unambiguous, and they can be published and adopted by others at any time.
 
 ---
 
@@ -413,9 +536,11 @@ Origin goes deeper than point lookups. It structures the entire document as a wa
 The contacts document demonstrates the complete cycle. The document is authored as Markdown with semantic annotations — readable without any tool, parseable according to a clear specification. It is parsed into `Quad[]` — a plain JavaScript array that serves as the universal computational representation. From that array, you query your world (who works at ACME?), traverse relationships (who is two hops from me?), validate data (who is missing an email?), generate views (address book, org chart), merge updates (Dave arrives, Dave gets a phone), separate signal from noise (elevated statements for the dashboard, full quads for audit), and trace any fact back to the text that asserted it (origin).
 
 ```
-Document
-  ↓
+Documents (tree)
+  ↓  parse({text, graph: path})
 Quad[]  +  statements[]  +  origin{}
+  ↓  merge
+Quad[]  with provenance to source documents
   ↓
 filter · map · reduce
 traverse · validate
@@ -428,7 +553,7 @@ Quad[]
 Document
 ```
 
-Knowledge is never trapped inside a database. Documents become graphs. Graphs become programs. Programs produce new documents. Those documents can be parsed back into graphs, and the cycle continues. The `statements[]` array gives you the golden graph — signal separated from scaffolding. The `origin{}` object gives you the bridge back to source text — every quad traceable to its birthplace. Together they form a complete semantic surface: the data, the highlights, and the map back to where it all came from.
+Knowledge is never trapped inside a database. Documents become graphs. Graphs become programs. Programs produce new documents. Those documents can be parsed back into graphs, and the cycle continues. The `graph` parameter preserves the document tree in every quad. The `tag:` and `nih:` IRI schemes give every node an identity that is either self-sovereign or content-addressed. The built-in W3C ontologies give every predicate a meaning that any RDF tool can interpret. The `statements[]` array gives you the golden graph — signal separated from scaffolding. The `origin{}` object gives you the bridge back to source text — every quad traceable through the merge to its birthplace in a specific file, down to the exact characters and the span chain around them. Together they form a complete semantic surface: the data, the highlights, the document provenance, and the map back to where it all came from.
 
 The useful observation is not that this approach eliminates infrastructure. Databases remain useful for scale, and SPARQL remains useful for complex federated queries. The useful observation is that the semantic representation survives independently of any particular infrastructure. A document written today can be parsed a decade from now by anyone who knows the specification. The graph can be reconstructed. Indexes can be rebuilt. Views can be regenerated. Validation can be re-run. The operational machinery is optional. The semantics remain visible. And the runtime is simply `Quad[]` — a plain JavaScript array, composed with pure functions, producing documents that humans can read, machines can parse, and agents can reason over.
 
