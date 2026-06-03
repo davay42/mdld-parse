@@ -21,6 +21,11 @@ p           # Literal property
 ?p          # Object property
 !p          # Reverse property
 
+Polarity Retractions:
+-p          # Remove Literal value
+-?p         # Remove Object relation
+-!p         # Remove Subject relation
+
 Objects:
 +iri        # Object for local  ?/! predicates
 +#fragment  # Soft fragment, replaces current fragment
