@@ -146,80 +146,6 @@ Authored by [Alice Johnson] {+alice:alice-johnson ?alice:author} on [2026-08-12]
 
 **Bundle size:** 86KB unminified, 20KB gzipped
 
-
-## 📚 Documentation Hub
-
-- **📋 [Specification](./spec/index.md)** — Formal specification and test suite
-  - [Formal Specification](./spec/Spec.md)
-  - [Compact Spec](./spec/Spec-compact.md)
-  - [Ultra Compact Spec](./spec/Spec-ultra.md)
-- **📚 [Grammar](./grammar/index.md)** — EBNF+TextMate grammar specifications
-- [The TextMate grammar](./grammar/mdld.tmLanguage.json)
-- [ISO 14977 EBNF grammar](./grammar/mdld.ebnf)
-- **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
-  - [MD-LD Authoring Guide](./docs/Guide.md)
-  - [One Page Guide](./docs/one-page.md)
-  - [Semantic Infrastructure as Readable Text](./docs/Semantic-Text.md)
-  - [Elevated Statements](./docs/statements.md)
-  - [Primary Metadata System](./docs/primary-subject.md)
-  - [Origin System](./docs/origin.md)
-  - [Polarity & Retraction](./docs/polarity.md)
-  - [Subject System](./docs/Subject.md)
-  - [API Reference](./docs/API.md)
-  - [Generate: Quads to MDLD](./docs/generate.md)
-  - [Diff Documents](./docs/diff.md)
-  - [Syntax Reference](./docs/Syntax.md)
-  - [Architecture & Design](./docs/Architecture.md)
-  - [Parser Architecture](./docs/Parser.md)
-  - [Performance Benchmarks](./docs/Performance.md)
-  - [Token Efficiency](./docs/Token-Efficiency.md)
-  - [Knowledge Round Trip](./docs/Knowledge-Round-Trip.md)
-  - [Human-Scale Software & Semantic Infrastructure](./docs/Human-Scale.md)
-  - [Quad[] as a Universal Semantic Runtime](./docs/quad-runtime.md)
-  - [Use Cases](./docs/Use-Cases.md)
-- **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
-  - [Minimal](./examples/demo/minimal.md)
-  - [One-Page Guide](./examples/one-page.md)
-  - [Few-Shot Examples](./examples/few-shot.md)
-  - [Journal](./examples/demo/journal.md)
-  - [Tasks](./examples/demo/tasks.md)
-  - [Medical AI Research](./examples/demo/research.md)
-  - [Cookbook](./examples/Cookbook.md)
-  - [Website Redesign Project](./examples/demo/project.md)
-  - [Task Management System](./examples/demo/tasks.md)
-  - [Cassini-Huygens Mission](./examples/demo/space-mission.md)
-  - [RDF Fundamentals](./examples/demo/rdf.md)
-  - [PROV-O Patterns](./examples/demo/prov.md)
-  - [SHACL Validation](./examples/demo/shacl.md)
-  - [XSD Datatypes](./examples/demo/xsd.md)
-  - [Status & SHACL Validation](./examples/Status-SHACL.md)
-  - [LLM Time Workflow](./examples/llm-time-workflow.md)
-  - [Research Workflow](./examples/workflow.md)
-  - [Dogfood](./examples/dogfood.md)
-- **🧩 [Ontologies](./ontologies/index.md)** — W3C and related standard ontologies used in RDF
-  - [RDF — Resource Description Framework](./ontologies/rdf.md)
-  - [RDFS — RDF Schema](./ontologies/rdfs.md)
-  - [SHACL — Shapes Constraint Language](./ontologies/shacl.md)
-  - [PROV-O — W3C Provenance Ontology](./ontologies/prov-o.md)
-  - [XSD — XML Schema Definition Datatypes](./ontologies/xsd.md)
-  - [DCTERMS — Dublin Core Metadata Terms](./ontologies/dcterms.md)
-  - [DCAT — Data Catalog Vocabulary](./ontologies/dcat.md)
-  - [FOAF — Friend of a Friend](./ontologies/foaf.md)
-  - [VCard](./ontologies/vcard.md)
-  - [Time — OWL-Time Ontology](./ontologies/time.md)
-  - [Activity Streams 2.0](./ontologies/activity-streams-2.md)
-  - [SKOS — Simple Knowledge Organization System](./ontologies/skos.md)
-  - [Schema.org](./ontologies/schemaorg.md)
-  - [CIDOC CRM — Conceptual Reference Model](./ontologies/cidoc_crm.md)
-  - [SOSA — Sensor, Observation, Sample, and Actuator](./ontologies/sosa.md)
-  - [QUDT — Quantities, Units, Dimensions and Types](./ontologies/qudt.md)
-  - [GOLD — General Ontology for Linguistic Description](./ontologies/gold.md)
-  - [LexInfo — Lexical Information Ontology](./ontologies/lexinfo.md)
-  - [OWL — Web Ontology Language](./ontologies/owl.md)
-  - [P-PLAN — Plan Ontology](./ontologies/p-plan.md)
-  - [Hydra — Hypermedia API Vocabulary](./ontologies/hydra.md)
-  - [Web Annotations](./ontologies/web-annotations.md)
-
 ## 📦 Installation
 
 ### Node.js
@@ -583,6 +509,80 @@ Comprehensive test suite covering:
 - Primary metadata extraction
 - Round-trip parse/generate cycles
 - Origin tracking and provenance
+
+
+## 📚 Documentation Hub
+
+- **📋 [Specification](./spec/index.md)** — Formal specification and test suite
+  - [Formal Specification](./spec/Spec.md)
+  - [Compact Spec](./spec/Spec-compact.md)
+  - [Ultra Compact Spec](./spec/Spec-ultra.md)
+- **📚 [Grammar](./grammar/index.md)** — EBNF+TextMate grammar specifications
+- [The TextMate grammar](./grammar/mdld.tmLanguage.json)
+- [ISO 14977 EBNF grammar](./grammar/mdld.ebnf)
+- **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
+  - [MD-LD Authoring Guide](./docs/Guide.md)
+  - [One Page Guide](./docs/one-page.md)
+  - [Semantic Infrastructure as Readable Text](./docs/Semantic-Text.md)
+  - [Elevated Statements](./docs/statements.md)
+  - [Primary Metadata System](./docs/primary-subject.md)
+  - [Origin System](./docs/origin.md)
+  - [Polarity & Retraction](./docs/polarity.md)
+  - [Subject System](./docs/Subject.md)
+  - [API Reference](./docs/API.md)
+  - [Generate: Quads to MDLD](./docs/generate.md)
+  - [Diff Documents](./docs/diff.md)
+  - [Syntax Reference](./docs/Syntax.md)
+  - [Architecture & Design](./docs/Architecture.md)
+  - [Parser Architecture](./docs/Parser.md)
+  - [Performance Benchmarks](./docs/Performance.md)
+  - [Token Efficiency](./docs/Token-Efficiency.md)
+  - [Knowledge Round Trip](./docs/Knowledge-Round-Trip.md)
+  - [Human-Scale Software & Semantic Infrastructure](./docs/Human-Scale.md)
+  - [Quad[] as a Universal Semantic Runtime](./docs/quad-runtime.md)
+  - [Use Cases](./docs/Use-Cases.md)
+- **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
+  - [Minimal](./examples/demo/minimal.md)
+  - [One-Page Guide](./examples/one-page.md)
+  - [Few-Shot Examples](./examples/few-shot.md)
+  - [Journal](./examples/demo/journal.md)
+  - [Tasks](./examples/demo/tasks.md)
+  - [Medical AI Research](./examples/demo/research.md)
+  - [Cookbook](./examples/Cookbook.md)
+  - [Website Redesign Project](./examples/demo/project.md)
+  - [Task Management System](./examples/demo/tasks.md)
+  - [Cassini-Huygens Mission](./examples/demo/space-mission.md)
+  - [RDF Fundamentals](./examples/demo/rdf.md)
+  - [PROV-O Patterns](./examples/demo/prov.md)
+  - [SHACL Validation](./examples/demo/shacl.md)
+  - [XSD Datatypes](./examples/demo/xsd.md)
+  - [Status & SHACL Validation](./examples/Status-SHACL.md)
+  - [LLM Time Workflow](./examples/llm-time-workflow.md)
+  - [Research Workflow](./examples/workflow.md)
+  - [Dogfood](./examples/dogfood.md)
+- **🧩 [Ontologies](./ontologies/index.md)** — W3C and related standard ontologies used in RDF
+  - [RDF — Resource Description Framework](./ontologies/rdf.md)
+  - [RDFS — RDF Schema](./ontologies/rdfs.md)
+  - [SHACL — Shapes Constraint Language](./ontologies/shacl.md)
+  - [PROV-O — W3C Provenance Ontology](./ontologies/prov-o.md)
+  - [XSD — XML Schema Definition Datatypes](./ontologies/xsd.md)
+  - [DCTERMS — Dublin Core Metadata Terms](./ontologies/dcterms.md)
+  - [DCAT — Data Catalog Vocabulary](./ontologies/dcat.md)
+  - [FOAF — Friend of a Friend](./ontologies/foaf.md)
+  - [VCard](./ontologies/vcard.md)
+  - [Time — OWL-Time Ontology](./ontologies/time.md)
+  - [Activity Streams 2.0](./ontologies/activity-streams-2.md)
+  - [SKOS — Simple Knowledge Organization System](./ontologies/skos.md)
+  - [Schema.org](./ontologies/schemaorg.md)
+  - [CIDOC CRM — Conceptual Reference Model](./ontologies/cidoc_crm.md)
+  - [SOSA — Sensor, Observation, Sample, and Actuator](./ontologies/sosa.md)
+  - [QUDT — Quantities, Units, Dimensions and Types](./ontologies/qudt.md)
+  - [GOLD — General Ontology for Linguistic Description](./ontologies/gold.md)
+  - [LexInfo — Lexical Information Ontology](./ontologies/lexinfo.md)
+  - [OWL — Web Ontology Language](./ontologies/owl.md)
+  - [P-PLAN — Plan Ontology](./ontologies/p-plan.md)
+  - [Hydra — Hypermedia API Vocabulary](./ontologies/hydra.md)
+  - [Web Annotations](./ontologies/web-annotations.md)
 
 ## Governance
 
