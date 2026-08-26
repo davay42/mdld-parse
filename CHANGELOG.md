@@ -1,5 +1,9 @@
 # MD-LD evolution
 
+## v1.0.5 (2026-08-27)
+
+Ignore `<template></template>`, `<script></script>`, `<style></style>` and `<!---->` block content during parsing.
+
 ## v1.0.0 (2026-05-22)
 
 ### Production Release

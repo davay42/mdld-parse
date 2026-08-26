@@ -177,6 +177,110 @@ After invalid block {ex:after}`;
                 throw new Error('Trailing text should be preserved');
             }
         }
+    },
+    {
+        name: 'Vue SFC script blocks preserve JS destructuring and code untouched',
+        fn: () => {
+            const mdld = `[ex] <tag:ex.org,2026:>
+
+<script setup>
+import { data, ref } from './kg.data.js'
+const config = { enabled: true };
+</script>
+
+# Header {=ex:doc}
+Page content here.`;
+
+            const result = parse(mdld);
+
+            // JS code destructuring and objects in script must be preserved
+            if (!result.md.includes("import { data, ref } from './kg.data.js'")) {
+                throw new Error('JS destructuring in script block should be preserved');
+            }
+            if (!result.md.includes('const config = { enabled: true };')) {
+                throw new Error('JS object literal in script block should be preserved');
+            }
+
+            // Outer Markdown annotations should still be cleaned
+            if (result.md.includes('{=ex:doc}')) {
+                throw new Error('Annotations outside script block should be stripped');
+            }
+        }
+    },
+    {
+        name: 'Vue SFC template blocks preserve Vue interpolations',
+        fn: () => {
+            const mdld = `<template>
+  <div class="card">
+    <pre>{{ data }}</pre>
+  </div>
+</template>`;
+
+            const result = parse(mdld);
+
+            if (!result.md.includes('<pre>{{ data }}</pre>')) {
+                throw new Error('Vue mustache interpolation {{ data }} in template block should be preserved');
+            }
+        }
+    },
+    {
+        name: 'Vue SFC style blocks preserve CSS rules and curly braces',
+        fn: () => {
+            const mdld = `<style scoped>
+.container {
+  display: flex;
+  color: red;
+}
+</style>`;
+
+            const result = parse(mdld);
+
+            if (!result.md.includes('.container {\n  display: flex;\n  color: red;\n}')) {
+                throw new Error('CSS curly braces and rules in style block should be preserved');
+            }
+        }
+    },
+    {
+        name: 'HTML comments preserved untouched',
+        fn: () => {
+            const mdld = `[ex] <tag:ex.com,2026:>
+<!-- This is a comment with {some: data} -->
+# Title {=ex:title}`;
+
+            const result = parse(mdld);
+
+            if (!result.md.includes('<!-- This is a comment with {some: data} -->')) {
+                throw new Error('HTML comments should be preserved untouched');
+            }
+            if (result.md.includes('{=ex:title}')) {
+                throw new Error('Annotations outside comment should be stripped');
+            }
+        }
+    },
+    {
+        name: 'Nested SFC template blocks maintain depth tracking',
+        fn: () => {
+            const mdld = `[ex] <tag:ex.com,2026:>
+<template>
+  <template v-if="show">
+    <span>{{ item }}</span>
+  </template>
+</template>
+
+# Page {=ex:page}`;
+
+            const result = parse(mdld);
+
+            if (!result.md.includes('<span>{{ item }}</span>')) {
+                throw new Error('Nested template content should be preserved');
+            }
+            if (!result.md.includes('</template>\n</template>')) {
+                throw new Error('Nested templates closing tags should be preserved');
+            }
+            if (result.md.includes('{=ex:page}')) {
+                throw new Error('Markdown outside nested template should still be stripped of annotations');
+            }
+        }
     }
 ];
 

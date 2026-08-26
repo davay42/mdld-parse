@@ -1,10 +1,30 @@
 {
 	"name": "mdld-parse",
-	"version": "1.0.4",
-  "description": "Write RDF knowledge graphs as plain Markdown. Parse to quads, generate back, merge documents. The human-friendly semantic web format.",
-  "keywords": ["rdf", "linked-data", "semantic-web", "knowledge-graph", "markdown","semantic-annotations", "provenance", "prov-o", "shacl", "agent-memory", "llm", "md-ld", "mdld", "semantic-markdown", "quad-store", "crdt", "rdfs", "ontology", "triple-store"],
+	"version": "1.0.5",
+	"description": "Write RDF knowledge graphs as plain Markdown. Parse to quads, generate back, merge documents. The human-friendly semantic web format.",
+	"keywords": [
+		"rdf",
+		"linked-data",
+		"semantic-web",
+		"knowledge-graph",
+		"markdown",
+		"semantic-annotations",
+		"provenance",
+		"prov-o",
+		"shacl",
+		"agent-memory",
+		"llm",
+		"md-ld",
+		"mdld",
+		"semantic-markdown",
+		"quad-store",
+		"crdt",
+		"rdfs",
+		"ontology",
+		"triple-store"
+	],
 	"type": "module",
-	"packageManager": "pnpm@10.33.4+sha512.1c67b3b359b2d408119ba1ed289f34b8fc3c6873412bec6fd264fbdc82489e510fcbecb9ce9d22dae7f3b76269d8441046014bdca53b9979cd7a561ad631b800",
+	"packageManager": "pnpm@11.24.0+sha512.bd27e345e976dcb0be0b7a1228217b049a817e21b1f355c90dbe7dc46671895a8bc1e6d06c24554505ea93ea0b45f489a27ec1bfbc8de6a9659fca0f16fa0000",
 	"main": "./dist/index.js",
 	"exports": {
 		".": "./dist/index.js"
@@ -27,17 +47,17 @@
 		"url": "https://github.com/davay42/mdld-parse/issues"
 	},
 	"devDependencies": {
-		"@unocss/extractor-pug": "^66.6.8",
-		"@vitejs/plugin-vue": "^6.0.6",
-		"@vueuse/core": "^14.3.0",
+		"@unocss/extractor-pug": "^66.8.1",
+		"@vitejs/plugin-vue": "^6.0.8",
+		"@vueuse/core": "^14.4.0",
 		"codejar": "^4.3.0",
-		"markdown-it": "^14.1.1",
-		"n3": "^2.0.3",
-		"shiki": "^4.0.2",
-		"unocss": "^66.6.8",
-		"vite": "^8.0.10",
+		"markdown-it": "^15.0.0",
+		"n3": "^2.6.0",
+		"shiki": "^4.4.3",
+		"unocss": "^66.8.1",
+		"vite": "^8.2.2",
 		"vite-plugin-singlefile": "^2.3.3",
 		"vscode-textmate": "^9.3.2",
-		"vue": "^3.6.0-beta.10"
+		"vue": "^3.6.0-beta.17"
 	}
 }

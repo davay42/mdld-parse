@@ -153,9 +153,54 @@ function scanTokens(text) {
     const lines = text.split('\n');
     let pos = 0;
     let codeBlock = null;
+    let sfcBlock = null; // State for protected blocks (<script>, <style>, <template>, comments)
+
+    function detectSfcStart(trimmed) {
+        if (trimmed.startsWith('<!--')) return true;
+        return /^<(script|style|template)\b/i.test(trimmed);
+    }
+
+    function checkSfcClose(line) {
+        if (!sfcBlock) return;
+        if (sfcBlock.tag === 'comment') {
+            if (line.includes('-->')) sfcBlock = null;
+        } else if (sfcBlock.tag === 'script' || sfcBlock.tag === 'style') {
+            const closeReg = new RegExp(`</\\s*${sfcBlock.tag}\\s*>`, 'i');
+            if (closeReg.test(line)) sfcBlock = null;
+        } else if (sfcBlock.tag === 'template') {
+            const openMatches = (line.match(/<template\b/gi) || []).length;
+            const closeMatches = (line.match(/<\/template>/gi) || []).length;
+            sfcBlock.depth += openMatches - closeMatches;
+            if (sfcBlock.depth <= 0) sfcBlock = null;
+        }
+    }
+
+    function handleSfcStart(line) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('<!--')) {
+            sfcBlock = { tag: 'comment', depth: 1 };
+        } else {
+            const match = trimmed.match(/^<(script|style|template)\b/i);
+            if (!match) return false;
+            const tag = match[1].toLowerCase();
+            sfcBlock = { tag, depth: tag === 'template' ? 0 : 1 };
+        }
+        mdLines.push(line);
+        checkSfcClose(line);
+        return true;
+    }
+
+    function handleSfcContent(line) {
+        mdLines.push(line);
+        checkSfcClose(line);
+        return true;
+    }
+
     const PROCESSORS = [
         { type: 'fence', test: line => detectFence(line.trim()), process: handleFence },
-        { type: 'content', test: () => codeBlock, process: line => codeBlock.content.push(line) },
+        { type: 'codeContent', test: () => codeBlock, process: line => codeBlock.content.push(line) },
+        { type: 'sfcContent', test: () => sfcBlock, process: handleSfcContent },
+        { type: 'sfcStart', test: line => detectSfcStart(line.trim()), process: handleSfcStart },
         { type: 'prefix', test: line => detectPrefix(line), process: handlePrefix },
         { type: 'standalone', test: line => detectStandaloneSubject(line), process: handleStandaloneSubject },
         { type: 'heading', test: line => detectHeading(line), process: handleHeading },
@@ -184,7 +229,6 @@ function scanTokens(text) {
                 valueRangeStart: contentStart
             };
 
-            // Add stripped fence line to mdLines
             const cleanFence = line.replace(/\s*\{[^}]+\}\s*$/, '');
             mdLines.push(cleanFence);
         } else {
@@ -205,19 +249,13 @@ function scanTokens(text) {
                     valueRange: [valueStart, valueEnd]
                 });
 
-                // Add all code content to mdLines before closing fence
                 for (const contentLine of codeBlock.content) {
                     mdLines.push(contentLine);
                 }
 
                 codeBlock = null;
-
-                // Add closing fence to mdLines without trailing newline
                 const closingFence = line.replace(/\r?\n.*$/, '');
                 mdLines.push(closingFence);
-            } else {
-                // Code content - don't add to mdLines here, will be added when closing block
-                // No need to add individual lines as they're processed when closing
             }
         }
         return true;
@@ -226,7 +264,6 @@ function scanTokens(text) {
     function handlePrefix(line, lineStart, pos) {
         const result = detectPrefix(line);
         tokens.push({ type: 'prefix', prefix: result.prefix, iri: result.iri });
-        // Prefixes are typically stripped from clean MD
         return true;
     }
 
@@ -238,7 +275,6 @@ function scanTokens(text) {
         tokens.push(createToken('heading', [lineStart, pos - 1], result.content, attrs,
             rangeInfo.attrsRange, rangeInfo.valueRange, { depth: result.depth }));
 
-        // Add stripped heading to mdLines
         const cleanHeading = `${'#'.repeat(result.depth)} ${result.content}`;
         mdLines.push(cleanHeading);
         return true;
@@ -246,12 +282,10 @@ function scanTokens(text) {
 
     function handleList(line, lineStart, pos) {
         const result = detectList(line);
-        // Create match array format expected by createListToken
         const indentStr = ' '.repeat(result.indent);
         const match = [line, indentStr, result.marker, result.content, result.attrs];
         tokens.push(createListToken('list', line, lineStart, pos, match));
 
-        // Add stripped list item to mdLines
         const cleanList = `${indentStr}${result.marker} ${result.content}`;
         mdLines.push(cleanList);
         return true;
@@ -266,7 +300,6 @@ function scanTokens(text) {
             calcAttrsRange(line, attrs, lineStart),
             [lineStart + valueStartInLine, lineStart + valueEndInLine]));
 
-        // Add stripped blockquote to mdLines
         const cleanBlockquote = `> ${result.content}`;
         mdLines.push(cleanBlockquote);
         return true;
@@ -275,27 +308,19 @@ function scanTokens(text) {
     function handlePara(line, lineStart, pos) {
         tokens.push(createToken('para', [lineStart, pos - 1], line.trim()));
 
-        // Add stripped paragraph to mdLines
         let cleanPara = line;
 
-        // Remove inline carrier annotations using character-based detection
         const carriers = scanInlineCarriers(cleanPara, 0);
         for (const carrier of carriers) {
             if (carrier.attrs && (carrier.type === 'emphasis' || carrier.type === 'code')) {
-                // Replace with just the content
                 const before = cleanPara.substring(0, carrier.range[0]);
                 const after = cleanPara.substring(carrier.range[1]);
                 cleanPara = before + (carrier.text || '') + after;
             }
         }
 
-        // Remove bracket-style annotations [text] {annotation}
         cleanPara = cleanPara.replace(/\[([^\]]+)\]\s*\{[^}]+\}/g, '$1');
-
-        // Remove any remaining standalone annotations
         cleanPara = cleanPara.replace(/\s*\{[^}]+\}\s*/g, ' ');
-
-        // Clean up extra whitespace
         cleanPara = cleanPara.replace(/\s+/g, ' ').trim();
 
         mdLines.push(cleanPara);
@@ -304,9 +329,6 @@ function scanTokens(text) {
 
     function handleStandaloneSubject(line, lineStart, pos) {
         tokens.push({ type: 'standalone', text: line.trim(), range: [lineStart, pos - 1] });
-
-        // Standalone subjects are stripped from MD by default
-        // Don't add anything to mdLines
         return true;
     }
 
@@ -315,7 +337,6 @@ function scanTokens(text) {
         const lineStart = pos;
         pos += line.length + 1;
 
-        // Direct processor lookup - O(n) instead of O(n*m)
         for (const processor of PROCESSORS) {
             if (processor.test(line) && processor.process(line, lineStart, pos)) {
                 break;
@@ -323,10 +344,10 @@ function scanTokens(text) {
         }
     }
 
-    // Join without trailing newline to match expected output
     const mdContent = mdLines.join('\n');
     return { tokens, md: mdContent };
 }
+
 
 function extractInlineCarriers(text, baseOffset = 0) {
     return scanInlineCarriers(text, baseOffset);
