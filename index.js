@@ -1060,6 +1060,7 @@ function parse(firstArg, secondArg = {}) {
 		primarySubject: null,
 		primaryType: null,
 		primaryLabel: null,
+		primaryComment: null,
 		tokens: null,
 		currentTokenIndex: -1,
 		statements: [],
@@ -1088,12 +1089,11 @@ function parse(firstArg, secondArg = {}) {
 		}
 		TOKEN_PROCESSORS[token.type]?.(token, state);
 	}
-	const quadKeys = /* @__PURE__ */ new Set();
-	for (const quad of state.quads) quadKeys.add(quadIndexKey(quad.subject, quad.predicate, quad.object));
+	state.quads = Array.from(state.quadBuffer.values());
 	const filteredRemove = [];
 	for (const quad of state.removeSet) {
 		const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
-		if (!quadKeys.has(key)) filteredRemove.push(quad);
+		if (!state.quadBuffer.has(key)) filteredRemove.push(quad);
 	}
 	const primary = {
 		subject: state.primarySubject,
@@ -1114,7 +1114,8 @@ function parse(firstArg, secondArg = {}) {
 }
 function getCarriers(token) {
 	if (token.type === "code") return [];
-	return token._carriers || (token._carriers = extractInlineCarriers(token.text, token.range[0]));
+	const baseOffset = token.valueRange ? token.valueRange[0] : token.range[0];
+	return token._carriers || (token._carriers = extractInlineCarriers(token.text, baseOffset));
 }
 function scanTokens(text) {
 	const tokens = [];
@@ -1244,7 +1245,7 @@ function scanTokens(text) {
 				const valueEnd = Math.max(valueStart, lineStart - 1);
 				tokens.push({
 					type: "code",
-					range: [codeBlock.start, lineStart],
+					range: [codeBlock.start, pos - 1],
 					text: codeBlock.content.join("\n"),
 					lang: codeBlock.lang,
 					attrs: codeBlock.attrs,
@@ -1304,17 +1305,38 @@ function scanTokens(text) {
 		return true;
 	}
 	function handlePara(line, lineStart, pos) {
-		tokens.push(createToken("para", [lineStart, pos - 1], line.trim()));
+		const leadingWhitespace = line.search(/\S/);
+		const valueStart = leadingWhitespace === -1 ? lineStart : lineStart + leadingWhitespace;
+		const trimmed = line.trim();
+		const valueEnd = valueStart + trimmed.length;
+		tokens.push(createToken("para", [lineStart, pos - 1], trimmed, null, null, [valueStart, valueEnd]));
 		let cleanPara = line;
+		const codeSpans = [];
+		cleanPara = cleanPara.replace(/`[^`]+`/g, (match) => {
+			codeSpans.push(match);
+			return `__INLINE_CODE_${codeSpans.length - 1}__`;
+		});
+		const mustaches = [];
+		cleanPara = cleanPara.replace(/\{\{(?:[^{}]|\{[^{}]*\})*\}\}/g, (match) => {
+			mustaches.push(match);
+			return `__VUE_INTERPOLATION_${mustaches.length - 1}__`;
+		});
 		const carriers = scanInlineCarriers(cleanPara, 0);
-		for (const carrier of carriers) if (carrier.attrs && (carrier.type === "emphasis" || carrier.type === "code")) {
-			const before = cleanPara.substring(0, carrier.range[0]);
-			const after = cleanPara.substring(carrier.range[1]);
-			cleanPara = before + (carrier.text || "") + after;
+		for (let i = carriers.length - 1; i >= 0; i--) {
+			const carrier = carriers[i];
+			if (carrier.attrs && (carrier.type === "emphasis" || carrier.type === "code")) {
+				const before = cleanPara.substring(0, carrier.range[0]);
+				const after = cleanPara.substring(carrier.range[1]);
+				cleanPara = before + (carrier.text || "") + after;
+			}
 		}
 		cleanPara = cleanPara.replace(/\[([^\]]+)\]\s*\{[^}]+\}/g, "$1");
-		cleanPara = cleanPara.replace(/\s*\{[^}]+\}\s*/g, " ");
-		cleanPara = cleanPara.replace(/\s+/g, " ").trim();
+		cleanPara = cleanPara.replace(/([^{]|^)\{[^{}]+\}(?=[^}]|$)/g, "$1");
+		cleanPara = cleanPara.replace(/__VUE_INTERPOLATION_(\d+)__/g, (_, idx) => mustaches[Number(idx)]);
+		cleanPara = cleanPara.replace(/__INLINE_CODE_(\d+)__/g, (_, idx) => codeSpans[Number(idx)]);
+		const trailingSpaces = cleanPara.match(/ {2,}$/);
+		if (trailingSpaces) cleanPara = cleanPara.replace(/[ \t]+$/, trailingSpaces[0]);
+		else cleanPara = cleanPara.replace(/[ \t]+$/, "");
 		mdLines.push(cleanPara);
 		return true;
 	}
@@ -1500,33 +1522,35 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
 		text: text || ""
 	};
 }
-function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null, statements = null, statementCandidates = null, state = null) {
+/**
+* Hardened O(1) quad emitter.
+* Uses state.quadBuffer (Map) as single source of truth during parsing.
+*/
+function emitQuad(state, block, subject, predicate, object, meta = null) {
 	if (!subject || !predicate || !object) return;
-	const quad = dataFactory.quad(subject, predicate, object);
-	if (meta?.remove || false) {
-		const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
-		if (quadBuffer.has(quadKey)) {
-			quadBuffer.delete(quadKey);
-			const index = quads.findIndex((q) => q.subject.value === quad.subject.value && q.predicate.value === quad.predicate.value && q.object.value === quad.object.value);
-			if (index !== -1) quads.splice(index, 1);
-			quadIndex.delete(quadKey);
-		} else removeSet.add(quad);
-	} else {
-		const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
-		quadBuffer.set(quadKey, quad);
-		quads.push(quad);
-		if (state) {
-			if (!state.primaryType && predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") state.primaryType = object.value;
-			if (!state.primaryLabel && predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && object.termType === "Literal") state.primaryLabel = object.value;
-			if (!state.primaryComment && predicate.value === "http://www.w3.org/2000/01/rdf-schema#comment" && object.termType === "Literal") state.primaryComment = object.value;
+	const quadKey = quadIndexKey(subject, predicate, object);
+	if (Boolean(meta?.remove)) {
+		if (state.quadBuffer.has(quadKey)) {
+			state.quadBuffer.delete(quadKey);
+			state.origin.quadIndex.delete(quadKey);
+		} else {
+			const retractQuad = state.df.quad(subject, predicate, object, state.graph);
+			state.removeSet.add(retractQuad);
 		}
-		detectStatementPatternSinglePass(quad, dataFactory, meta, statements, statementCandidates);
-		const originEntry = createLeanOriginEntry(block, subject, predicate, meta);
-		quadIndex.set(quadKey, originEntry);
-		if (state.currentBlock && block.id === state.currentBlock.id) {
-			if (!state.currentBlock.quadKeys) state.currentBlock.quadKeys = [];
-			state.currentBlock.quadKeys.push(quadKey);
-		}
+		return;
+	}
+	const quad = state.df.quad(subject, predicate, object, state.graph);
+	state.quadBuffer.set(quadKey, quad);
+	const predVal = predicate.value;
+	if (!state.primaryType && predVal === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") state.primaryType = object.value;
+	else if (!state.primaryLabel && predVal === "http://www.w3.org/2000/01/rdf-schema#label" && object.termType === "Literal") state.primaryLabel = object.value;
+	else if (!state.primaryComment && predVal === "http://www.w3.org/2000/01/rdf-schema#comment" && object.termType === "Literal") state.primaryComment = object.value;
+	if (state.statements && state.statementCandidates) detectStatementPatternSinglePass(quad, state.df, meta, state.statements, state.statementCandidates);
+	const originEntry = createLeanOriginEntry(block, subject, predicate, meta);
+	state.origin.quadIndex.set(quadKey, originEntry);
+	if (block && state.currentBlock && block.id === state.currentBlock.id) {
+		if (!state.currentBlock.quadKeys) state.currentBlock.quadKeys = [];
+		state.currentBlock.quadKeys.push(quadKey);
 	}
 }
 function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = null, statementCandidates = null) {
@@ -1557,13 +1581,13 @@ var createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
 		entryIndex,
 		remove: false
 	};
-	emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block, subject, state.df.namedNode(expandIRI("rdf:type", state.ctx)), state.df.namedNode(expandedType), state.df, {
+	emitQuad(state, block, subject, state.df.namedNode(expandIRI("rdf:type", state.ctx)), state.df.namedNode(expandedType), {
 		kind: "type",
 		token: `.${typeIRI}`,
 		expandedType,
 		entryIndex: typeInfo.entryIndex,
 		remove: typeInfo.remove
-	}, state.statements, state.statementCandidates, state);
+	});
 };
 function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block, state, carrier) {
 	sem.types.forEach((t) => {
@@ -1602,14 +1626,14 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
 		const role = determinePredicateRole(pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L);
 		if (role) {
 			const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-			emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block, role.subject, P, role.object, state.df, {
+			emitQuad(state, block, role.subject, P, role.object, {
 				kind: "pred",
 				token: `${pred.form}${pred.iri}`,
 				form: pred.form,
 				expandedPredicate: P.value,
 				entryIndex: pred.entryIndex,
 				remove: pred.remove || false
-			}, state.statements, state.statementCandidates, state);
+			});
 		}
 	});
 }
@@ -1636,11 +1660,12 @@ function processStandaloneSubject(token, state) {
 	if (!result) return;
 	const sem = parseSemCached(`{=${result.content}}`);
 	const attrsStart = token.range[0] + token.text.indexOf("{=");
+	const fullAttrLength = 3 + (result.content ? result.content.length : 0);
 	processAnnotation({
 		type: "standalone",
 		text: "",
 		range: token.range,
-		attrsRange: [attrsStart, attrsStart + (result.content ? result.content.length : 0)],
+		attrsRange: [attrsStart, attrsStart + fullAttrLength],
 		valueRange: null
 	}, sem, state);
 }
