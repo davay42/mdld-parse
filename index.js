@@ -133,10 +133,12 @@ var DataFactory = {
 		let datatype = languageOrDataType ? languageOrDataType.value : "";
 		if (datatype === "") {
 			if (typeof value === "boolean") datatype = XSD_BOOLEAN;
-			else if (typeof value === "number") if (Number.isFinite(value)) datatype = Number.isInteger(value) ? XSD_INTEGER : XSD_DOUBLE;
-			else {
-				datatype = XSD_DOUBLE;
-				if (!Number.isNaN(value)) value = value > 0 ? "INF" : "-INF";
+			else if (typeof value === "number") {
+				if (Number.isFinite(value)) datatype = Number.isInteger(value) ? XSD_INTEGER : XSD_DOUBLE;
+				else {
+					datatype = XSD_DOUBLE;
+					if (!Number.isNaN(value)) value = value > 0 ? "INF" : "-INF";
+				}
 			}
 		}
 		return datatype === "" || datatype === "http://www.w3.org/2001/XMLSchema#string" ? new Literal(`"${escapedValue}"`) : new Literal(`"${escapedValue}"^^${datatype}`);
@@ -773,9 +775,7 @@ function scanInlineCarriers(text, baseOffset = 0) {
 			case "_":
 				detected = detectEmphasis(text, pos);
 				break;
-			case "`":
-				detected = detectCodeSpan(text, pos);
-				break;
+			case "`": detected = detectCodeSpan(text, pos);
 		}
 		if (!detected) {
 			pos++;
@@ -1122,6 +1122,48 @@ function scanTokens(text) {
 	const lines = text.split("\n");
 	let pos = 0;
 	let codeBlock = null;
+	let sfcBlock = null;
+	function detectSfcStart(trimmed) {
+		if (trimmed.startsWith("<!--")) return true;
+		return /^<(script|style|template)\b/i.test(trimmed);
+	}
+	function checkSfcClose(line) {
+		if (!sfcBlock) return;
+		if (sfcBlock.tag === "comment") {
+			if (line.includes("-->")) sfcBlock = null;
+		} else if (sfcBlock.tag === "script" || sfcBlock.tag === "style") {
+			if (new RegExp(`</\\s*${sfcBlock.tag}\\s*>`, "i").test(line)) sfcBlock = null;
+		} else if (sfcBlock.tag === "template") {
+			const openMatches = (line.match(/<template\b/gi) || []).length;
+			const closeMatches = (line.match(/<\/template>/gi) || []).length;
+			sfcBlock.depth += openMatches - closeMatches;
+			if (sfcBlock.depth <= 0) sfcBlock = null;
+		}
+	}
+	function handleSfcStart(line) {
+		const trimmed = line.trim();
+		if (trimmed.startsWith("<!--")) sfcBlock = {
+			tag: "comment",
+			depth: 1
+		};
+		else {
+			const match = trimmed.match(/^<(script|style|template)\b/i);
+			if (!match) return false;
+			const tag = match[1].toLowerCase();
+			sfcBlock = {
+				tag,
+				depth: tag === "template" ? 0 : 1
+			};
+		}
+		mdLines.push(line);
+		checkSfcClose(line);
+		return true;
+	}
+	function handleSfcContent(line) {
+		mdLines.push(line);
+		checkSfcClose(line);
+		return true;
+	}
 	const PROCESSORS = [
 		{
 			type: "fence",
@@ -1129,9 +1171,19 @@ function scanTokens(text) {
 			process: handleFence
 		},
 		{
-			type: "content",
+			type: "codeContent",
 			test: () => codeBlock,
 			process: (line) => codeBlock.content.push(line)
+		},
+		{
+			type: "sfcContent",
+			test: () => sfcBlock,
+			process: handleSfcContent
+		},
+		{
+			type: "sfcStart",
+			test: (line) => detectSfcStart(line.trim()),
+			process: handleSfcStart
 		},
 		{
 			type: "prefix",
