@@ -104,22 +104,23 @@ export function parse(firstArg, secondArg = {}) {
         TOKEN_PROCESSORS[token.type]?.(token, state);
     }
 
-    // Optimized quad filtering - use Set.has() instead of array.includes()
     const quadKeys = new Set();
     for (const quad of state.quads) {
         quadKeys.add(quadIndexKey(quad.subject, quad.predicate, quad.object));
     }
+    // 1. Materialize quads array from quadBuffer Map
+    state.quads = Array.from(state.quadBuffer.values());
 
-    // Direct Set iteration - more efficient than filter()
+    // 2. Filter removeSet using O(1) state.quadBuffer lookup
     const filteredRemove = [];
     for (const quad of state.removeSet) {
         const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
-        if (!quadKeys.has(key)) {
+        if (!state.quadBuffer.has(key)) {
             filteredRemove.push(quad);
         }
     }
 
-    // Create structured primary object for semantic surface
+    // 3. Create structured primary object for semantic surface
     const primary = {
         subject: state.primarySubject,
         type: state.primaryType,
@@ -153,7 +154,7 @@ function scanTokens(text) {
     const lines = text.split('\n');
     let pos = 0;
     let codeBlock = null;
-    let sfcBlock = null; // State for protected blocks (<script>, <style>, <template>, comments)
+    let sfcBlock = null;
 
     function detectSfcStart(trimmed) {
         if (trimmed.startsWith('<!--')) return true;
@@ -310,8 +311,24 @@ function scanTokens(text) {
 
         let cleanPara = line;
 
+        // 1. Mask inline code spans (`...`) first to prevent processing inside code
+        const codeSpans = [];
+        cleanPara = cleanPara.replace(/`[^`]+`/g, match => {
+            codeSpans.push(match);
+            return `__INLINE_CODE_${codeSpans.length - 1}__`;
+        });
+
+        // 2. Mask Vue double-curly interpolations (handles single nested braces like JS objects)
+        const mustaches = [];
+        cleanPara = cleanPara.replace(/\{\{(?:[^{}]|\{[^{}]*\})*\}\}/g, match => {
+            mustaches.push(match);
+            return `__VUE_INTERPOLATION_${mustaches.length - 1}__`;
+        });
+
+        // 3. Remove inline carriers in REVERSE order to preserve character ranges
         const carriers = scanInlineCarriers(cleanPara, 0);
-        for (const carrier of carriers) {
+        for (let i = carriers.length - 1; i >= 0; i--) {
+            const carrier = carriers[i];
             if (carrier.attrs && (carrier.type === 'emphasis' || carrier.type === 'code')) {
                 const before = cleanPara.substring(0, carrier.range[0]);
                 const after = cleanPara.substring(carrier.range[1]);
@@ -319,9 +336,21 @@ function scanTokens(text) {
             }
         }
 
+        // 4. Remove MD-LD bracket & single-brace annotations
         cleanPara = cleanPara.replace(/\[([^\]]+)\]\s*\{[^}]+\}/g, '$1');
-        cleanPara = cleanPara.replace(/\s*\{[^}]+\}\s*/g, ' ');
-        cleanPara = cleanPara.replace(/\s+/g, ' ').trim();
+        cleanPara = cleanPara.replace(/([^{]|^)\{[^{}]+\}(?=[^}]|$)/g, '$1');
+
+        // 5. Restore Vue interpolations & inline code
+        cleanPara = cleanPara.replace(/__VUE_INTERPOLATION_(\d+)__/g, (_, idx) => mustaches[Number(idx)]);
+        cleanPara = cleanPara.replace(/__INLINE_CODE_(\d+)__/g, (_, idx) => codeSpans[Number(idx)]);
+
+        // 6. Preserve Markdown hard line breaks (2+ trailing spaces) while trimming single spaces/tabs
+        const trailingSpaces = cleanPara.match(/ {2,}$/);
+        if (trailingSpaces) {
+            cleanPara = cleanPara.replace(/[ \t]+$/, trailingSpaces[0]);
+        } else {
+            cleanPara = cleanPara.replace(/[ \t]+$/, '');
+        }
 
         mdLines.push(cleanPara);
         return true;
@@ -347,7 +376,6 @@ function scanTokens(text) {
     const mdContent = mdLines.join('\n');
     return { tokens, md: mdContent };
 }
-
 
 function extractInlineCarriers(text, baseOffset = 0) {
     return scanInlineCarriers(text, baseOffset);
@@ -568,67 +596,61 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
     };
 }
 
-function emitQuad(quads, quadBuffer, removeSet, quadIndex, block, subject, predicate, object, dataFactory, meta = null, statements = null, statementCandidates = null, state = null) {
+/**
+ * Hardened O(1) quad emitter.
+ * Uses state.quadBuffer (Map) as the single source of truth during parsing to
+ * eliminate O(N^2) array searching/splicing during quad retractions.
+ */
+function emitQuad(state, block, subject, predicate, object, meta = null) {
+    // 1. Guard against invalid RDF terms
     if (!subject || !predicate || !object) return;
 
-    const quad = dataFactory.quad(subject, predicate, object);
-    const remove = meta?.remove || false;
+    const quadKey = quadIndexKey(subject, predicate, object);
+    const isRetract = Boolean(meta?.remove);
 
-    if (remove) {
-        // Check if quad exists in current buffer
-        const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
-        if (quadBuffer.has(quadKey)) {
-            // In current state → cancel, appears nowhere
-            quadBuffer.delete(quadKey);
-            // Also remove from quads array if present
-            const index = quads.findIndex(q =>
-                q.subject.value === quad.subject.value &&
-                q.predicate.value === quad.predicate.value &&
-                q.object.value === quad.object.value
-            );
-            if (index !== -1) {
-                quads.splice(index, 1);
-            }
-            // Remove from quadIndex
-            quadIndex.delete(quadKey);
+    // 2. O(1) Retraction path
+    if (isRetract) {
+        if (state.quadBuffer.has(quadKey)) {
+            // Cancel quad from active document state - O(1)
+            state.quadBuffer.delete(quadKey);
+            state.origin.quadIndex.delete(quadKey);
         } else {
-            // Not in current state → external retract
-            removeSet.add(quad);
+            // Quad originated externally -> track quad object for external retraction
+            const retractQuad = state.df.quad(subject, predicate, object, state.graph);
+            state.removeSet.add(retractQuad);
         }
-    } else {
-        // Add to buffer and quads
-        const quadKey = quadIndexKey(quad.subject, quad.predicate, quad.object);
-        quadBuffer.set(quadKey, quad);
-        quads.push(quad);
+        return;
+    }
 
-        // Track primary type and label (first occurrence only)
-        if (state) {
-            if (!state.primaryType && predicate.value === RDF_TYPE) {
-                state.primaryType = object.value;
-            }
-            if (!state.primaryLabel && predicate.value === RDFS_LABEL && object.termType === 'Literal') {
-                state.primaryLabel = object.value;
-            }
-            if (!state.primaryComment && predicate.value === RDFS_COMMENT && object.termType === 'Literal') {
-                state.primaryComment = object.value;
-            }
+    // 3. O(1) Insertion path
+    const quad = state.df.quad(subject, predicate, object, state.graph);
+    state.quadBuffer.set(quadKey, quad);
+
+    // 4. Primary metadata tracking (first occurrence only)
+    const predVal = predicate.value;
+    if (!state.primaryType && predVal === RDF_TYPE) {
+        state.primaryType = object.value;
+    } else if (!state.primaryLabel && predVal === RDFS_LABEL && object.termType === 'Literal') {
+        state.primaryLabel = object.value;
+    } else if (!state.primaryComment && predVal === RDFS_COMMENT && object.termType === 'Literal') {
+        state.primaryComment = object.value;
+    }
+
+    // 5. Single-pass rdf:Statement reification pattern detection
+    if (state.statements && state.statementCandidates) {
+        detectStatementPatternSinglePass(quad, state.df, meta, state.statements, state.statementCandidates);
+    }
+
+    // 6. Origin tracking
+    const originEntry = createLeanOriginEntry(block, subject, predicate, meta);
+    state.origin.quadIndex.set(quadKey, originEntry);
+
+    // 7. Safe block linking for reverse visual lookup
+    if (block && state.currentBlock && block.id === state.currentBlock.id) {
+        if (!state.currentBlock.quadKeys) {
+            state.currentBlock.quadKeys = [];
         }
-
-        // Detect rdf:Statement pattern during single-pass parsing
-        detectStatementPatternSinglePass(quad, dataFactory, meta, statements, statementCandidates);
-
-        // Create lean origin entry using shared utility
-        const originEntry = createLeanOriginEntry(block, subject, predicate, meta);
-
-        quadIndex.set(quadKey, originEntry);
-
-        // Link block to this quad for reverse lookup during rendering
-        if (state.currentBlock && block.id === state.currentBlock.id) {
-            if (!state.currentBlock.quadKeys) {
-                state.currentBlock.quadKeys = [];
-            }
-            state.currentBlock.quadKeys.push(quadKey);
-        }
+        state.currentBlock.quadKeys.push(quadKey);
     }
 }
 
@@ -686,14 +708,12 @@ const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
     const expandedType = expandIRI(typeIRI, state.ctx);
     const typeInfo = typeof entryIndex === 'object' ? entryIndex : { entryIndex, remove: false };
     emitQuad(
-        state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block,
+        state,
+        block,
         subject,
         state.df.namedNode(expandIRI('rdf:type', state.ctx)),
         state.df.namedNode(expandedType),
-        state.df,
-        { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex: typeInfo.entryIndex, remove: typeInfo.remove },
-        state.statements, state.statementCandidates,
-        state
+        { kind: 'type', token: `.${typeIRI}`, expandedType, entryIndex: typeInfo.entryIndex, remove: typeInfo.remove }
     );
 };
 
@@ -734,11 +754,20 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
         const role = determinePredicateRole(pred, carrier, newSubject, previousSubject, localObject, newSubjectOrCarrierO, S, L);
         if (role) {
             const P = state.df.namedNode(expandIRI(pred.iri, state.ctx));
-            emitQuad(state.quads, state.quadBuffer, state.removeSet, state.origin.quadIndex, block,
-                role.subject, P, role.object, state.df,
-                { kind: 'pred', token: `${pred.form}${pred.iri}`, form: pred.form, expandedPredicate: P.value, entryIndex: pred.entryIndex, remove: pred.remove || false },
-                state.statements, state.statementCandidates,
-                state
+            emitQuad(
+                state,
+                block,
+                role.subject,
+                P,
+                role.object,
+                {
+                    kind: 'pred',
+                    token: `${pred.form}${pred.iri}`,
+                    form: pred.form,
+                    expandedPredicate: P.value,
+                    entryIndex: pred.entryIndex,
+                    remove: pred.remove || false
+                }
             );
         }
     });
@@ -748,12 +777,6 @@ function processAnnotation(carrier, sem, state, options = {}) {
     // Use the enhanced block tracking version
     processAnnotationWithBlockTracking(carrier, sem, state, options);
 }
-
-
-
-
-
-
 
 
 function processTokenAnnotations(token, state, tokenType) {

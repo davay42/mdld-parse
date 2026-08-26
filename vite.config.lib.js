@@ -1,5 +1,5 @@
 
-import pack from './package.json'
+import pack from './package.json' with { type: 'json' }
 
 export default {
     build: {
