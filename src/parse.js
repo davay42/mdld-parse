@@ -25,7 +25,6 @@ import {
     scanInlineCarriers
 } from './tokenizers.js';
 import {
-
     getFenceClosePattern,
     calcRangeInfo,
     calcAttrsRange,
@@ -38,7 +37,6 @@ import {
     resolveObject,
     processTokenWithBlockTracking
 } from './shared.js';
-
 
 export function parse(firstArg, secondArg = {}) {
     // Dual-mode API: backward compatible with (text, options) and new ({ text, context, ... })
@@ -66,6 +64,7 @@ export function parse(firstArg, secondArg = {}) {
         primarySubject: null,
         primaryType: null,
         primaryLabel: null,
+        primaryComment: null,
         tokens: null,
         currentTokenIndex: -1,
         statements: [],
@@ -104,14 +103,10 @@ export function parse(firstArg, secondArg = {}) {
         TOKEN_PROCESSORS[token.type]?.(token, state);
     }
 
-    const quadKeys = new Set();
-    for (const quad of state.quads) {
-        quadKeys.add(quadIndexKey(quad.subject, quad.predicate, quad.object));
-    }
-    // 1. Materialize quads array from quadBuffer Map
+    // Materialize quads array from quadBuffer Map
     state.quads = Array.from(state.quadBuffer.values());
 
-    // 2. Filter removeSet using O(1) state.quadBuffer lookup
+    // Filter removeSet using O(1) state.quadBuffer lookup
     const filteredRemove = [];
     for (const quad of state.removeSet) {
         const key = quadIndexKey(quad.subject, quad.predicate, quad.object);
@@ -120,7 +115,7 @@ export function parse(firstArg, secondArg = {}) {
         }
     }
 
-    // 3. Create structured primary object for semantic surface
+    // Create structured primary object for semantic surface
     const primary = {
         subject: state.primarySubject,
         type: state.primaryType,
@@ -140,12 +135,10 @@ export function parse(firstArg, secondArg = {}) {
     };
 }
 
-
-// Cache for fence regex patterns - using shared utility
-
 function getCarriers(token) {
     if (token.type === 'code') return [];
-    return token._carriers || (token._carriers = extractInlineCarriers(token.text, token.range[0]));
+    const baseOffset = token.valueRange ? token.valueRange[0] : token.range[0];
+    return token._carriers || (token._carriers = extractInlineCarriers(token.text, baseOffset));
 }
 
 function scanTokens(text) {
@@ -242,7 +235,7 @@ function scanTokens(text) {
                 const valueEnd = Math.max(valueStart, lineStart - 1);
                 tokens.push({
                     type: 'code',
-                    range: [codeBlock.start, lineStart],
+                    range: [codeBlock.start, pos - 1], // Full line coverage
                     text: codeBlock.content.join('\n'),
                     lang: codeBlock.lang,
                     attrs: codeBlock.attrs,
@@ -307,7 +300,19 @@ function scanTokens(text) {
     }
 
     function handlePara(line, lineStart, pos) {
-        tokens.push(createToken('para', [lineStart, pos - 1], line.trim()));
+        const leadingWhitespace = line.search(/\S/);
+        const valueStart = leadingWhitespace === -1 ? lineStart : lineStart + leadingWhitespace;
+        const trimmed = line.trim();
+        const valueEnd = valueStart + trimmed.length;
+
+        tokens.push(createToken(
+            'para',
+            [lineStart, pos - 1],
+            trimmed,
+            null,
+            null,
+            [valueStart, valueEnd]
+        ));
 
         let cleanPara = line;
 
@@ -318,7 +323,7 @@ function scanTokens(text) {
             return `__INLINE_CODE_${codeSpans.length - 1}__`;
         });
 
-        // 2. Mask Vue double-curly interpolations (handles single nested braces like JS objects)
+        // 2. Mask Vue double-curly interpolations
         const mustaches = [];
         cleanPara = cleanPara.replace(/\{\{(?:[^{}]|\{[^{}]*\})*\}\}/g, match => {
             mustaches.push(match);
@@ -336,7 +341,7 @@ function scanTokens(text) {
             }
         }
 
-        // 4. Remove MD-LD bracket & single-brace annotations
+        // 4. Remove MD-LD bracket & single-brace annotations (Lookbehind-safe)
         cleanPara = cleanPara.replace(/\[([^\]]+)\]\s*\{[^}]+\}/g, '$1');
         cleanPara = cleanPara.replace(/([^{]|^)\{[^{}]+\}(?=[^}]|$)/g, '$1');
 
@@ -344,7 +349,7 @@ function scanTokens(text) {
         cleanPara = cleanPara.replace(/__VUE_INTERPOLATION_(\d+)__/g, (_, idx) => mustaches[Number(idx)]);
         cleanPara = cleanPara.replace(/__INLINE_CODE_(\d+)__/g, (_, idx) => codeSpans[Number(idx)]);
 
-        // 6. Preserve Markdown hard line breaks (2+ trailing spaces) while trimming single spaces/tabs
+        // 6. Preserve Markdown hard line breaks while trimming trailing whitespace
         const trailingSpaces = cleanPara.match(/ {2,}$/);
         if (trailingSpaces) {
             cleanPara = cleanPara.replace(/[ \t]+$/, trailingSpaces[0]);
@@ -381,20 +386,16 @@ function extractInlineCarriers(text, baseOffset = 0) {
     return scanInlineCarriers(text, baseOffset);
 }
 
-
 function createBlockEntry(token, state) {
     const blockId = token._blockId || hash(`${token.type}:${token.range?.[0]}:${token.range?.[1]}`);
-    token._blockId = blockId; // Store for later reference
+    token._blockId = blockId;
 
-    // Extract inline carriers first to enable clean text extraction
     const carriers = getCarriers(token);
-
     const cleanText = extractCleanText(token);
 
     const blockStart = token.range[0];
     const blockEnd = token.range[1];
 
-    // Construct span between previous block and this block (single-pass, O(1))
     let prevSpanId = null;
     if (state.lastBlockId !== null) {
         const spanStart = state.lastBlockEnd;
@@ -412,13 +413,11 @@ function createBlockEntry(token, state) {
             };
             state.origin.spans.set(spanId, span);
 
-            // Link previous span's nextSpanId
             if (state.lastSpanId) {
                 const prevSpan = state.origin.spans.get(state.lastSpanId);
                 if (prevSpan) prevSpan.nextSpanId = spanId;
             }
 
-            // Link previous block's nextSpanId
             const prevBlock = state.origin.blocks.get(state.lastBlockId);
             if (prevBlock) prevBlock.nextSpanId = spanId;
 
@@ -445,7 +444,6 @@ function createBlockEntry(token, state) {
         nextSpanId: null
     };
 
-    // Process carriers and add to block
     for (const carrier of carriers) {
         const carrierInfo = {
             type: carrier.type,
@@ -456,10 +454,9 @@ function createBlockEntry(token, state) {
             sem: null
         };
 
-        // Extract carrier-specific semantics
         if (carrier.attrs) {
             const carrierSem = parseSemCached(carrier.attrs);
-            carrierInfo.sem = carrierSem; // Store full semantics
+            carrierInfo.sem = carrierSem;
             carrierInfo.predicates = carrierSem.predicates || [];
             carrierInfo.subject = carrierSem.subject;
             carrierInfo.types = carrierSem.types || [];
@@ -468,7 +465,6 @@ function createBlockEntry(token, state) {
         blockEntry.carriers.push(carrierInfo);
     }
 
-    // Store block and add to document structure
     state.origin.blocks.set(blockId, blockEntry);
     state.origin.documentStructure.push(blockEntry);
 
@@ -476,7 +472,6 @@ function createBlockEntry(token, state) {
 }
 
 function enrichBlockFromAnnotation(blockEntry, sem, carrier, state) {
-    // Update subject if available
     if (sem.subject && sem.subject !== 'RESET') {
         const resolvedSubject = resolveSubject(sem, state);
         if (resolvedSubject) {
@@ -484,7 +479,6 @@ function enrichBlockFromAnnotation(blockEntry, sem, carrier, state) {
         }
     }
 
-    // Add types
     if (sem.types && sem.types.length > 0) {
         sem.types.forEach(t => {
             const typeIRI = typeof t === 'string' ? t : t.iri;
@@ -495,19 +489,17 @@ function enrichBlockFromAnnotation(blockEntry, sem, carrier, state) {
         });
     }
 
-    // Add predicates
     if (sem.predicates && sem.predicates.length > 0) {
         sem.predicates.forEach(pred => {
             const expandedPred = {
                 iri: expandIRI(pred.iri, state.ctx),
                 form: pred.form || '',
-                object: null // Will be filled during quad emission
+                object: null
             };
             blockEntry.predicates.push(expandedPred);
         });
     }
 
-    // Add carrier information
     if (carrier) {
         const carrierInfo = {
             type: carrier.type,
@@ -517,10 +509,9 @@ function enrichBlockFromAnnotation(blockEntry, sem, carrier, state) {
             predicates: []
         };
 
-        // Extract carrier-specific semantics
         if (carrier.attrs) {
             const carrierSem = parseSemCached(carrier.attrs);
-            carrierInfo.sem = carrierSem; // Store full semantics
+            carrierInfo.sem = carrierSem;
             carrierInfo.predicates = carrierSem.predicates || [];
             carrierInfo.subject = carrierSem.subject;
             carrierInfo.types = carrierSem.types || [];
@@ -542,9 +533,8 @@ function processAnnotationWithBlockTracking(carrier, sem, state, options = {}) {
     const newSubject = resolveSubject(sem, state);
     const localObject = resolveObject(sem, state);
 
-    // Track primary subject: first non-fragment subject declaration (fixed once detected)
     if (newSubject && !state.primarySubject && !sem.subject.startsWith('=#')) {
-        state.primarySubject = newSubject.value; // Store as string IRI
+        state.primarySubject = newSubject.value;
     }
 
     const effectiveSubject = implicitSubject || (newSubject && !preserveGlobalSubject ? newSubject : previousSubject);
@@ -564,7 +554,6 @@ function processAnnotationWithBlockTracking(carrier, sem, state, options = {}) {
     const carrierO = carrier.url ? state.df.namedNode(expandIRI(carrier.url, state.ctx)) : null;
     const newSubjectOrCarrierO = newSubject || carrierO;
 
-    // Enrich current block with semantic information
     if (state.currentBlock) {
         enrichBlockFromAnnotation(state.currentBlock, sem, carrier, state);
     }
@@ -598,35 +587,28 @@ function createBlock(subject, types, predicates, range, attrsRange, valueRange, 
 
 /**
  * Hardened O(1) quad emitter.
- * Uses state.quadBuffer (Map) as the single source of truth during parsing to
- * eliminate O(N^2) array searching/splicing during quad retractions.
+ * Uses state.quadBuffer (Map) as single source of truth during parsing.
  */
 function emitQuad(state, block, subject, predicate, object, meta = null) {
-    // 1. Guard against invalid RDF terms
     if (!subject || !predicate || !object) return;
 
     const quadKey = quadIndexKey(subject, predicate, object);
     const isRetract = Boolean(meta?.remove);
 
-    // 2. O(1) Retraction path
     if (isRetract) {
         if (state.quadBuffer.has(quadKey)) {
-            // Cancel quad from active document state - O(1)
             state.quadBuffer.delete(quadKey);
             state.origin.quadIndex.delete(quadKey);
         } else {
-            // Quad originated externally -> track quad object for external retraction
             const retractQuad = state.df.quad(subject, predicate, object, state.graph);
             state.removeSet.add(retractQuad);
         }
         return;
     }
 
-    // 3. O(1) Insertion path
     const quad = state.df.quad(subject, predicate, object, state.graph);
     state.quadBuffer.set(quadKey, quad);
 
-    // 4. Primary metadata tracking (first occurrence only)
     const predVal = predicate.value;
     if (!state.primaryType && predVal === RDF_TYPE) {
         state.primaryType = object.value;
@@ -636,16 +618,13 @@ function emitQuad(state, block, subject, predicate, object, meta = null) {
         state.primaryComment = object.value;
     }
 
-    // 5. Single-pass rdf:Statement reification pattern detection
     if (state.statements && state.statementCandidates) {
         detectStatementPatternSinglePass(quad, state.df, meta, state.statements, state.statementCandidates);
     }
 
-    // 6. Origin tracking
     const originEntry = createLeanOriginEntry(block, subject, predicate, meta);
     state.origin.quadIndex.set(quadKey, originEntry);
 
-    // 7. Safe block linking for reverse visual lookup
     if (block && state.currentBlock && block.id === state.currentBlock.id) {
         if (!state.currentBlock.quadKeys) {
             state.currentBlock.quadKeys = [];
@@ -655,12 +634,10 @@ function emitQuad(state, block, subject, predicate, object, meta = null) {
 }
 
 function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = null, statementCandidates = null) {
-    // Skip if not called from parse context (for testing compatibility)
     if (!statements || !statementCandidates) return;
 
     const predicate = quad.predicate.value;
 
-    // Early filter: only process rdf:Statement related predicates
     if (predicate !== RDF_TYPE &&
         predicate !== RDF_SUBJECT &&
         predicate !== RDF_PREDICATE &&
@@ -668,41 +645,33 @@ function detectStatementPatternSinglePass(quad, dataFactory, meta, statements = 
         return;
     }
 
-    // Check if this quad starts a new rdf:Statement pattern
     if (predicate === RDF_TYPE && quad.object.value === RDF_STATEMENT) {
         statementCandidates.set(quad.subject.value, { spo: {} });
         return;
     }
 
-    // Check if this quad completes part of an existing rdf:Statement pattern
     const candidate = statementCandidates.get(quad.subject.value);
     if (!candidate) return;
 
-    // Direct property assignment instead of switch for better performance
     if (predicate === RDF_SUBJECT) {
         candidate.spo.subject = quad.object;
     } else if (predicate === RDF_PREDICATE) {
         candidate.spo.predicate = quad.object;
     } else if (predicate === RDF_OBJECT) {
         candidate.spo.object = quad.object;
-        // Store the original quad for potential literal extraction
         candidate.objectQuad = quad;
     }
 
-    // Check if pattern is complete and create elevated SPO quad
     if (candidate.spo.subject && candidate.spo.predicate && candidate.spo.object) {
-        // Use the object directly - literal detection happens at parse time
         const spoQuad = dataFactory.quad(
             candidate.spo.subject,
             candidate.spo.predicate,
             candidate.spo.object
         );
         statements.push(spoQuad);
-        // Clean up candidate to avoid duplicate detection
         statementCandidates.delete(quad.subject.value);
     }
 }
-
 
 const createTypeQuad = (typeIRI, subject, state, block, entryIndex = null) => {
     const expandedType = expandIRI(typeIRI, state.ctx);
@@ -721,7 +690,6 @@ function processTypeAnnotations(sem, newSubject, localObject, carrierO, S, block
     sem.types.forEach(t => {
         const typeIRI = typeof t === 'string' ? t : t.iri;
         const typeInfo = typeof t === 'string' ? { entryIndex: null, remove: false } : t;
-        // Type subject priority: explicit subject > soft object > carrier URL > current subject
         let typeSubject = newSubject || localObject || carrierO || S;
         createTypeQuad(typeIRI, typeSubject, state, block, typeInfo);
     });
@@ -733,16 +701,13 @@ const determinePredicateRole = (pred, carrier, newSubject, previousSubject, loca
     }
     switch (pred.form) {
         case '':
-            // Literal predicates: explicit subject > current subject, URL only when no explicit subject
             return newSubject ? { subject: localObject || S, object: L }
                 : (carrier?.type === 'link' && carrier?.url && carrier.text !== carrier.url)
                     ? { subject: newSubjectOrCarrierO, object: L }
                     : { subject: localObject || S, object: L };
         case '?':
-            // Object predicates: use current subject → explicit object or URL
             return { subject: newSubject ? previousSubject : S, object: localObject || newSubjectOrCarrierO };
         case '!':
-            // Reverse predicates: explicit object or URL → current subject
             return { subject: localObject || newSubjectOrCarrierO, object: newSubject ? previousSubject : S };
         default:
             return null;
@@ -774,10 +739,8 @@ function processPredicateAnnotations(sem, newSubject, previousSubject, localObje
 }
 
 function processAnnotation(carrier, sem, state, options = {}) {
-    // Use the enhanced block tracking version
     processAnnotationWithBlockTracking(carrier, sem, state, options);
 }
-
 
 function processTokenAnnotations(token, state, tokenType) {
     if (token.attrs) {
@@ -802,9 +765,13 @@ function processStandaloneSubject(token, state) {
 
     const sem = parseSemCached(`{=${result.content}}`);
     const attrsStart = token.range[0] + token.text.indexOf('{=');
+    const fullAttrLength = 3 + (result.content ? result.content.length : 0);
+
     processAnnotation({
-        type: 'standalone', text: '', range: token.range,
-        attrsRange: [attrsStart, attrsStart + (result.content ? result.content.length : 0)],
+        type: 'standalone',
+        text: '',
+        range: token.range,
+        attrsRange: [attrsStart, attrsStart + fullAttrLength],
         valueRange: null
     }, sem, state);
 }
