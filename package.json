@@ -1,6 +1,6 @@
 {
 	"name": "mdld-parse",
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"description": "Write RDF knowledge graphs as plain Markdown. Parse to quads, generate back, merge documents. The human-friendly semantic web format.",
 	"keywords": [
 		"rdf",
