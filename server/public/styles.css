@@ -1,0 +1,218 @@
+/* ─── Theme Variables ─── */
+:root {
+  --bg-color: #fafafa;
+  --card-bg: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --border-color: #e5e5e5;
+  --accent-color: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-alpha: rgba(37, 99, 235, 0.15);
+  --tag-bg: #f1f5f9;
+  --tag-color: #0f172a;
+  --tag-border: #cbd5e1;
+  --input-bg: #ffffff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Consolas", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0d1117;
+    --card-bg: #161b22;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --border-color: #30363d;
+    --accent-color: #2f81f7;
+    --accent-hover: #1f6feb;
+    --accent-alpha: rgba(47, 129, 247, 0.25);
+    --tag-bg: #21262d;
+    --tag-color: #58a6ff;
+    --tag-border: #30363d;
+    --input-bg: #0d1117;
+  }
+}
+
+/* ─── Base Layout ─── */
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-color);
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+  padding: 2rem 1.5rem;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ─── Typography ─── */
+h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+p { color: var(--text-secondary); margin-bottom: 1rem; }
+
+/* ─── Links & Navigation ─── */
+a {
+  color: var(--accent-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* Targets the "← Overview" or "← Back" links at the top of pages */
+body > a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+body > a:hover { color: var(--accent-color); text-decoration: none; }
+
+/* ─── IRI Tags (Targets all <code> blocks) ─── */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  font-weight: 500;
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  padding: 0.25em 0.6em;
+  border-radius: 999px; /* Pill shape */
+  border: 1px solid var(--tag-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+/* ─── Card Grids (Entities, Types, Properties, Commits) ─── */
+ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+}
+
+li {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: var(--accent-color);
+}
+
+/* Entity Card specific layout */
+li a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--text-primary);
+  height: 100%;
+}
+li a:hover { color: var(--text-primary); text-decoration: none; }
+li a code { align-self: flex-start; margin-top: auto; }
+
+/* ─── Forms & Inputs ─── */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  max-width: 600px;
+}
+
+/* Smart inline forms (e.g., a form containing only a sync button) */
+form:has(> button:only-child) {
+  flex-direction: row;
+  align-items: center;
+  max-width: none;
+  margin: 1rem 0;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-alpha);
+}
+
+textarea {
+  min-height: 160px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent-color);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  align-self: flex-start;
+}
+
+button:hover { background: var(--accent-hover); }
+button:active { transform: scale(0.98); }
+
+/* ─── Preformatted Text (Git diffs, status) ─── */
+pre {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 1rem 0;
+}
