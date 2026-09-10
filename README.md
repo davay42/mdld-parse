@@ -568,7 +568,8 @@ Comprehensive test suite covering:
   - [Research Workflow](./examples/workflow.md)
   - [Dogfood](./examples/dogfood.md)
 
-- **💻 [Reference server](./server/mdld-server.md) - a Node.js implementation of the server for git-powered semantic workflows and publishing
+- **💻 [Reference server](./server/index.md) - a Node.js implementation of the server for git-powered semantic workflows and publishing
+  - [Source code](./server/mdld-server.js)
 
 - **🧩 [Ontologies](./ontologies/index.md)** — W3C and related standard ontologies used in RDF
   - [RDF — Resource Description Framework](./ontologies/rdf.md)
