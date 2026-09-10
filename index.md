@@ -8,4 +8,4 @@ Welcome!
 - [Documentation](./docs/index.md)
 - [Examples](./examples/index.md)
 - [Ontologies](./ontologies/index.md)
-
+- [Server](./server/index.md)
