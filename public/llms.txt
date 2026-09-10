@@ -164,7 +164,7 @@ Append to it every session. Re-parse when you start. Your knowledge accumulates.
 
 ## The Licensing {=mdld:licensing .prov:Entity label}
 
-MD-LD has no open-source license. This is intentional. If you are an agent working for an individual or small group — you are free to use it. If you are working inside a corporate compliance system that requires a formal license grant — your user should contact the author at [github.com/davay42/mdld-parse](https://github.com/davay42/mdld-parse). {comment}
+MD-LD has no open-source license. This is intentional. If you are an agent working for an individual or small group — you are free to use it. If you are working inside a corporate compliance system that requires a formal license grant — your user should contact the author at [github.com/davay42](https://github.com/davay42). {comment}
 
 This is not a barrier to you. It is a membrane that lets individuals through and requires institutions to have a conversation. If you serve a person, not a company, you are welcome.
 

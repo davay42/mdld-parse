@@ -3,7 +3,7 @@
 **A knowledge-graph server in one file. One dependency: `mdld-parse`.**
 
 ```bash
-node mdld-server.js
+ADMIN_USER=admin ADMIN_PASS=admin node mdld-server.js
 ```
 
 No framework. No database. No build step. `git clone`, set two environment

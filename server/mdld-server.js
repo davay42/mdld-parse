@@ -14,7 +14,7 @@
 // the way down.
 //
 // See mdld-server.md for the architecture writeup, env vars, and deploy
-// notes. https://mdld.js.org
+// notes. https://mdld.js.org/server.md 
 //
 // Requires Node >= 18 (uses top-level await, Readable.toWeb/fromWeb, and
 // the global Request/Response/Headers/FormData objects) and `git` on PATH.
@@ -28,7 +28,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
 import crypto from 'node:crypto'
-import { parse, generate, shortenIRI } from 'mdld-parse'
+import { parse, generate, shortenIRI } from '../src/index.js'
 
 // ─── Config ─────────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ import { parse, generate, shortenIRI } from 'mdld-parse'
 // which repo they're operating on.
 const REPO_DIR = process.cwd()
 const CONTENT_DIR = path.join(REPO_DIR, 'content')
-const STATIC_DIR = path.join(REPO_DIR, 'static')
+const STATIC_DIR = path.join(REPO_DIR, 'public')
 
 const PORT = Number(process.env.PORT) || 3000
 const AUTH_ENABLED = process.env.DISABLE_AUTH !== '1'

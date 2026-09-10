@@ -352,6 +352,10 @@ Parse MDLD to RDF quads with lean origin tracking.
 - `primary` — Primary metadata quartet: `{ subject, type, label, comment }`
 - `md` — Clean Markdown with annotations stripped
 
+`primarySubject` is useful to allow each iri have it's page and vice versa - so we can have arbitrary MD content attached to it. This is where we can render the `md` on the entity page if we have it in our custom `const pages = new Map()`. 
+
+`md` is useful to detect parsing success: `if(originalText!=parsed.md) {console.log('Parse success. Total annotations: ', originalText.length-md.length) letters.`
+
 ### `merge(docs, options)`
 
 Merge multiple MDLD documents with diff polarity resolution.
