@@ -517,9 +517,11 @@ Comprehensive test suite covering:
   - [Formal Specification](./spec/Spec.md)
   - [Compact Spec](./spec/Spec-compact.md)
   - [Ultra Compact Spec](./spec/Spec-ultra.md)
+
 - **📚 [Grammar](./grammar/index.md)** — EBNF+TextMate grammar specifications
 - [The TextMate grammar](./grammar/mdld.tmLanguage.json)
 - [ISO 14977 EBNF grammar](./grammar/mdld.ebnf)
+
 - **📖 [Documentation](./docs/index.md)** — Complete documentation with guides and references
   - [MD-LD Authoring Guide](./docs/Guide.md)
   - [One Page Guide](./docs/one-page.md)
@@ -541,6 +543,7 @@ Comprehensive test suite covering:
   - [Human-Scale Software & Semantic Infrastructure](./docs/Human-Scale.md)
   - [Quad[] as a Universal Semantic Runtime](./docs/quad-runtime.md)
   - [Use Cases](./docs/Use-Cases.md)
+
 - **🎯 [Examples](./examples/index.md)** — Real-world MD-LD examples and use cases
   - [Minimal](./examples/demo/minimal.md)
   - [One-Page Guide](./examples/one-page.md)
@@ -560,6 +563,9 @@ Comprehensive test suite covering:
   - [LLM Time Workflow](./examples/llm-time-workflow.md)
   - [Research Workflow](./examples/workflow.md)
   - [Dogfood](./examples/dogfood.md)
+
+- **💻 [Reference server](./server/mdld-server.md) - a Node.js implementation of the server for git-powered semantic workflows and publishing
+
 - **🧩 [Ontologies](./ontologies/index.md)** — W3C and related standard ontologies used in RDF
   - [RDF — Resource Description Framework](./ontologies/rdf.md)
   - [RDFS — RDF Schema](./ontologies/rdfs.md)
