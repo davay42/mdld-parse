@@ -145,7 +145,6 @@
             display: flex;
             flex-wrap: wrap;
             gap: 0.45rem;
-            justify-content: flex-end;
         }
 
         .entity-chip {
@@ -574,7 +573,6 @@
             const literalRows = getLiteralRows(nodeId, quads, context);
             const entries = Object.entries(roles).filter(([, items]) => items.length > 0);
             const displayTitle = summary.label || summary.shortIri || nodeId;
-            const displaySubtitle = summary.comment || (summary.types.length ? summary.types.join(' • ') : '');
 
             const cards = entries.map(([role, items]) => {
                 const info = summarizeRole(nodeId, role, items, context);
@@ -621,12 +619,12 @@
             return `
                 <div class="node-debug-card">
                     <div class="node-debug-card-header">
-                        <span class="eyebrow">Entity</span>
                         <div class="node-debug-iri" title="${escapeHtml(summary.fullIri)}">${escapeHtml(displayTitle)}</div>
-                        ${displaySubtitle ? `<div class="node-debug-iri-full">${escapeHtml(displaySubtitle)}</div>` : ''}
-                    </div>
-                    <div class="node-debug-meta-row">
-                        ${summary.types.length ? summary.types.map(type => `<a href="#${encodeURIComponent(expandIRI(type, context))}" class="entity-chip type node-link" data-node="${escapeHtml(expandIRI(type, context))}" title="${escapeHtml(type)}">${escapeHtml(type)}</a>`).join('') : '<span class="entity-chip muted">untyped</span>'}
+                        ${summary.comment ? `<div class="node-debug-iri-full">${escapeHtml(summary.comment)}</div>` : ''}
+                        
+                        <div class="node-debug-meta-row">
+                            ${summary.types.length ? summary.types.map(type => `<a href="#${encodeURIComponent(expandIRI(type, context))}" class="entity-chip type node-link" data-node="${escapeHtml(expandIRI(type, context))}" title="${escapeHtml(type)}">${escapeHtml(type)}</a>`).join('') : '<span class="entity-chip muted">untyped</span>'}
+                        </div>
                     </div>
                     <div class="node-debug-iri-full">${escapeHtml(summary.fullIri)}</div>
                     ${literalMarkup}

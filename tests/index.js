@@ -7,6 +7,7 @@ import { mdTests } from './md.tests.js';
 import { runReverseAnnotationTests } from './reverse-annotation.tests.js';
 import { generateRemoveTests } from './generate-remove.tests.js';
 import { generateLangTests } from './generate-lang.tests.js';
+import { generateNodeTests } from './generate-node.tests.js';
 
 const testGroups = [
     { name: 'Parse Tests', tests: parseTests },
@@ -17,6 +18,7 @@ const testGroups = [
     { name: 'MD Tests', tests: mdTests },
     { name: 'Generate Remove Tests', tests: generateRemoveTests },
     { name: 'Generate Lang Tests', tests: generateLangTests },
+    { name: 'Generate Node Tests', tests: generateNodeTests },
 ];
 
 const allTests = testGroups.flatMap(g => g.tests);
