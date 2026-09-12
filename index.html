@@ -54,8 +54,307 @@
 
     <link rel="stylesheet" href="./demo/styles.css">
 
+    <style>
+        .node-debug-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .node-debug-overlay.visible {
+            display: flex;
+        }
+
+        .node-debug-dialog {
+            width: min(900px, 92vw);
+            max-height: 80vh;
+            overflow: auto;
+            background: #fff;
+            color: #111827;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(148, 163, 184, 0.7);
+        }
+
+        .dark .node-debug-dialog {
+            background: #111827;
+            color: #e5e7eb;
+            border-color: rgba(75, 85, 99, 0.9);
+        }
+
+        .node-debug-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .node-debug-body {
+            padding: 1rem 1.25rem 1.25rem;
+        }
+
+        .node-debug-role-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .node-debug-card {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: min(860px, 92vw);
+            max-width: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+            padding: 1rem 1rem 1.25rem;
+        }
+
+        .dark .node-debug-card {
+            background: rgba(17, 24, 39, 0.96);
+            border-color: rgba(75, 85, 99, 0.8);
+        }
+
+        .node-debug-card-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+            padding-bottom: 0.75rem;
+        }
+
+        .node-debug-card-header .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.7;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .node-debug-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            justify-content: flex-end;
+        }
+
+        .entity-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.2rem 0.55rem;
+            background: rgba(148, 163, 184, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            font-size: 0.68rem;
+            font-weight: 500;
+            color: #374151;
+            line-height: 1.3;
+        }
+
+        .dark .entity-chip {
+            color: #e5e7eb;
+        }
+
+        .entity-chip.type {
+            background: rgba(16, 185, 129, 0.06);
+            border-color: rgba(16, 185, 129, 0.18);
+            color: #0f766e;
+        }
+
+        .entity-chip.more {
+            background: rgba(148, 163, 184, 0.12);
+            border-color: rgba(148, 163, 184, 0.28);
+        }
+
+        .entity-chip.muted {
+            opacity: 0.7;
+        }
+
+        .node-debug-iri {
+            font-size: clamp(1.2rem, 2vw, 1.8rem);
+            font-weight: 700;
+            word-break: break-all;
+            line-height: 1.2;
+        }
+
+        .node-debug-iri-full {
+            font-size: 0.75rem;
+            opacity: 0.72;
+            word-break: break-all;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        .node-debug-card .node-debug-iri-full+.node-debug-iri-full {
+            margin-top: 0.2rem;
+        }
+
+        .node-debug-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .literal-data-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+        }
+
+        .literal-data-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+            gap: 0.75rem;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            border-radius: 8px;
+            background: rgba(148, 163, 184, 0.04);
+        }
+
+        .literal-data-predicate {
+            font-size: 0.76rem;
+            font-weight: 500;
+            opacity: 0.75;
+            overflow-wrap: anywhere;
+        }
+
+        .literal-data-value {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.86rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .dark .literal-data-value {
+            color: #f3f4f6;
+        }
+
+        .literal-data-datatype {
+            display: inline-block;
+            margin-left: 0.35rem;
+            opacity: 0.75;
+        }
+
+        .node-debug-role-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .triple-use-case {
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            padding: 0.35rem 0.45rem;
+            border-radius: 8px;
+            background: rgba(148, 163, 184, 0.05);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .triple-use-case .predicate {
+            color: #2563eb;
+            font-weight: 600;
+            opacity: 0.9;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        .triple-use-case .target {
+            color: #111827;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .dark .triple-use-case .target {
+            color: #f3f4f6;
+        }
+
+        .node-link {
+            color: #1f2937;
+            text-decoration: none;
+        }
+
+        .dark .node-link {
+            color: #e5e7eb;
+        }
+
+        .node-debug-role {
+            border: 1px solid rgba(148, 163, 184, 0.55);
+            border-radius: 10px;
+            padding: 0.75rem;
+            background: rgba(148, 163, 184, 0.05);
+        }
+
+        .node-debug-role-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-size: 0.72rem;
+            opacity: 0.8;
+        }
+
+        .node-debug-role-header strong {
+            font-size: 1.1rem;
+            letter-spacing: 0.02em;
+            opacity: 1;
+        }
+
+        .node-debug-quads {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.75rem;
+        }
+
+        .node-debug-quad {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.025);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 8px;
+            padding: 0.45rem 0.6rem;
+            word-break: break-word;
+        }
+
+        .node-debug-quad.muted {
+            opacity: 0.75;
+        }
+
+        .node-debug-subject,
+        .node-debug-predicate,
+        .node-debug-object {
+            max-width: 100%;
+        }
+
+        .node-debug-predicate {
+            color: #2563eb;
+            font-weight: 700;
+        }
+    </style>
+
     <script type="module">
-        import { parse, shortenIRI, generate, getIRIColor } from './src/index.js';
+        import { parse, shortenIRI, expandIRI, generate, getIRIColor } from './src/index.js';
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store, Parser } from 'n3';
         import MarkdownIt from 'markdown-it';
@@ -110,6 +409,234 @@
             return str1 === str2;
         }
 
+        function shortenForDisplay(iri, context = {}) {
+            if (!iri) return '';
+            try {
+                const shortened = shortenIRI(iri, context);
+                return shortened || iri;
+            } catch (error) {
+                return iri;
+            }
+        }
+
+        function pickPreferredLiteral(literals, preferredLang = null) {
+            if (!Array.isArray(literals) || !literals.length) return null;
+            const candidates = [...literals];
+            if (preferredLang) {
+                const langMatch = candidates.filter(l => l.language === preferredLang);
+                if (langMatch.length) return langMatch.sort((a, b) => a.value.length - b.value.length)[0];
+            }
+            const untagged = candidates.filter(l => !l.language);
+            if (untagged.length) return untagged.sort((a, b) => a.value.length - b.value.length)[0];
+            const english = candidates.filter(l => l.language === 'en');
+            if (english.length) return english.sort((a, b) => a.value.length - b.value.length)[0];
+            return candidates.sort((a, b) => a.value.length - b.value.length)[0];
+        }
+
+        function buildEntitySummary(nodeId, quads, context = {}) {
+            const labelQuads = quads.filter(q => q.subject?.value === nodeId && q.predicate?.value === 'http://www.w3.org/2000/01/rdf-schema#label' && q.object?.termType === 'Literal');
+            const commentQuads = quads.filter(q => q.subject?.value === nodeId && q.predicate?.value === 'http://www.w3.org/2000/01/rdf-schema#comment' && q.object?.termType === 'Literal');
+            const typeQuads = quads.filter(q => q.subject?.value === nodeId && q.predicate?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' && q.object?.termType === 'NamedNode');
+
+            const label = pickPreferredLiteral(labelQuads.map(q => q.object), 'en')?.value || pickPreferredLiteral(labelQuads.map(q => q.object))?.value || null;
+            const comment = pickPreferredLiteral(commentQuads.map(q => q.object), 'en')?.value || pickPreferredLiteral(commentQuads.map(q => q.object))?.value || null;
+            const types = typeQuads.map(q => shortenForDisplay(q.object.value, context)).filter(Boolean);
+
+            return {
+                label,
+                comment,
+                types,
+                shortIri: shortenForDisplay(nodeId, context),
+                fullIri: nodeId
+            };
+        }
+
+        function roleQuads(nodeId, quads) {
+            if (!Array.isArray(quads)) return {};
+            return {
+                subject: quads.filter(q => q.subject?.value === nodeId),
+                predicate: quads.filter(q => q.predicate?.value === nodeId),
+                object: quads.filter(q => q.object?.termType === 'NamedNode' && q.predicate?.value !== 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' && q.object.value === nodeId),
+                type: quads.filter(q => q.predicate?.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' && q.object?.termType === 'NamedNode' && q.object.value === nodeId),
+                datatype: quads.filter(q => q.object?.termType === 'Literal' && q.object.datatype?.value === nodeId),
+            };
+        }
+
+        function formatLiteralValue(literal, context = {}) {
+            if (!literal || literal.termType !== 'Literal') return '';
+            const displayValue = literal.value ?? '';
+            const datatype = literal.datatype?.value || null;
+            const language = literal.language || null;
+            const suffix = language ? `@${language}` : datatype && datatype !== 'http://www.w3.org/2001/XMLSchema#string' ? `^^${shortenForDisplay(datatype, context)}` : '';
+            return `"${displayValue}"${suffix}`;
+        }
+
+        function getLiteralRows(nodeId, quads, context = {}) {
+            return quads
+                .filter(q => q.subject?.value === nodeId && q.object?.termType === 'Literal')
+                .map(q => ({
+                    predicate: shortenForDisplay(q.predicate?.value, context) || q.predicate?.value || 'predicate',
+                    value: q.object.value,
+                    datatype: q.object?.datatype?.value ? shortenForDisplay(q.object.datatype.value, context) || q.object.datatype.value : null,
+                    language: q.object?.language || null,
+                    raw: q.object
+                }))
+                .sort((a, b) => a.predicate.localeCompare(b.predicate));
+        }
+
+        function summarizeRole(nodeId, role, items, context = {}) {
+            if (!items.length) return { count: 0, values: [] };
+
+            const values = [];
+            for (const q of items) {
+                let predicateText = q.predicate?.value || '';
+                let targetText = '';
+                let targetIri = '';
+                let valueKind = 'iri';
+
+                switch (role) {
+                    case 'subject':
+                        if (q.object?.termType === 'Literal') continue;
+                        if (q.object?.termType === 'NamedNode') {
+                            targetText = shortenForDisplay(q.object.value, context) || q.object.value;
+                            targetIri = q.object.value;
+                        } else if (q.predicate?.value) {
+                            targetText = shortenForDisplay(q.predicate.value, context) || q.predicate.value;
+                            targetIri = q.predicate.value;
+                        }
+                        predicateText = q.predicate?.value || 'uses';
+                        break;
+                    case 'predicate':
+                        if (q.subject?.value && q.subject.value !== nodeId) {
+                            targetText = shortenForDisplay(q.subject.value, context) || q.subject.value;
+                            targetIri = q.subject.value;
+                        }
+                        if (!targetText && q.object?.termType === 'NamedNode' && q.object.value !== nodeId) {
+                            targetText = shortenForDisplay(q.object.value, context) || q.object.value;
+                            targetIri = q.object.value;
+                        }
+                        if (!targetText && q.object?.termType === 'Literal') {
+                            targetText = q.object.value;
+                            valueKind = 'literal';
+                        }
+                        predicateText = shortenForDisplay(q.predicate?.value || q.object?.value || nodeId, context) || q.predicate?.value || q.object?.value || nodeId;
+                        break;
+                    case 'object':
+                        if (q.object?.termType === 'Literal') continue;
+                        if (q.subject?.value && q.subject.value !== nodeId) {
+                            targetText = shortenForDisplay(q.subject.value, context) || q.subject.value;
+                            targetIri = q.subject.value;
+                        }
+                        predicateText = shortenForDisplay(q.predicate?.value || nodeId, context) || q.predicate?.value || nodeId;
+                        break;
+                    case 'type':
+                        if (q.object?.termType === 'Literal') continue;
+                        if (q.subject?.value && q.subject.value !== nodeId) {
+                            targetText = shortenForDisplay(q.subject.value, context) || q.subject.value;
+                            targetIri = q.subject.value;
+                        }
+                        predicateText = 'rdf:type';
+                        break;
+                    case 'datatype':
+                        if (q.object?.termType === 'Literal') continue;
+                        if (q.subject?.value && q.subject.value !== nodeId) {
+                            targetText = shortenForDisplay(q.subject.value, context) || q.subject.value;
+                            targetIri = q.subject.value;
+                        }
+                        predicateText = shortenForDisplay(q.predicate?.value || nodeId, context) || q.predicate?.value || nodeId;
+                        break;
+                    default:
+                        break;
+                }
+
+                if (!targetText) continue;
+                values.push({
+                    iri: targetIri || null,
+                    label: targetText,
+                    predicate: shortenForDisplay(predicateText, context) || predicateText,
+                    kind: valueKind
+                });
+            }
+
+            const unique = [...new Map(values.map(v => [`${v.kind}|${v.iri || ''}|${v.predicate}|${v.label}`, v])).values()];
+            unique.sort((a, b) => String(a.predicate).localeCompare(String(b.predicate)) || String(a.label).localeCompare(String(b.label)));
+
+            return {
+                count: items.filter(q => q.object?.termType !== 'Literal').length,
+                values: unique,
+            };
+        }
+
+        function formatEntityCard(nodeId, quads) {
+            const context = lastParse?.result?.context || {};
+            const summary = buildEntitySummary(nodeId, quads, context);
+            const roles = roleQuads(nodeId, quads);
+            const literalRows = getLiteralRows(nodeId, quads, context);
+            const entries = Object.entries(roles).filter(([, items]) => items.length > 0);
+            const displayTitle = summary.label || summary.shortIri || nodeId;
+            const displaySubtitle = summary.comment || (summary.types.length ? summary.types.join(' • ') : '');
+
+            const cards = entries.map(([role, items]) => {
+                const info = summarizeRole(nodeId, role, items, context);
+                if (!info.values.length) return '';
+                return `
+                    <div class="node-debug-role">
+                        <div class="node-debug-role-header">
+                            <span>${role}</span>
+                            <strong>${info.count}</strong>
+                        </div>
+                        <div class="node-debug-role-summary">
+                            ${info.values.map(({ iri, label, predicate, kind }) => {
+                    if (kind === 'literal') {
+                        return `
+                                        <span class="triple-use-case literal-use-case" title="${escapeHtml(label)}">
+                                            <span class="predicate">${escapeHtml(predicate)}</span>
+                                            <span class="target literal">${escapeHtml(label)}</span>
+                                        </span>
+                                    `;
+                    }
+                    return `
+                                    <a href="#${encodeURIComponent(iri)}" class="triple-use-case node-link" data-node="${escapeHtml(iri)}" title="${escapeHtml(iri)}">
+                                        <span class="predicate">${escapeHtml(predicate)}</span>
+                                        <span class="target">${escapeHtml(label)}</span>
+                                    </a>
+                                `;
+                }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const literalMarkup = literalRows.length ? `
+                <div class="literal-data-list">
+                    ${literalRows.map(row => `
+                        <div class="literal-data-row">
+                            <div class="literal-data-predicate">${escapeHtml(row.predicate)}</div>
+                            <div class="literal-data-value">${escapeHtml(row.value)}${row.datatype ? `<span class="literal-data-datatype">${escapeHtml(row.datatype)}</span>` : ''}${row.language ? `<span class="literal-data-datatype">@${escapeHtml(row.language)}</span>` : ''}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
+
+            return `
+                <div class="node-debug-card">
+                    <div class="node-debug-card-header">
+                        <span class="eyebrow">Entity</span>
+                        <div class="node-debug-iri" title="${escapeHtml(summary.fullIri)}">${escapeHtml(displayTitle)}</div>
+                        ${displaySubtitle ? `<div class="node-debug-iri-full">${escapeHtml(displaySubtitle)}</div>` : ''}
+                    </div>
+                    <div class="node-debug-meta-row">
+                        ${summary.types.length ? summary.types.map(type => `<a href="#${encodeURIComponent(expandIRI(type, context))}" class="entity-chip type node-link" data-node="${escapeHtml(expandIRI(type, context))}" title="${escapeHtml(type)}">${escapeHtml(type)}</a>`).join('') : '<span class="entity-chip muted">untyped</span>'}
+                    </div>
+                    <div class="node-debug-iri-full">${escapeHtml(summary.fullIri)}</div>
+                    ${literalMarkup}
+                    <div class="node-debug-list">
+                        ${cards}
+                    </div>
+                </div>
+            `;
+        }
+
         function escapeHtml(s) {
             return String(s)
                 .replaceAll('&', '&amp;')
@@ -119,28 +646,38 @@
                 .replaceAll("'", '&#39;');
         }
 
-        function short(term, ctx) {
-            return shortenIRI(term, ctx);
-        }
-
-        function clipTitle(full, display) {
-            return display === full ? display : `${display}\n${full}`;
-        }
-
-        function parseObjectField(raw) {
-            const s = String(raw || '').trim();
-            if (!s) return null;
-            if (s.startsWith('"')) {
-                const m = s.match(/^"([\s\S]*)"(?:@([a-zA-Z-]+)|\^\^<([^>]+)>|\^\^([^\s]+))?$/);
-                if (!m) return { termType: 'Literal', value: s.replace(/^"|"$/g, ''), language: '', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } };
-                const value = m[1].replace(/\\"/g, '"');
-                if (m[2]) return { termType: 'Literal', value, language: m[2], datatype: { termType: 'NamedNode', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString' } };
-                const dt = m[3] || m[4];
-                if (dt) return { termType: 'Literal', value, language: '', datatype: { termType: 'NamedNode', value: dt.startsWith('http') ? dt : dt } };
-                return { termType: 'Literal', value, language: '', datatype: { termType: 'NamedNode', value: 'http://www.w3.org/2001/XMLSchema#string' } };
+        function setNodeHash(nodeId) {
+            if (!nodeId) return;
+            const hash = '#' + encodeURIComponent(nodeId);
+            if (window.location.hash !== hash) {
+                window.location.hash = hash;
             }
-            const iri = s.startsWith('<') && s.endsWith('>') ? s.slice(1, -1) : s;
-            return { termType: 'NamedNode', value: iri };
+        }
+
+        function openNodeDialog(nodeId) {
+            if (!nodeId) return;
+            const overlay = document.getElementById('node-debug-overlay');
+            const title = document.getElementById('node-debug-title');
+            const body = document.getElementById('node-debug-body');
+            const quads = lastQuads || [];
+            const context = lastParse?.result?.context || {};
+            const summary = buildEntitySummary(nodeId, quads, context);
+
+            title.textContent = summary.label || summary.shortIri || nodeId;
+            body.innerHTML = formatEntityCard(nodeId, quads);
+            setNodeHash(nodeId);
+            overlay.classList.add('visible');
+        }
+
+        function openNodeFromHash() {
+            const raw = (window.location.hash || '').replace(/^#/, '');
+            if (!raw) return;
+            try {
+                const nodeId = decodeURIComponent(raw);
+                if (nodeId) openNodeDialog(nodeId);
+            } catch (error) {
+                console.warn('Invalid node hash', raw, error);
+            }
         }
 
         // Parse MD-LD
@@ -532,6 +1069,73 @@
                 setupAutoParse();
             }
 
+            const graphEls = [
+                document.getElementById('rdf-graph'),
+                document.getElementById('statements-graph')
+            ].filter(Boolean);
+
+            for (const graphEl of graphEls) {
+                graphEl.addEventListener('node-click', (event) => {
+                    openNodeDialog(event.detail);
+                });
+            }
+
+            function resolveNodeIdFromElement(element) {
+                if (!element) return null;
+                if (element.dataset && element.dataset.node) return element.dataset.node;
+                if (element.dataset && element.dataset.iri) return element.dataset.iri;
+                const href = element.getAttribute ? element.getAttribute('href') : '';
+                if (href && href.startsWith('#')) {
+                    try {
+                        return decodeURIComponent(href.slice(1));
+                    } catch (error) {
+                        return null;
+                    }
+                }
+                return null;
+            }
+
+            function handleEntityNavigation(event) {
+                const element = event.target && event.target.closest ? event.target.closest('.node-link, [data-iri]') : null;
+                if (!element) return;
+                if (element.matches && element.matches('[data-iri]') && !element.closest('.node-link') && event.type !== 'dblclick') {
+                    return;
+                }
+                const nodeId = resolveNodeIdFromElement(element);
+                if (!nodeId) return;
+                event.preventDefault();
+                event.stopPropagation();
+                openNodeDialog(nodeId);
+            }
+
+            document.addEventListener('click', (event) => {
+                const nodeLink = event.target && event.target.closest ? event.target.closest('.node-link') : null;
+                if (!nodeLink) return;
+                handleEntityNavigation(event);
+            });
+            document.addEventListener('dblclick', (event) => {
+                const iriLink = event.target && event.target.closest ? event.target.closest('[data-iri]') : null;
+                if (!iriLink) return;
+                handleEntityNavigation(event);
+            });
+
+            window.addEventListener('hashchange', openNodeFromHash);
+            openNodeFromHash();
+
+            const overlay = document.getElementById('node-debug-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) overlay.classList.remove('visible');
+                });
+            }
+
+            const closeButton = document.getElementById('node-debug-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', () => {
+                    document.getElementById('node-debug-overlay').classList.remove('visible');
+                });
+            }
+
             // Load initial example (now instant from embedded scripts)
             loadExample('recipe');
 
@@ -665,6 +1269,17 @@
 </head>
 
 <body class="main-content">
+    <div id="node-debug-overlay" class="node-debug-overlay" aria-hidden="true">
+        <div class="node-debug-dialog" role="dialog" aria-modal="true" aria-labelledby="node-debug-title">
+            <div class="node-debug-header">
+                <h3 id="node-debug-title" style="margin:0; font-size:1.1rem; word-break: break-all;">Node</h3>
+                <button id="node-debug-close" type="button" class="button secondary"
+                    aria-label="Close dialog">Close</button>
+            </div>
+            <div id="node-debug-body" class="node-debug-body"></div>
+        </div>
+    </div>
+
     <main class="container max-w-4xl mx-auto p-4">
 
         <header class="header">
