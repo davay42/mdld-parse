@@ -24,7 +24,6 @@
 		"triple-store"
 	],
 	"type": "module",
-	"packageManager": "pnpm@11.24.0+sha512.bd27e345e976dcb0be0b7a1228217b049a817e21b1f355c90dbe7dc46671895a8bc1e6d06c24554505ea93ea0b45f489a27ec1bfbc8de6a9659fca0f16fa0000",
 	"main": "./dist/index.js",
 	"exports": {
 		".": "./dist/index.js"
@@ -47,17 +46,18 @@
 		"url": "https://github.com/davay42/mdld-parse/issues"
 	},
 	"devDependencies": {
-		"@unocss/extractor-pug": "^66.8.1",
+		"@unocss/extractor-pug": "^66.10.2",
 		"@vitejs/plugin-vue": "^6.0.8",
 		"@vueuse/core": "^14.4.0",
 		"codejar": "^4.3.0",
-		"markdown-it": "^15.0.0",
-		"n3": "^2.6.0",
+		"markdown-it": "^15.0.2",
+		"n3": "^2.7.12",
 		"shiki": "^4.4.3",
-		"unocss": "^66.8.1",
-		"vite": "^8.2.2",
+		"unocss": "^66.10.2",
+		"vite": "^8.3.0",
 		"vite-plugin-singlefile": "^2.3.3",
 		"vscode-textmate": "^9.3.2",
 		"vue": "^3.6.0-beta.17"
-	}
+	},
+	"packageManager": "pnpm@11.26.0+sha512.fc0e2bf890b9f983611f1ab68c0637bce914390653699f83c1a78b005ed25f2c81e77920c8fd8eee2ecf0b58b28cdcb00a84d97f69bcf7c56b2f344710238664"
 }
