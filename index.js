@@ -1841,13 +1841,15 @@ function generateNode({ quads, focusIRI, context = {}, compactInline = true, ren
 		compactStats: null
 	};
 	const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
-	const { nodeGroups, reverseIndex } = groupQuadsByNode(normalizeAndSortQuads(quads));
-	if (!nodeGroups.has(focusIRI)) return {
+	const normalizedQuads = normalizeAndSortQuads(quads.filter((q) => q.subject.value === focusIRI || q.predicate.value === focusIRI || q.object.value === focusIRI || q.object.termType === "Literal" && q.object.datatype && (q.object.datatype.value || q.object.datatype) === focusIRI));
+	const { subjectGroups: nodeGroups, reverseIndex } = groupQuadsBySubject(normalizedQuads);
+	const subjectRoots = Array.from(new Set(normalizedQuads.map((q) => q.subject.value)));
+	if (subjectRoots.length === 0) return {
 		text: "",
 		context: fullContext,
 		compactStats: null
 	};
-	const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI, renderReverse ? reverseIndex : null, compactInline, /* @__PURE__ */ new Map(), lang);
+	const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, subjectRoots.includes(focusIRI) ? focusIRI : subjectRoots[0], renderReverse ? reverseIndex : null, compactInline, /* @__PURE__ */ new Map(), lang);
 	return {
 		text,
 		context: fullContext,
@@ -1893,36 +1895,7 @@ function groupQuadsBySubject(quads) {
 		reverseIndex
 	};
 }
-function groupQuadsByNode(quads) {
-	const groups = /* @__PURE__ */ new Map();
-	const reverseIndex = /* @__PURE__ */ new Map();
-	const ensure = (key) => {
-		const existing = groups.get(key);
-		if (existing) return existing;
-		const newArray = [];
-		groups.set(key, newArray);
-		return newArray;
-	};
-	for (const quad of quads) {
-		const { subject, predicate, object } = quad;
-		ensure(subject.value).push(quad);
-		if (object.termType === "NamedNode") {
-			ensure(object.value).push(quad);
-			const objectValue = object.value;
-			const reverseList = reverseIndex.get(objectValue);
-			if (reverseList) reverseList.push(quad);
-			else reverseIndex.set(objectValue, [quad]);
-		}
-		ensure(predicate.value).push(quad);
-		if (predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" && object.termType === "NamedNode") ensure(object.value).push(quad);
-		if (object.termType === "Literal" && object.datatype) ensure(object.datatype.value || object.datatype).push(quad);
-	}
-	return {
-		nodeGroups: groups,
-		reverseIndex
-	};
-}
-function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true, removeBySubject = /* @__PURE__ */ new Map(), lang = null) {
+function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null, reverseIndex = null, compactInline = true, removeBySubject = /* @__PURE__ */ new Map(), lang = null) {
 	const textParts = [];
 	const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 	const labelLookup = buildLabelLookup(subjectGroups, lang);
@@ -1938,7 +1911,6 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
 	for (const [prefix, namespace] of sortedPrefixes) if (prefix !== "@vocab" && !prefix.startsWith("@") && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) textParts.push(generatePrefixDeclaration(prefix, namespace));
 	if (sortedPrefixes.length > 0) textParts.push("\n");
 	const sortedSubjects = Array.from(subjectGroups.keys()).sort();
-	const primarySubjectIRI = primarySubject;
 	const orderedSubjects = primarySubjectIRI ? [primarySubjectIRI, ...sortedSubjects.filter((s) => s !== primarySubjectIRI)] : sortedSubjects;
 	for (const subjectIRI of orderedSubjects) {
 		const subjectQuads = subjectGroups.get(subjectIRI);
@@ -1961,7 +1933,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
 			annotations += (annotations ? " " : "") + "label" + langTag;
 		}
 		const annotationStr = annotations ? " " + annotations : "";
-		textParts.push(`# ${displayName} {=${shortSubject}${annotationStr}}\n`);
+		textParts.push(`## ${displayName} {=${shortSubject}${annotationStr}}\n`);
 		types.forEach((t) => renderedQuads.add(t));
 		if (labelQuad) renderedQuads.add(labelQuad);
 		const headingLabel = hasLabel ? labelEntry.value : null;
@@ -2017,7 +1989,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
 	for (const [subjectIRI, removeQuads] of removeBySubject) {
 		const shortSubject = getCachedShortIRI(subjectIRI, context);
 		const displayName = extractLocalName(subjectIRI, context);
-		textParts.push(`# ${displayName} {=${shortSubject}}\n`);
+		textParts.push(`### ${displayName} {=${shortSubject}}\n`);
 		for (const quad of removeQuads) textParts.push(generateRetractionText(quad, context));
 		textParts.push("\n");
 	}

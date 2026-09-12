@@ -91,19 +91,27 @@ export function generateNode({ quads, focusIRI, context = {}, compactInline = tr
     }
 
     const fullContext = Object.assign({}, DEFAULT_CONTEXT, context);
-    const normalizedQuads = normalizeAndSortQuads(quads);
-    const { nodeGroups, reverseIndex } = groupQuadsByNode(normalizedQuads);
+    const allMatches = quads.filter(q =>
+        q.subject.value === focusIRI ||
+        q.predicate.value === focusIRI ||
+        q.object.value === focusIRI ||
+        (q.object.termType === 'Literal' && q.object.datatype && (q.object.datatype.value || q.object.datatype) === focusIRI)
+    );
+    const normalizedQuads = normalizeAndSortQuads(allMatches);
+    const { subjectGroups: nodeGroups, reverseIndex } = groupQuadsBySubject(normalizedQuads);
 
     // SAFETY: If focusIRI not in graph, return empty - NEVER fall back to all data
     // This prevents accidental rendering of entire databases on misspelled IRIs
-    if (!nodeGroups.has(focusIRI)) {
+    const subjectRoots = Array.from(new Set(normalizedQuads.map(q => q.subject.value)));
+    if (subjectRoots.length === 0) {
         return { text: '', context: fullContext, compactStats: null };
     }
 
+    const rootKey = subjectRoots.includes(focusIRI) ? focusIRI : subjectRoots[0];
     // Only use reverseIndex if renderReverse is true
     const effectiveReverseIndex = renderReverse ? reverseIndex : null;
 
-    const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, focusIRI, effectiveReverseIndex, compactInline, new Map(), lang);
+    const { text, compactStats } = buildDeterministicMDLD(nodeGroups, fullContext, rootKey, effectiveReverseIndex, compactInline, new Map(), lang);
 
     return { text, context: fullContext, compactStats };
 }
@@ -170,56 +178,36 @@ function groupQuadsBySubject(quads) {
     return { subjectGroups: groups, reverseIndex };
 }
 
-function groupQuadsByNode(quads) {
+function groupQuadsAroundFocus(quads, focusIRI) {
     const groups = new Map();
-    const reverseIndex = new Map(); // object IRI -> [quads pointing to it]
-
-    const ensure = (key) => {
-        const existing = groups.get(key);
-        if (existing) {
-            return existing;
-        }
-        const newArray = [];
-        groups.set(key, newArray);
-        return newArray;
-    };
+    const reverseIndex = new Map();
 
     for (const quad of quads) {
-        const { subject, predicate, object } = quad;
+        const isFocusSubject = quad.subject.value === focusIRI;
+        const isFocusObject = quad.object.value === focusIRI;
+        const isFocusPredicate = quad.predicate.value === focusIRI;
+        const isFocusDatatype = quad.object.termType === 'Literal' && quad.object.datatype && (quad.object.datatype.value || quad.object.datatype) === focusIRI;
 
-        // 1. Subject (direct properties)
-        ensure(subject.value).push(quad);
-
-        // 2. Object (reverse relations - where this IRI is pointed to)
-        if (object.termType === 'NamedNode') {
-            ensure(object.value).push(quad);
-            // Track reverse connections
-            const objectValue = object.value;
-            const reverseList = reverseIndex.get(objectValue);
-            if (reverseList) {
-                reverseList.push(quad);
-            } else {
-                reverseIndex.set(objectValue, [quad]);
-            }
+        // For non-predicate focus IRIs, keep the direct subject/object node in the page.
+        // For predicate-focused pages, the subject using that predicate is the page root.
+        if (isFocusSubject || ((!isFocusPredicate && !isFocusDatatype && !isFocusObject) && quad.subject.value)) {
+            const subjectKey = quad.subject.value;
+            const existing = groups.get(subjectKey) || [];
+            existing.push(quad);
+            groups.set(subjectKey, existing);
         }
 
-        // 3. Predicate (where this IRI is used as a property)
-        ensure(predicate.value).push(quad);
-
-        // 4. Type (instances - where this IRI is the class/type)
-        if (predicate.value === RDF_TYPE && object.termType === 'NamedNode') {
-            ensure(object.value).push(quad);
-        }
-
-        // 5. Datatype (literals using this as their type)
-        if (object.termType === 'Literal' && object.datatype) {
-            ensure(object.datatype.value || object.datatype).push(quad);
+        if (isFocusObject) {
+            const reverseList = reverseIndex.get(focusIRI) || [];
+            reverseList.push(quad);
+            reverseIndex.set(focusIRI, reverseList);
         }
     }
-    return { nodeGroups: groups, reverseIndex };
+
+    return { subjectGroups: groups, reverseIndex };
 }
 
-function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, reverseIndex = null, compactInline = true, removeBySubject = new Map(), lang = null) {
+function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null, reverseIndex = null, compactInline = true, removeBySubject = new Map(), lang = null) {
     const textParts = [];
     const usedPrefixes = collectUsedPrefixes(subjectGroups, context);
 
@@ -256,7 +244,6 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
 
     // Process subjects in deterministic order, with primary subject first
     const sortedSubjects = Array.from(subjectGroups.keys()).sort();
-    const primarySubjectIRI = primarySubject; // Already a string IRI
 
     // If primary subject exists, place it first
     const orderedSubjects = primarySubjectIRI
@@ -299,7 +286,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
         }
 
         const annotationStr = annotations ? ' ' + annotations : '';
-        textParts.push(`# ${displayName} {=${shortSubject}${annotationStr}}\n`);
+        textParts.push(`## ${displayName} {=${shortSubject}${annotationStr}}\n`);
 
         // Mark all type and label quads as rendered to prevent inline duplication
         types.forEach(t => renderedQuads.add(t));
@@ -394,7 +381,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubject = null, r
     for (const [subjectIRI, removeQuads] of removeBySubject) {
         const shortSubject = getCachedShortIRI(subjectIRI, context);
         const displayName = extractLocalName(subjectIRI, context);
-        textParts.push(`# ${displayName} {=${shortSubject}}\n`);
+        textParts.push(`### ${displayName} {=${shortSubject}}\n`);
         for (const quad of removeQuads) {
             textParts.push(generateRetractionText(quad, context));
         }
