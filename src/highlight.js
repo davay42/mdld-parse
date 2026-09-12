@@ -202,10 +202,9 @@ function renderTerm(part, isRetracted, prefixes) {
             const prefixColor = getIRIColor(prefixIRI);
             const fullIRI = prefixIRI + local;
             const localColor = getIRIColor(fullIRI);
-
-            return `<span style="color: ${prefixColor}">${escapeHtml(prefix)}</span>` +
+            return `<span data-iri="${fullIRI}"><span style="color: ${prefixColor}">${escapeHtml(prefix)}</span>` +
                 `<span style="color: ${TOKEN_COLORS.marker}">:</span>` +
-                `<span data-iri="${fullIRI}" style="color: ${localColor}">${escapeHtml(local)}</span> `;
+                `<span  style="color: ${localColor}">${escapeHtml(local)}</span></span> `;
         }
     }
 
@@ -318,9 +317,9 @@ export function highlightMDLD(code) {
             const content = code.slice(i + 1, endIdx);
             const parsed = parseAnnotation(content, prefixes);
 
-            result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>`;
+            result += `<span class="mdld-annotation"><span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>`;
             result += parsed;
-            result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span>`;
+            result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span></span>`;
 
             i = endIdx + 1;
             continue;
@@ -364,7 +363,7 @@ export function highlightMDLD(code) {
             // Content always stays default text color with full opacity, no markdown formatting coloring
             const escapedContent = escapeHtml(content);
             result += `<span style="color: ${bracketColor}; opacity: 0.85">[</span>` +
-                `<span style=" opacity: 1.0">${escapedContent}</span>` +
+                `<span style="background-color: ${bracketColor}15">${escapedContent}</span>` +
                 `<span style="color: ${bracketColor}; opacity: 0.85">]</span>`;
 
             i = endBracket + 1;
@@ -415,9 +414,9 @@ export function highlightMDLD(code) {
                     const parsedAnnotation = parseAnnotation(annotationContent, prefixes);
 
                     // Add annotation HTML
-                    processedHeaderText += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>` +
+                    processedHeaderText += `<span class="mdld-annotation"><span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>` +
                         parsedAnnotation +
-                        `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span>`;
+                        `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span></span>`;
 
                     lastIndex = annotationEnd + 1;
                     annotationStart = headerText.indexOf('{', lastIndex);

@@ -2196,7 +2196,7 @@ function renderTerm(part, isRetracted, prefixes) {
 			const prefixColor = getIRIColor(prefixIRI);
 			const fullIRI = prefixIRI + local;
 			const localColor = getIRIColor(fullIRI);
-			return `<span style="color: ${prefixColor}">${escapeHtml(prefix)}</span><span style="color: ${TOKEN_COLORS.marker}">:</span><span data-iri="${fullIRI}" style="color: ${localColor}">${escapeHtml(local)}</span> `;
+			return `<span data-iri="${fullIRI}"><span style="color: ${prefixColor}">${escapeHtml(prefix)}</span><span style="color: ${TOKEN_COLORS.marker}">:</span><span  style="color: ${localColor}">${escapeHtml(local)}</span></span> `;
 		}
 	}
 	if (part.startsWith("http:") || part.startsWith("https:") || part.startsWith("tag:") || part.startsWith("urn:")) return `<span style="color: ${getIRIColor(part)}">${escapeHtml(part)}</span> `;
@@ -2272,9 +2272,9 @@ function highlightMDLD(code) {
 				continue;
 			}
 			const parsed = parseAnnotation(code.slice(i + 1, endIdx), prefixes);
-			result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>`;
+			result += `<span class="mdld-annotation"><span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>`;
 			result += parsed;
-			result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span>`;
+			result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span></span>`;
 			i = endIdx + 1;
 			continue;
 		}
@@ -2301,7 +2301,7 @@ function highlightMDLD(code) {
 			const content = code.slice(i + 1, endBracket);
 			const bracketColor = hasFollowingAnnotation(code, endBracket + 1) ? TOKEN_COLORS.marker : TOKEN_COLORS.value;
 			const escapedContent = escapeHtml(content);
-			result += `<span style="color: ${bracketColor}; opacity: 0.85">[</span><span style=" opacity: 1.0">${escapedContent}</span><span style="color: ${bracketColor}; opacity: 0.85">]</span>`;
+			result += `<span style="color: ${bracketColor}; opacity: 0.85">[</span><span style="background-color: ${bracketColor}15">${escapedContent}</span><span style="color: ${bracketColor}; opacity: 0.85">]</span>`;
 			i = endBracket + 1;
 			continue;
 		}
@@ -2333,7 +2333,7 @@ function highlightMDLD(code) {
 					const beforeText = headerText.slice(lastIndex, annotationStart);
 					processedHeaderText += escapeHtml(beforeText);
 					const parsedAnnotation = parseAnnotation(headerText.slice(annotationStart + 1, annotationEnd), prefixes);
-					processedHeaderText += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>` + parsedAnnotation + `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span>`;
+					processedHeaderText += `<span class="mdld-annotation"><span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>` + parsedAnnotation + `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span></span>`;
 					lastIndex = annotationEnd + 1;
 					annotationStart = headerText.indexOf("{", lastIndex);
 				}
