@@ -560,6 +560,7 @@ Comprehensive test suite covering:
   - [Task Management System](./examples/demo/tasks.md)
   - [Cassini-Huygens Mission](./examples/demo/space-mission.md)
   - [RDF Fundamentals](./examples/demo/rdf.md)
+  - [Statements Golden Graph](./examples/statements.md)
   - [PROV-O Patterns](./examples/demo/prov.md)
   - [SHACL Validation](./examples/demo/shacl.md)
   - [XSD Datatypes](./examples/demo/xsd.md)
