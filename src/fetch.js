@@ -1,7 +1,4 @@
-// Paste this directly into the browser console, or save as an ESM module.
-// It dynamically imports mdld-parse from a CDN for instant zero-setup usage.
 import { parse } from './parse.js';
-import { merge } from './merge.js';
 
 // ==========================================
 // 1. Vanilla IndexedDB Helper (Promise-based)
@@ -88,7 +85,7 @@ function extractLinks(text, baseUrl) {
 // ==========================================
 // 3. Core Recursive Fetch & Merge Function
 // ==========================================
-async function fetchAndMergeMDLD(startUrl, options = {}) {
+export async function fetchMDLD(startUrl, options = {}) {
   const {
     maxDepth = 5,
     concurrency = 5,
@@ -138,7 +135,7 @@ async function fetchAndMergeMDLD(startUrl, options = {}) {
         }
 
         // CRITICAL: baseIRI ensures relative subjects (e.g., { #my-node }) resolve to this document's URL
-        parseResults.push(parse({ text, baseIRI: url }));
+        parseResults.push(parse({ text, graph: url }));
 
         // Queue newly discovered links
         if (depth < maxDepth) {
@@ -157,5 +154,5 @@ async function fetchAndMergeMDLD(startUrl, options = {}) {
     queue.push(...nextLinks);
   }
 
-  return merge(parseResults);
+  return parseResults;
 }
