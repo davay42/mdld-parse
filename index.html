@@ -767,7 +767,7 @@
                     const htmlResult = render(input);
                     const htmlDiv = document.getElementById('html-output');
                     if (htmlDiv) {
-                        htmlDiv.textContent = htmlResult || 'No HTML output generated';
+                        htmlDiv.innerHTML = htmlResult || 'No HTML output generated';
                         currentHTML = htmlResult || '';
                     }
                 } catch (err) {

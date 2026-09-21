@@ -4,86 +4,70 @@ import {
 } from './tokenizers.js';
 import { escapeHtml } from './shared.js';
 import { expandIRI, parseSemanticBlock } from './utils.js';
-import { DEFAULT_CONTEXT, RDFS_LABEL } from './constants.js';
+import { DEFAULT_CONTEXT } from './constants.js';
 
-export function render(src) {
+/**
+ * MD-LD UI Renderer
+ * 
+ * Generates clean, semantic HTML for presentation.
+ * Preserves the raw MD-LD annotation in `data-annotation` for client-side 
+ * JS/CSS targeting, and resolves the primary IRI into `data-iri`.
+ */
+export function render(src, options = {}) {
   const lines = src.split('\n');
-  const ctx = { ...DEFAULT_CONTEXT };
-
-  // Pass 1: Extract prefixes to build context (supports folding)
-  for (const line of lines) {
-    const prefix = detectPrefix(line);
-    if (prefix) {
-      let iri = prefix.iri;
-      if (iri.includes(':')) {
-        const colonIndex = iri.indexOf(':');
-        const p = iri.substring(0, colonIndex);
-        const ref = iri.substring(colonIndex + 1);
-        if (ctx[p]) iri = ctx[p] + ref;
-      }
-      ctx[prefix.prefix] = iri;
-    }
-  }
+  const context = buildRenderContext(lines, options.context);
 
   function safeExpand(term) {
-    if (!term) return null;
-    if (term === 'RESET') return null;
-    if (term.startsWith('=#') || term.startsWith('#')) return term; // Preserve fragments
-    return expandIRI(term, ctx);
+    if (!term || term === 'RESET') return null;
+    if (term.startsWith('=#') || term.startsWith('#')) return term;
+    return expandIRI(term, context);
   }
 
-  function buildAttrs(sem, baseClasses, isLink, rawAttrs, overrideHref, carrierText) {
-    let classes = [...baseClasses];
-    let attrs = [];
+  function getAttrs(rawAnnotation, parsedSem, isLink = false, fallbackHref = null) {
+    const attrs = [];
+    const classes = [];
+
+    if (rawAnnotation) {
+      attrs.push(`data-annotation="${escapeHtml('{' + rawAnnotation + '}')}"`);
+    }
 
     let iri = null;
-    if (sem?.subject && sem.subject !== 'RESET') iri = safeExpand(sem.subject);
-    else if (sem?.object) iri = safeExpand(sem.object);
+    if (parsedSem?.subject && parsedSem.subject !== 'RESET') {
+      iri = safeExpand(parsedSem.subject);
+    } else if (parsedSem?.object) {
+      iri = safeExpand(parsedSem.object);
+    } else if (isLink && fallbackHref) {
+      iri = safeExpand(fallbackHref);
+    }
 
     if (iri) {
       attrs.push(`data-iri="${escapeHtml(iri)}"`);
       if (isLink) attrs.push(`href="${escapeHtml(iri)}"`);
-    } else if (isLink && overrideHref) {
-      attrs.push(`href="${escapeHtml(overrideHref)}"`);
+    } else if (isLink && fallbackHref) {
+      attrs.push(`href="${escapeHtml(fallbackHref)}"`);
     }
 
-    if (sem?.types?.length > 0) {
-      const resolvedTypes = sem.types.map(t => safeExpand(t.iri)).filter(Boolean);
-      classes.push(...resolvedTypes.map(t => `type-${String(t).split(/[#\/]/).pop()}`));
-      attrs.push(`data-types="${escapeHtml(resolvedTypes.join(' '))}"`);
+    if (parsedSem?.types?.some(t => !t.remove)) classes.push('typed');
+    if (parsedSem?.predicates?.some(p => p.remove) || parsedSem?.types?.some(t => t.remove)) {
+      classes.push('retracted');
     }
 
-    let hasLabel = false;
-    if (sem?.predicates?.length > 0) {
-      const predStrs = sem.predicates.map(p => {
-        const resolvedIri = safeExpand(p.iri);
-        const prefix = p.remove ? '-' : '';
-        return `${prefix}${p.form || ''}${resolvedIri}`;
-      });
-      attrs.push(`data-preds="${escapeHtml(predStrs.join(' '))}"`);
-
-      hasLabel = sem.predicates.some(p => {
-        const resolved = safeExpand(p.iri);
-        return resolved === RDFS_LABEL && !p.remove;
-      });
+    if (classes.length > 0) {
+      attrs.unshift(`class="${classes.join(' ')}"`);
     }
 
-    if (sem?.datatype) attrs.push(`data-datatype="${escapeHtml(safeExpand(sem.datatype))}"`);
-    if (sem?.language) attrs.push(`lang="${escapeHtml(sem.language)}"`);
-    if (rawAttrs) attrs.push(`data-mdld="${escapeHtml('{' + rawAttrs + '}')}"`);
-
-    const hasRetraction = sem?.types?.some(t => t.remove) || sem?.predicates?.some(p => p.remove);
-    if (hasRetraction) {
-      attrs.push(`data-retracted="true"`);
-      classes.push('mdld-retracted');
-    }
-
-    if (hasLabel && carrierText) {
-      attrs.push(`title="${escapeHtml(carrierText)}"`);
-    }
-
-    attrs.unshift(`class="${classes.join(' ')}"`);
     return attrs.join(' ');
+  }
+
+  function mergeClasses(baseClass, customAttrs) {
+    const classMatch = customAttrs.match(/class="([^"]*)"/);
+    let finalClass = baseClass;
+    let remainingAttrs = customAttrs;
+    if (classMatch) {
+      finalClass += ' ' + classMatch[1];
+      remainingAttrs = customAttrs.replace(/class="[^"]*"/, '').trim();
+    }
+    return `class="${finalClass}"${remainingAttrs ? ' ' + remainingAttrs : ''}`;
   }
 
   function renderInline(text) {
@@ -94,38 +78,31 @@ export function render(src) {
     let lastPos = 0;
 
     for (const c of carriers) {
-      if (c.range[0] > lastPos) {
-        out += escapeHtml(text.slice(lastPos, c.range[0]));
-      }
+      if (c.range[0] > lastPos) out += escapeHtml(text.slice(lastPos, c.range[0]));
 
       const sem = c.attrs ? parseSemanticBlock(c.attrs) : null;
-      const rawAttrs = c.attrs || '';
-      const carrierText = c.text || '';
+      const raw = c.attrs || '';
+      const isLink = c.type === 'link';
+      const fallbackHref = c.url || null;
 
-      if (c.type === 'link') {
-        let attrs = buildAttrs(sem, ['mdld-link'], true, rawAttrs, c.url, carrierText);
-        out += `<a ${attrs}>${renderInline(carrierText)}</a>`;
-      } else if (c.type === 'span') {
-        out += `<span ${buildAttrs(sem, ['mdld-bracket'], false, rawAttrs, null, carrierText)}>${renderInline(carrierText)}</span>`;
-      } else if (c.type === 'code') {
-        out += `<code ${buildAttrs(sem, ['mdld-code'], false, rawAttrs, null, carrierText)}>${escapeHtml(carrierText)}</code>`;
-      } else if (c.type === 'strong') {
-        out += `<strong ${buildAttrs(sem, ['mdld-bold'], false, rawAttrs, null, carrierText)}>${renderInline(carrierText)}</strong>`;
-      } else if (c.type === 'emphasis') {
-        out += `<em ${buildAttrs(sem, ['mdld-italic'], false, rawAttrs, null, carrierText)}>${renderInline(carrierText)}</em>`;
-      }
+      let tag = 'span';
+      let baseClass = 'mdld-bracket';
+      if (c.type === 'link') { tag = 'a'; baseClass = 'mdld-link'; }
+      else if (c.type === 'code') { tag = 'code'; baseClass = 'mdld-code'; }
+      else if (c.type === 'strong') { tag = 'strong'; baseClass = 'mdld-bold'; }
+      else if (c.type === 'emphasis') { tag = 'em'; baseClass = 'mdld-italic'; }
 
+      const customAttrs = getAttrs(raw, sem, isLink, fallbackHref);
+      const attrString = mergeClasses(baseClass, customAttrs);
+
+      out += `<${tag} ${attrString}>${renderInline(c.text)}</${tag}>`;
       lastPos = c.range[1];
     }
 
-    if (lastPos < text.length) {
-      out += escapeHtml(text.slice(lastPos));
-    }
-
+    if (lastPos < text.length) out += escapeHtml(text.slice(lastPos));
     return out;
   }
 
-  // Pass 2: Render blocks
   const out = [];
   let i = 0;
   let codeBlock = null;
@@ -138,7 +115,10 @@ export function render(src) {
       if (fenceClosePattern.test(line.trim())) {
         const sem = codeBlock.attrs ? parseSemanticBlock(codeBlock.attrs) : null;
         const carrierText = codeBlock.content.join('\n');
-        out.push(`<pre><code ${buildAttrs(sem, ['mdld-codeblock', `language-${codeBlock.lang}`], false, codeBlock.attrs, null, carrierText)}>${escapeHtml(carrierText)}</code></pre>`);
+        const customAttrs = getAttrs(codeBlock.attrs, sem);
+        const attrString = mergeClasses(`mdld-codeblock language-${codeBlock.lang || 'text'}`, customAttrs);
+
+        out.push(`<pre><code ${attrString}>${escapeHtml(carrierText)}</code></pre>`);
         codeBlock = null;
       } else {
         codeBlock.content.push(line);
@@ -164,7 +144,7 @@ export function render(src) {
 
     const prefix = detectPrefix(line);
     if (prefix) {
-      const resolvedIri = ctx[prefix.prefix];
+      const resolvedIri = context[prefix.prefix];
       out.push(`<div class="mdld-prefix" data-prefix="${prefix.prefix}" data-iri="${escapeHtml(resolvedIri)}" style="display:none"></div>`);
       i++;
       continue;
@@ -173,7 +153,9 @@ export function render(src) {
     const heading = detectHeading(line);
     if (heading) {
       const sem = heading.attrs ? parseSemanticBlock(heading.attrs) : null;
-      out.push(`<h${heading.depth} ${buildAttrs(sem, ['mdld-heading'], false, heading.attrs, null, heading.content)}>${renderInline(heading.content)}</h${heading.depth}>`);
+      const customAttrs = getAttrs(heading.attrs, sem);
+      const attrString = mergeClasses('mdld-heading', customAttrs);
+      out.push(`<h${heading.depth} ${attrString}>${renderInline(heading.content)}</h${heading.depth}>`);
       i++;
       continue;
     }
@@ -185,7 +167,9 @@ export function render(src) {
         const l = detectList(lines[i]);
         if (!l) break;
         const sem = l.attrs ? parseSemanticBlock(l.attrs) : null;
-        out.push(`<li ${buildAttrs(sem, ['mdld-list-item'], false, l.attrs, null, l.content)}>${renderInline(l.content)}</li>`);
+        const customAttrs = getAttrs(l.attrs, sem);
+        const attrString = mergeClasses('mdld-item', customAttrs);
+        out.push(`<li ${attrString}>${renderInline(l.content)}</li>`);
         i++;
       }
       out.push('</ul>');
@@ -203,21 +187,23 @@ export function render(src) {
         i++;
       }
       const sem = blockquote.attrs ? parseSemanticBlock(blockquote.attrs) : null;
+      const customAttrs = getAttrs(blockquote.attrs, sem);
+      const attrString = mergeClasses('mdld-quote', customAttrs);
       const carrierText = quoteLines.join('\n');
-      out.push(`<blockquote ${buildAttrs(sem, ['mdld-blockquote'], false, blockquote.attrs, null, carrierText)}>${renderInline(carrierText)}</blockquote>`);
+      out.push(`<blockquote ${attrString}>${renderInline(carrierText)}</blockquote>`);
       continue;
     }
 
     const standalone = detectStandaloneSubject(line);
     if (standalone) {
       const fakeSem = parseSemanticBlock(`=${standalone.content}`);
-      const rawStr = `=${standalone.content}`;
-      out.push(`<div ${buildAttrs(fakeSem, ['mdld-standalone'], false, rawStr, null, '')} data-raw="{${escapeHtml(rawStr)}}">{${escapeHtml(rawStr)}}</div>`);
+      const customAttrs = getAttrs(`=${standalone.content}`, fakeSem);
+      const attrString = mergeClasses('mdld-standalone', customAttrs);
+      out.push(`<div ${attrString} style="display:none"></div>`);
       i++;
       continue;
     }
 
-    // Paragraph fallback
     let paraLines = [line];
     i++;
     while (i < lines.length && lines[i].trim() !== '' &&
@@ -232,4 +218,22 @@ export function render(src) {
   }
 
   return out.join('\n');
+}
+
+function buildRenderContext(lines, userContext = {}) {
+  const context = { ...DEFAULT_CONTEXT, ...userContext };
+  for (const line of lines) {
+    const prefix = detectPrefix(line);
+    if (prefix) {
+      let iri = prefix.iri;
+      if (iri.includes(':')) {
+        const colonIndex = iri.indexOf(':');
+        const p = iri.substring(0, colonIndex);
+        const ref = iri.substring(colonIndex + 1);
+        if (context[p] && p !== '@vocab') iri = context[p] + ref;
+      }
+      context[prefix.prefix] = iri;
+    }
+  }
+  return context;
 }
