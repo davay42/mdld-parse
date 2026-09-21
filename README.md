@@ -663,6 +663,7 @@ Comprehensive test suite covering:
   - [Subject System](./docs/Subject.md)
   - [API Reference](./docs/API.md)
   - [Generate: Quads to MDLD](./docs/generate.md)
+  - [Render MDLD to HTML and deconstruct it back](./docs/render.md)
   - [Diff Documents](./docs/diff.md)
   - [Syntax Reference](./docs/Syntax.md)
   - [Architecture & Design](./docs/Architecture.md)
