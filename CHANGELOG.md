@@ -1,5 +1,27 @@
 # MD-LD evolution
 
+## v1.0.8 (2026-09-21)
+
+### Added
+- **HTML Codec for MD-LD**: `render()` and `deconstruct()` functions enable lossless roundtrip between MD-LD and HTML
+  - `render(mdld)` converts MD-LD to semantic HTML with `data-annotation` attributes preserving source syntax
+  - `deconstruct(html)` reconstructs MD-LD from rendered HTML via pure string scanning (no DOMParser dependency)
+  - Platform-agnostic: works in Node.js, Deno, browsers, edge workers
+  - HTML is now a first-class transport format for knowledge graphs
+- **Roundtrip Invariant**: `parse(deconstruct(render(mdld)))` produces identical quads to `parse(mdld)`
+- **Lossy Rendering**: `render(parse(mdld).md)` produces clean HTML without semantic annotations for privacy-preserving publishing
+- **Prefix Folding Preservation**: `deconstruct()` maintains folded IRI syntax (e.g., `my:journal:`) for lossless prefix roundtrip
+
+### Changed
+- HTML rendering now uses `data-annotation` instead of JSON-encoded semantic arrays
+- CSS classes simplified: `.mdld-heading`, `.mdld-link`, `.mdld-quote`, etc.
+- Removed RDFa/JSON-LD generation in favor of annotation preservation approach
+
+### Technical Details
+- Render/deconstruct pair enables SSR and CSR equivalence: same MD-LD produces identical graphs regardless of where rendering occurs
+- Zero-dependency HTML codec: no DOMParser, no xmldom, no cheerio required
+- Client-side graph extraction: `parse(deconstruct(document.body.innerHTML))` reconstructs quads without server roundtrip
+
 ## v1.0.5 (2026-08-27)
 
 Ignore `<template></template>`, `<script></script>`, `<style></style>` and `<!---->` block content during parsing.

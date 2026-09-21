@@ -145,7 +145,9 @@ export function render(src, options = {}) {
     const prefix = detectPrefix(line);
     if (prefix) {
       const resolvedIri = context[prefix.prefix];
-      out.push(`<div class="mdld-prefix" data-prefix="${prefix.prefix}" data-iri="${escapeHtml(resolvedIri)}" style="display:none"></div>`);
+      // data-raw preserves the original folded form (e.g. "my:journal:") 
+      // for lossless prefix folding roundtrip
+      out.push(`<div class="mdld-prefix" data-prefix="${prefix.prefix}" data-raw="${escapeHtml(prefix.iri)}" data-iri="${escapeHtml(resolvedIri)}" style="display:none"></div>`);
       i++;
       continue;
     }
@@ -236,4 +238,192 @@ function buildRenderContext(lines, userContext = {}) {
     }
   }
   return context;
+}
+
+/**
+ * Reconstruct MD-LD from rendered HTML.
+ * Pure string scanning over our constrained output format.
+ * Platform-agnostic: no DOMParser, no browser APIs required.
+ */
+export function deconstruct(html) {
+  const blocks = [];
+  let pos = 0;
+
+  while (pos < html.length) {
+    while (pos < html.length && /\s/.test(html[pos])) pos++;
+    if (pos >= html.length) break;
+
+    if (html.startsWith('<div class="mdld-prefix"', pos)) {
+      const end = html.indexOf('></div>', pos);
+      if (end === -1) break;
+      const tag = html.slice(pos, end + 7);
+      const prefix = extractAttr(tag, 'data-prefix');
+      const raw = extractAttr(tag, 'data-raw') || extractAttr(tag, 'data-iri');
+      blocks.push(`[${prefix}] <${raw}>`);
+      pos = end + 7;
+    } else if (html.startsWith('<div class="mdld-standalone"', pos)) {
+      const end = html.indexOf('</div>', pos);
+      if (end === -1) break;
+      const tag = html.slice(pos, end + 6);
+      const ann = extractAttr(tag, 'data-annotation');
+      if (ann) blocks.push(ann);
+      pos = end + 6;
+    } else if (html.startsWith('<pre><code', pos)) {
+      const closePre = html.indexOf('</code></pre>', pos);
+      if (closePre === -1) break;
+      const full = html.slice(pos, closePre + 13);
+
+      // FIX: Skip past <pre> to find <code> opening tag
+      const preClose = full.indexOf('>') + 1; // End of <pre>
+      const codeOpenEnd = full.indexOf('>', preClose) + 1; // End of <code ...>
+      const codeTag = full.slice(preClose, codeOpenEnd);
+      const content = full.slice(codeOpenEnd, full.length - 13);
+
+      const classMatch = extractAttr(codeTag, 'class');
+      const langMatch = (classMatch || '').match(/language-(\w+)/);
+      const lang = langMatch ? langMatch[1] : '';
+      const ann = extractAttr(codeTag, 'data-annotation');
+
+      blocks.push(`\`\`\`${lang}${ann ? ' ' + ann : ''}\n${unescapeHtml(content)}\n\`\`\``);
+      pos = closePre + 13;
+    } else if (html[pos] === '<' && /^<h[1-6]/.test(html.slice(pos, pos + 4))) {
+      const level = html[pos + 2];
+      const closeTag = `</h${level}>`;
+      const close = html.indexOf(closeTag, pos);
+      if (close === -1) break;
+      const full = html.slice(pos, close + closeTag.length);
+      const openEnd = full.indexOf('>') + 1;
+      const openTag = full.slice(0, openEnd);
+      const content = full.slice(openEnd, full.length - closeTag.length);
+      const hashes = '#'.repeat(parseInt(level));
+      const ann = extractAttr(openTag, 'data-annotation');
+      blocks.push(`${hashes} ${deconstructInline(content)}${ann ? ' ' + ann : ''}`);
+      pos = close + closeTag.length;
+    } else if (html.startsWith('<blockquote', pos)) {
+      const close = html.indexOf('</blockquote>', pos);
+      if (close === -1) break;
+      const full = html.slice(pos, close + 13);
+      const openEnd = full.indexOf('>') + 1;
+      const openTag = full.slice(0, openEnd);
+      const content = full.slice(openEnd, full.length - 13);
+      const ann = extractAttr(openTag, 'data-annotation');
+      const lines = deconstructInline(content).split('\n');
+      const quoted = lines.map(l => l.trim() ? `> ${l}` : '>').join('\n');
+      blocks.push(ann ? `${quoted} ${ann}` : quoted);
+      pos = close + 13;
+    } else if (html.startsWith('<ul class="mdld-list">', pos)) {
+      const close = html.indexOf('</ul>', pos);
+      if (close === -1) break;
+      const inner = html.slice(pos + 21, close);
+      const items = [];
+      let itemPos = 0;
+      while (itemPos < inner.length) {
+        const liStart = inner.indexOf('<li', itemPos);
+        if (liStart === -1) break;
+        const liClose = inner.indexOf('</li>', liStart);
+        if (liClose === -1) break;
+        const liFull = inner.slice(liStart, liClose + 5);
+        const openEnd = liFull.indexOf('>') + 1;
+        const openTag = liFull.slice(0, openEnd);
+        const liContent = liFull.slice(openEnd, liFull.length - 5);
+        const ann = extractAttr(openTag, 'data-annotation');
+        items.push(`- ${deconstructInline(liContent)}${ann ? ' ' + ann : ''}`);
+        itemPos = liClose + 5;
+      }
+      blocks.push(items.join('\n'));
+      pos = close + 5;
+    } else if (html.startsWith('<p class="mdld-paragraph">', pos)) {
+      const close = html.indexOf('</p>', pos);
+      if (close === -1) break;
+      const content = html.slice(pos + 25, close);
+      blocks.push(deconstructInline(content));
+      pos = close + 4;
+    } else {
+      pos++;
+    }
+  }
+  return blocks.join('\n\n');
+}
+
+function deconstructInline(html) {
+  let out = '';
+  let i = 0;
+  while (i < html.length) {
+    if (html[i] === '<') {
+      const closeGt = html.indexOf('>', i);
+      if (closeGt === -1) { out += html.slice(i); break; }
+      const tagContent = html.slice(i + 1, closeGt);
+      if (tagContent.startsWith('/')) { i = closeGt + 1; continue; }
+
+      const spaceOrEnd = tagContent.search(/[\s/]/);
+      const tagName = (spaceOrEnd === -1 ? tagContent : tagContent.slice(0, spaceOrEnd)).toLowerCase();
+      const attrs = spaceOrEnd === -1 ? '' : tagContent.slice(spaceOrEnd);
+
+      const closeTag = `</${tagName}>`;
+      let depth = 1;
+      let j = closeGt + 1;
+      let found = false;
+      while (j < html.length && depth > 0) {
+        const nextOpen = html.indexOf(`<${tagName}`, j);
+        const nextClose = html.indexOf(closeTag, j);
+        if (nextClose === -1) break;
+        if (nextOpen !== -1 && nextOpen < nextClose) {
+          depth++;
+          j = nextOpen + 1;
+        } else {
+          depth--;
+          if (depth === 0) {
+            const inner = html.slice(closeGt + 1, nextClose);
+            out += deconstructInlineElement(tagName, attrs, inner);
+            i = nextClose + closeTag.length;
+            found = true;
+            break;
+          }
+          j = nextClose + 1;
+        }
+      }
+      if (!found) { out += html[i]; i++; }
+    } else {
+      const nextTag = html.indexOf('<', i);
+      const textEnd = nextTag === -1 ? html.length : nextTag;
+      out += unescapeHtml(html.slice(i, textEnd));
+      i = textEnd;
+    }
+  }
+  return out;
+}
+
+function deconstructInlineElement(tagName, attrs, inner) {
+  const ann = extractAttr(attrs, 'data-annotation');
+  const content = deconstructInline(inner);
+  const suffix = ann ? ' ' + ann : '';
+
+  switch (tagName) {
+    case 'a': {
+      const href = extractAttr(attrs, 'href') || '';
+      return `[${content}](${href})${suffix}`;
+    }
+    case 'span': return `[${content}]${suffix}`;
+    case 'code': return `\`${content}\`${suffix}`;
+    case 'strong': return `**${content}**${suffix}`;
+    case 'em': return `*${content}*${suffix}`;
+    default: return content + suffix;
+  }
+}
+
+function extractAttr(tag, name) {
+  const re = new RegExp(`${name}=(?:"([^"]*)"|'([^']*)')`, 'i');
+  const m = tag.match(re);
+  if (!m) return null;
+  const value = m[1] !== undefined ? m[1] : m[2];
+  return unescapeHtml(value);
+}
+
+function unescapeHtml(s) {
+  return String(s)
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
 }
