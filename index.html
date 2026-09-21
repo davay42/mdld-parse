@@ -354,6 +354,7 @@
 
     <script type="module">
         import { parse, shortenIRI, expandIRI, generate, getIRIColor } from './src/index.js';
+        import { render } from './src/render.js'
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store, Parser } from 'n3';
         import MarkdownIt from 'markdown-it';
@@ -761,6 +762,23 @@
                     }
                 }
 
+                // Generate Semantic HTML from MDLD text
+                try {
+                    const htmlResult = render(input);
+                    const htmlDiv = document.getElementById('html-output');
+                    if (htmlDiv) {
+                        htmlDiv.textContent = htmlResult || 'No HTML output generated';
+                        currentHTML = htmlResult || '';
+                    }
+                } catch (err) {
+                    console.error('Error generating HTML:', err);
+                    const htmlDiv = document.getElementById('html-output');
+                    if (htmlDiv) {
+                        htmlDiv.textContent = 'Error generating HTML: ' + err.message;
+                        currentHTML = '';
+                    }
+                }
+
                 // Update RDF graph viewer only if quads changed
                 if (quadsChanged) {
                     const graphElement = document.getElementById('rdf-graph');
@@ -905,6 +923,11 @@
 
             // Clear TTL content and graph viewer
             currentTTL = '';
+            currentHTML = '';
+            const htmlDiv = document.getElementById('html-output');
+            if (htmlDiv) {
+                htmlDiv.textContent = 'HTML will appear here...';
+            }
             const ttlDiv = document.getElementById('ttl');
             if (ttlDiv) {
                 ttlDiv.textContent = 'TTL loading...';
@@ -1160,6 +1183,7 @@
         // TTL Export functionality
         let currentTTL = '';
         let currentMDLD = '';
+        let currentHTML = '';
 
         // Copy TTL to clipboard
         document.getElementById('copy-ttl-btn').addEventListener('click', async () => {
@@ -1232,6 +1256,38 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             showNotification('MDLD file downloaded', 'success');
+        });
+
+        // Copy HTML to clipboard
+        document.getElementById('copy-html-btn').addEventListener('click', async () => {
+            if (!currentHTML) {
+                showNotification('No HTML content to copy', 'error');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(currentHTML);
+                showNotification('HTML copied to clipboard', 'success');
+            } catch (err) {
+                showNotification('Failed to copy HTML: ' + err.message, 'error');
+            }
+        });
+
+        // Download HTML file
+        document.getElementById('download-html-btn').addEventListener('click', () => {
+            if (!currentHTML) {
+                showNotification('No HTML content to download', 'error');
+                return;
+            }
+            const blob = new Blob([currentHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'output.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('HTML file downloaded', 'success');
         });
 
         // Notification helper
@@ -1417,6 +1473,26 @@
                     <code id="mdld" class="language-markdown text-xs block">
                         MDLD will appear here...</code>
                 </pre>
+                    </div>
+                </details>
+
+                <!-- HTML Output Section -->
+                <details class="details">
+                    <summary>
+                        <span>HTML</span>
+                        <span style="flex: 1"></span>
+                        <button id="copy-html-btn" class="button secondary" title="Copy HTML to clipboard">
+                            📋 Copy
+                        </button>
+                        <button id="download-html-btn" class="button primary" title="Download HTML file">
+                            💾 Download
+                        </button>
+                    </summary>
+                    <div class="flex flex-col">
+                        <pre
+                            class="w-full p-4 min-h-32 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
+                            <code id="html-output" class="language-html text-xs block">HTML will appear here...</code>
+                        </pre>
                     </div>
                 </details>
 
