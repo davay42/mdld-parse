@@ -42,6 +42,9 @@ Complete API documentation with tested examples. Core functions: `parse()`, `gen
 ### [Generate: Quads to MDLD](./generate.md)
 Convert RDF quads back to deterministic, human-readable MDLD text. Control inline compaction, reverse connections and primary subject positioning. Essential for round-trip safety and document regeneration.
 
+### [Render: MDLD to HTML and back](./render.md)
+This document describes the render() and deconstruct() pair — the bridge between the Quad[] runtime and the human eye. It explains how MD-LD turns HTML into a first-class transport format for knowledge graphs, enabling server/client equivalence, offline-first graph extraction, and privacy-preserving publishing, all without the overhead of the Semantic Web stack.
+
 ### [Diff Documents](./diff.md)
 Automatic diff document generation via the `remove` parameter. Enables CRDT-style workflows, state management, and collaborative editing with human-readable diffs using polarity retractions syntax.
 

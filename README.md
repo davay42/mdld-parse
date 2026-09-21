@@ -43,7 +43,7 @@ pnpm install mdld-parse
 ```
 
 ```javascript
-import { parse, generate, merge } from 'mdld-parse';
+import { parse, generate, merge, render, deconstruct } from 'mdld-parse';
 
 // Parse MDLD to RDF quads
 const result = parse({ text: mdldString });
@@ -54,6 +54,16 @@ console.log(result.origin); // Provenance tracking
 
 // Generate MDLD from quads
 const { text } = generate({ quads: result.quads });
+
+// Render to semantic HTML with preserved annotations
+const html = render(mdldString);
+
+// Reconstruct MDLD from HTML (lossless roundtrip)
+const reconstructed = deconstruct(html);
+const quads = parse(reconstructed).quads; // Same quads as original!
+
+// Lossy rendering for privacy-preserving publishing
+const cleanHtml = render(parse(mdldString).md);
 
 // Merge multiple documents (CRDT-style)
 const merged = merge([doc1, doc2, doc3]);
@@ -128,6 +138,15 @@ Authored by [Alice Johnson] {+alice:alice-johnson ?alice:author} on [2026-08-12]
 [MD-LD] {blog:emphasized} allows you to embed RDF directly in Markdown.
 ```
 
+#### Local-First Personal Knowledge Base
+```markdown
+[alice] <tag:alice@example.com,2026:>
+
+# Meeting with Bob {=alice:meeting-2026-01-21 .Meeting label}
+Attendees: [Alice] {=alice:alice}, [Bob] {+alice:bob ?attendees}
+Location: [Coffee Shop] {alice:location}
+Discussed [Project Alpha] {alice:discussed}
+
 ## ✨ Core Features
 
 - **🔗 Prefix folding** — Build hierarchical namespaces with CURIE-based IRI authoring
@@ -143,8 +162,9 @@ Authored by [Alice Johnson] {+alice:alice-johnson ?alice:author} on [2026-08-12]
 - **🎯 Elevated statements** — Automatic rdf:Statement pattern detection
 - **🏷️ Primary metadata quartet** — Subject, type, label, comment for document identity
 - **🔄 Round-trip safety** — Deterministic parse ↔ generate cycles
+- **🌐 HTML Codec** — Lossless `render()` and `deconstruct()` pair for web publishing
 
-**Bundle size:** 86KB unminified, 20KB gzipped
+**Bundle size:** 101KB unminified, 24KB gzipped
 
 ## 📦 Installation
 
@@ -442,6 +462,74 @@ Locate quad origin entry for UI navigation.
 
 **Returns:** `{ blockId, range, valueRange, carrierType, ... }` or `null`
 
+### `render(mdld, options?)`
+
+Convert MD-LD to semantic HTML with preserved annotations.
+
+**Parameters:**
+- `mdld` (string, required) — MD-LD formatted text
+- `options` (object, optional):
+  - `context` (object) — Additional prefix mappings
+
+**Returns:** `string` — Semantic HTML with `data-annotation` attributes
+
+**Features:**
+- Preserves complete MD-LD syntax in `data-annotation` for roundtrip reconstruction
+- Resolves IRIs into `data-iri` attributes for easy querying
+- Adds semantic CSS classes: `.mdld-heading`, `.mdld-link`, `.typed`, `.retracted`
+- Platform-agnostic: works in Node.js, Deno, browsers, edge workers
+
+**Example:**
+```javascript
+const html = render('# Alice {=ex:alice .Person label}');
+```
+produces 
+```html
+<h1 class="mdld-heading typed" 
+     data-annotation="{=ex:alice .Person label}" 
+     data-iri="http://example.org/alice">Alice</h1>
+```
+
+### `deconstruct(html)`
+
+Reconstruct MD-LD from rendered HTML via pure string scanning.
+
+**Parameters:**
+- `html` (string, required) — HTML produced by `render()`
+
+**Returns:** `string` — Reconstructed MD-LD text
+
+**Roundtrip invariant:**
+```javascript
+parse(deconstruct(render(mdld))).quads === parse(mdld).quads
+```
+
+**Example:**
+```javascript
+const html = '<h1 data-annotation="{=ex:alice .Person label}">Alice</h1>';
+const mdld = deconstruct(html);
+// # Alice {=ex:alice .Person label}
+```
+
+**Use cases:**
+- Server-side rendering: render MD-LD to HTML, send to client
+- Client-side graph extraction: `parse(deconstruct(document.body.innerHTML))`
+- Offline-first apps: cache HTML, reconstruct quads on demand
+
+## Styling by Type
+
+Use CSS attribute selectors to style elements by their RDF types:
+
+```css
+/* Style all Person entities */
+[data-iri$="Person"] { color: green; }
+
+/* Style all Recipe entities */
+[data-types*="Recipe"] { background: #fff3cd; }
+
+/* Style entities with specific IRI */
+[data-iri="http://example.org/alice"] { font-weight: bold; }
+
 ### Utility Functions
 
 ```javascript
@@ -458,13 +546,14 @@ import {
 ## 🏗️ Architecture
 
 ### Design Principles
-- **Zero dependencies** — Pure JavaScript, 85KB unminified (20KB gzipped)
+- **Zero dependencies** — Pure JavaScript, 101KB unminified (24KB gzipped)
 - **Streaming-first** — Single-pass parsing, O(n) complexity
 - **Character-based tokenization** — 20-28% faster than regex-based approaches
 - **Standards-compliant** — RDF/JS data model, W3C CURIE 1.0 syntax
 - **Deterministic** — Same input always produces same output
 - **Explicit semantics** — No guessing, inference, or heuristics
 - **Dual-layer origin** — Every parse emits both a semantic quad graph and a walkable textual topology graph simultaneously
+- **HTML as codec** — Lossless roundtrip between MD-LD and HTML via `render()`/`deconstruct()`
 
 ### Origin: Blocks and Spans
 
@@ -478,6 +567,42 @@ The parser output includes a complete document chain at no extra cost:
 - **Spans** (`origin.spans`) — textual observations: raw byte ranges between blocks, with bidirectional block and span links
 
 Spans store no text — content is always recovered via `sourceText.slice(span.range[0], span.range[1])`. This unlocks context-aware UI, autocomplete neighborhood retrieval, and cross-document topology without any parser-level interpretation.
+
+### HTML Codec: Server/Client Equivalence
+
+The `render()` and `deconstruct()` pair enables two equivalent workflows:
+
+**Server-Side Rendering (SSR):**
+```
+MD-LD files → render() → HTML → Browser
+                              ↓
+                    deconstruct() → parse() → quads
+```
+
+**Client-Side Rendering (CSR):**
+```
+MD-LD files → Browser → render() → HTML
+                         ↓
+                    deconstruct() → parse() → quads
+```
+
+Both modes produce identical quads. The choice depends on your deployment model:
+- **SSR:** Better for SEO, faster initial page load, works without JavaScript
+- **CSR:** Better for offline-first apps, reduces server load, enables dynamic updates
+
+**Bandwidth optimization:**
+- Full fidelity: `render(mdld)` includes `data-annotation` for roundtrip
+- Lossy mode: `render(parse(mdld).md)` strips annotations for privacy-preserving publishing
+- HTML payload is 2-3x smaller than MD-LD + JSON-LD combination
+
+**Use cases:**
+- Personal knowledge bases (Obsidian-like, web-native)
+- Community wikis with semantic search
+- Offline-first research notes with citations
+- Collaborative task management with provenance
+- Reading lists that become knowledge graphs
+- Meeting notes with automatic linking
+- Decentralized community event calendars
 
 ### Performance Characteristics
 - **Real-time (60fps):** Up to 4,527 quads per frame
@@ -512,6 +637,7 @@ Comprehensive test suite covering:
 - Elevated statements detection
 - Primary metadata extraction
 - Round-trip parse/generate cycles
+- HTML codec roundtrip — `mdld = deconstruct(render(mdld))` 
 - Origin tracking and provenance
 
 
@@ -537,6 +663,7 @@ Comprehensive test suite covering:
   - [Subject System](./docs/Subject.md)
   - [API Reference](./docs/API.md)
   - [Generate: Quads to MDLD](./docs/generate.md)
+  - [Render MDLD to HTML and deconstruct it back](./docs/render.md)
   - [Diff Documents](./docs/diff.md)
   - [Syntax Reference](./docs/Syntax.md)
   - [Architecture & Design](./docs/Architecture.md)
