@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,152 +13,833 @@
     }
   </script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #020617; --surface: #0f172a; --surface2: #1e293b;
-      --border: #334155; --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
-      --emerald: #34d399; --emerald-bg: rgba(16,185,129,0.12); --emerald-border: rgba(16,185,129,0.25);
-      --cyan: #22d3ee; --blue: #60a5fa; --purple: #a78bfa; --amber: #fbbf24; --rose: #fb7185;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    html { scroll-behavior: smooth; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
-    a { color: var(--emerald); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    code { font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace; font-size: 0.85em; background: var(--surface2); padding: 0.15em 0.4em; border-radius: 4px; color: var(--cyan); }
-    pre code { display: block; padding: 1rem; overflow-x: auto; font-size: 0.78rem; line-height: 1.6; background: #020617; border: 1px solid var(--border); border-radius: 8px; white-space: pre; }
-    pre { margin: 0.5rem 0; }
-    ::selection { background: rgba(16,185,129,0.3); color: white; }
+
+    :root {
+      --bg: #020617;
+      --surface: #0f172a;
+      --surface2: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --emerald: #34d399;
+      --emerald-bg: rgba(16, 185, 129, 0.12);
+      --emerald-border: rgba(16, 185, 129, 0.25);
+      --cyan: #22d3ee;
+      --blue: #60a5fa;
+      --purple: #a78bfa;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a {
+      color: var(--emerald);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+      font-size: 0.85em;
+      background: var(--surface2);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      color: var(--cyan);
+    }
+
+    pre code {
+      display: block;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      white-space: pre;
+    }
+
+    pre {
+      margin: 0.5rem 0;
+    }
+
+    ::selection {
+      background: rgba(16, 185, 129, 0.3);
+      color: white;
+    }
 
     /* Header */
-    header { border-bottom: 1px solid var(--border); background: rgba(15,23,42,0.85); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; }
-    .header-inner { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 4rem; }
-    .logo { display: flex; align-items: center; gap: 0.75rem; }
-    .logo-icon { width: 2rem; height: 2rem; border-radius: 0.5rem; background: linear-gradient(135deg, var(--emerald), var(--cyan)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; color: var(--bg); }
-    .logo h1 { font-size: 1.1rem; font-weight: 600; }
-    .logo p { font-size: 0.7rem; color: var(--text3); }
-    nav { display: flex; gap: 0.25rem; flex-wrap: wrap; }
-    .tab-btn { padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 500; border: 1px solid transparent; background: none; color: var(--text3); cursor: pointer; transition: all 0.2s; }
-    .tab-btn:hover { color: var(--text); background: var(--surface2); }
-    .tab-btn.active { background: var(--emerald-bg); color: var(--emerald); border-color: var(--emerald-border); }
+    header {
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 80rem;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 4rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 0.5rem;
+      background: linear-gradient(135deg, var(--emerald), var(--cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--bg);
+    }
+
+    .logo h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .logo p {
+      font-size: 0.7rem;
+      color: var(--text3);
+    }
+
+    nav {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+      background: none;
+      color: var(--text3);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: var(--surface2);
+    }
+
+    .tab-btn.active {
+      background: var(--emerald-bg);
+      color: var(--emerald);
+      border-color: var(--emerald-border);
+    }
 
     /* Stats bar */
-    .stats-bar { max-width: 80rem; margin: 0 auto; padding: 0.75rem 1.5rem; display: flex; gap: 1.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 0.75rem; color: var(--text3); }
-    .stat { display: flex; align-items: center; gap: 0.35rem; }
-    .stat-val { color: var(--emerald); font-weight: 600; font-size: 0.85rem; }
+    .stats-bar {
+      max-width: 80rem;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 0.75rem;
+      color: var(--text3);
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .stat-val {
+      color: var(--emerald);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
 
     /* Main */
-    main { max-width: 80rem; margin: 0 auto; padding: 2rem 1.5rem; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    main {
+      max-width: 80rem;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
     /* Guide */
-    .guide-hero { margin-bottom: 2.5rem; padding: 2rem; background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(34,211,238,0.05)); border: 1px solid var(--emerald-border); border-radius: 1rem; }
-    .guide-hero .badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem; border-radius: 9999px; background: var(--emerald-bg); border: 1px solid var(--emerald-border); color: var(--emerald); font-size: 0.8rem; margin-bottom: 1rem; }
-    .guide-hero h2 { font-size: 2.4rem; font-weight: 700; line-height: 1.15; margin-bottom: 0.75rem; background: linear-gradient(135deg, var(--emerald), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .guide-hero .subtitle { font-size: 1.15rem; color: var(--text2); line-height: 1.5; max-width: 48rem; }
-    .guide-hero .meta { margin-top: 1rem; font-size: 0.8rem; color: var(--text3); display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    .guide-section { margin-bottom: 2.5rem; scroll-margin-top: 5rem; }
-    .guide-section h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .guide-section h3 .num { color: var(--emerald); font-family: monospace; font-size: 0.9rem; }
-    .guide-section p { color: var(--text2); margin-bottom: 0.75rem; line-height: 1.7; }
-    .guide-section p em { color: var(--emerald); font-style: normal; }
-    .guide-section p strong { color: var(--text); }
-    .guide-section ul { color: var(--text2); margin: 0.5rem 0 1rem 1.5rem; line-height: 1.7; }
-    .guide-section li { margin-bottom: 0.3rem; }
-    .callout { padding: 1rem 1.25rem; border-radius: 0.5rem; margin: 1rem 0; border-left: 3px solid; font-size: 0.9rem; }
-    .callout-info { background: rgba(96,165,250,0.06); border-color: var(--blue); color: var(--text2); }
-    .callout-warn { background: rgba(251,191,36,0.06); border-color: var(--amber); color: var(--text2); }
-    .callout-tip { background: rgba(16,185,129,0.06); border-color: var(--emerald); color: var(--text2); }
-    .callout strong { color: var(--text); display: block; margin-bottom: 0.25rem; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
-    .col-good, .col-bad { padding: 1rem; border-radius: 0.5rem; border: 1px solid; }
-    .col-good { background: rgba(16,185,129,0.04); border-color: rgba(16,185,129,0.2); }
-    .col-bad { background: rgba(251,113,133,0.04); border-color: rgba(251,113,133,0.2); }
-    .col-good h5 { color: var(--emerald); font-size: 0.8rem; margin-bottom: 0.5rem; }
-    .col-bad h5 { color: var(--rose); font-size: 0.8rem; margin-bottom: 0.5rem; }
+    .guide-hero {
+      margin-bottom: 2.5rem;
+      padding: 2rem;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(34, 211, 238, 0.05));
+      border: 1px solid var(--emerald-border);
+      border-radius: 1rem;
+    }
+
+    .guide-hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      background: var(--emerald-bg);
+      border: 1px solid var(--emerald-border);
+      color: var(--emerald);
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .guide-hero h2 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, var(--emerald), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .guide-hero .subtitle {
+      font-size: 1.15rem;
+      color: var(--text2);
+      line-height: 1.5;
+      max-width: 48rem;
+    }
+
+    .guide-hero .meta {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--text3);
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .guide-section {
+      margin-bottom: 2.5rem;
+      scroll-margin-top: 5rem;
+    }
+
+    .guide-section h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .guide-section h3 .num {
+      color: var(--emerald);
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+
+    .guide-section p {
+      color: var(--text2);
+      margin-bottom: 0.75rem;
+      line-height: 1.7;
+    }
+
+    .guide-section p em {
+      color: var(--emerald);
+      font-style: normal;
+    }
+
+    .guide-section p strong {
+      color: var(--text);
+    }
+
+    .guide-section ul {
+      color: var(--text2);
+      margin: 0.5rem 0 1rem 1.5rem;
+      line-height: 1.7;
+    }
+
+    .guide-section li {
+      margin-bottom: 0.3rem;
+    }
+
+    .callout {
+      padding: 1rem 1.25rem;
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+      border-left: 3px solid;
+      font-size: 0.9rem;
+    }
+
+    .callout-info {
+      background: rgba(96, 165, 250, 0.06);
+      border-color: var(--blue);
+      color: var(--text2);
+    }
+
+    .callout-warn {
+      background: rgba(251, 191, 36, 0.06);
+      border-color: var(--amber);
+      color: var(--text2);
+    }
+
+    .callout-tip {
+      background: rgba(16, 185, 129, 0.06);
+      border-color: var(--emerald);
+      color: var(--text2);
+    }
+
+    .callout strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .col-good,
+    .col-bad {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid;
+    }
+
+    .col-good {
+      background: rgba(16, 185, 129, 0.04);
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .col-bad {
+      background: rgba(251, 113, 133, 0.04);
+      border-color: rgba(251, 113, 133, 0.2);
+    }
+
+    .col-good h5 {
+      color: var(--emerald);
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .col-bad h5 {
+      color: var(--rose);
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
 
     /* Syntax Explorer */
-    .syntax-ref { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem; }
-    .syntax-ref h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem; }
-    .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
-    .ref-item p { font-size: 0.75rem; color: var(--text3); font-weight: 500; margin-bottom: 0.25rem; }
-    .ref-item code { font-size: 0.72rem; display: block; margin-bottom: 0.15rem; }
-    .example-card { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; margin-bottom: 0.75rem; }
-    .example-header { padding: 0.85rem 1.25rem; display: flex; align-items: center; cursor: pointer; transition: background 0.15s; }
-    .example-header:hover { background: rgba(30,41,59,0.5); }
-    .example-header .cat { padding: 0.15rem 0.5rem; border-radius: 0.35rem; font-size: 0.7rem; margin-right: 0.6rem; }
-    .cat-basics { background: rgba(34,211,238,0.12); color: var(--cyan); }
-    .cat-advanced { background: rgba(251,191,36,0.12); color: var(--amber); }
-    .cat-ontology { background: rgba(167,139,250,0.12); color: var(--purple); }
-    .cat-agent { background: rgba(16,185,129,0.12); color: var(--emerald); }
-    .example-header h5 { font-size: 0.9rem; font-weight: 500; flex: 1; }
-    .example-header .arrow { color: var(--text3); transition: transform 0.2s; font-size: 0.7rem; }
-    .example-header .arrow.open { transform: rotate(180deg); }
-    .example-body { display: none; padding: 0 1.25rem 1.25rem; border-top: 1px solid rgba(51,65,85,0.5); }
-    .example-body.open { display: block; }
-    .example-body > p { font-size: 0.82rem; color: var(--text3); margin: 0.75rem 0; }
-    .code-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .code-col label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); font-weight: 500; margin-bottom: 0.35rem; display: block; }
-    .code-col pre code { color: var(--text2); }
-    .code-col:last-child pre code { color: var(--emerald); }
+    .syntax-ref {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .syntax-ref h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .ref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .ref-item p {
+      font-size: 0.75rem;
+      color: var(--text3);
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .ref-item code {
+      font-size: 0.72rem;
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+
+    .example-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+
+    .example-header {
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .example-header:hover {
+      background: rgba(30, 41, 59, 0.5);
+    }
+
+    .example-header .cat {
+      padding: 0.15rem 0.5rem;
+      border-radius: 0.35rem;
+      font-size: 0.7rem;
+      margin-right: 0.6rem;
+    }
+
+    .cat-basics {
+      background: rgba(34, 211, 238, 0.12);
+      color: var(--cyan);
+    }
+
+    .cat-advanced {
+      background: rgba(251, 191, 36, 0.12);
+      color: var(--amber);
+    }
+
+    .cat-ontology {
+      background: rgba(167, 139, 250, 0.12);
+      color: var(--purple);
+    }
+
+    .cat-agent {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--emerald);
+    }
+
+    .example-header h5 {
+      font-size: 0.9rem;
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .example-header .arrow {
+      color: var(--text3);
+      transition: transform 0.2s;
+      font-size: 0.7rem;
+    }
+
+    .example-header .arrow.open {
+      transform: rotate(180deg);
+    }
+
+    .example-body {
+      display: none;
+      padding: 0 1.25rem 1.25rem;
+      border-top: 1px solid rgba(51, 65, 85, 0.5);
+    }
+
+    .example-body.open {
+      display: block;
+    }
+
+    .example-body>p {
+      font-size: 0.82rem;
+      color: var(--text3);
+      margin: 0.75rem 0;
+    }
+
+    .code-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .code-col label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text3);
+      font-weight: 500;
+      margin-bottom: 0.35rem;
+      display: block;
+    }
+
+    .code-col pre code {
+      color: var(--text2);
+    }
+
+    .code-col:last-child pre code {
+      color: var(--emerald);
+    }
 
     /* Playground */
-    .playground-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; min-height: 500px; }
-    .playground-pane { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; display: flex; flex-direction: column; }
-    .playground-pane-header { padding: 0.6rem 1rem; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 500; }
-    .playground-pane-header .badge-sm { font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 0.25rem; background: var(--emerald-bg); color: var(--emerald); }
-    .playground-pane textarea { flex: 1; background: transparent; border: none; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; padding: 1rem; resize: none; outline: none; line-height: 1.6; min-height: 400px; }
-    .playground-output { flex: 1; padding: 1rem; overflow: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.5; color: var(--text2); }
-    .playground-output .quad { padding: 0.3rem 0; border-bottom: 1px solid rgba(51,65,85,0.3); }
-    .playground-output .quad-s { color: var(--cyan); }
-    .playground-output .quad-p { color: var(--amber); }
-    .playground-output .quad-o { color: var(--emerald); }
-    .playground-output .quad-g { color: var(--purple); }
-    .playground-toolbar { padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-    .playground-toolbar button { padding: 0.4rem 0.75rem; border-radius: 0.4rem; font-size: 0.75rem; font-weight: 500; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); cursor: pointer; transition: all 0.15s; }
-    .playground-toolbar button:hover { background: var(--emerald-bg); color: var(--emerald); border-color: var(--emerald-border); }
-    .playground-toolbar .sep { width: 1px; height: 1.5rem; background: var(--border); }
-    .playground-stats { display: flex; gap: 1rem; font-size: 0.75rem; color: var(--text3); margin-left: auto; }
-    .playground-stats span b { color: var(--emerald); font-weight: 600; }
+    .playground-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      min-height: 500px;
+    }
+
+    .playground-pane {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .playground-pane-header {
+      padding: 0.6rem 1rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .playground-pane-header .badge-sm {
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.25rem;
+      background: var(--emerald-bg);
+      color: var(--emerald);
+    }
+
+    .playground-pane textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      padding: 1rem;
+      resize: none;
+      outline: none;
+      line-height: 1.6;
+      min-height: 400px;
+    }
+
+    .playground-output {
+      flex: 1;
+      padding: 1rem;
+      overflow: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: var(--text2);
+    }
+
+    .playground-output .quad {
+      padding: 0.3rem 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+    }
+
+    .playground-output .quad-s {
+      color: var(--cyan);
+    }
+
+    .playground-output .quad-p {
+      color: var(--amber);
+    }
+
+    .playground-output .quad-o {
+      color: var(--emerald);
+    }
+
+    .playground-output .quad-g {
+      color: var(--purple);
+    }
+
+    .playground-toolbar {
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .playground-toolbar button {
+      padding: 0.4rem 0.75rem;
+      border-radius: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .playground-toolbar button:hover {
+      background: var(--emerald-bg);
+      color: var(--emerald);
+      border-color: var(--emerald-border);
+    }
+
+    .playground-toolbar .sep {
+      width: 1px;
+      height: 1.5rem;
+      background: var(--border);
+    }
+
+    .playground-stats {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.75rem;
+      color: var(--text3);
+      margin-left: auto;
+    }
+
+    .playground-stats span b {
+      color: var(--emerald);
+      font-weight: 600;
+    }
 
     /* Cheatsheet */
-    .cheatsheet { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; }
-    .cheatsheet h3 { font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--text); }
-    .cheatsheet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; }
-    .cheat-block { background: var(--bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; }
-    .cheat-block h4 { font-size: 0.85rem; color: var(--emerald); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
-    .cheat-block code { display: block; font-size: 0.78rem; margin-bottom: 0.25rem; background: transparent; padding: 0.15rem 0; color: var(--cyan); }
-    .cheat-block .desc { font-size: 0.75rem; color: var(--text3); margin-top: 0.5rem; line-height: 1.5; }
+    .cheatsheet {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+    }
+
+    .cheatsheet h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      color: var(--text);
+    }
+
+    .cheatsheet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .cheat-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+    }
+
+    .cheat-block h4 {
+      font-size: 0.85rem;
+      color: var(--emerald);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .cheat-block code {
+      display: block;
+      font-size: 0.78rem;
+      margin-bottom: 0.25rem;
+      background: transparent;
+      padding: 0.15rem 0;
+      color: var(--cyan);
+    }
+
+    .cheat-block .desc {
+      font-size: 0.75rem;
+      color: var(--text3);
+      margin-top: 0.5rem;
+      line-height: 1.5;
+    }
 
     /* Knowledge Graph */
-    .graph-container { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; overflow: hidden; height: 600px; }
-    .graph-container svg { width: 100%; height: 100%; }
-    .graph-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-    .legend-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--text3); }
-    .legend-dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; }
-    .graph-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; margin-top: 1rem; }
-    .graph-detail h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.35rem; }
-    .graph-detail p { font-size: 0.85rem; color: var(--text2); }
-    .graph-detail .connections { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 0.35rem; }
-    .conn-btn { padding: 0.2rem 0.5rem; border-radius: 0.35rem; background: var(--surface2); border: 1px solid var(--border); font-size: 0.72rem; color: var(--text2); cursor: pointer; transition: all 0.15s; }
-    .conn-btn:hover { background: var(--emerald-bg); color: var(--emerald); border-color: var(--emerald-border); }
+    .graph-container {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      overflow: hidden;
+      height: 600px;
+    }
+
+    .graph-container svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .graph-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--text3);
+    }
+
+    .legend-dot {
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 50%;
+    }
+
+    .graph-detail {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .graph-detail h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .graph-detail p {
+      font-size: 0.85rem;
+      color: var(--text2);
+    }
+
+    .graph-detail .connections {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .conn-btn {
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.35rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      font-size: 0.72rem;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .conn-btn:hover {
+      background: var(--emerald-bg);
+      color: var(--emerald);
+      border-color: var(--emerald-border);
+    }
 
     /* Footer */
-    footer { border-top: 1px solid var(--border); margin-top: 4rem; padding: 2rem 1.5rem; text-align: center; color: var(--text3); font-size: 0.8rem; }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 4rem;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--text3);
+      font-size: 0.8rem;
+    }
 
     /* Loading */
-    .loading { display: flex; align-items: center; justify-content: center; height: 60vh; flex-direction: column; gap: 1rem; }
-    .loading .spinner { width: 2rem; height: 2rem; border: 2px solid var(--border); border-top-color: var(--emerald); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 60vh;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .loading .spinner {
+      width: 2rem;
+      height: 2rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--emerald);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     @media (max-width: 768px) {
-      .header-inner { flex-direction: column; height: auto; padding: 0.75rem 1rem; gap: 0.5rem; }
-      .code-cols, .two-col, .playground-layout { grid-template-columns: 1fr; }
-      .guide-hero h2 { font-size: 1.6rem; }
+      .header-inner {
+        flex-direction: column;
+        height: auto;
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+      }
+
+      .code-cols,
+      .two-col,
+      .playground-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .guide-hero h2 {
+        font-size: 1.6rem;
+      }
     }
   </style>
 </head>
+
 <body>
   <header>
     <div class="header-inner">
@@ -184,8 +866,11 @@
     <div id="tab-cheatsheet" class="tab-content"></div>
   </main>
   <footer>
-    <p>This guide is a self-contained MD-LD document. View page source → <code>&lt;script type="text/plain" id="mdld-source"&gt;</code> to see the knowledge graph that renders it.</p>
-    <p style="margin-top:0.5rem"><a href="https://mdld.js.org">mdld.js.org</a> · <a href="https://www.npmjs.com/package/mdld-parse">npm: mdld-parse</a> · <a href="https://github.com/mdld-js">github.com/mdld-js</a></p>
+    <p>This guide is a self-contained MD-LD document. View page source →
+      <code>&lt;script type="text/plain" id="mdld-source"&gt;</code> to see the knowledge graph that renders it.</p>
+    <p style="margin-top:0.5rem"><a href="https://mdld.js.org">mdld.js.org</a> · <a
+        href="https://www.npmjs.com/package/mdld-parse">npm: mdld-parse</a> · <a
+        href="https://github.com/mdld-js">github.com/mdld-js</a></p>
   </footer>
 
   <!-- ════════════════════════════════════════════════════════════ -->
@@ -351,6 +1036,48 @@
 > Round-trip test: `parse(generate(parse({text}).quads)).quads` should equal the original quads. If it does, your document is round-trip safe. {my:p}
 
 > Primary metadata check: every well-formed MD-LD document should have a `primarySubject`, `primary.type`, and `primary.label`. If any are null, the document is missing its identity declaration. {my:p}
+
+## The Evolutionary Scaling Path {=g:15 .my:Section label}
+[15] {my:order ^^xsd:integer}
+
+> MD-LD enables a unique scaling strategy: *Static-First Semantic Scaling*. The data contract is decoupled from the infrastructure, so you can evolve from static files to dynamic backends without touching frontend code. {my:p}
+
+> Phase 1 — Static Bootstrap (Day 1): You create `products.md` as a static file. Your `index.html` fetches it, parses it, renders a product grid. Time to market: 10 minutes. Zero backend, zero database, zero API design. {my:phase}
+> Phase 2 — Seamless Pivot (Month 6): Your shop grows. You add PostgreSQL and a Node.js backend. You change server routing so `GET /products.md` is handled by your backend, which queries the database and generates the exact same MD-LD text format. Frontend code changes required: ZERO. {my:phase}
+> Phase 3 — Edge Caching (Year 1): Massive traffic. You set up a Cloudflare Worker that generates MD-LD dynamically, caches the text at the edge for 5 minutes, and serves it to both your frontend and any AI agents scraping your catalog. {my:phase}
+
+> The key insight: *the best interfaces are the ones that don't care how the data is produced.* By making the contract a simple, human-readable, semantically rich text format, you get instant prototyping, zero-friction scaling, and future-proofing. {my:p}
+
+## Bypassing JSON — The Superpower {=g:16 .my:Section label}
+[16] {my:order ^^xsd:integer}
+
+> MD-LD completely bypasses the traditional JSON API layer. Instead of fetching structured-but-opaque data, you fetch structured-and-human-readable data. This is a massive upgrade. {my:p}
+
+> Traditional flow: Client requests `GET /api/products` → Server serializes to JSON → Client runs `res.json()` → Client relies on external docs (Swagger, TS interfaces) to understand keys → Agents must parse brittle JSON. {my:flow}
+> MD-LD flow: Client requests `GET /products.md` → Server returns plain text → Client runs `parse({ text })` → The payload IS its own documentation → Agents natively understand the Markdown and extract semantic quads effortlessly. {my:flow}
+
+> Dual-purpose payload — JSON is great for machines but terrible for humans. Markdown is great for humans but traditionally lacked machine structure. MD-LD is the first format genuinely optimal for both simultaneously. A developer can `curl` your endpoint and read it like a normal document. An LLM can read it and instantly understand the relationships. {my:advantage}
+> Death to API documentation drift — In traditional systems, API code and API docs constantly fall out of sync. With MD-LD, the documentation IS the data. If the server adds a new field, the frontend can immediately query for it, and agents instantly see the new capability. No OpenAPI spec update required. {my:advantage}
+> LLMs prefer text over JSON — LLMs are trained on natural language and Markdown. When you feed them JSON, they expend context tokens parsing brackets and keys. With MD-LD, they read it like a well-structured technical document, while mdld-parse handles strict RDF graph construction. {my:advantage}
+> Simpler client code — Trade `const data = await res.json()` for `const { quads } = await parse({ text: await res.text() })`. Deterministic graph, no schema guessing. {my:advantage}
+
+## MD-LD as API Contract {=g:17 .my:Section label}
+[17] {my:order ^^xsd:integer}
+
+> By serving `text/markdown` instead of `application/json`, you return to the original simplicity of the web: *hypermedia as the engine of application state (HATEOAS)*, upgraded for the AI era. {my:p}
+
+> With traditional JSON APIs, adding pagination means changing the JSON structure to `{ "data": [...], "page": 1 }`, breaking the frontend, updating docs, and telling the team. With MD-LD, you just append to the document: a new section typed as `.shop:Pagination` with a `shop:nextPage` link. The frontend queries for the pagination type and renders a "Next" button. The data format remains human-readable, self-describing, and backward-compatible. {my:p}
+
+> You aren't bypassing structure — you are bypassing JSON serialization. You still get a highly rigorous, queryable data structure (the RDF quad graph). In fact, you get a better structure than typical nested JSON, because RDF quads are flat and graph-based, inherently resistant to the "nested JSON hell" that makes traditional APIs fragile. {my:p}
+
+## Agent-Native Consumption {=g:18 .my:Section label}
+[18] {my:order ^^xsd:integer}
+
+> AI agents are first-class citizens of MD-LD architecture. When an agent wants to know your product catalog, it doesn't need to read Swagger docs, handle JSON parsing quirks, or navigate nested REST endpoints. It just fetches the `.md` file and reads it. {my:p}
+
+> A Python agent can do: `response = requests.get("https://myshop.com/products.md")`. The agent's LLM natively understands the Markdown/RDF hybrid format and can extract prices, statuses, and descriptions instantly. No SDK required. No API key negotiation. No rate-limit headers to parse. {my:p}
+
+> Third-party integrations become trivial. Any developer — human or agent — can consume your MD-LD endpoints with a single `fetch()` call and a 24KB parser. The contract is self-documenting, backward-compatible, and semantically rich. This is the original promise of the Semantic Web, finally delivered in a format that humans actually want to write. {my:p}
 
 ===== SYNTAX EXAMPLES =====
 
@@ -531,6 +1258,133 @@ j:2026-05-06 a my:Entry ;
     my:employer my:nasa .
 ~~~
 
+## Shop API Endpoint {=e:9 .my:SyntaxExample label}
+[9] {my:order ^^xsd:integer}
+[agent] {my:category}
+> A complete shop API as MD-LD — fetchable by browsers and agents alike. The same format works as static file or dynamic backend output. {my:description}
+~~~ {my:mdldCode}
+[shop] <https://myshop.com/vocab#>
+[prod] <shop:product/>
+
+# Premium Widget {=prod:1 .shop:Product label}
+[99.99] {shop:price ^^xsd:decimal}
+[In Stock] {shop:status}
+> The best widget for your needs. {shop:description}
+
+# Basic Gadget {=prod:2 .shop:Product label}
+[24.99] {shop:price ^^xsd:decimal}
+[Out of Stock] {shop:status}
+> A simple but useful gadget. {shop:description}
+
+## Catalog {=shop:catalog .shop:Catalog label}
+[2] {shop:totalItems ^^xsd:integer}
+~~~
+~~~ {my:quadOutput}
+prod:1 a shop:Product ;
+    rdfs:label "Premium Widget" ;
+    shop:price "99.99"^^xsd:decimal ;
+    shop:status "In Stock" ;
+    shop:description "The best widget for your needs." .
+
+prod:2 a shop:Product ;
+    rdfs:label "Basic Gadget" ;
+    shop:price "24.99"^^xsd:decimal ;
+    shop:status "Out of Stock" ;
+    shop:description "A simple but useful gadget." .
+
+shop:catalog a shop:Catalog ;
+    rdfs:label "Catalog" ;
+    shop:totalItems "2"^^xsd:integer .
+~~~
+
+===== PLAYGROUND EXAMPLES =====
+
+## Minimal {=pg:minimal .my:PlaygroundExample label}
+[1] {my:order ^^xsd:integer}
+[Minimal] {my:buttonLabel}
+~~~~~~ {my:code}
+[my] <tag:agent@example.org,2026:>
+
+# Alice {=my:alice .prov:Person label}
+~~~~~~
+
+## Person {=pg:person .my:PlaygroundExample label}
+[2] {my:order ^^xsd:integer}
+[Person] {my:buttonLabel}
+~~~~~~ {my:code}
+[my] <tag:agent@example.org,2026:>
+
+# Alice {=my:alice .prov:Person label}
+
+Email: [alice@example.org] {my:email}
+Age: [34] {my:age ^^xsd:integer}
+City: [Berlin] {my:city @en}
+~~~~~~
+
+## PROV-O {=pg:prov .my:PlaygroundExample label}
+[3] {my:order ^^xsd:integer}
+[PROV-O] {my:buttonLabel}
+~~~~~~ {my:code}
+[my] <tag:agent@example.org,2026:>
+
+## Analysis {=my:run .prov:Activity label}
+
+Started: [2026-05-06T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime}
+Ended:   [2026-05-06T09:45:00Z] {prov:endedAtTime ^^xsd:dateTime}
+By:      [Alice] {+my:alice ?prov:wasAssociatedWith}
+Used:    [dataset] {+my:dataset ?prov:used}
+Made:    [report] {+my:report ?prov:generated}
+~~~~~~
+
+## Polarity {=pg:polarity .my:PlaygroundExample label}
+[4] {my:order ^^xsd:integer}
+[Polarity] {my:buttonLabel}
+~~~~~~ {my:code}
+[my] <tag:agent@example.org,2026:>
+
+# Article {=my:article .my:Article label}
+
+[Alice] {my:author}
+[Alice] {-my:author}
+[Bob] {my:author}
+~~~~~~
+
+## Agent Memory {=pg:agent .my:PlaygroundExample label}
+[5] {my:order ^^xsd:integer}
+[Agent Memory] {my:buttonLabel}
+~~~~~~ {my:code}
+[my] <tag:agent@example.org,2026:>
+[j] <my:journal:>
+
+# 2026-05-06 {=j:2026-05-06 .my:Entry label}
+
+[2026-05-06] {my:date ^^xsd:date}
+[productive] {my:mood}
+
+Met [Bob] {+my:bob ?my:met} at [Central Park] {+my:park ?my:location}.
+~~~~~~
+
+## Shop API {=pg:shop .my:PlaygroundExample label}
+[6] {my:order ^^xsd:integer}
+[🛒 Shop API] {my:buttonLabel}
+~~~~~~ {my:code}
+[shop] <https://myshop.com/vocab#>
+[prod] <shop:product/>
+
+# Premium Widget {=prod:1 .shop:Product label}
+[99.99] {shop:price ^^xsd:decimal}
+[In Stock] {shop:status}
+> The best widget for your needs. {shop:description}
+
+# Basic Gadget {=prod:2 .shop:Product label}
+[24.99] {shop:price ^^xsd:decimal}
+[Out of Stock] {shop:status}
+> A simple but useful gadget. {shop:description}
+
+## Catalog {=shop:catalog .shop:Catalog label}
+[2] {shop:totalItems ^^xsd:integer}
+~~~~~~
+
 ===== PATTERNS =====
 
 ## Define Once, Reference Everywhere {=p:1 .my:Pattern label}
@@ -632,6 +1486,32 @@ my:claim a rdf:Statement ;
     my:derivedFrom my:notes .
 
 # Elevated (in result.statements): my:alice my:knows my:bob
+~~~
+
+## Static-First Semantic Scaling {=p:5 .my:Pattern label}
+[architecture] {my:patternKind}
+> Start with static MD-LD files, pivot to dynamic generation without changing frontend code. The data contract (MD-LD text format) is preserved across all phases. {my:description}
+~~~ {my:mdldCode}
+# Phase 1: Static file (products.md)
+[shop] <https://myshop.com/vocab#>
+# Premium Widget {=prod:1 .shop:Product label}
+[99.99] {shop:price ^^xsd:decimal}
+[In Stock] {shop:status}
+> The best widget. {shop:description}
+
+# Phase 2: Backend generates same format
+// Express.js: app.get('/products.md', ...)
+// Returns identical MD-LD text from database
+
+# Phase 3: Edge cache
+// Cloudflare Worker caches MD-LD text for 5 min
+~~~
+~~~ {my:quadOutput}
+# Frontend code (unchanged across all phases):
+const res = await fetch('/products.md');
+const { quads } = parse({ text: await res.text() });
+const products = getByType('shop:Product');
+# Same code works with static file, dynamic backend, or edge cache.
 ~~~
 
 ===== CONCEPTS (for the knowledge graph) =====
@@ -775,6 +1655,10 @@ my:claim a rdf:Statement ;
 ## API Quick {=ch:8 .my:CheatEntry label}
 [8] {my:order ^^xsd:integer}
 > parse({text}) → {quads, remove, statements, origin, context, primary, md} | generate({quads}) → {text} | merge([docs]) → merged state | render(mdld) → HTML | deconstruct(html) → mdld | Invariant: parse(deconstruct(render(mdld))).quads === parse(mdld).quads {my:cheat}
+
+## API Pattern {=ch:9 .my:CheatEntry label}
+[9] {my:order ^^xsd:integer}
+> Phase 1: Static `.md` file served by Nginx/CDN — zero backend | Phase 2: Backend generates same MD-LD text from database — frontend unchanged | Phase 3: Edge cache (Cloudflare Worker) — 5min TTL | Client code: `const { quads } = parse({ text: await fetch('/data.md').then(r => r.text()) })` | Agents: `requests.get(url)` — LLM reads Markdown natively | HATEOAS for AI era — append pagination/links, don't restructure {my:cheat}
   </script>
 
   <!-- ════════════════════════════════════════════════════════════ -->
@@ -851,6 +1735,7 @@ my:claim a rdf:Statement ;
       <div class="stat"><span class="stat-val">${uniquePredicates.size}</span> unique predicates</div>
       <div class="stat"><span class="stat-val">${getByType('my:Section').length}</span> guide sections</div>
       <div class="stat"><span class="stat-val">${getByType('my:SyntaxExample').length}</span> examples</div>
+      <div class="stat"><span class="stat-val">${getByType('my:PlaygroundExample').length}</span> playground examples</div>
       <div class="stat"><span class="stat-val">${getByType('my:Pattern').length}</span> patterns</div>
       <div class="stat"><span class="stat-val">${getByType('my:Concept').length}</span> concepts</div>
       <div class="stat"><span class="stat-val">${getByType('my:CheatEntry').length}</span> cheatsheet entries</div>
@@ -913,6 +1798,8 @@ my:claim a rdf:Statement ;
         const nodeTypes = getLiterals(sIRI, 'my:nodeType');
         const predForms = getLiterals(sIRI, 'my:predForm');
         const antiPatterns = getLiterals(sIRI, 'my:antiPattern');
+        const phases = getLiterals(sIRI, 'my:phase');
+        const flows = getLiterals(sIRI, 'my:flow');
 
         html += `<section class="guide-section" id="section-${idx + 1}">`;
         html += `<h3><span class="num">§${idx + 1}</span> ${label}</h3>`;
@@ -924,6 +1811,27 @@ my:claim a rdf:Statement ;
           advantages.forEach(a => {
             const parts = a.split(' — ');
             html += `<div class="role-item" style="flex-direction:column;align-items:flex-start;gap:0.25rem"><strong style="color:var(--emerald);font-size:0.85rem">${parts[0]}</strong><span style="font-size:0.8rem">${fmt(parts[1] || '')}</span></div>`;
+          });
+          html += `</div>`;
+        }
+
+        if (phases.length) {
+          html += `<div class="ont-grid">`;
+          const phaseColors = ['var(--emerald)', 'var(--blue)', 'var(--purple)'];
+          const phaseIcons = ['🚀', '🔄', '⚡'];
+          phases.forEach((ph, i) => {
+            const parts = ph.split(' — ');
+            html += `<div class="ont-card"><h5><span style="color:${phaseColors[i % 3]}">${phaseIcons[i % 3]}</span> ${parts[0]}</h5><p style="font-size:0.85rem;color:var(--text2);margin:0">${fmt(parts[1] || '')}</p></div>`;
+          });
+          html += `</div>`;
+        }
+
+        if (flows.length) {
+          html += `<div class="two-col">`;
+          flows.forEach((f, i) => {
+            const parts = f.split(' — ');
+            const isTraditional = i === 0;
+            html += `<div class="${isTraditional ? 'col-bad' : 'col-good'}"><h5>${isTraditional ? '❌ Traditional' : '✅ MD-LD'}</h5><p style="font-size:0.82rem;color:var(--text2);margin:0">${fmt(parts.slice(1).join(' — ') || f)}</p></div>`;
           });
           html += `</div>`;
         }
@@ -1051,25 +1959,18 @@ my:claim a rdf:Statement ;
     // RENDER: PLAYGROUND (live parser)
     // ══════════════════════════════════════
     function renderPlayground() {
-      const defaultInput = `[my] <tag:agent@example.org,2026:>
+      // Query playground examples from the graph
+      const playgroundExamples = getByType('my:PlaygroundExample');
+      playgroundExamples.sort((a, b) => parseInt(getLiteral(a, 'my:order') || '99') - parseInt(getLiteral(b, 'my:order') || '99'));
 
-# Alice {=my:alice .prov:Person label}
-
-Email: [alice@example.org] {my:email}
-Age: [34] {my:age ^^xsd:integer}
-
-Knows [Bob] {+my:bob ?my:knows .prov:Person label}
-Works at [NASA] {+my:nasa ?my:employer label}`;
+      // Use first example as default input
+      const defaultInput = playgroundExamples.length > 0 ? getLiteral(playgroundExamples[0], 'my:code') : '';
 
       const html = `<h2 style="font-size:1.5rem;font-weight:700;margin-bottom:0.25rem">🔬 Live Playground</h2>
         <p style="color:var(--text2);margin-bottom:1rem;font-size:0.9rem">Paste any MD-LD text below. The parser runs in your browser and shows the resulting quads in real time. This is the same <code>parse()</code> function that renders this entire page.</p>
 
-        <div class="playground-toolbar">
-          <button onclick="loadExample('minimal')">Minimal</button>
-          <button onclick="loadExample('person')">Person</button>
-          <button onclick="loadExample('prov')">PROV-O</button>
-          <button onclick="loadExample('polarity')">Polarity</button>
-          <button onclick="loadExample('agent')">Agent Memory</button>
+        <div class="playground-toolbar" id="playground-toolbar">
+          <!-- Buttons will be generated from graph -->
           <div class="sep"></div>
           <button onclick="copyQuads()">📋 Copy Quads</button>
           <button onclick="copyTurtle()">🐢 Copy as Turtle</button>
@@ -1103,44 +2004,29 @@ Works at [NASA] {+my:nasa ?my:employer label}`;
       const quadCount = document.getElementById('quad-count');
       const primarySubject = document.getElementById('primary-subject');
       const parseStatus = document.getElementById('parse-status');
+      const toolbar = document.getElementById('playground-toolbar');
 
-      const examples = {
-        minimal: `[my] <tag:agent@example.org,2026:>
+      // Build examples object from graph data
+      const examples = {};
+      playgroundExamples.forEach(pgIRI => {
+        const key = pgIRI.split('#')[1] || pgIRI.split(':').pop();
+        const code = getLiteral(pgIRI, 'my:code');
+        if (code) examples[key] = code;
+      });
 
-# Alice {=my:alice .prov:Person label}`,
-        person: `[my] <tag:agent@example.org,2026:>
-
-# Alice {=my:alice .prov:Person label}
-
-Email: [alice@example.org] {my:email}
-Age: [34] {my:age ^^xsd:integer}
-City: [Berlin] {my:city @en}`,
-        prov: `[my] <tag:agent@example.org,2026:>
-
-## Analysis {=my:run .prov:Activity label}
-
-Started: [2026-05-06T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime}
-Ended:   [2026-05-06T09:45:00Z] {prov:endedAtTime ^^xsd:dateTime}
-By:      [Alice] {+my:alice ?prov:wasAssociatedWith}
-Used:    [dataset] {+my:dataset ?prov:used}
-Made:    [report] {+my:report ?prov:generated}`,
-        polarity: `[my] <tag:agent@example.org,2026:>
-
-# Article {=my:article .my:Article label}
-
-[Alice] {my:author}
-[Alice] {-my:author}
-[Bob] {my:author}`,
-        agent: `[my] <tag:agent@example.org,2026:>
-[j] <my:journal:>
-
-# 2026-05-06 {=j:2026-05-06 .my:Entry label}
-
-[2026-05-06] {my:date ^^xsd:date}
-[productive] {my:mood}
-
-Met [Bob] {+my:bob ?my:met} at [Central Park] {+my:park ?my:location}.`
-      };
+      // Generate toolbar buttons from graph
+      const sep = toolbar.querySelector('.sep');
+      playgroundExamples.forEach(pgIRI => {
+        const buttonLabel = getLiteral(pgIRI, 'my:buttonLabel') || 'Example';
+        const key = pgIRI.split('#')[1] || pgIRI.split(':').pop();
+        const btn = document.createElement('button');
+        btn.textContent = buttonLabel;
+        btn.onclick = () => {
+          input.value = examples[key] || '';
+          updateOutput();
+        };
+        toolbar.insertBefore(btn, sep);
+      });
 
       window.loadExample = (name) => {
         input.value = examples[name] || '';
@@ -1292,4 +2178,5 @@ Met [Bob] {+my:bob ?my:met} at [Central Park] {+my:park ?my:location}.`
     console.log(`%c MD-LD Guide for Agents %c Parsed ${quads.length} quads from this page's MD-LD source`, 'background:#10b981;color:#020617;padding:2px 6px;border-radius:3px;font-weight:bold', 'color:#94a3b8');
   </script>
 </body>
+
 </html>

@@ -38,9 +38,24 @@ Human text → Graph immediately
 
 ## 🚀 Quick Start
 
+Install the package in Node environment:
+
 ```bash
 pnpm install mdld-parse
 ```
+
+Or use `importmap` in the browser:
+
+```html
+  <script type="importmap">
+    {
+      "imports": {
+        "mdld-parse": "https://mdld.js.org/index.js"
+      }
+    }
+  </script>
+```
+
 
 ```javascript
 import { parse, generate, merge, render, deconstruct } from 'mdld-parse';

@@ -77,6 +77,10 @@ The breathing cycles of knowledge from text to quads and back to composable text
 ### [Human-Scale Software & Semantic Infrastructure](./Human-Scale.md)
 Philosophy manifesto: why semantic systems drift toward complexity, and how MD-LD enables human-readable, deterministic, locally-inspectable computation. Addresses preservation, long-term comprehensibility, and operational sustainability.
 
+### [Application Development with MD-LD](./app-dev.md)
+MD-LD introduces a paradigm shift: The Document is the Database, the API, and the Schema. 
+This guide distills the core patterns and practices for building scalable, agent-ready, and highly maintainable web applications using Markdown-Linked Data.
+
 ### [Quad[] as a Universal Semantic Runtime](./quad-runtime.md)
 The paradigm shift from databases and query languages to pure Text->Quads[]->Text loop with JS as the graph traversal and transformation language and its Array interface as a graph database substrate.
 
