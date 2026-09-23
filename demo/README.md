@@ -13,12 +13,12 @@ This project demonstrates a radical approach to semantic web applications: **the
 ### Single-File Pattern
 
 ```
-index.html (42 kB)
+index.html (53 kB)
 ├── <style> — All CSS (dark theme, responsive)
 ├── <script type="importmap"> — ESM imports for mdld-parse
 ├── <body> — HTML skeleton (header, nav, tab containers)
-├── <script type="text/plain" id="mdld-source"> — MD-LD source data
-└── <script type="module"> — Rendering engine (parses MD-LD → builds UI)
+├── <script type="text/plain" id="mdld-source"> — MD-LD source data (the knowledge graph)
+└── <script type="module"> — Dumb rendering engine (parses MD-LD → queries graph → builds UI)
 ```
 
 **Why single-file?**
@@ -96,12 +96,15 @@ Generated quads
 
 **Content types:**
 - `my:Guide` — document metadata (subtitle)
-- `my:Section` — guide sections (order, paragraphs, advantages, node types, predicate forms, anti-patterns)
+- `my:Section` — guide sections (order, paragraphs, advantages, phases, flows, node types, predicate forms, anti-patterns)
 - `my:SyntaxExample` — syntax examples (order, category, description, mdldCode, quadOutput)
-- `my:Pattern` — agent patterns (patternKind, description, mdldCode, quadOutput)
+- `my:PlaygroundExample` — live playground presets (order, buttonLabel, code)
+- `my:Pattern` — agent patterns (patternKind: identity/workflow/structure/reasoning/architecture, description, mdldCode, quadOutput)
 - `my:Concept` — knowledge graph nodes (category, description)
 - `my:Relation` — knowledge graph edges (from, to, label)
 - `my:CheatEntry` — cheatsheet cards (order, cheat lines)
+
+**Key principle: The renderer is dumb.** It doesn't know about "minimal", "person", "prov", etc. It just queries for `my:PlaygroundExample` entities and renders whatever it finds. Add a new playground example by adding a new entity to the graph — no JavaScript changes required.
 
 **Why custom vocabulary?**
 - Self-documenting — the types describe their purpose
@@ -113,11 +116,11 @@ Generated quads
 
 The guide is organized into 5 tabs, each rendered from different quad types:
 
-1. **Guide** — `my:Section` quads, ordered by `my:order`
-2. **Syntax** — `my:SyntaxExample` quads, ordered by `my:order`
-3. **Patterns** — `my:Pattern` quads, grouped by `my:patternKind`
-4. **Playground** — Live parser (no quads, just JavaScript)
-5. **Cheatsheet** — `my:CheatEntry` quads, ordered by `my:order`
+1. **Guide** — `my:Section` quads, ordered by `my:order` (18 sections covering syntax, semantics, architecture, and agent patterns)
+2. **Syntax** — `my:SyntaxExample` quads, ordered by `my:order` (9 examples from minimal to shop API)
+3. **Patterns** — `my:Pattern` quads, grouped by `my:patternKind` (5 patterns: identity, workflow, structure, reasoning, architecture)
+4. **Playground** — `my:PlaygroundExample` quads, ordered by `my:order` (6 live parser presets, all from the graph)
+5. **Cheatsheet** — `my:CheatEntry` quads, ordered by `my:order` (9 reference cards)
 
 **Why tabs?**
 - Progressive disclosure — don't overwhelm with all content at once
@@ -225,7 +228,7 @@ my:alice a prov:Person ;
 
 **Benefits:**
 - Zero framework dependencies
-- Smaller bundle size (42KB vs 100KB+ with React)
+- Smaller bundle size (53KB total vs 100KB+ with React)
 - No build step required
 - Easier to understand and modify
 - Framework-agnostic pattern (works with any library)
@@ -234,6 +237,51 @@ my:alice a prov:Person ;
 - More manual DOM manipulation
 - No virtual DOM diffing (but we're not re-rendering frequently)
 - Less "modern" feeling (but simpler is better for demos)
+
+### The Dumb Renderer Pattern
+
+**Traditional approach:** JavaScript contains hardcoded content, configuration, and business logic.
+
+**MD-LD approach:** JavaScript is a "dumb" interpreter that queries the graph and renders whatever it finds.
+
+**Example:** The playground tab doesn't know about "minimal", "person", "prov", etc. It queries for `my:PlaygroundExample` entities and renders buttons from `my:buttonLabel` literals. To add a new playground example:
+
+```md
+## New Example {=pg:new .my:PlaygroundExample label}
+[7] {my:order ^^xsd:integer}
+[New] {my:buttonLabel}
+~~~~~~ {my:code}
+[your MD-LD content here]
+~~~~~~
+```
+
+That's it. No JavaScript changes. The renderer automatically picks it up.
+
+**Benefits:**
+- **Separation of concerns** — content lives in the graph, logic lives in the renderer
+- **Extensibility** — add new features by adding new entities, not new code
+- **Maintainability** — the renderer is small and stable; content evolves independently
+- **Agent-friendly** — AI agents can modify the graph without touching JavaScript
+
+**This is the "Extract-and-Elevate" pattern in action:** Start with everything in one file (Phase 1), extract content into the graph (Phase 2), and the renderer becomes a stable, reusable component that works across all phases.
+
+### The Extract-and-Elevate Lifecycle
+
+This project demonstrates a complete lifecycle of semantic web application development:
+
+**Phase 1: Single-File Prototype**
+Everything lives in one `index.html` file. The MD-LD source is embedded in a `<script type="text/plain">` tag. The renderer queries the graph and builds the UI. Zero infrastructure, zero build steps, instant iteration.
+
+**Phase 2: Static Extraction** (not yet implemented in this demo)
+Extract the MD-LD source into separate `.md` files. The renderer fetches them via `fetch()`. Content is now decoupled from the HTML, but still static.
+
+**Phase 3: Dynamic Generation** (not yet implemented in this demo)
+Replace static files with a backend that generates MD-LD from a database. The renderer doesn't change — it still fetches and parses MD-LD. The contract is preserved.
+
+**Phase 4: Agent-Native API** (not yet implemented in this demo)
+The MD-LD endpoint becomes an API that AI agents can consume directly. No JSON, no OpenAPI specs — just Markdown that agents can read and reason over.
+
+**This demo is Phase 1.** It shows the complete pattern in a single file. The renderer is stable and reusable. To move to Phase 2, just extract the `<script type="text/plain">` content into a separate file and fetch it. The renderer code doesn't change.
 
 ### Why Dark Theme?
 
@@ -255,6 +303,130 @@ my:alice a prov:Person ;
 - Code examples should be readable on any device
 - CSS Grid makes layout trivial
 - No media query hell (just `grid-template-columns: 1fr` on mobile)
+
+## Application Development Patterns
+
+### The Extract-and-Elevate Lifecycle
+
+Traditional web development forces rigid separation: content in a database, logic in an API, presentation in the frontend. MD-LD introduces a paradigm shift: **The Document is the Database, the API, and the Schema.**
+
+The most powerful workflow is the **Extract-and-Elevate** lifecycle — start with zero infrastructure and scale seamlessly without rewriting frontend contracts.
+
+**Phase 1 — Single-File Prototype (Day 1)**
+Embed MD-LD directly in `index.html`. Millisecond feedback loop. No build steps, no servers, no databases.
+
+```html
+<script type="text/plain" id="mdld-source">
+[app] <tag:myapp@local,2024:>
+# Welcome {=page:home .app:Page label}
+> This is a fully functional prototype. {app:description}
+</script>
+```
+
+**Phase 2 — Static Extraction (Day 14)**
+Extract MD-LD into separate `.mdld` files. Frontend becomes a "dumb" semantic renderer.
+
+```javascript
+const response = await fetch('/content/home.mdld');
+const { quads } = await parse({ text: await response.text() });
+renderUI(quads);
+```
+
+*Benefit: Content decoupled from UI, yet 100% human-readable and version-controlled via Git.*
+
+**Phase 3 — Dynamic GET (Month 3)**
+Need live data? Don't change the frontend. Replace the static file with a backend route that *generates* the exact same MD-LD text format.
+
+```javascript
+// Express.js example
+app.get('/products.mdld', async (req, res) => {
+  res.setHeader('Content-Type', 'text/markdown');
+  const products = await db.query('SELECT * FROM products');
+  res.send(generateMDLDFromProducts(products)); 
+});
+```
+
+*Benefit: Zero-friction scaling. Frontend contract remains perfectly stable.*
+
+**Phase 4 — Dynamic POST (Month 6)**
+App needs to write data? Bypass JSON entirely. Client generates MD-LD draft and POSTs as raw text.
+
+```javascript
+// Client
+await fetch('/api/submissions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'text/markdown' },
+  body: generatedMDLDDraft
+});
+
+// Server
+app.post('/api/submissions', async (req, res) => {
+  const { quads } = await parse({ text: req.body });
+  // Validate the graph, extract fields, save to DB or file
+  res.status(201).send('Graph received and validated.');
+});
+```
+
+### Pattern: Data-Driven Business Logic
+
+Instead of hardcoding `if/else` statements in JavaScript, encode business rules directly into the MD-LD graph. JavaScript becomes a generic semantic interpreter.
+
+**The MD-LD Source:**
+```markdown
+## Rule 1 {=rule:high-caffeine .app:TraitRule label}
+[3] {app:questionId}
+[gte:7] {app:condition}
+[⚡ High Voltage] {app:trait}
+[red] {app:color}
+```
+
+**The JavaScript Interpreter:**
+```javascript
+// The JS doesn't know about "caffeine" or "High Voltage". 
+// It just evaluates the graph.
+rules.forEach(rule => {
+  const answer = answers[rule.questionId];
+  if (evaluateCondition(answer, rule.condition)) {
+    applyTrait(rule.trait, rule.color);
+  }
+});
+```
+
+*Benefit: Adding new features, traits, or validation rules requires **zero JavaScript changes**. Just append to the Markdown.*
+
+### Pattern: The Markdown API (Bypassing JSON)
+
+Traditional APIs use `application/json`. MD-LD apps use `text/markdown`. This yields massive advantages:
+
+1. **Self-Documenting Logs**: Server logs contain human-readable Markdown, not opaque JSON blobs. Debugging is instantaneous.
+2. **Schema Evolution is Free**: If the frontend sends a new field, the backend doesn't crash. Update the parser at your own pace.
+3. **Agent-Native**: LLMs natively understand Markdown. They generate, read, and reason over API payloads without strict JSON formatting or OpenAPI specs.
+4. **Replayability**: Failed submissions copy directly from logs, save as `.mdld` files, replay locally for debugging.
+
+### Pattern: Git Consensus as Knowledge Base
+
+For public or internal knowledge bases, leverage the universal developer convention: the `README.md`.
+
+Host authoritative MD-LD in a Git repository, serve via CDN (e.g., `cdn.jsdelivr.net/gh/org/repo@main/README.md`):
+- **Free Versioning**: Every commit is a snapshot of your knowledge graph
+- **Built-in Collaboration**: Developers use standard `git branch` and `git merge` to propose changes
+- **Zero Infrastructure**: No database process, no connection pooling, no ORM. Just static files served globally
+
+### Best Practices Checklist
+
+- [ ] **Use Standard Content Types**: Always serve/request MD-LD with `Content-Type: text/markdown` or `text/plain`
+- [ ] **Namespace Your Vocabulary**: Use consistent prefix (e.g., `[myapp] <tag:myapp@domain.com,2024:>`) to prevent predicate collisions
+- [ ] **Default to Text Inputs**: When building dynamic form renderers, provide fallback (e.g., `type="text"`) if MD-LD `form:type` is unrecognized
+- [ ] **Parse Server-Side for Validation**: When accepting POST requests, always run incoming MD-LD through `mdld-parse` on server to validate graph structure
+- [ ] **Keep the Renderer Dumb**: Frontend JavaScript should only query quads (`getByType`, `getLiteral`) and build DOM. No hardcoded business logic
+
+### Summary
+
+MD-LD application development is about **delaying complexity until it provides business value**.
+
+You can build a fully semantic, AI-agent-ready, queryable web application in a single 42KB HTML file. When you outgrow that file, the escape hatch is just a standard HTTP `fetch()` to a text endpoint.
+
+By making the document the single source of truth, you align human readability, machine queryability, and developer velocity into one unified workflow.
 
 ## How to Extend
 
@@ -398,9 +570,9 @@ console.log(sections.map(q => q.subject.value));
 
 ## Performance
 
-- **Initial load:** ~50KB (HTML + CSS + JS)
+- **Initial load:** ~53KB (HTML + CSS + JS)
 - **mdld-parse load:** ~24KB (gzipped)
-- **Parse time:** <10ms for this document (~300 quads)
+- **Parse time:** <10ms for this document (~400 quads)
 - **Render time:** <5ms (DOM manipulation is fast)
 - **Total time to interactive:** <200ms
 
