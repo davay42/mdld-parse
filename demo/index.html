@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MD-LD — A Guide for Agents</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "mdld-parse": "https://esm.sh/mdld-parse"
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #020617; --surface: #0f172a; --surface2: #1e293b;
+      --border: #334155; --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+      --emerald: #34d399; --emerald-bg: rgba(16,185,129,0.12); --emerald-border: rgba(16,185,129,0.25);
+      --cyan: #22d3ee; --blue: #60a5fa; --purple: #a78bfa; --amber: #fbbf24; --rose: #fb7185;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    a { color: var(--emerald); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace; font-size: 0.85em; background: var(--surface2); padding: 0.15em 0.4em; border-radius: 4px; color: var(--cyan); }
+    pre code { display: block; padding: 1rem; overflow-x: auto; font-size: 0.78rem; line-height: 1.6; background: #020617; border: 1px solid var(--border); border-radius: 8px; white-space: pre; }
+    pre { margin: 0.5rem 0; }
+    ::selection { background: rgba(16,185,129,0.3); color: white; }
+
+    /* Header */
+    header { border-bottom: 1px solid var(--border); background: rgba(15,23,42,0.85); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; }
+    .header-inner { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 4rem; }
+    .logo { display: flex; align-items: center; gap: 0.75rem; }
+    .logo-icon { width: 2rem; height: 2rem; border-radius: 0.5rem; background: linear-gradient(135deg, var(--emerald), var(--cyan)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; color: var(--bg); }
+    .logo h1 { font-size: 1.1rem; font-weight: 600; }
+    .logo p { font-size: 0.7rem; color: var(--text3); }
+    nav { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+    .tab-btn { padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 500; border: 1px solid transparent; background: none; color: var(--text3); cursor: pointer; transition: all 0.2s; }
+    .tab-btn:hover { color: var(--text); background: var(--surface2); }
+    .tab-btn.active { background: var(--emerald-bg); color: var(--emerald); border-color: var(--emerald-border); }
+
+    /* Stats bar */
+    .stats-bar { max-width: 80rem; margin: 0 auto; padding: 0.75rem 1.5rem; display: flex; gap: 1.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 0.75rem; color: var(--text3); }
+    .stat { display: flex; align-items: center; gap: 0.35rem; }
+    .stat-val { color: var(--emerald); font-weight: 600; font-size: 0.85rem; }
+
+    /* Main */
+    main { max-width: 80rem; margin: 0 auto; padding: 2rem 1.5rem; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Guide */
+    .guide-hero { margin-bottom: 2.5rem; padding: 2rem; background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(34,211,238,0.05)); border: 1px solid var(--emerald-border); border-radius: 1rem; }
+    .guide-hero .badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem; border-radius: 9999px; background: var(--emerald-bg); border: 1px solid var(--emerald-border); color: var(--emerald); font-size: 0.8rem; margin-bottom: 1rem; }
+    .guide-hero h2 { font-size: 2.4rem; font-weight: 700; line-height: 1.15; margin-bottom: 0.75rem; background: linear-gradient(135deg, var(--emerald), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .guide-hero .subtitle { font-size: 1.15rem; color: var(--text2); line-height: 1.5; max-width: 48rem; }
+    .guide-hero .meta { margin-top: 1rem; font-size: 0.8rem; color: var(--text3); display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .guide-section { margin-bottom: 2.5rem; scroll-margin-top: 5rem; }
+    .guide-section h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .guide-section h3 .num { color: var(--emerald); font-family: monospace; font-size: 0.9rem; }
+    .guide-section p { color: var(--text2); margin-bottom: 0.75rem; line-height: 1.7; }
+    .guide-section p em { color: var(--emerald); font-style: normal; }
+    .guide-section p strong { color: var(--text); }
+    .guide-section ul { color: var(--text2); margin: 0.5rem 0 1rem 1.5rem; line-height: 1.7; }
+    .guide-section li { margin-bottom: 0.3rem; }
+    .callout { padding: 1rem 1.25rem; border-radius: 0.5rem; margin: 1rem 0; border-left: 3px solid; font-size: 0.9rem; }
+    .callout-info { background: rgba(96,165,250,0.06); border-color: var(--blue); color: var(--text2); }
+    .callout-warn { background: rgba(251,191,36,0.06); border-color: var(--amber); color: var(--text2); }
+    .callout-tip { background: rgba(16,185,129,0.06); border-color: var(--emerald); color: var(--text2); }
+    .callout strong { color: var(--text); display: block; margin-bottom: 0.25rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .col-good, .col-bad { padding: 1rem; border-radius: 0.5rem; border: 1px solid; }
+    .col-good { background: rgba(16,185,129,0.04); border-color: rgba(16,185,129,0.2); }
+    .col-bad { background: rgba(251,113,133,0.04); border-color: rgba(251,113,133,0.2); }
+    .col-good h5 { color: var(--emerald); font-size: 0.8rem; margin-bottom: 0.5rem; }
+    .col-bad h5 { color: var(--rose); font-size: 0.8rem; margin-bottom: 0.5rem; }
+
+    /* Syntax Explorer */
+    .syntax-ref { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .syntax-ref h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
+    .ref-item p { font-size: 0.75rem; color: var(--text3); font-weight: 500; margin-bottom: 0.25rem; }
+    .ref-item code { font-size: 0.72rem; display: block; margin-bottom: 0.15rem; }
+    .example-card { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; margin-bottom: 0.75rem; }
+    .example-header { padding: 0.85rem 1.25rem; display: flex; align-items: center; cursor: pointer; transition: background 0.15s; }
+    .example-header:hover { background: rgba(30,41,59,0.5); }
+    .example-header .cat { padding: 0.15rem 0.5rem; border-radius: 0.35rem; font-size: 0.7rem; margin-right: 0.6rem; }
+    .cat-basics { background: rgba(34,211,238,0.12); color: var(--cyan); }
+    .cat-advanced { background: rgba(251,191,36,0.12); color: var(--amber); }
+    .cat-ontology { background: rgba(167,139,250,0.12); color: var(--purple); }
+    .cat-agent { background: rgba(16,185,129,0.12); color: var(--emerald); }
+    .example-header h5 { font-size: 0.9rem; font-weight: 500; flex: 1; }
+    .example-header .arrow { color: var(--text3); transition: transform 0.2s; font-size: 0.7rem; }
+    .example-header .arrow.open { transform: rotate(180deg); }
+    .example-body { display: none; padding: 0 1.25rem 1.25rem; border-top: 1px solid rgba(51,65,85,0.5); }
+    .example-body.open { display: block; }
+    .example-body > p { font-size: 0.82rem; color: var(--text3); margin: 0.75rem 0; }
+    .code-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .code-col label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); font-weight: 500; margin-bottom: 0.35rem; display: block; }
+    .code-col pre code { color: var(--text2); }
+    .code-col:last-child pre code { color: var(--emerald); }
+
+    /* Playground */
+    .playground-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; min-height: 500px; }
+    .playground-pane { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; display: flex; flex-direction: column; }
+    .playground-pane-header { padding: 0.6rem 1rem; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 500; }
+    .playground-pane-header .badge-sm { font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 0.25rem; background: var(--emerald-bg); color: var(--emerald); }
+    .playground-pane textarea { flex: 1; background: transparent; border: none; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; padding: 1rem; resize: none; outline: none; line-height: 1.6; min-height: 400px; }
+    .playground-output { flex: 1; padding: 1rem; overflow: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.5; color: var(--text2); }
+    .playground-output .quad { padding: 0.3rem 0; border-bottom: 1px solid rgba(51,65,85,0.3); }
+    .playground-output .quad-s { color: var(--cyan); }
+    .playground-output .quad-p { color: var(--amber); }
+    .playground-output .quad-o { color: var(--emerald); }
+    .playground-output .quad-g { color: var(--purple); }
+    .playground-toolbar { padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .playground-toolbar button { padding: 0.4rem 0.75rem; border-radius: 0.4rem; font-size: 0.75rem; font-weight: 500; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); cursor: pointer; transition: all 0.15s; }
+    .playground-toolbar button:hover { background: var(--emerald-bg); color: var(--emerald); border-color: var(--emerald-border); }
+    .playground-toolbar .sep { width: 1px; height: 1.5rem; background: var(--border); }
+    .playground-stats { display: flex; gap: 1rem; font-size: 0.75rem; color: var(--text3); margin-left: auto; }
+    .playground-stats span b { color: var(--emerald); font-weight: 600; }
+
+    /* Cheatsheet */
+    .cheatsheet { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; }
+    .cheatsheet h3 { font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--text); }
+    .cheatsheet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; }
+    .cheat-block { background: var(--bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; }
+    .cheat-block h4 { font-size: 0.85rem; color: var(--emerald); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
+    .cheat-block code { display: block; font-size: 0.78rem; margin-bottom: 0.25rem; background: transparent; padding: 0.15rem 0; color: var(--cyan); }
+    .cheat-block .desc { font-size: 0.75rem; color: var(--text3); margin-top: 0.5rem; line-height: 1.5; }
+
+    /* Knowledge Graph */
+    .graph-container { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; overflow: hidden; height: 600px; }
+    .graph-container svg { width: 100%; height: 100%; }
+    .graph-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--text3); }
+    .legend-dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; }
+    .graph-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; margin-top: 1rem; }
+    .graph-detail h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.35rem; }
+    .graph-detail p { font-size: 0.85rem; color: var(--text2); }
+    .graph-detail .connections { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .conn-btn { padding: 0.2rem 0.5rem; border-radius: 0.35rem; background: var(--surface2); border: 1px solid var(--border); font-size: 0.72rem; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+    .conn-btn:hover { background: var(--emerald-bg); color: var(--emerald); border-color: var(--emerald-border); }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--border); margin-top: 4rem; padding: 2rem 1.5rem; text-align: center; color: var(--text3); font-size: 0.8rem; }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; height: 60vh; flex-direction: column; gap: 1rem; }
+    .loading .spinner { width: 2rem; height: 2rem; border: 2px solid var(--border); border-top-color: var(--emerald); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .header-inner { flex-direction: column; height: auto; padding: 0.75rem 1rem; gap: 0.5rem; }
+      .code-cols, .two-col, .playground-layout { grid-template-columns: 1fr; }
+      .guide-hero h2 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">◈</div>
+        <div>
+          <h1>MD-LD — A Guide for Agents</h1>
+          <p>This page is itself an MD-LD document. View source to see the graph.</p>
+        </div>
+      </div>
+      <nav id="nav-tabs"></nav>
+    </div>
+  </header>
+  <div class="stats-bar" id="stats-bar"></div>
+  <main>
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p style="color:var(--text3)">Parsing this page's MD-LD source into RDF quads…</p>
+    </div>
+    <div id="tab-guide" class="tab-content"></div>
+    <div id="tab-syntax" class="tab-content"></div>
+    <div id="tab-patterns" class="tab-content"></div>
+    <div id="tab-playground" class="tab-content"></div>
+    <div id="tab-cheatsheet" class="tab-content"></div>
+  </main>
+  <footer>
+    <p>This guide is a self-contained MD-LD document. View page source → <code>&lt;script type="text/plain" id="mdld-source"&gt;</code> to see the knowledge graph that renders it.</p>
+    <p style="margin-top:0.5rem"><a href="https://mdld.js.org">mdld.js.org</a> · <a href="https://www.npmjs.com/package/mdld-parse">npm: mdld-parse</a> · <a href="https://github.com/mdld-js">github.com/mdld-js</a></p>
+  </footer>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- MD-LD SOURCE OF TRUTH                                       -->
+  <!-- This entire page is rendered from the quads below.          -->
+  <!-- Edit this block to change the guide.                        -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <script type="text/plain" id="mdld-source">
+[my] <tag:mdld-guide@agents.org,2026:>
+[g] <my:guide:>
+[c] <my:concept:>
+[r] <my:relation:>
+[e] <my:example:>
+[p] <my:pattern:>
+[ont] <http://www.w3.org/ns/prov#>
+[xsd] <http://www.w3.org/2001/XMLSchema#>
+
+# MD-LD — A Guide for Agents {=my:doc .my:Guide label}
+
+> A self-contained introduction to Markdown-Linked Data, written in MD-LD itself. {my:subtitle}
+
+===== GUIDE SECTIONS =====
+
+## What is MD-LD {=g:1 .my:Section label}
+[1] {my:order ^^xsd:integer}
+
+> MD-LD (*Markdown-Linked Data*) is a syntax that turns ordinary Markdown into a machine-readable RDF knowledge graph. You write normal prose and sprinkle in `{...}` annotations that tell a parser how to build triples. Everything outside `{...}` is free-form Markdown and is ignored by the graph. {my:p}
+
+> The core promise: *if you remove all `{...}` blocks, you get perfectly valid Markdown.* The annotations are additive, not invasive. Humans read the prose; machines read the quads. Both see the same document. {my:p}
+
+> MD-LD is the only RDF format that is both writable by humans and parseable by machines in the same document. Unlike Turtle (write-only for machines), JSON-LD (machine-only), and RDFa (embedded in HTML), MD-LD annotations flow with natural prose. {my:p}
+
+## Why Agents Should Care {=g:2 .my:Section label}
+[2] {my:order ^^xsd:integer}
+
+> MD-LD was designed with language models in mind. Its properties align with how agents naturally process text. {my:p}
+
+> Textual continuity — the graph lives inside readable prose, so agents never lose context when switching between "reading" and "querying." State and meaning are co-located. {my:advantage}
+> Deterministic syntax — the same input always produces the same quads. No heuristics, no inference, no guessing. Agents can predict exactly what a document means. {my:advantage}
+> Zero dependencies — the parser is 24KB gzipped, pure ESM, runs in any JS environment. No graph database, no server, no toolchain. {my:advantage}
+> Merge semantics — multiple documents merge cleanly via CRDT-style polarity. Agents can collaborate by appending MD-LD files. {my:advantage}
+> Round-trip safety — parse then generate produces identical quads. Agents can edit, store, and reload without data loss. {my:advantage}
+> Self-sovereign identity — RFC 4151 `tag:` URIs let agents claim namespaces using only an email or domain. No central registry. {my:advantage}
+
+## Your First Annotation {=g:3 .my:Section label}
+[3] {my:order ^^xsd:integer}
+
+> Start with plain Markdown. This is always valid MD-LD — it just produces no graph. {my:p}
+
+> Now add your first annotation. Two things happen: you declare a prefix, and you tag the heading as a named node with a type and a label: {my:p}
+
+> That one annotation `{=my:alice .prov:Person label}` did three things: `=my:alice` declared this heading as a named node (the *subject*), `.prov:Person` typed it as a Person, and `label` used the heading text "Alice" as its display label (`rdfs:label`). {my:p}
+
+## The Three Node Types {=g:4 .my:Section label}
+[4] {my:order ^^xsd:integer}
+
+> MD-LD encodes a directed labeled multigraph where three nodes may be in scope at any point in the document: {my:p}
+
+> S — The Subject. The current entity being described. Set by `{=IRI}` or `{=#fragment}`. Stays current until you change it. {my:nodeType}
+> O — The Object. A linked resource, introduced by `{+IRI}` or a markdown link URL. Only available when you explicitly provide it. {my:nodeType}
+> L — The Literal. The text content of the annotated carrier. Can have datatypes (`^^xsd:date`) or languages (`@en`). {my:nodeType}
+
+> Every annotation routes through exactly one of these three roles. The predicate form (`p`, `?p`, `!p`) determines which edge is drawn in the graph. {my:p}
+
+## Subject Declaration {=g:5 .my:Section label}
+[5] {my:order ^^xsd:integer}
+
+> The subject is what you are talking about. Once set, it persists until the next `{=...}`. Use `{=}` (bare) to reset. {my:p}
+
+> Full IRI: `{=my:alice}` sets the subject to the expanded IRI. Fragment: `{=#section1}` appends `#section1` to the current base IRI. Soft object: `{+my:bob}` declares a temporary object for use with `?` and `!` predicates without changing the current subject. {my:p}
+
+> The *primary subject* of a document is the first non-fragment `{=IRI}` declaration. It becomes the document's canonical identity — useful for merge tracking, stream addressing, and UI focus. {my:p}
+
+## Predicates — The Three Forms {=g:6 .my:Section label}
+[6] {my:order ^^xsd:integer}
+
+> Every annotation uses one of three predicate forms. All three are mandatory in a conformant processor. {my:p}
+
+> Form: p | Edge: S → L | Meaning: Literal property — the carrier text becomes the object literal. Example: `[Alice] {my:name}` emits `S my:name "Alice"`. {my:predForm}
+> Form: ?p | Edge: S → O | Meaning: Object property — links the subject to another resource. Example: `[Bob] {+my:bob ?my:knows}` emits `S my:knows my:bob`. {my:predForm}
+> Form: !p | Edge: O → S | Meaning: Reverse property — the object points back to the subject. Example: `[Parent] {+my:p !my:hasPart}` emits `my:p my:hasPart S`. {my:predForm}
+
+> You can combine multiple predicates in one annotation: `{=my:alice .prov:Person label ?my:knows}` sets subject, types it, assigns a label, and links it — all at once. {my:p}
+
+## Types and Literals {=g:7 .my:Section label}
+[7] {my:order ^^xsd:integer}
+
+> Types use dot notation: `.Class` emits `rdf:type`. Multiple types allowed: `{=my:alice .prov:Person .my:Employee}`. {my:p}
+
+> Literals come from the carrier text. Add datatype with `^^xsd:type`: `[42] {my:count ^^xsd:integer}`. Add language with `@lang`: `[Berlin] {my:city @de}`. Common XSD types: `xsd:integer`, `xsd:decimal`, `xsd:date`, `xsd:dateTime`, `xsd:boolean`, `xsd:duration`. {my:p}
+
+> The default vocabulary is `rdfs:` — so bare `label` means `rdfs:label`, bare `comment` means `rdfs:comment`. You can override with `[@vocab] <http://schema.org/>`. {my:p}
+
+## The Prefix System {=g:8 .my:Section label}
+[8] {my:order ^^xsd:integer}
+
+> Every node needs a unique IRI. MD-LD uses CURIE syntax with prefix declarations. Declare once at the top: `[my] <tag:you@example.com,2026:>`. Then use `my:anything` anywhere. {my:p}
+
+> The `tag:` URI scheme (RFC 4151) is perfect for agents. It requires only an email address and a year — no central registry, no DNS, no infrastructure. You own it by virtue of controlling the email. {my:p}
+
+> Prefix folding lets you build hierarchies: `[j] <my:journal/>` makes `j:2026-05-06` expand to `tag:you@example.com,2026:journal/2026-05-06`. Prefixes must be declared before use (forward-reference only). {my:p}
+
+> Built-in prefixes (no declaration needed): `rdf`, `rdfs`, `xsd`, `sh`, `prov`. Default `@vocab` is `rdfs:`. {my:p}
+
+## Fragments — Structuring Documents {=g:9 .my:Section label}
+[9] {my:order ^^xsd:integer}
+
+> Fragments (`#section`) let you create multiple related nodes inside one document without long IRIs. `{=#task-design}` sets the subject to `currentBase#task-design`. {my:p}
+
+> Use fragments for sub-entities of a document: tasks of a project, sections of an article, steps of a recipe. Each fragment gets its own heading section with its own type and label. {my:p}
+
+> When you need to return to the parent node mid-document, reset the subject with `{=my:parentIRI}`. Use `{=}` (bare) to clear the subject entirely. {my:p}
+
+## Polarity — Append-Only Editing {=g:10 .my:Section label}
+[10] {my:order ^^xsd:integer}
+
+> Every predicate, type, and link can be prefixed with `-` to retract it. This turns MD-LD into an append-only semantic ledger: you never delete text, you write a new entry that cancels a previous assertion. {my:p}
+
+> Intra-document cancellation: when a retraction matches a positive triple in the same document, both cancel out — neither appears in the final graph. External retraction: when no match exists in the current document, the retraction goes to the `remove` array and waits to cancel a triple from a previously merged document. {my:p}
+
+> The `merge()` function resolves external retractions against earlier documents. The invariant always holds: `quads ∩ remove = ∅` — a triple is never simultaneously present and retracted. {my:p}
+
+> This is the foundation of CRDT-style collaboration. Multiple agents can append to the same knowledge base, and merge() produces a deterministic final state. {my:p}
+
+## PROV-O — Who Did What When {=g:11 .my:Section label}
+[11] {my:order ^^xsd:integer}
+
+> PROV-O is the W3C standard for provenance. It models three building blocks: *entities* (things), *activities* (events over time), and *agents* (responsible parties). It is built into MD-LD's default context. {my:p}
+
+> Core classes: `prov:Entity`, `prov:Activity`, `prov:Agent` (and subtypes `prov:Person`, `prov:Organization`, `prov:SoftwareAgent`). Core properties: `prov:used`, `prov:wasGeneratedBy`, `prov:wasAssociatedWith`, `prov:wasAttributedTo`, `prov:wasDerivedFrom`, `prov:wasInformedBy`, `prov:actedOnBehalfOf`. {my:p}
+
+> Temporal properties: `prov:startedAtTime`, `prov:endedAtTime`, `prov:generatedAtTime` — all take `xsd:dateTime` literals. Use these to timestamp every activity in your graph. {my:p}
+
+> The *qualification pattern* lets you attach metadata to relationships. Instead of `activity prov:used entity`, you create a `prov:Usage` node that links both and carries extra properties like role, time, or confidence. {my:p}
+
+## Agent Memory — MD-LD as Persistent State {=g:12 .my:Section label}
+[12] {my:order ^^xsd:integer}
+
+> MD-LD is an ideal memory substrate for agents. Instead of fragmenting state across prompts, vector databases, JSON files, and logs, all state lives in one readable structure. {my:p}
+
+> Parse context from existing MD-LD files. Write new knowledge as append-only entries. Merge with other agents' files using `merge()`. All operations work on plain text — no database required. {my:p}
+
+> A typical agent memory layout: `identity.md` (who the agent is, typed as `prov:SoftwareAgent`), `journal/` directory (append-only daily entries), `knowledge/` directory (facts learned), `tasks.md` (current work). Each file is a self-contained MD-LD document with its own primary subject. {my:p}
+
+> Because MD-LD is deterministic and round-trip safe, agents can save state, reload it later, and get exactly the same quads. Because it is mergeable, multiple agents can collaborate by exchanging MD-LD files. {my:p}
+
+## Anti-Patterns — What to Avoid {=g:13 .my:Section label}
+[13] {my:order ^^xsd:integer}
+
+> Typing objects inline: avoid `{+my:bob .prov:Person ?my:knows label}`. This scatters Bob's type and label across every document that mentions him. Define Bob once in his own section; references only assert the link. {my:antiPattern}
+> Literals inside braces: `{my:age "34"^^xsd:integer}` is invalid. The literal must come from a carrier: `[34] {my:age ^^xsd:integer}`. {my:antiPattern}
+> Implicit semantics: MD-LD never guesses. If you want a triple, annotate it explicitly. No structural inference from headings, lists, or document layout. {my:antiPattern}
+> Blank nodes: every entity must have a proper IRI. Use `tag:` URIs or fragments if you need local identifiers. {my:antiPattern}
+> Forward prefix references: `[j] <my:journal/>` must appear before any use of `j:`. Declare all prefixes at the top of the document. {my:antiPattern}
+
+## Verification — Testing Your MD-LD {=g:14 .my:Section label}
+[14] {my:order ^^xsd:integer}
+
+> The easiest way to verify MD-LD is to parse it and inspect the quads. Use the Playground tab of this guide, or the browser console: {my:p}
+
+> Parse success detection: `if (originalText !== parse({text: originalText}).md) { console.log('Parse success. Annotations:', originalText.length - parsed.md.length, 'letters'); }`. The `md` field is the clean Markdown with annotations stripped — if it differs from the input, annotations were found. {my:p}
+
+> Round-trip test: `parse(generate(parse({text}).quads)).quads` should equal the original quads. If it does, your document is round-trip safe. {my:p}
+
+> Primary metadata check: every well-formed MD-LD document should have a `primarySubject`, `primary.type`, and `primary.label`. If any are null, the document is missing its identity declaration. {my:p}
+
+===== SYNTAX EXAMPLES =====
+
+## Minimal Document {=e:1 .my:SyntaxExample label}
+[1] {my:order ^^xsd:integer}
+[basics] {my:category}
+> The smallest possible MD-LD document: one prefix, one subject, one type, one label. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+# Alice {=my:alice .prov:Person label}
+~~~
+~~~ {my:quadOutput}
+my:alice a prov:Person ;
+    rdfs:label "Alice" .
+~~~
+
+## Person with Properties {=e:2 .my:SyntaxExample label}
+[2] {my:order ^^xsd:integer}
+[basics] {my:category}
+> Annotate inline carriers with predicates. Values come from the carrier text. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+# Alice {=my:alice .prov:Person label}
+
+Email: [alice@example.org] {my:email}
+Age: [34] {my:age ^^xsd:integer}
+City: [Berlin] {my:city @en}
+~~~
+~~~ {my:quadOutput}
+my:alice a prov:Person ;
+    rdfs:label "Alice" ;
+    my:email "alice@example.org" ;
+    my:age "34"^^xsd:integer ;
+    my:city "Berlin"@en .
+~~~
+
+## Object Links {=e:3 .my:SyntaxExample label}
+[3] {my:order ^^xsd:integer}
+[basics] {my:category}
+> Link subjects to other resources using ?predicate with +IRI declaration. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+# Alice {=my:alice .prov:Person label}
+
+Knows [Bob] {+my:bob ?my:knows}
+Works at [NASA] {+my:nasa ?my:employer}
+~~~
+~~~ {my:quadOutput}
+my:alice a prov:Person ;
+    rdfs:label "Alice" ;
+    my:knows my:bob ;
+    my:employer my:nasa .
+~~~
+
+## Reverse Links {=e:4 .my:SyntaxExample label}
+[4] {my:order ^^xsd:integer}
+[basics] {my:category}
+> Use !predicate for edges from object to subject. Natural for part-of relations. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+# Recipe {=my:recipe .my:Recipe label}
+
+Ingredients:
+- **Flour** {+my:flour !my:hasPart}
+- **Water** {+my:water !my:hasPart}
+~~~
+~~~ {my:quadOutput}
+my:recipe a my:Recipe ;
+    rdfs:label "Recipe" ;
+    my:hasPart my:flour, my:water .
+~~~
+
+## Fragments and Structure {=e:5 .my:SyntaxExample label}
+[5] {my:order ^^xsd:integer}
+[advanced] {my:category}
+> Use fragments to create sub-entities within a document. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+# Project Alpha {=my:alpha .my:Project label}
+
+Tasks:
+- Design {+#design ?my:hasTask .my:Task label}
+- Build  {+#build  ?my:hasTask .my:Task label}
+
+## Design {=#design}
+Status: [done] {my:status}
+
+## Build {=#build}
+Status: [in-progress] {my:status}
+~~~
+~~~ {my:quadOutput}
+my:alpha a my:Project ;
+    rdfs:label "Project Alpha" ;
+    my:hasTask my:alpha#design, my:alpha#build .
+
+my:alpha#design a my:Task ;
+    rdfs:label "Design" ;
+    my:status "done" .
+
+my:alpha#build a my:Task ;
+    rdfs:label "Build" ;
+    my:status "in-progress" .
+~~~
+
+## Polarity and Retraction {=e:6 .my:SyntaxExample label}
+[6] {my:order ^^xsd:integer}
+[advanced] {my:category}
+> Use - prefix to retract. Intra-document cancellation: both disappear. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+# Article {=my:article .my:Article label}
+
+[Alice] {my:author}
+[Alice] {-my:author}
+[Bob] {my:author}
+~~~
+~~~ {my:quadOutput}
+my:article a my:Article ;
+    rdfs:label "Article" ;
+    my:author "Bob" .
+# "Alice" retracted — both assertions cancel
+~~~
+
+## PROV-O Activity {=e:7 .my:SyntaxExample label}
+[7] {my:order ^^xsd:integer}
+[ontology] {my:category}
+> Model provenance with entities, activities, and agents using PROV-O. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+## Analysis {=my:run .prov:Activity label}
+
+Started: [2026-05-06T09:00:00Z] {ont:startedAtTime ^^xsd:dateTime}
+Ended:   [2026-05-06T09:45:00Z] {ont:endedAtTime ^^xsd:dateTime}
+By:      [Alice] {+my:alice ?ont:wasAssociatedWith}
+Used:    [dataset] {+my:dataset ?ont:used}
+Made:    [report] {+my:report ?ont:generated}
+~~~
+~~~ {my:quadOutput}
+my:run a prov:Activity ;
+    rdfs:label "Analysis" ;
+    prov:startedAtTime "2026-05-06T09:00:00Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-05-06T09:45:00Z"^^xsd:dateTime ;
+    prov:wasAssociatedWith my:alice ;
+    prov:used my:dataset ;
+    prov:generated my:report .
+~~~
+
+## Agent Memory Entry {=e:8 .my:SyntaxExample label}
+[8] {my:order ^^xsd:integer}
+[agent] {my:category}
+> A typical agent journal entry — append-only, with provenance. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+[j] <my:journal:>
+
+# 2026-05-06 {=j:2026-05-06 .my:Entry label}
+
+[2026-05-06] {my:date ^^xsd:date}
+[productive] {my:mood}
+
+Met [Bob] {+my:bob ?my:met} at [Central Park] {+my:park ?my:location}.
+Learned that [Bob works at NASA] {+my:bob ?my:employer}.
+~~~
+~~~ {my:quadOutput}
+j:2026-05-06 a my:Entry ;
+    rdfs:label "2026-05-06" ;
+    my:date "2026-05-06"^^xsd:date ;
+    my:mood "productive" ;
+    my:met my:bob ;
+    my:location my:park ;
+    my:employer my:nasa .
+~~~
+
+===== PATTERNS =====
+
+## Define Once, Reference Everywhere {=p:1 .my:Pattern label}
+[identity] {my:patternKind}
+> Define each entity once with its type and label in its own section. Other documents only reference it by IRI. This prevents duplicate triples when merging. {my:description}
+~~~ {my:mdldCode}
+# In people.md:
+## Bob {=my:bob .prov:Person label}
+[bob@example.org] {my:email}
+
+# In journal.md — only reference, don't redefine:
+Met [Bob] {+my:bob ?my:met}
+~~~
+~~~ {my:quadOutput}
+# people.md emits: my:bob a prov:Person ; rdfs:label "Bob" ; my:email "bob@example.org" .
+# journal.md emits: S my:met my:bob .
+# Merge: both sets of quads coexist cleanly.
+~~~
+
+## Append-Only Journal {=p:2 .my:Pattern label}
+[workflow] {my:patternKind}
+> Use one file per time period. Never edit past entries — append new ones with retractions if needed. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+[j] <my:journal:>
+
+# 2026-05-01 {=j:2026-05-01 .my:Entry label}
+Project status: [planning] {+my:project ?my:status}
+
+# 2026-05-10 {=j:2026-05-10 .my:Entry label}
+{=my:project}
+[planning] {-my:status}
+[active] {my:status}
+~~~
+~~~ {my:quadOutput}
+# After merge: my:project my:status "active" only.
+# History preserved in text; graph holds current truth.
+~~~
+
+## Turtle-Style Decoupling {=p:3 .my:Pattern label}
+[structure] {my:patternKind}
+> Declare all of a node's outgoing links in one paragraph, then define each child in its own section. Mirrors how Turtle authors work. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+# Shape {=my:Shape .sh:NodeShape label}
+
+Validates [User] {+my:User ?sh:targetClass} with rules:
+[name] {+my:Shape-name ?sh:property sh:name} and
+[email] {+my:Shape-email ?sh:property sh:name}.
+
+## Name rule {=my:Shape-name .sh:PropertyShape}
+Path: [label] {+label ?sh:path}
+Required: [1] {sh:minCount ^^xsd:integer}
+
+## Email rule {=my:Shape-email .sh:PropertyShape}
+Path: [my:email] {+my:email ?sh:path}
+Required: [1] {sh:minCount ^^xsd:integer}
+~~~
+~~~ {my:quadOutput}
+my:Shape a sh:NodeShape ;
+    rdfs:label "Shape" ;
+    sh:targetClass my:User ;
+    sh:property my:Shape-name, my:Shape-email .
+
+my:Shape-name a sh:PropertyShape ;
+    sh:name "Name rule" ;
+    sh:path rdfs:label ;
+    sh:minCount 1 .
+
+my:Shape-email a sh:PropertyShape ;
+    sh:name "Email rule" ;
+    sh:path my:email ;
+    sh:minCount 1 .
+~~~
+
+## Reified Statement with Confidence {=p:4 .my:Pattern label}
+[reasoning] {my:patternKind}
+> When you need to annotate a relationship itself (confidence, source, time), use rdf:Statement. MD-LD auto-extracts the elevated SPO triple. {my:description}
+~~~ {my:mdldCode}
+[my] <tag:agent@example.org,2026:>
+
+## Claim {=my:claim .rdf:Statement label}
+
+[Alice] {+my:alice ?rdf:subject}
+[knows] {+my:knows ?rdf:predicate}
+[Bob] {+my:bob ?rdf:object}
+
+Confidence: [0.9] {my:confidence ^^xsd:decimal}
+Source: [field notes] {+my:notes ?my:derivedFrom label}
+~~~
+~~~ {my:quadOutput}
+my:claim a rdf:Statement ;
+    rdfs:label "Claim" ;
+    rdf:subject my:alice ;
+    rdf:predicate my:knows ;
+    rdf:object my:bob ;
+    my:confidence "0.9"^^xsd:decimal ;
+    my:derivedFrom my:notes .
+
+# Elevated (in result.statements): my:alice my:knows my:bob
+~~~
+
+===== CONCEPTS (for the knowledge graph) =====
+
+## MD-LD {=c:mdld .my:Concept label}
+[core] {my:category}
+> Markdown-Linked Data. A deterministic semantic annotation layer for CommonMark that emits RDF quads from explicit `{...}` blocks. {my:description}
+
+## Annotation {=c:annotation .my:Concept label}
+[syntax] {my:category}
+> A `{...}` block. The only source of RDF data. If removed, yields valid Markdown. {my:description}
+
+## Subject {=c:subject .my:Concept label}
+[syntax] {my:category}
+> The current entity being described. Set by `{=IRI}`. Persists until changed. {my:description}
+
+## Predicate {=c:predicate .my:Concept label}
+[syntax] {my:category}
+> Three forms: `p` (S→L), `?p` (S→O), `!p` (O→S). Determine edge direction. {my:description}
+
+## Type {=c:type .my:Concept label}
+[syntax] {my:category}
+> `.Class` notation for `rdf:type`. Multiple types allowed per subject. {my:description}
+
+## Literal {=c:literal .my:Concept label}
+[syntax] {my:category}
+> Carrier text with optional datatype `^^xsd:type` or language `@lang`. {my:description}
+
+## IRI {=c:iri .my:Concept label}
+[semantic] {my:category}
+> Unique identifier. RFC 4151 `tag:` URIs enable self-sovereign identity. {my:description}
+
+## Prefix {=c:prefix .my:Concept label}
+[semantic] {my:category}
+> CURIE namespace declaration. `[p] <IRI>`. Foldable for hierarchies. {my:description}
+
+## Fragment {=c:fragment .my:Concept label}
+[semantic] {my:category}
+> `#section` appended to base IRI. For sub-entities within a document. {my:description}
+
+## Polarity {=c:polarity .my:Concept label}
+[syntax] {my:category}
+> `+`/`-` prefixes for append-only editing. Enables CRDT-style merge. {my:description}
+
+## Provenance {=c:provenance .my:Concept label}
+[ontology] {my:category}
+> PROV-O: Entity, Activity, Agent. Who did what when. {my:description}
+
+## Merge {=c:merge .my:Concept label}
+[api] {my:category}
+> CRDT-style document merge with polarity resolution. Invariant: quads ∩ remove = ∅. {my:description}
+
+## Origin {=c:origin .my:Concept label}
+[semantic] {my:category}
+> Dual-layer provenance: blocks (semantic anchors) and spans (textual topology). {my:description}
+
+## Round-Trip {=c:roundtrip .my:Concept label}
+[api] {my:category}
+> `parse(generate(parse(text).quads)).quads === parse(text).quads`. Deterministic. {my:description}
+
+===== RELATIONS =====
+
+## uses syntax {=r:1 .my:Relation label}
+[c:mdld] {+c:mdld ?my:from}
+[c:annotation] {+c:annotation ?my:to}
+
+## produces {=r:2 .my:Relation label}
+[c:mdld] {+c:mdld ?my:from}
+[c:iri] {+c:iri ?my:to}
+
+## declares {=r:3 .my:Relation label}
+[c:annotation] {+c:annotation ?my:from}
+[c:subject] {+c:subject ?my:to}
+
+## routes via {=r:4 .my:Relation label}
+[c:annotation] {+c:annotation ?my:from}
+[c:predicate] {+c:predicate ?my:to}
+
+## types with {=r:5 .my:Relation label}
+[c:annotation] {+c:annotation ?my:from}
+[c:type] {+c:type ?my:to}
+
+## carries {=r:6 .my:Relation label}
+[c:annotation] {+c:annotation ?my:from}
+[c:literal] {+c:literal ?my:to}
+
+## expands via {=r:7 .my:Relation label}
+[c:iri] {+c:iri ?my:from}
+[c:prefix] {+c:prefix ?my:to}
+
+## composes {=r:8 .my:Relation label}
+[c:prefix] {+c:prefix ?my:from}
+[c:fragment] {+c:fragment ?my:to}
+
+## enables {=r:9 .my:Relation label}
+[c:polarity] {+c:polarity ?my:from}
+[c:merge] {+c:merge ?my:to}
+
+## tracks {=r:10 .my:Relation label}
+[c:merge] {+c:merge ?my:from}
+[c:origin] {+c:origin ?my:to}
+
+## guarantees {=r:11 .my:Relation label}
+[c:mdld] {+c:mdld ?my:from}
+[c:roundtrip] {+c:roundtrip ?my:to}
+
+## models {=r:12 .my:Relation label}
+[c:mdld] {+c:mdld ?my:from}
+[c:provenance] {+c:provenance ?my:to}
+
+===== CHEATSHEET ENTRIES =====
+
+## Prefixes {=ch:1 .my:CheatEntry label}
+[1] {my:order ^^xsd:integer}
+> [prefix] <IRI> — declare namespace | [p2] <p1:sub/> — fold prefix under another | Built-in: rdf, rdfs, xsd, sh, prov | [@vocab] <IRI> — change default vocabulary {my:cheat}
+
+## Subjects {=ch:2 .my:CheatEntry label}
+[2] {my:order ^^xsd:integer}
+> {=my:node} — set subject to full IRI | {=#fragment} — set subject to base#fragment | {+my:node} — soft object (no subject change) | {=} — reset subject | First {=IRI} becomes primary subject {my:cheat}
+
+## Predicates {=ch:3 .my:CheatEntry label}
+[3] {my:order ^^xsd:integer}
+> p — S → literal (carrier text) | ?p — S → object (resource) | !p — object → S (reverse) | Combine freely in one {...} block | Bare label means rdfs:label {my:cheat}
+
+## Types {=ch:4 .my:CheatEntry label}
+[4] {my:order ^^xsd:integer}
+> .Class — emits rdf:type | Multiple allowed: {.A .B .C} | Retract with -.Class | Define nodes once, reference elsewhere {my:cheat}
+
+## Literals {=ch:5 .my:CheatEntry label}
+[5] {my:order ^^xsd:integer}
+> [text] {predicate} — plain literal | [val] {p ^^xsd:integer} — typed | [text] {p @en} — language-tagged | Carriers: [span], **bold**, `code`, # heading, - list, > quote, ```code``` {my:cheat}
+
+## Polarity {=ch:6 .my:CheatEntry label}
+[6] {my:order ^^xsd:integer}
+> -p — retract literal | -?p — retract object link | -!p — retract reverse link | -.Class — retract type | Intra-doc: both cancel | External: goes to remove[] | Invariant: quads ∩ remove = ∅ {my:cheat}
+
+## PROV-O Quick {=ch:7 .my:CheatEntry label}
+[7] {my:order ^^xsd:integer}
+> Classes: prov:Entity, prov:Activity, prov:Agent (Person/Organization/SoftwareAgent) | Links: prov:used, prov:wasGeneratedBy, prov:wasAssociatedWith, prov:wasAttributedTo, prov:wasDerivedFrom, prov:actedOnBehalfOf | Time: prov:startedAtTime, prov:endedAtTime ^^xsd:dateTime {my:cheat}
+
+## API Quick {=ch:8 .my:CheatEntry label}
+[8] {my:order ^^xsd:integer}
+> parse({text}) → {quads, remove, statements, origin, context, primary, md} | generate({quads}) → {text} | merge([docs]) → merged state | render(mdld) → HTML | deconstruct(html) → mdld | Invariant: parse(deconstruct(render(mdld))).quads === parse(mdld).quads {my:cheat}
+  </script>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- RENDERING ENGINE                                            -->
+  <!-- Parses the MD-LD source above and builds all UI from quads  -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <script type="module">
+    import { parse } from 'mdld-parse';
+
+    // ── Parse the MD-LD source into quads ──
+    const source = document.getElementById('mdld-source').textContent;
+    const result = parse({ text: source });
+    const { quads, context } = result;
+
+    document.getElementById('loading').style.display = 'none';
+
+    // ── IRI expansion ──
+    function iri(curie) {
+      if (!curie) return '';
+      if (curie.includes(':')) {
+        const idx = curie.indexOf(':');
+        const prefix = curie.slice(0, idx);
+        const local = curie.slice(idx + 1);
+        if (context[prefix]) return context[prefix] + local;
+      }
+      if (context['@vocab']) return context['@vocab'] + curie;
+      return curie;
+    }
+
+    // ── Graph query helpers ──
+    function getByType(typeCurie) {
+      const typeIRI = iri(typeCurie);
+      const subjects = new Set();
+      for (const q of quads) {
+        if (q.predicate.value === iri('rdf:type') && q.object.value === typeIRI) {
+          subjects.add(q.subject.value);
+        }
+      }
+      return [...subjects];
+    }
+
+    function getLiterals(subjectIRI, predCurie) {
+      const predIRI = iri(predCurie);
+      return quads
+        .filter(q => q.subject.value === subjectIRI && q.predicate.value === predIRI && q.object.termType === 'Literal')
+        .map(q => q.object.value);
+    }
+
+    function getLiteral(subjectIRI, predCurie) {
+      return getLiterals(subjectIRI, predCurie)[0] || null;
+    }
+
+    function getObjects(subjectIRI, predCurie) {
+      const predIRI = iri(predCurie);
+      return quads
+        .filter(q => q.subject.value === subjectIRI && q.predicate.value === predIRI && q.object.termType === 'NamedNode')
+        .map(q => q.object.value);
+    }
+
+    function fmt(text) {
+      if (!text) return '';
+      return text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code>$1</code>');
+    }
+
+    // ── Stats bar ──
+    const uniqueSubjects = new Set(quads.map(q => q.subject.value));
+    const uniquePredicates = new Set(quads.map(q => q.predicate.value));
+    document.getElementById('stats-bar').innerHTML = `
+      <div class="stat"><span class="stat-val">${quads.length}</span> quads parsed from this page</div>
+      <div class="stat"><span class="stat-val">${uniqueSubjects.size}</span> unique subjects</div>
+      <div class="stat"><span class="stat-val">${uniquePredicates.size}</span> unique predicates</div>
+      <div class="stat"><span class="stat-val">${getByType('my:Section').length}</span> guide sections</div>
+      <div class="stat"><span class="stat-val">${getByType('my:SyntaxExample').length}</span> examples</div>
+      <div class="stat"><span class="stat-val">${getByType('my:Pattern').length}</span> patterns</div>
+      <div class="stat"><span class="stat-val">${getByType('my:Concept').length}</span> concepts</div>
+      <div class="stat"><span class="stat-val">${getByType('my:CheatEntry').length}</span> cheatsheet entries</div>
+    `;
+
+    // ── Tab navigation ──
+    const tabs = [
+      { id: 'guide', label: 'Guide', icon: '📖' },
+      { id: 'syntax', label: 'Syntax', icon: '⚡' },
+      { id: 'patterns', label: 'Patterns', icon: '🧩' },
+      { id: 'playground', label: 'Playground', icon: '🔬' },
+      { id: 'cheatsheet', label: 'Cheatsheet', icon: '📋' },
+    ];
+    const navEl = document.getElementById('nav-tabs');
+    tabs.forEach((t, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+      btn.innerHTML = `<span>${t.icon}</span> ${t.label}`;
+      btn.onclick = () => switchTab(t.id);
+      btn.dataset.tab = t.id;
+      navEl.appendChild(btn);
+    });
+
+    function switchTab(id) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+    }
+
+    // ══════════════════════════════════════
+    // RENDER: GUIDE (progressive learning path)
+    // ══════════════════════════════════════
+    function renderGuide() {
+      const sections = getByType('my:Section');
+      sections.sort((a, b) => parseInt(getLiteral(a, 'my:order') || '99') - parseInt(getLiteral(b, 'my:order') || '99'));
+
+      let html = `<div class="guide-hero">
+        <div class="badge">🤖 A Self-Contained Guide for AI Agents</div>
+        <h2>MD-LD — A Guide for Agents</h2>
+        <p class="subtitle">${fmt(getLiteral(iri('my:doc'), 'my:subtitle') || '')} This page is itself an MD-LD document — view source to see the knowledge graph that renders it.</p>
+        <div class="meta">
+          <span>📊 Rendered from <b style="color:var(--emerald)">${quads.length}</b> RDF quads</span>
+          <span>📦 Zero dependencies (except mdld-parse via ESM)</span>
+          <span>🔗 <a href="https://mdld.js.org">mdld.js.org</a></span>
+        </div>
+      </div>`;
+
+      // Table of contents
+      html += `<div class="syntax-ref" style="margin-bottom:2rem"><h4>📑 Table of Contents</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0.35rem">`;
+      sections.forEach((sIRI, idx) => {
+        const label = getLiteral(sIRI, 'label') || '';
+        html += `<a href="#section-${idx + 1}" style="font-size:0.85rem;color:var(--text2)">§${idx + 1}. ${label}</a>`;
+      });
+      html += `</div></div>`;
+
+      sections.forEach((sIRI, idx) => {
+        const label = getLiteral(sIRI, 'label') || '';
+        const paragraphs = getLiterals(sIRI, 'my:p');
+        const advantages = getLiterals(sIRI, 'my:advantage');
+        const nodeTypes = getLiterals(sIRI, 'my:nodeType');
+        const predForms = getLiterals(sIRI, 'my:predForm');
+        const antiPatterns = getLiterals(sIRI, 'my:antiPattern');
+
+        html += `<section class="guide-section" id="section-${idx + 1}">`;
+        html += `<h3><span class="num">§${idx + 1}</span> ${label}</h3>`;
+
+        paragraphs.forEach(p => { html += `<p>${fmt(p)}</p>`; });
+
+        if (advantages.length) {
+          html += `<div class="role-grid">`;
+          advantages.forEach(a => {
+            const parts = a.split(' — ');
+            html += `<div class="role-item" style="flex-direction:column;align-items:flex-start;gap:0.25rem"><strong style="color:var(--emerald);font-size:0.85rem">${parts[0]}</strong><span style="font-size:0.8rem">${fmt(parts[1] || '')}</span></div>`;
+          });
+          html += `</div>`;
+        }
+
+        if (nodeTypes.length) {
+          html += `<div class="ont-grid">`;
+          const colors = ['var(--cyan)', 'var(--purple)', 'var(--amber)'];
+          const letters = ['S', 'O', 'L'];
+          nodeTypes.forEach((n, i) => {
+            const parts = n.split(' — ');
+            html += `<div class="ont-card"><h5><span style="color:${colors[i % 3]};font-family:monospace;font-size:1.2rem">${letters[i % 3]}</span> ${parts[0]}</h5><p style="font-size:0.85rem;color:var(--text2);margin:0">${fmt(parts[1] || '')}</p></div>`;
+          });
+          html += `</div>`;
+        }
+
+        if (predForms.length) {
+          html += `<table class="pred-table"><thead><tr><th>Form</th><th>Edge</th><th>Meaning</th></tr></thead><tbody>`;
+          predForms.forEach(row => {
+            const parts = row.split(' | ');
+            html += `<tr><td class="form">${parts[0] || ''}</td><td>${parts[1] || ''}</td><td>${fmt(parts[2] || '')}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+        }
+
+        if (antiPatterns.length) {
+          antiPatterns.forEach(ap => {
+            const parts = ap.split(': ');
+            html += `<div class="callout callout-warn"><strong>⚠ ${parts[0]}</strong>${fmt(parts.slice(1).join(': '))}</div>`;
+          });
+        }
+
+        html += `</section>`;
+      });
+
+      document.getElementById('tab-guide').innerHTML = html;
+    }
+
+    // ══════════════════════════════════════
+    // RENDER: SYNTAX EXAMPLES
+    // ══════════════════════════════════════
+    function renderSyntax() {
+      const examples = getByType('my:SyntaxExample');
+      examples.sort((a, b) => parseInt(getLiteral(a, 'my:order') || '99') - parseInt(getLiteral(b, 'my:order') || '99'));
+
+      let html = `<h2 style="font-size:1.5rem;font-weight:700;margin-bottom:0.25rem">Syntax Examples</h2>
+        <p style="color:var(--text2);margin-bottom:1.25rem;font-size:0.9rem">Every example below is stored as MD-LD quads and rendered by querying them. Click to expand.</p>
+        <div class="syntax-ref"><h4>⚡ Quick Reference</h4><div class="ref-grid">
+          <div class="ref-item"><p>Prefixes</p><code>[prefix] &lt;IRI&gt;</code><code>[p2] &lt;p1:sub/&gt;</code></div>
+          <div class="ref-item"><p>Subjects</p><code>{=my:node}</code><code>{=#fragment}</code></div>
+          <div class="ref-item"><p>Objects</p><code>{+my:node ?pred}</code><code>{+my:node !pred}</code></div>
+          <div class="ref-item"><p>Types</p><code>{.my:Class}</code></div>
+          <div class="ref-item"><p>Literals</p><code>[text] {predicate}</code><code>[val] {p ^^xsd:type}</code></div>
+          <div class="ref-item"><p>Polarity</p><code>{-predicate}</code><code>{-?predicate}</code></div>
+        </div></div>`;
+
+      examples.forEach((eIRI, i) => {
+        const label = getLiteral(eIRI, 'label') || '';
+        const cat = getLiteral(eIRI, 'my:category') || 'basics';
+        const desc = getLiteral(eIRI, 'my:description') || '';
+        const mdldCode = getLiteral(eIRI, 'my:mdldCode') || '';
+        const quadOutput = getLiteral(eIRI, 'my:quadOutput') || '';
+
+        html += `<div class="example-card">
+          <div class="example-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.arrow').classList.toggle('open')">
+            <span class="cat cat-${cat}">${cat}</span>
+            <h5>${label}</h5>
+            <span class="arrow${i === 0 ? ' open' : ''}">▼</span>
+          </div>
+          <div class="example-body${i === 0 ? ' open' : ''}">
+            <p>${desc}</p>
+            <div class="code-cols">
+              <div class="code-col"><label>MD-LD Input</label><pre><code>${mdldCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre></div>
+              <div class="code-col"><label>Generated Quads</label><pre><code>${quadOutput.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre></div>
+            </div>
+          </div>
+        </div>`;
+      });
+
+      document.getElementById('tab-syntax').innerHTML = html;
+    }
+
+    // ══════════════════════════════════════
+    // RENDER: PATTERNS
+    // ══════════════════════════════════════
+    function renderPatterns() {
+      const patterns = getByType('my:Pattern');
+      const kindColors = {
+        identity: { bg: 'rgba(16,185,129,0.04)', border: 'rgba(16,185,129,0.2)', color: 'var(--emerald)' },
+        workflow: { bg: 'rgba(96,165,250,0.04)', border: 'rgba(96,165,250,0.2)', color: 'var(--blue)' },
+        structure: { bg: 'rgba(167,139,250,0.04)', border: 'rgba(167,139,250,0.2)', color: 'var(--purple)' },
+        reasoning: { bg: 'rgba(251,191,36,0.04)', border: 'rgba(251,191,36,0.2)', color: 'var(--amber)' },
+      };
+
+      let html = `<h2 style="font-size:1.5rem;font-weight:700;margin-bottom:0.25rem">Patterns for Agents</h2>
+        <p style="color:var(--text2);margin-bottom:1.25rem;font-size:0.9rem">Battle-tested patterns for common agent workflows. Each pattern is stored as MD-LD quads.</p>`;
+
+      patterns.forEach(pIRI => {
+        const label = getLiteral(pIRI, 'label') || '';
+        const kind = getLiteral(pIRI, 'my:patternKind') || 'identity';
+        const desc = getLiteral(pIRI, 'my:description') || '';
+        const mdldCode = getLiteral(pIRI, 'my:mdldCode') || '';
+        const quadOutput = getLiteral(pIRI, 'my:quadOutput') || '';
+        const c = kindColors[kind] || kindColors.identity;
+
+        html += `<div class="example-card" style="border-color:${c.border}">
+          <div class="example-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.arrow').classList.toggle('open')">
+            <span class="cat" style="background:${c.bg};color:${c.color}">${kind}</span>
+            <h5>${label}</h5>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="example-body">
+            <p>${desc}</p>
+            <div class="code-cols">
+              <div class="code-col"><label>MD-LD Pattern</label><pre><code>${mdldCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre></div>
+              <div class="code-col"><label>Result / Notes</label><pre><code>${quadOutput.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre></div>
+            </div>
+          </div>
+        </div>`;
+      });
+
+      document.getElementById('tab-patterns').innerHTML = html;
+    }
+
+    // ══════════════════════════════════════
+    // RENDER: PLAYGROUND (live parser)
+    // ══════════════════════════════════════
+    function renderPlayground() {
+      const defaultInput = `[my] <tag:agent@example.org,2026:>
+
+# Alice {=my:alice .prov:Person label}
+
+Email: [alice@example.org] {my:email}
+Age: [34] {my:age ^^xsd:integer}
+
+Knows [Bob] {+my:bob ?my:knows .prov:Person label}
+Works at [NASA] {+my:nasa ?my:employer label}`;
+
+      const html = `<h2 style="font-size:1.5rem;font-weight:700;margin-bottom:0.25rem">🔬 Live Playground</h2>
+        <p style="color:var(--text2);margin-bottom:1rem;font-size:0.9rem">Paste any MD-LD text below. The parser runs in your browser and shows the resulting quads in real time. This is the same <code>parse()</code> function that renders this entire page.</p>
+
+        <div class="playground-toolbar">
+          <button onclick="loadExample('minimal')">Minimal</button>
+          <button onclick="loadExample('person')">Person</button>
+          <button onclick="loadExample('prov')">PROV-O</button>
+          <button onclick="loadExample('polarity')">Polarity</button>
+          <button onclick="loadExample('agent')">Agent Memory</button>
+          <div class="sep"></div>
+          <button onclick="copyQuads()">📋 Copy Quads</button>
+          <button onclick="copyTurtle()">🐢 Copy as Turtle</button>
+          <div class="playground-stats">
+            <span><b id="quad-count">0</b> quads</span>
+            <span><b id="primary-subject">—</b> primary</span>
+          </div>
+        </div>
+
+        <div class="playground-layout">
+          <div class="playground-pane">
+            <div class="playground-pane-header">
+              <span>MD-LD Input</span>
+              <span class="badge-sm">editable</span>
+            </div>
+            <textarea id="pg-input" spellcheck="false">${defaultInput.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+          </div>
+          <div class="playground-pane">
+            <div class="playground-pane-header">
+              <span>RDF Quads</span>
+              <span class="badge-sm" id="parse-status">✓ valid</span>
+            </div>
+            <div class="playground-output" id="pg-output"></div>
+          </div>
+        </div>`;
+
+      document.getElementById('tab-playground').innerHTML = html;
+
+      const input = document.getElementById('pg-input');
+      const output = document.getElementById('pg-output');
+      const quadCount = document.getElementById('quad-count');
+      const primarySubject = document.getElementById('primary-subject');
+      const parseStatus = document.getElementById('parse-status');
+
+      const examples = {
+        minimal: `[my] <tag:agent@example.org,2026:>
+
+# Alice {=my:alice .prov:Person label}`,
+        person: `[my] <tag:agent@example.org,2026:>
+
+# Alice {=my:alice .prov:Person label}
+
+Email: [alice@example.org] {my:email}
+Age: [34] {my:age ^^xsd:integer}
+City: [Berlin] {my:city @en}`,
+        prov: `[my] <tag:agent@example.org,2026:>
+
+## Analysis {=my:run .prov:Activity label}
+
+Started: [2026-05-06T09:00:00Z] {prov:startedAtTime ^^xsd:dateTime}
+Ended:   [2026-05-06T09:45:00Z] {prov:endedAtTime ^^xsd:dateTime}
+By:      [Alice] {+my:alice ?prov:wasAssociatedWith}
+Used:    [dataset] {+my:dataset ?prov:used}
+Made:    [report] {+my:report ?prov:generated}`,
+        polarity: `[my] <tag:agent@example.org,2026:>
+
+# Article {=my:article .my:Article label}
+
+[Alice] {my:author}
+[Alice] {-my:author}
+[Bob] {my:author}`,
+        agent: `[my] <tag:agent@example.org,2026:>
+[j] <my:journal:>
+
+# 2026-05-06 {=j:2026-05-06 .my:Entry label}
+
+[2026-05-06] {my:date ^^xsd:date}
+[productive] {my:mood}
+
+Met [Bob] {+my:bob ?my:met} at [Central Park] {+my:park ?my:location}.`
+      };
+
+      window.loadExample = (name) => {
+        input.value = examples[name] || '';
+        updateOutput();
+      };
+
+      window.copyQuads = () => {
+        const text = output.innerText;
+        navigator.clipboard.writeText(text);
+      };
+
+      window.copyTurtle = () => {
+        const text = input.value;
+        try {
+          const r = parse({ text });
+          const turtle = r.quads.map(q => {
+            const s = shorten(q.subject.value);
+            const p = shorten(q.predicate.value);
+            let o;
+            if (q.object.termType === 'Literal') {
+              o = `"${q.object.value}"`;
+              if (q.object.language) o += `@${q.object.language}`;
+              else if (q.object.datatype && q.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+                o += `^^<${q.object.datatype.value}>`;
+              }
+            } else {
+              o = shorten(q.object.value);
+            }
+            return `${s} ${p} ${o} .`;
+          }).join('\n');
+          navigator.clipboard.writeText(turtle);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      function shorten(iriValue) {
+        for (const [prefix, ns] of Object.entries(context)) {
+          if (prefix === '@vocab') continue;
+          if (iriValue.startsWith(ns)) {
+            return `${prefix}:${iriValue.slice(ns.length)}`;
+          }
+        }
+        return iriValue;
+      }
+
+      function updateOutput() {
+        const text = input.value;
+        try {
+          const r = parse({ text });
+          quadCount.textContent = r.quads.length;
+          primarySubject.textContent = r.primarySubject ? shorten(r.primarySubject) : '—';
+          parseStatus.textContent = '✓ valid';
+          parseStatus.style.color = 'var(--emerald)';
+
+          if (r.quads.length === 0) {
+            output.innerHTML = '<p style="color:var(--text3);font-style:italic">No quads produced. Add {...} annotations to generate RDF.</p>';
+            return;
+          }
+
+          let html = '';
+          r.quads.forEach(q => {
+            const s = shorten(q.subject.value);
+            const p = shorten(q.predicate.value);
+            let o;
+            if (q.object.termType === 'Literal') {
+              o = `"${q.object.value}"`;
+              if (q.object.language) o += `@${q.object.language}`;
+              else if (q.object.datatype && q.object.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
+                o += `^^${shorten(q.object.datatype.value)}`;
+              }
+            } else {
+              o = shorten(q.object.value);
+            }
+            html += `<div class="quad"><span class="quad-s">${s}</span> <span class="quad-p">${p}</span> <span class="quad-o">${o}</span> .</div>`;
+          });
+
+          if (r.remove.length > 0) {
+            html += `<div style="margin-top:1rem;padding-top:0.5rem;border-top:1px solid var(--border);color:var(--rose);font-size:0.75rem">⊘ ${r.remove.length} retraction(s) in remove[]</div>`;
+          }
+
+          output.innerHTML = html;
+        } catch (e) {
+          parseStatus.textContent = '✗ error';
+          parseStatus.style.color = 'var(--rose)';
+          output.innerHTML = `<p style="color:var(--rose)">Parse error: ${e.message}</p>`;
+        }
+      }
+
+      input.addEventListener('input', updateOutput);
+      updateOutput();
+    }
+
+    // ══════════════════════════════════════
+    // RENDER: CHEATSHEET
+    // ══════════════════════════════════════
+    function renderCheatsheet() {
+      const entries = getByType('my:CheatEntry');
+      entries.sort((a, b) => parseInt(getLiteral(a, 'my:order') || '99') - parseInt(getLiteral(b, 'my:order') || '99'));
+
+      let html = `<h2 style="font-size:1.5rem;font-weight:700;margin-bottom:0.25rem">📋 Cheatsheet</h2>
+        <p style="color:var(--text2);margin-bottom:1.25rem;font-size:0.9rem">Quick reference for MD-LD syntax. All entries rendered from quads.</p>
+        <div class="cheatsheet"><div class="cheatsheet-grid">`;
+
+      entries.forEach(eIRI => {
+        const label = getLiteral(eIRI, 'label') || '';
+        const cheats = getLiterals(eIRI, 'my:cheat');
+
+        html += `<div class="cheat-block"><h4>◆ ${label}</h4>`;
+        cheats.forEach(c => {
+          const parts = c.split(' | ');
+          parts.forEach(part => {
+            const colonIdx = part.indexOf(' — ');
+            if (colonIdx > -1) {
+              html += `<code>${part.slice(0, colonIdx)}</code><div class="desc">${part.slice(colonIdx + 3)}</div>`;
+            } else {
+              html += `<code>${part}</code>`;
+            }
+          });
+        });
+        html += `</div>`;
+      });
+
+      html += `</div></div>`;
+
+      // Additional: the invariants box
+      html += `<div class="callout callout-tip" style="margin-top:1.5rem">
+        <strong>🔒 Core Invariants</strong>
+        <ul style="margin:0.5rem 0 0 1.25rem;color:var(--text2);font-size:0.85rem;line-height:1.7">
+          <li><code>parse(deconstruct(render(mdld))).quads === parse(mdld).quads</code> — round-trip safety</li>
+          <li><code>quads ∩ remove = ∅</code> — a triple is never simultaneously present and retracted</li>
+          <li>Every triple must come from a <code>{'{...}'}</code> block — no implicit semantics</li>
+          <li>Every entity must have a proper IRI — no blank nodes</li>
+          <li>Single-pass, forward-only parsing — no backtracking</li>
+        </ul>
+      </div>`;
+
+      document.getElementById('tab-cheatsheet').innerHTML = html;
+    }
+
+    // ── Initial render ──
+    renderGuide();
+    renderSyntax();
+    renderPatterns();
+    renderPlayground();
+    renderCheatsheet();
+    switchTab('guide');
+
+    console.log(`%c MD-LD Guide for Agents %c Parsed ${quads.length} quads from this page's MD-LD source`, 'background:#10b981;color:#020617;padding:2px 6px;border-radius:3px;font-weight:bold', 'color:#94a3b8');
+  </script>
+</body>
+</html>
