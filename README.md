@@ -544,6 +544,101 @@ Use CSS attribute selectors to style elements by their RDF types:
 
 /* Style entities with specific IRI */
 [data-iri="http://example.org/alice"] { font-weight: bold; }
+```
+
+## 🕸️ Crawling the graph — `crawl.js`
+
+MD-LD documents link to each other with ordinary Markdown links, so the graph
+is already on the wire — you just need to follow it. `crawl.js` is a
+**zero-dependency crawler primitive** that does exactly that: fetch raw text,
+extract links, recurse. It knows nothing about MD-LD — the parser is applied at
+the call site, which keeps the core pure and the crawler reusable for *any*
+linked text format.
+
+New in **v1.0.9**. Ships as a separate entry point (`mdld-parse/crawl`) and is
+self-contained enough to load straight from the browser console — no bundler,
+no build step:
+
+```js
+// Browser console, on any MD-LD site
+const { crawl } = await import('/crawl.js');
+const { pages, errors } = await crawl('/index.md', { sameOrigin: true });
+console.table(pages.map(p => ({ url: p.url, depth: p.depth, links: p.links.length })));
+```
+
+```js
+// Node ≥ 18 / Deno / Bun
+import { crawl } from 'mdld-parse/crawl';
+const { pages } = await crawl('https://mdld.js.org/index.md', { maxPages: 25 });
+```
+
+Full pipeline — crawl the graph, parse every document into its own named graph:
+
+```js
+import { crawl } from 'mdld-parse/crawl';
+import { parse, deconstruct } from 'mdld-parse';
+
+const { pages } = await crawl('/index.md', { sameOrigin: true, cache: myCache });
+
+const results = pages.map(p => parse({
+  text: p.kind === 'html' ? deconstruct(p.text) : p.text, // HTML is a first-class transport
+  graph: p.finalUrl,                                      // redirect-correct document identity
+}));
+const quads = results.flatMap(r => r.quads); // the whole crawled graph, provenance intact
+```
+
+### What it extracts
+
+Both scanners run on **every** document — inline HTML is valid CommonMark, so
+documents are routinely mixed:
+
+- **Markdown**: inline links & images `[text](url)`, reference definitions
+  `[label]: url`, autolinks `<https://…>`
+- **HTML**: `<a href>` — comment-aware, quote-aware, entities decoded;
+  `<script>`/`<style>` contents are skipped
+
+Extraction is character-scanned (no regex in hot paths) and context-aware:
+fenced code blocks, code spans and HTML comments never yield phantom links.
+
+### Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `maxDepth` | `5` | Maximum link distance from the start document |
+| `maxPages` | `100` | Hard cap on fetched pages — untrusted graphs can't balloon the crawl |
+| `concurrency` | `5` | Maximum in-flight fetches |
+| `sameOrigin` | `false` | Restrict the crawl to the start document's origin |
+| `cache` | `memoryCache()` | Any `{ get, set, delete? }` adapter |
+| `fetchFn` | `globalThis.fetch` | Wrap for retries, auth, proxies, rate limits |
+| `accept` | docs extensions | `(url) => boolean` target filter |
+| `onPage` | — | Per-page callback — parse incrementally while the crawl is in flight |
+| `signal` | — | `AbortSignal` — cancels and resolves with partial results |
+
+### Cache
+
+Caching is a three-method interface — bring your own storage:
+
+```js
+const cache = {
+  async get(url) { /* → { text, etag, lastModified, ... } | null  */ },
+  async set(url, entry) { /* persist */ },
+  async delete(url) { /* evict */ },
+};
+```
+
+Conditional requests are automatic: stored `ETag` / `Last-Modified` are re-sent
+as validators, `304` responses cost zero bytes and zero re-parse, and on 5xx or
+network failure the cached copy is served (stale-if-error). Cache failures are
+swallowed — a broken adapter (e.g. Safari private mode) degrades to "no cache",
+never to a failed crawl. Drop-in adapters for IndexedDB, localStorage and Node
+JSON-file caching live in `docs/cache-adapters.md`.
+
+### Guarantees
+
+- **Deterministic** — pages return in BFS discovery order, never completion order
+- **Bounded** — `maxDepth`, `maxPages`, http(s)-only protocol allow-list, binary content-types rejected
+- **Partial-result-safe** — errors are collected in `result.errors`; the crawl continues
+- **Cancellable** — `AbortSignal` yields `{ aborted: true }` plus everything fetched so far
 
 ### Utility Functions
 
