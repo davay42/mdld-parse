@@ -4,7 +4,7 @@ import pack from './package.json' with { type: 'json' }
 export default {
     build: {
         lib: {
-            entry: { index: 'src/index.js', fetch: 'src/fetch.js' },
+            entry: { index: 'src/index.js', crawl: 'src/crawl.js' },
             name: 'parse',
             formats: ['es']
         },

@@ -1,5 +1,28 @@
 # MD-LD evolution
 
+## v1.0.9 (unreleased)
+
+### Added
+- **`crawl()` — universal linked-document crawler** (`mdld-parse/fetch`): recursively fetches a graph of linked text documents starting from one URL and returns raw text + normalized outgoing links. Fully decoupled from the parser — zero dependencies, zero internal imports — so the core stays pure and I/O-free, and the crawler works for any linked text format
+  - Extracts Markdown links (`[text](url)`, reference definitions, autolinks) **and** HTML `<a href>` from every document — inline HTML is valid CommonMark, so both scanners always run
+  - Character-scanned extraction (no regex in hot paths): fence-aware, code-span-aware, comment-aware, skips `<script>`/`<style>` contents
+  - Pluggable cache adapters via a 3-method interface (`get`/`set`/`delete`); in-memory LRU (`memoryCache()`) built in; conditional `ETag`/`Last-Modified` requests with zero-cost `304`s and stale-if-error fallback on 5xx / network failure
+  - Bounded by default: `maxDepth`, `maxPages` (100), http(s)-only protocol allow-list, optional `sameOrigin`, binary content-types rejected
+  - Cancellable: `AbortSignal` resolves with partial results and `aborted: true`; errors are collected in `result.errors` — the crawl never rejects
+  - `onPage(page)` callback for incremental parsing while the crawl is still in flight
+  - Deterministic output: pages return in BFS discovery order, never completion order
+- **`extractLinks(text, base)`**: pure string-scanning link extractor, exported for offline/editor use without any network access
+- **`memoryCache(maxEntries)`**: O(1) in-process LRU, the default cache adapter
+- **Standalone module**: `crawl.js` loads directly in a browser console (`import('/crawl.js')`) or can be vendored verbatim — no build step, no bundler
+
+### Technical Details
+- `mdld-parse/crawl` is a separate entry point; `parse()` / `deconstruct()` stay at the call site, so the crawler is content-agnostic by contract — consumers interpret what they fetch
+- Single cache authority: fetch runs with `cache: 'no-store'`, so the module-level cache never drifts against the browser HTTP cache
+- Event-driven concurrency pump keeps `concurrency` requests in flight at all times (no batch head-of-line blocking); the visited check-and-add runs in one synchronous section, so concurrent workers can never double-enqueue a URL
+- Redirect-aware: `res.url` is reported as `page.finalUrl`, so document identity (and `#fragment` resolution) follows redirects
+- Cache failures degrade gracefully: a broken adapter (e.g. Safari private mode) silently means "no cache", never a failed crawl
+
+
 ## v1.0.8 (2026-09-21)
 
 ### Added

@@ -27,11 +27,11 @@
 	"main": "./dist/index.js",
 	"exports": {
 		".": "./dist/index.js",
-		"./fetch": "./dist/fetch.js"
+		"./crawl": "./dist/crawl.js"
 	},
 	"files": [
 		"dist/index.js",
-		"dist/fetch.js"
+		"dist/crawl.js"
 	],
 	"scripts": {
 		"test": "node tests/index.js",
