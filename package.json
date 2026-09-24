@@ -26,10 +26,12 @@
 	"type": "module",
 	"main": "./dist/index.js",
 	"exports": {
-		".": "./dist/index.js"
+		".": "./dist/index.js",
+		"./fetch": "./dist/fetch.js"
 	},
 	"files": [
-		"dist/index.js"
+		"dist/index.js",
+		"dist/fetch.js"
 	],
 	"scripts": {
 		"test": "node tests/index.js",

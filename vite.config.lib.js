@@ -4,9 +4,8 @@ import pack from './package.json' with { type: 'json' }
 export default {
     build: {
         lib: {
-            entry: 'src/index.js',
+            entry: { index: 'src/index.js', fetch: 'src/fetch.js' },
             name: 'parse',
-            fileName: 'index',
             formats: ['es']
         },
         emptyOutDir: false,
