@@ -186,11 +186,11 @@ function seedLayout(n, ls, lt, off, adj, order, x, y, placed, L) {
     }
 }
 
-const CSS = `:host{display:block;position:relative;height:480px;overflow:hidden;color:CanvasText;touch-action:none;user-select:none;-webkit-user-select:none}
-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
-.hud{position:absolute;left:8px;top:6px;font:11px/1.2 system-ui,sans-serif;opacity:.6;pointer-events:none;display:flex;gap:8px;align-items:center}
-.bar{width:44px;height:3px;border-radius:2px;background:#8884;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#1D9E75}
-.tip{position:absolute;left:0;top:0;pointer-events:none;max-width:320px;padding:6px 9px;border-radius:7px;font:12px/1.4 system-ui,sans-serif;background:Canvas;color:CanvasText;border:1px solid #8886;box-shadow:0 4px 16px #0003;display:none;z-index:2;overflow-wrap:anywhere}
+const CSS = `:host{display:block;position:relative;height:480px;overflow:hidden;color:#eee;touch-action:none;user-select:none;-webkit-user-select:none;background:#1a1a1a}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;background:#1a1a1a}
+.hud{position:absolute;left:8px;top:6px;font:11px/1.2 system-ui,sans-serif;opacity:.6;pointer-events:none;display:flex;gap:8px;align-items:center;color:#ccc}
+.bar{width:44px;height:3px;border-radius:2px;background:#444;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#1D9E75}
+.tip{position:absolute;left:0;top:0;pointer-events:none;max-width:320px;padding:6px 9px;border-radius:7px;font:12px/1.4 system-ui,sans-serif;background:#2a2a2a;color:#eee;border:1px solid #444;box-shadow:0 4px 16px #0003;display:none;z-index:2;overflow-wrap:anywhere}
 .tip b{display:block}.tip small{display:block;opacity:.6}`;
 
 /* ───────────────────────────── Web component ───────────────────────────── */
@@ -248,8 +248,10 @@ export class QuadGraph extends Base {
     pin(iri, on = true) { const i = this._ids?.get(iri); if (i === undefined) return; this._L.pin[i] = on ? 1 : 0; this._dirty = true; this._wake(); }
     getNode(iri) {
         const i = this._ids?.get(iri); if (i === undefined) return null; const L = this._L, c = this._typ[i];
-        return { id: iri, label: this._label(i), x: L.x[i], y: L.y[i], degree: L.deg[i], pinned: !!(L.pin[i] & 1), type: c ? this._classes[c] : null,
-            literals: (this._lits.get(i) || []).map(([predicate, value]) => ({ predicate, value })) };
+        return {
+            id: iri, label: this._label(i), x: L.x[i], y: L.y[i], degree: L.deg[i], pinned: !!(L.pin[i] & 1), type: c ? this._classes[c] : null,
+            literals: (this._lits.get(i) || []).map(([predicate, value]) => ({ predicate, value }))
+        };
     }
 
     /* ── ingestion: quads → typed arrays (positions of surviving nodes are preserved) ── */
@@ -314,8 +316,10 @@ export class QuadGraph extends Base {
         this._pc = preds.map(p => p === RDF_TYPE ? 'hsl(220 8% 55%)' : `hsl(${hash(p) % 360} 50% 55%)`);
         this._fill = classes.map((c, i) => i ? `hsl(${hash(c) % 360} 70% 56%)` : 'hsl(215 12% 62%)');
         this._ring = classes.map((c, i) => i ? `hsl(${hash(c) % 360} 70% 36%)` : 'hsl(215 12% 42%)');
-        Object.assign(this, { _ids: ids, _names: names, _typ: Int32Array.from(typ), _classes: classes, _lits: lits, _lab: lab, _lc: [], _plc: [], _preds: preds,
-            _bend: bend, _lp: LP, _pOff: pOff, _pList: pList, _cOff: cOff, _cList: cList, _order: order, _off: off, _adj: adj });
+        Object.assign(this, {
+            _ids: ids, _names: names, _typ: Int32Array.from(typ), _classes: classes, _lits: lits, _lab: lab, _lc: [], _plc: [], _preds: preds,
+            _bend: bend, _lp: LP, _pOff: pOff, _pList: pList, _cOff: cOff, _cList: cList, _order: order, _off: off, _adj: adj
+        });
         const L = this._L; L.charge = Math.abs(parseFloat(this.getAttribute('charge'))) || 40; L.linkDist = parseFloat(this.getAttribute('link-dist')) || 45;
         L.load(x, y, LS, LT, deg, r, mass, pin); if (hadOld) L.alpha = 0.5;
         this._sel = -1; this._hov = -1; this._nl = []; this._el = []; this._tip.style.display = 'none';
@@ -334,8 +338,8 @@ export class QuadGraph extends Base {
     _plabel(p) { return this._plc[p] ??= this._lab.get(this._preds[p])?.[0] ?? this._curie(this._preds[p]); }
     _theme() {
         this._tt = performance.now();
-        const c = typeof getComputedStyle !== 'undefined' ? getComputedStyle(this).color : '', m = (c || '').match(/[\d.]+/g) || [128, 128, 128];
-        this._fg = c || '#888'; this._halo = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) / 255 > 0.5 ? 'rgba(0,0,0,.65)' : 'rgba(255,255,255,.8)';
+        this._fg = '#eee'; // Light text color for dark background
+        this._halo = 'rgba(0,0,0,.8)'; // Dark outline for contrast on light text
     }
 
     /* ── view ── */
@@ -445,7 +449,7 @@ export class QuadGraph extends Base {
     _drawLabels(g, d) {
         const L = this._L, { x, y, r, ls, lt } = L, v = this._v, k = v.k, W = this._w, H = this._h, sel = this._sel, oc = this._occ, cols = this._oc, C = 12;
         g.setTransform(d, 0, 0, d, 0, 0); oc.fill(0);
-        g.font = '11px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 3;
+        g.font = '11px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 1.5;
         const reserve = (cx, cy, w, h, force) => {
             const a = Math.max(0, (cx - w / 2) / C | 0), b = Math.max(0, (cy - h / 2) / C | 0), a2 = Math.min(cols - 1, (cx + w / 2) / C | 0), b2 = Math.min(this._or - 1, (cy + h / 2) / C | 0);
             if (!force) for (let j = b; j <= b2; j++) for (let i = a; i <= a2; i++) if (oc[j * cols + i]) return false;
@@ -465,7 +469,7 @@ export class QuadGraph extends Base {
         if (this._hov >= 0) put(this._hov, true);
         for (let a = 0, seen = 0, drawn = 0; a < L.n && drawn < 700 && seen < 6000; a++) { const s = put(this._order[a], false); if (s >= 0) seen++; if (s > 0) drawn++; }
         if (k < 0.5 || !ls.length) return;
-        g.font = '9px system-ui,sans-serif'; g.globalAlpha = 0.9;
+        g.font = '9px system-ui,sans-serif'; g.globalAlpha = 0.9; g.lineWidth = 1;
         for (let e = 0, cnt = 0; e < ls.length && cnt < 150; e++) {
             const s = ls[e], t = lt[e], dx = (x[t] - x[s]) * k, dy = (y[t] - y[s]) * k, len = Math.sqrt(dx * dx + dy * dy);
             if (len < 70) continue;
