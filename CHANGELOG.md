@@ -14,6 +14,13 @@
 - **`extractLinks(text, base)`**: pure string-scanning link extractor, exported for offline/editor use without any network access
 - **`memoryCache(maxEntries)`**: O(1) in-process LRU, the default cache adapter
 - **Standalone module**: `crawl.js` loads directly in a browser console (`import('/crawl.js')`) or can be vendored verbatim — no build step, no bundler
+- **Visualizer web-component (`<quad-graph>`)**: zero-dependency RDF quad graph renderer with improved dark theme and text readability
+  - Dark background (`#1a1a1a`) with light text (`#eee`) for high contrast
+  - Optimized text outline rendering: reduced line width for node labels (1.5px) and predicate labels (1px) to prevent text overflow
+  - Improved readability for both node labels and edge/predicate labels
+  - Custom Web Component API: attributes for height, charge, link-dist, labels; methods for focus, select, fit, pin, reheat
+  - Interactive: wheel/pinch zoom, drag background to pan, drag nodes to move, double-click to pin/unpin
+  - Canvas2D rendering with viewport culling, density-adaptive alpha, and collision-free label placement
 
 ### Technical Details
 - `mdld-parse/crawl` is a separate entry point; `parse()` / `deconstruct()` stay at the call site, so the crawler is content-agnostic by contract — consumers interpret what they fetch

@@ -531,6 +531,137 @@ const mdld = deconstruct(html);
 - Client-side graph extraction: `parse(deconstruct(document.body.innerHTML))`
 - Offline-first apps: cache HTML, reconstruct quads on demand
 
+## 🎨 Graph Visualization — `<quad-graph>`
+
+Visualize your RDF quads as an interactive force-directed graph with the zero-dependency `<quad-graph>` web component.
+
+### Quick Start
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="importmap">
+    {
+      "imports": {
+        "mdld-parse": "https://mdld.js.org/mdld-parse.js",
+        "quad-graph": "https://mdld.js.org/quad-graph.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <quad-graph height="600"></quad-graph>
+  <script type="module">
+    import { parse } from 'mdld-parse';
+    import 'quad-graph'
+    const graph = document.querySelector('quad-graph');
+    
+    const mdld = `[ex] <tag:example.org,2026:>
+# Alice {=ex:alice .prov:Person label}
+[Alice] {ex:name} knows [Bob] {+ex:bob ?ex:knows}`;
+
+    const result = parse({ text: mdld });
+    graph.context = result.context
+    graph.quads = result.quads;
+  </script>
+</body>
+</html>
+```
+
+### Browser Console Usage
+
+```javascript
+// Load the modules directly
+const mdld = await import('https://mdld.js.org/mdld-parse.js');
+const graph = await import('https://mdld.js.org/quad-graph.js');
+
+// Create and configure the graph
+const quadGraph = document.createElement('quad-graph');
+quadGraph.height = '600';
+document.body.appendChild(quadGraph);
+
+// Parse and visualize
+const result = mdld.parse({ text: yourMdldString });
+quadGraph.context = result.context;
+quadGraph.quads = result.quads;
+```
+
+### Installation
+
+```bash
+pnpm install mdld-parse
+```
+
+```javascript
+import { parse } from 'mdld-parse';
+import 'mdld-parse/quad-graph'; // Registers <quad-graph> custom element
+```
+
+### Features
+
+- **Zero dependencies** — Pure Canvas2D rendering, ~650 LOC
+- **Interactive** — Wheel/pinch zoom, drag background to pan, drag nodes to move, double-click to pin/unpin
+- **Force-directed layout** — Barnes-Hut quadtree for performance, time-sliced across frames
+- **Collision-free labels** — Greedy placement with viewport culling
+- **Dark theme** — High contrast light text on dark background
+- **Customizable** — Attributes for height, charge, link distance, labels
+- **API methods** — `focus(iri)`, `select(iri)`, `fit()`, `pin(iri, on)`, `reheat()`, `getNode(iri)`
+
+### Attributes
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `height` | `480px` | Component height |
+| `charge` | `40` | Repulsion force between nodes |
+| `link-dist` | `45` | Preferred link length |
+| `labels` | `on` | Set to `"off"` to hide labels |
+
+### API Methods
+
+```javascript
+const graph = document.querySelector('quad-graph');
+
+// Focus on a specific node
+graph.focus('http://example.org/alice');
+
+// Select a node
+graph.select('http://example.org/bob');
+
+// Fit graph to viewport
+graph.fit();
+
+// Pin/unpin a node
+graph.pin('http://example.org/alice', true);
+
+// Reheat the simulation
+graph.reheat();
+
+// Get node data
+const nodeData = graph.getNode('http://example.org/alice');
+// { id, label, x, y, degree, pinned, type, literals }
+```
+
+### Events
+
+```javascript
+graph.addEventListener('node-click', (e) => {
+  console.log('Clicked:', e.detail); // IRI string
+});
+
+graph.addEventListener('node-select', (e) => {
+  console.log('Selected:', e.detail); // IRI string or null
+});
+
+graph.addEventListener('node-hover', (e) => {
+  console.log('Hovered:', e.detail); // IRI string or null
+});
+
+graph.addEventListener('settled', () => {
+  console.log('Layout settled');
+});
+```
+
 ## Styling by Type
 
 Use CSS attribute selectors to style elements by their RDF types:
