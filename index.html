@@ -363,6 +363,9 @@
         import { CodeJar } from 'codejar';
         // Import RDF Graph Visualizer
         import './demo/visual.js';
+        import './demo/quad-graph.js'
+
+        const g = document.querySelector('#quad-graph')
 
         // import 'virtual:uno.css'
 
@@ -781,10 +784,10 @@
 
                 // Update RDF graph viewer only if quads changed
                 if (quadsChanged) {
-                    const graphElement = document.getElementById('rdf-graph');
+                    const graphElement = document.getElementById('quad-graph');
                     if (graphElement) {
-                        graphElement.quads = quads;
                         graphElement.context = context;
+                        graphElement.quads = quads;
                     }
                 }
 
@@ -1407,6 +1410,7 @@
 
                         <div class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 w-full"
                             style="height: 400px;">
+                            <quad-graph id="quad-graph"></quad-graph>
                             <rdf-graph id="rdf-graph" height="400" charge="-120" link-dist="180"></rdf-graph>
                         </div>
                     </div>
