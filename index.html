@@ -55,6 +55,11 @@
     <link rel="stylesheet" href="./demo/styles.css">
 
     <style>
+        #html-output [data-iri] {
+            background-color: #ee880040;
+            padding: 2px 4px;
+        }
+
         .node-debug-overlay {
             position: fixed;
             inset: 0;
@@ -750,7 +755,7 @@
                     const { text: mdldText } = generate({ quads, context, primarySubject });
                     const mdldDiv = document.getElementById('mdld');
                     if (mdldDiv) {
-                        mdldDiv.textContent = mdldText || 'No MDLD output generated';
+                        mdldDiv.innerHTML = highlightMDLD(mdldText) || 'No MDLD output generated';
                         currentMDLD = mdldText || '';
                     }
                 } catch (err) {
@@ -1146,7 +1151,13 @@
             const overlay = document.getElementById('node-debug-overlay');
             if (overlay) {
                 overlay.addEventListener('click', (event) => {
-                    if (event.target === overlay) overlay.classList.remove('visible');
+                    if (event.target === overlay) {
+                        overlay.classList.remove('visible');
+                        // Clear the hash from the URL when closing the dialog
+                        if (window.location.hash) {
+                            history.pushState(null, null, ' ');
+                        }
+                    }
                 });
             }
 
@@ -1154,6 +1165,10 @@
             if (closeButton) {
                 closeButton.addEventListener('click', () => {
                     document.getElementById('node-debug-overlay').classList.remove('visible');
+                    // Clear the hash from the URL when closing the dialog
+                    if (window.location.hash) {
+                        history.pushState(null, null, ' ');
+                    }
                 });
             }
 
@@ -1165,17 +1180,6 @@
             }, 500);
         });
 
-
-        // Load initial example (moved to async load above)
-        // loadExample('journal');
-
-        // Mini MD Browser
-        let md = new MarkdownIt({
-            html: true,
-            linkify: true,
-            typographer: true,
-            breaks: true
-        });
 
 
 
@@ -1458,7 +1462,7 @@
                 <!-- MDLD Output Section -->
                 <details class="details">
                     <summary>
-                        <span>MDLD</span>
+                        <span>MDLD regenerated</span>
                         <span style="flex: 1"></span>
                         <button id="copy-mdld-btn" class="button secondary" title="Copy MDLD to clipboard">
                             📋 Copy
