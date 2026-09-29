@@ -50,7 +50,7 @@ Or use `importmap` in the browser:
   <script type="importmap">
     {
       "imports": {
-        "mdld-parse": "https://mdld.js.org/index.js"
+        "mdld-parse": "https://mdld.js.org/mdld-parse.js"
       }
     }
   </script>
