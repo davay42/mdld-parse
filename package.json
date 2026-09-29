@@ -24,13 +24,15 @@
 		"triple-store"
 	],
 	"type": "module",
-	"main": "./dist/index.js",
+	"main": "./dist/mdld-parse.js",
 	"exports": {
-		".": "./dist/index.js",
+		".": "./dist/mdld-parse.js",
+		"./graph": "./dist/quad-graph.js",
 		"./crawl": "./dist/crawl.js"
 	},
 	"files": [
-		"dist/index.js",
+		"dist/mdld-parse.js",
+		"dist/quad-graph.js",
 		"dist/crawl.js"
 	],
 	"scripts": {

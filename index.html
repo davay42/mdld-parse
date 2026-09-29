@@ -362,10 +362,7 @@
         import { highlightMDLD, TOKEN_COLORS } from './src/highlight.js';
         import { CodeJar } from 'codejar';
         // Import RDF Graph Visualizer
-        import './demo/visual.js';
-        import './demo/quad-graph.js'
-
-        const g = document.querySelector('#quad-graph')
+        import './src/graph.js'
 
         // import 'virtual:uno.css'
 
@@ -1094,7 +1091,7 @@
             }
 
             const graphEls = [
-                document.getElementById('rdf-graph'),
+                document.getElementById('quad-graph'),
                 document.getElementById('statements-graph')
             ].filter(Boolean);
 
@@ -1411,7 +1408,7 @@
                         <div class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 w-full"
                             style="height: 400px;">
                             <quad-graph id="quad-graph"></quad-graph>
-                            <rdf-graph id="rdf-graph" height="400" charge="-120" link-dist="180"></rdf-graph>
+
                         </div>
                     </div>
                 </details>
@@ -1427,7 +1424,7 @@
                     <div class="m-2">
                         <div class="bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 w-full"
                             style="height: 400px;">
-                            <rdf-graph id="statements-graph" height="400" charge="-120" link-dist="180"></rdf-graph>
+                            <quad-graph id="statements-graph" height="400" charge="-120" link-dist="180"></quad-graph>
                         </div>
                     </div>
                 </details>

@@ -2,7 +2,8 @@
  * <quad-graph> — zero-dependency RDF quad graph renderer (ESM, Canvas2D, ~650 LOC).
  *
  *   import './quad-graph.js'
- *   const g = document.querySelector('quad-graph')
+ *   const element = document.createElement('quad-graph');
+ *   document.body.appendChild(element);
  *   g.context = { ex: 'http://example.org/' }      // optional prefixes (CURIE labels)
  *   g.quads   = [...rdfjsQuads]                    // RDF/JS quads; re-assign any time, updates instantly
  *
