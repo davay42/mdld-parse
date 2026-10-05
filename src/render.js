@@ -253,7 +253,15 @@ export function deconstruct(html) {
     while (pos < html.length && /\s/.test(html[pos])) pos++;
     if (pos >= html.length) break;
 
-    if (html.startsWith('<div class="mdld-prefix"', pos)) {
+    const nextTagStart = html.indexOf('<', pos);
+    if (nextTagStart === -1) break;
+
+    const tagEnd = html.indexOf('>', nextTagStart);
+    if (tagEnd === -1) break;
+
+    const openTag = html.slice(nextTagStart, tagEnd + 1);
+
+    if (openTag.startsWith('<div') && extractAttr(openTag, 'class')?.includes('mdld-prefix')) {
       const end = html.indexOf('></div>', pos);
       if (end === -1) break;
       const tag = html.slice(pos, end + 7);
@@ -261,7 +269,7 @@ export function deconstruct(html) {
       const raw = extractAttr(tag, 'data-raw') || extractAttr(tag, 'data-iri');
       blocks.push(`[${prefix}] <${raw}>`);
       pos = end + 7;
-    } else if (html.startsWith('<div class="mdld-standalone"', pos)) {
+    } else if (openTag.startsWith('<div') && extractAttr(openTag, 'class')?.includes('mdld-standalone')) {
       const end = html.indexOf('</div>', pos);
       if (end === -1) break;
       const tag = html.slice(pos, end + 6);
@@ -332,7 +340,7 @@ export function deconstruct(html) {
       }
       blocks.push(items.join('\n'));
       pos = close + 5;
-    } else if (html.startsWith('<p class="mdld-paragraph">', pos)) {
+    } else if (openTag.startsWith('<p') && extractAttr(openTag, 'class')?.includes('mdld-paragraph')) {
       const close = html.indexOf('</p>', pos);
       if (close === -1) break;
       const content = html.slice(pos + 25, close);
@@ -412,11 +420,10 @@ function deconstructInlineElement(tagName, attrs, inner) {
 }
 
 function extractAttr(tag, name) {
-  const re = new RegExp(`${name}=(?:"([^"]*)"|'([^']*)')`, 'i');
+  const re = new RegExp(`(?:\\s|^)${name}=(["'])(.*?)\\1`, 'is');
   const m = tag.match(re);
   if (!m) return null;
-  const value = m[1] !== undefined ? m[1] : m[2];
-  return unescapeHtml(value);
+  return unescapeHtml(m[2]);
 }
 
 function unescapeHtml(s) {
