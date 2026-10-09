@@ -355,6 +355,126 @@
             color: #2563eb;
             font-weight: 700;
         }
+
+        .crawl-dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .crawl-dialog-overlay.visible {
+            display: flex;
+        }
+
+        .crawl-dialog {
+            width: min(500px, 92vw);
+            background: #fff;
+            color: #111827;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            padding: 1.5rem;
+        }
+
+        .dark .crawl-dialog {
+            background: #111827;
+            color: #e5e7eb;
+            border-color: rgba(75, 85, 99, 0.9);
+        }
+
+        .crawl-dialog-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .crawl-dialog-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .crawl-dialog-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .crawl-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .crawl-input-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .crawl-input-group input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: var(--bg-primary, white);
+            color: var(--text-primary, #1f2937);
+        }
+
+        .crawl-input-group input:focus {
+            outline: 2px solid var(--accent, #3b82f6);
+            outline-offset: -2px;
+        }
+
+        .crawl-dialog-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .crawl-status {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .dark .crawl-status {
+            color: #9ca3af;
+        }
+
+        .crawl-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .crawl-dialog.crawling .crawl-dialog-footer button {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .crawl-dialog.crawling .crawl-dialog-footer button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
     </style>
 
     <script type="module">
@@ -368,6 +488,8 @@
         import { CodeJar } from 'codejar';
         // Import RDF Graph Visualizer
         import './src/graph.js'
+        // Import crawl functionality
+        import { crawl } from './src/crawl.js';
 
         // import 'virtual:uno.css'
 
@@ -1322,6 +1444,125 @@
                 setTimeout(() => document.body.removeChild(notification), 300);
             }, 3000);
         }
+
+        // Crawl dialog functions
+        window.openCrawlDialog = function () {
+            const overlay = document.getElementById('crawl-dialog-overlay');
+            const dialog = document.getElementById('crawl-dialog');
+            const urlInput = document.getElementById('crawl-url');
+            const status = document.getElementById('crawl-status');
+            overlay.classList.add('visible');
+            dialog.classList.remove('crawling');
+            urlInput.value = '';
+            status.textContent = '';
+            urlInput.focus();
+        };
+
+        window.closeCrawlDialog = function () {
+            const overlay = document.getElementById('crawl-dialog-overlay');
+            const dialog = document.getElementById('crawl-dialog');
+            // Don't allow closing while crawling
+            if (dialog.classList.contains('crawling')) {
+                return;
+            }
+            overlay.classList.remove('visible');
+        };
+
+        window.startCrawl = async function () {
+            const urlInput = document.getElementById('crawl-url');
+            const status = document.getElementById('crawl-status');
+            const dialog = document.getElementById('crawl-dialog');
+            const startUrl = urlInput.value.trim();
+
+            if (!startUrl) {
+                status.textContent = 'Please enter a URL';
+                return;
+            }
+
+            // Set crawling state
+            dialog.classList.add('crawling');
+            status.innerHTML = '<span class="crawl-spinner"></span>Crawling...';
+
+            try {
+                const result = await crawl(startUrl, {
+                    maxDepth: 3,
+                    maxPages: 50,
+                    sameOrigin: true
+                });
+
+                // Remove crawling state
+                dialog.classList.remove('crawling');
+
+                if (result.aborted) {
+                    status.textContent = 'Crawl was aborted';
+                    showNotification('Crawl was aborted', 'error');
+                    return;
+                }
+
+                if (result.pages.length === 0) {
+                    status.textContent = 'No pages found';
+                    showNotification('No pages found', 'error');
+                    return;
+                }
+
+                // Concatenate all page texts
+                const concatenatedText = result.pages.map((page, index) => {
+                    return `# Page: ${page.url}\n\n${page.text}\n\n---\n\n`;
+                }).join('');
+
+                // Update editor with concatenated text
+                if (jar) {
+                    jar.updateCode(concatenatedText);
+                    parseMDLD();
+                }
+
+                status.textContent = `Crawled ${result.pages.length} pages successfully`;
+                showNotification(`Crawled ${result.pages.length} pages successfully`, 'success');
+                console.log('Crawl result:', result);
+
+                if (result.errors.length > 0) {
+                    console.warn('Crawl errors:', result.errors);
+                }
+
+                // Close dialog after successful crawl
+                setTimeout(() => {
+                    closeCrawlDialog();
+                }, 500);
+
+            } catch (error) {
+                console.error('Crawl error:', error);
+                dialog.classList.remove('crawling');
+                status.textContent = 'Error: ' + error.message;
+                showNotification('Crawl failed: ' + error.message, 'error');
+            }
+        };
+
+        // Close crawl dialog on overlay click
+        document.addEventListener('DOMContentLoaded', () => {
+            const crawlOverlay = document.getElementById('crawl-dialog-overlay');
+            const dialog = document.getElementById('crawl-dialog');
+            if (crawlOverlay) {
+                crawlOverlay.addEventListener('click', (event) => {
+                    // Don't allow closing while crawling
+                    if (dialog.classList.contains('crawling')) {
+                        return;
+                    }
+                    if (event.target === crawlOverlay) {
+                        closeCrawlDialog();
+                    }
+                });
+            }
+
+            // Handle Enter key in URL input
+            const crawlUrlInput = document.getElementById('crawl-url');
+            if (crawlUrlInput) {
+                crawlUrlInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        startCrawl();
+                    }
+                });
+            }
+        });
     </script>
 
 </head>
@@ -1335,6 +1576,28 @@
                     aria-label="Close dialog">Close</button>
             </div>
             <div id="node-debug-body" class="node-debug-body"></div>
+        </div>
+    </div>
+
+    <div id="crawl-dialog-overlay" class="crawl-dialog-overlay" aria-hidden="true">
+        <div class="crawl-dialog" id="crawl-dialog" role="dialog" aria-modal="true"
+            aria-labelledby="crawl-dialog-title">
+            <div class="crawl-dialog-header">
+                <h3 id="crawl-dialog-title">Crawl MD Files</h3>
+                <button type="button" class="button secondary" id="crawl-close-btn" onclick="closeCrawlDialog()"
+                    aria-label="Close dialog">Close</button>
+            </div>
+            <div class="crawl-dialog-body">
+                <div class="crawl-input-group">
+                    <label for="crawl-url">Starting URL (MD file)</label>
+                    <input type="url" id="crawl-url" placeholder="https://example.com/docs/index.md" />
+                </div>
+                <div class="crawl-status" id="crawl-status"></div>
+            </div>
+            <div class="crawl-dialog-footer">
+                <button class="button secondary" id="crawl-cancel-btn" onclick="closeCrawlDialog()">Cancel</button>
+                <button class="button primary" id="crawl-start-btn" onclick="startCrawl()">Start Crawl</button>
+            </div>
         </div>
     </div>
 
@@ -1369,6 +1632,7 @@
                     <button class="button" onclick="loadExample('project')">Project</button>
                     <button class="button" onclick="loadExample('space-mission')">Space Mission</button>
                     <button class="button" onclick="loadExample('research')">Research</button>
+                    <button class="button" onclick="openCrawlDialog()">🕷️ Crawl</button>
                     <button class="button" style="background-color: #E006;" onclick="clearPlayground()">
                         🗑️ Clear
                     </button>
