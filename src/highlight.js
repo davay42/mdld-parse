@@ -295,8 +295,10 @@ function parseAnnotation(content, prefixes) {
     return result.trim();
 }
 
+export default highlight;
+
 // Main MDLD syntax highlighting function
-export function highlightMDLD(code) {
+export function highlight(code) {
     const prefixes = extractPrefixes(code);
     let result = '';
     let i = 0;
