@@ -478,13 +478,13 @@
     </style>
 
     <script type="module">
-        import { parse, shortenIRI, expandIRI, generate, getIRIColor } from './src/index.js';
+        import { parse, shortenIRI, expandIRI, generate } from './src/index.js';
         import { render } from './src/render.js'
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store, Parser } from 'n3';
         import MarkdownIt from 'markdown-it';
         import { loadExample as loadExampleData } from './demo/examples.js';
-        import { highlightMDLD, TOKEN_COLORS } from './src/highlight.js';
+        import { highlight as highlightMDLD, getIRIColor, TOKEN_COLORS } from './src/highlight.js';
         import { CodeJar } from 'codejar';
         // Import RDF Graph Visualizer
         import './src/graph.js'
