@@ -36,14 +36,15 @@ export function render(src, options = {}) {
       iri = safeExpand(parsedSem.subject);
     } else if (parsedSem?.object) {
       iri = safeExpand(parsedSem.object);
-    } else if (isLink && fallbackHref) {
-      iri = safeExpand(fallbackHref);
     }
 
     if (iri) {
       attrs.push(`data-iri="${escapeHtml(iri)}"`);
-      if (isLink) attrs.push(`href="${escapeHtml(iri)}"`);
-    } else if (isLink && fallbackHref) {
+    }
+
+    // For links, always use the original URL (fallbackHref) as-is, never expand it
+    // This preserves local URLs like ./local/path and prevents rdfs prefix bugs
+    if (isLink && fallbackHref) {
       attrs.push(`href="${escapeHtml(fallbackHref)}"`);
     }
 
@@ -261,7 +262,15 @@ export function deconstruct(html) {
 
     const openTag = html.slice(nextTagStart, tagEnd + 1);
 
-    if (openTag.startsWith('<div') && extractAttr(openTag, 'class')?.includes('mdld-prefix')) {
+    // Check for paragraph first (before blockquote to avoid false matches)
+    if (openTag.startsWith('<p') && extractAttr(openTag, 'class')?.includes('mdld-paragraph')) {
+      const close = html.indexOf('</p>', pos);
+      if (close === -1) break;
+      const openEnd = html.indexOf('>', pos) + 1;
+      const content = html.slice(openEnd, close);
+      blocks.push(deconstructInline(content));
+      pos = close + 4;
+    } else if (openTag.startsWith('<div') && extractAttr(openTag, 'class')?.includes('mdld-prefix')) {
       const end = html.indexOf('></div>', pos);
       if (end === -1) break;
       const tag = html.slice(pos, end + 7);
@@ -340,12 +349,6 @@ export function deconstruct(html) {
       }
       blocks.push(items.join('\n'));
       pos = close + 5;
-    } else if (openTag.startsWith('<p') && extractAttr(openTag, 'class')?.includes('mdld-paragraph')) {
-      const close = html.indexOf('</p>', pos);
-      if (close === -1) break;
-      const content = html.slice(pos + 25, close);
-      blocks.push(deconstructInline(content));
-      pos = close + 4;
     } else {
       pos++;
     }
