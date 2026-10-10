@@ -1,6 +1,6 @@
 # MD-LD evolution
 
-## v1.0.9 (unreleased)
+## v1.1.0 Crawl an links clarity
 
 ### Added
 - **`crawl()` — universal linked-document crawler** (`mdld-parse/fetch`): recursively fetches a graph of linked text documents starting from one URL and returns raw text + normalized outgoing links. Fully decoupled from the parser — zero dependencies, zero internal imports — so the core stays pure and I/O-free, and the crawler works for any linked text format
