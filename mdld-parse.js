@@ -719,7 +719,9 @@ function detectBracketLink(text, startPos) {
 	if (pos < text.length && text[pos] === "(") {
 		const parenEnd = text.indexOf(")", pos + 1);
 		if (parenEnd !== -1) {
-			url = text.slice(pos + 1, parenEnd);
+			const potentialUrl = text.slice(pos + 1, parenEnd);
+			const lowerUrl = potentialUrl.toLowerCase();
+			if (lowerUrl.startsWith("http://") || lowerUrl.startsWith("https://")) url = potentialUrl;
 			pos = parenEnd + 1;
 		}
 	} else if (pos < text.length && text[pos] === "<") {
@@ -2055,11 +2057,8 @@ function render(src, options = {}) {
 		let iri = null;
 		if (parsedSem?.subject && parsedSem.subject !== "RESET") iri = safeExpand(parsedSem.subject);
 		else if (parsedSem?.object) iri = safeExpand(parsedSem.object);
-		else if (isLink && fallbackHref) iri = safeExpand(fallbackHref);
-		if (iri) {
-			attrs.push(`data-iri="${escapeHtml$1(iri)}"`);
-			if (isLink) attrs.push(`href="${escapeHtml$1(iri)}"`);
-		} else if (isLink && fallbackHref) attrs.push(`href="${escapeHtml$1(fallbackHref)}"`);
+		if (iri) attrs.push(`data-iri="${escapeHtml$1(iri)}"`);
+		if (isLink && fallbackHref) attrs.push(`href="${escapeHtml$1(fallbackHref)}"`);
 		if (parsedSem?.types?.some((t) => !t.remove)) classes.push("typed");
 		if (parsedSem?.predicates?.some((p) => p.remove) || parsedSem?.types?.some((t) => t.remove)) classes.push("retracted");
 		if (classes.length > 0) attrs.unshift(`class="${classes.join(" ")}"`);
@@ -2241,7 +2240,14 @@ function deconstruct(html) {
 		const tagEnd = html.indexOf(">", nextTagStart);
 		if (tagEnd === -1) break;
 		const openTag = html.slice(nextTagStart, tagEnd + 1);
-		if (openTag.startsWith("<div") && extractAttr(openTag, "class")?.includes("mdld-prefix")) {
+		if (openTag.startsWith("<p") && extractAttr(openTag, "class")?.includes("mdld-paragraph")) {
+			const close = html.indexOf("</p>", pos);
+			if (close === -1) break;
+			const openEnd = html.indexOf(">", pos) + 1;
+			const content = html.slice(openEnd, close);
+			blocks.push(deconstructInline(content));
+			pos = close + 4;
+		} else if (openTag.startsWith("<div") && extractAttr(openTag, "class")?.includes("mdld-prefix")) {
 			const end = html.indexOf("></div>", pos);
 			if (end === -1) break;
 			const tag = html.slice(pos, end + 7);
@@ -2313,12 +2319,6 @@ function deconstruct(html) {
 			}
 			blocks.push(items.join("\n"));
 			pos = close + 5;
-		} else if (openTag.startsWith("<p") && extractAttr(openTag, "class")?.includes("mdld-paragraph")) {
-			const close = html.indexOf("</p>", pos);
-			if (close === -1) break;
-			const content = html.slice(pos + 25, close);
-			blocks.push(deconstructInline(content));
-			pos = close + 4;
 		} else pos++;
 	}
 	return blocks.join("\n\n");

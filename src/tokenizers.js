@@ -432,12 +432,16 @@ export function detectBracketLink(text, startPos) {
     const linkText = text.slice(startPos + 1, bracketEnd);
     let pos = bracketEnd + 1;
     let url = null;
-
-    // Check for (url) after ]
     if (pos < text.length && text[pos] === '(') {
         const parenEnd = text.indexOf(')', pos + 1);
         if (parenEnd !== -1) {
-            url = text.slice(pos + 1, parenEnd);
+            const potentialUrl = text.slice(pos + 1, parenEnd);
+
+            const lowerUrl = potentialUrl.toLowerCase();
+            if (lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://')) {
+                url = potentialUrl;
+            }
+
             pos = parenEnd + 1;
         }
     } else if (pos < text.length && text[pos] === '<') {
