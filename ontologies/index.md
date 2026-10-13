@@ -54,6 +54,14 @@ The canonical vocabulary of *literal types* for RDF. XSD provides atomic datatyp
 
 These vocabularies provide standardized ways to describe and catalog resources, enabling discovery and interoperability across distributed data systems.
 
+### [Content is RDF](./content.md)
+
+The ontology defines a hierarchy of content types, all rooted in a single base class. Specialized subclasses handle binary, textual, and XML content, each carrying the properties appropriate to its encoding.
+
+**Use case**: Use CNT to define content blocks and text data stored in RDF as literal values.
+
+---
+
 ### [DCTERMS — Dublin Core Metadata Terms](./dcterms.md)
 
 The foundational metadata vocabulary, maintained by the Dublin Core Metadata Initiative since 1995. DCTERMS provides 50+ properties for describing any resource: `dcterms:title`, `dcterms:creator`, `dcterms:date`, `dcterms:subject`, `dcterms:description`, `dcterms:license`, and many more. It also defines classes like `dcterms:Agent`, `dcterms:Location`, `dcterms:BibliographicResource`, and encoding schemes like ISO 639 (languages), ISO 3166 (countries), and Dewey Decimal Classification.
