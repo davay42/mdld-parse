@@ -137,6 +137,19 @@ A collaborative vocabulary for structured data on the web, supported by Google, 
 
 Specialized vocabularies tailored to specific scientific, cultural, linguistic, and technical domains.
 
+### [ODRL - Open Digital Rights Language](./odrl.md)
+
+ODRL (Open Digital Rights Language) is a W3C Recommendation ontology used to express rules, rights, permissions, obligations, and prohibitions governing digital or physical assets. It provides a machine-readable way to answer questions like: 
+- Who can exercise what action on which resource?
+- Under what conditions or temporal/spatial constraints?   
+- What duties (e.g., payment, attribution, logging) must be fulfilled first?  
+
+**Use Cases**:
+- Educational Content Licensing: Granting students permission to odrl:read or odrl:derive course materials, provided they do not odrl:distribute them commercially.
+- Data Governance & APIs: Controlling access to REST endpoints or RDF datasets (e.g., "API access granted to active subscribers only during business hours").
+- Open Access & DRM: Expressing Creative Commons-style terms or commercial digital rights (e.g., "Pay $10 (Duty) to download and view the media block 5 times (Constraint)").
+- Privacy Policies & Compliance: Restricting how personal or sensitive user data can be processed or retained.
+
 ### [CIDOC CRM — Conceptual Reference Model](./cidoc_crm.md)
 
 The international standard for cultural heritage information, used by museums, archives, and historical research communities. CIDOC CRM models entities (`cidoc_crm:E1_CRM_Entity`), physical objects, events, actors, temporal relationships, and provenance with museum-grade precision. It supports complex inheritance hierarchies for describing cultural objects and their transformations over time.
