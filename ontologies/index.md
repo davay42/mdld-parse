@@ -54,7 +54,7 @@ The canonical vocabulary of *literal types* for RDF. XSD provides atomic datatyp
 
 These vocabularies provide standardized ways to describe and catalog resources, enabling discovery and interoperability across distributed data systems.
 
-### [Content is RDF](./content.md)
+### [CNT - Content in RDF](./content.md)
 
 The ontology defines a hierarchy of content types, all rooted in a single base class. Specialized subclasses handle binary, textual, and XML content, each carrying the properties appropriate to its encoding.
 
@@ -75,6 +75,14 @@ The foundational metadata vocabulary, maintained by the Dublin Core Metadata Ini
 The W3C standard for publishing structured metadata about datasets and data services. DCAT introduces `dcat:Catalog` (a curated collection of metadata), `dcat:Dataset` (a collection of data), `dcat:Distribution` (a concrete file or API endpoint), and `dcat:DataService` (a service providing data). It enables cross-catalog discovery and federated searching.
 
 **Use case (2026):** Build a data portal that aggregates datasets from multiple agencies or organizations. DCAT enables searching across decentralized catalogs, automatic discovery of datasets, and federation of metadata. Government open data platforms, research data repositories, and corporate data governance use DCAT for machine-readable data discovery.
+
+---
+
+### [ORG - Organization Ontology](./org.md)
+
+Vocabulary for describing organizational structures, specializable to a broad variety of types of organization.
+
+**Use cases**: Modeling departments, cross-functional teams, roles, reporting lines, and post positions for course creators, internal permissions, or corporate training hierarchies.
 
 ---
 
