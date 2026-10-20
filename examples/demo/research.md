@@ -7,7 +7,7 @@ This paper explores how deep learning attention mechanisms can improve automated
 
 ## Authors {=research:authors .prov:Entity label}
 
-The work was led by **[Dr. Sarah Martinez](mailto:sarah.martinez@mit.edu)** {rdfs:label} {research:email} at MIT, who served as [Lead Researcher] {research:role} and was responsible for [methodology development] {research:contribution}. Joining her was **[Dr. James Liu](mailto:james.liu@mit.edu)** {=research:james-liu .prov:Person rdfs:label research:email}, the team's [ML Engineer] {research:role}, who took charge of [model implementation] {research:contribution}.
+The work was led by **[Dr. Sarah Martinez](mailto:sarah.martinez@mit.edu)** {research:email} at MIT, who served as [Lead Researcher] {research:role} and was responsible for [methodology development] {research:contribution}. Joining her was **[Dr. James Liu](mailto:james.liu@mit.edu)** {=research:james-liu .prov:Person rdfs:label research:email}, the team's [ML Engineer] {research:role}, who took charge of [model implementation] {research:contribution}.
 
 ## Research Activity {=research:research-activity .prov:Activity label}
 
