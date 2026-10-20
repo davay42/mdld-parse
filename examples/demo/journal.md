@@ -40,7 +40,7 @@ Back [home] {+j:place/home .prov:Location ?prov:atLocation label}. Ground the [b
 
 Split between reading and grinding through docs.
 
-##### Reading {=#reading .prov:Activity label}
+##### Reading {=#reading .prov:Activity ?prov:wasInformedBy label}
 
 [2] {j:durationHours ^^xsd:integer} hours with [Dune] {+j:dune-book .prov:Entity ?prov:used label} — got through [42] {j:pages ^^xsd:integer} pages. Wrote up [some notes] {+j:reading-notes .prov:Entity ?prov:generated label} while it was fresh.
 
@@ -50,9 +50,11 @@ Split between reading and grinding through docs.
 
 #### Evening — coffee with Sam {=#social .prov:Activity ?prov:wasInformedBy label}
 
-Met [Sam] {+j:sam .prov:Person ?prov:wasAssociatedWith label} at [our usual spot] {+j:place/cafe .prov:Location ?prov:atLocation label}. [30] {j:durationMin ^^xsd:integer} minutes turned into a real conversation about [career changes] {j:topic}.
+Met [Sam] {+j:sam .prov:Person ?prov:wasAssociatedWith label} at [our usual spot] {+j:place/cafe .prov:Location ?prov:atLocation label}. [30] {j:durationMin ^^xsd:integer} minutes turned into a real conversation about [the book] {+j:dune-book ?j:topic}.
 
-### Wrap-up {=j:2026/05/06/summary .prov:Entity label}
+### Journaling - short session about 60 LOC {=#journaling .prov:Activity ?prov:wasInformedBy label}
+
+### Wrap-up {=#summary .prov:Entity ?prov:wasGeneratedBy label}
 
 Mood: [happy] {j:mood}. Energy [8] {j:energy ^^xsd:integer}/10, stress [2] {j:stress ^^xsd:integer}/10 — good ratio. Was out at [Central Park] {+j:place/central-park ?j:visited}, [home] {+j:place/home ?j:visited}, and [the café] {+j:place/cafe ?j:visited}.
 
