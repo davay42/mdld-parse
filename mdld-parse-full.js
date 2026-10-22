@@ -378,7 +378,7 @@ function M(e) {
 		attrs: r
 	};
 }
-function ee(e) {
+function N(e) {
 	let t = 0;
 	for (; t < e.length && (e[t] === " " || e[t] === "	");) t++;
 	if (t >= e.length || e[t] !== "{" || (t++, t >= e.length || e[t] !== "=")) return null;
@@ -390,12 +390,12 @@ function ee(e) {
 	for (t++; t < e.length && (e[t] === " " || e[t] === "	");) t++;
 	return t < e.length ? null : { content: i };
 }
-function te(e, t, n = "[", r = "]") {
+function ee(e, t, n = "[", r = "]") {
 	let i = 1, a = t + 1;
 	for (; a < e.length && i > 0;) e[a] === n && i++, e[a] === r && i--, i > 0 && a++;
 	return i === 0 ? a : null;
 }
-function N(e, t) {
+function te(e, t) {
 	let n = t;
 	for (; n < e.length && (e[n] === " " || e[n] === "	");) n++;
 	if (n >= e.length || e[n] !== "{") return null;
@@ -430,7 +430,7 @@ function P(e, t) {
 				s++;
 				continue;
 			}
-			let t = e.slice(o, s), a = s + r, c = N(e, a), l = c ? c.endPos : a;
+			let t = e.slice(o, s), a = s + r, c = te(e, a), l = c ? c.endPos : a;
 			return {
 				type: i,
 				content: t,
@@ -452,7 +452,7 @@ function F(e, t) {
 	let r = "`".repeat(n), i = t + n, a = i;
 	for (; a < e.length;) {
 		if (e.slice(a, a + n) === r) {
-			let t = e.slice(i, a), r = a + n, o = N(e, r), s = o ? o.endPos : r;
+			let t = e.slice(i, a), r = a + n, o = te(e, r), s = o ? o.endPos : r;
 			return {
 				type: "code",
 				content: t,
@@ -468,7 +468,7 @@ function F(e, t) {
 }
 function I(e, t) {
 	if (e[t] !== "[") return null;
-	let n = te(e, t, "[", "]");
+	let n = ee(e, t, "[", "]");
 	if (!n) return null;
 	let r = e.slice(t + 1, n), i = n + 1, a = null;
 	if (i < e.length && e[i] === "(") {
@@ -484,7 +484,7 @@ function I(e, t) {
 			n.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/) && (a = n, i = t + 1);
 		}
 	}
-	let o = N(e, i), s = o ? o.endPos : i;
+	let o = te(e, i), s = o ? o.endPos : i;
 	return {
 		type: a ? "link" : "span",
 		text: r,
@@ -502,7 +502,7 @@ function L(e, t = 0) {
 		switch (r) {
 			case "<":
 				if (a = ne(e, i), a) {
-					let t = N(e, a.endPos);
+					let t = te(e, a.endPos);
 					t && (a.attrs = t.attrs, a.endPos = t.endPos), a.type = "link", a.text = a.url;
 				}
 				break;
@@ -852,7 +852,7 @@ function De(e) {
 		},
 		{
 			type: "standalone",
-			test: (e) => ee(e),
+			test: (e) => N(e),
 			process: v
 		},
 		{
@@ -1229,7 +1229,7 @@ function W(e, t, n) {
 	});
 }
 function ze(e, t) {
-	let n = ee(e.text);
+	let n = N(e.text);
 	if (!n) return;
 	let r = B(`{=${n.content}}`), i = e.range[0] + e.text.indexOf("{="), a = 3 + (n.content ? n.content.length : 0);
 	Re({
@@ -2347,12 +2347,12 @@ var Ut = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 			let r = A.get(t) || 0;
 			A.set(t, r + 1), O[e] = (r - (n - 1) / 2) * 16 * (v[e] < y[e] ? 1 : -1);
 		}
-		let j = this._ids, M = this._L, ee = M.x, te = M.y, N = M.pin, ne = this._seed;
+		let j = this._ids, M = this._L, N = M.x, ee = M.y, te = M.pin, ne = this._seed;
 		this._seed = null;
 		let P = new Float64Array(g), F = new Float64Array(g), I = new Uint8Array(g), L = new Uint8Array(g);
 		for (let e = 0; e < g; e++) {
 			let n = ne?.[t[e]], r = j?.get(t[e]);
-			n ? (P[e] = n[0], F[e] = n[1], I[e] = 1) : r !== void 0 && (P[e] = ee[r], F[e] = te[r], I[e] = 1, L[e] = N[r] & 1);
+			n ? (P[e] = n[0], F[e] = n[1], I[e] = 1) : r !== void 0 && (P[e] = N[r], F[e] = ee[r], I[e] = 1, L[e] = te[r] & 1);
 		}
 		let R = j && j.size > 0 && I.some((e) => e), re = Int32Array.from({ length: g }, (e, t) => t).sort((e, t) => w[t] - w[e]);
 		Ht(g, v, y, x, C, re, P, F, I, M.linkDist);
@@ -2688,8 +2688,11 @@ kt(Wt, "observedAttributes", [
 ]), typeof customElements < "u" && !customElements.get("quad-graph") && customElements.define("quad-graph", Wt);
 //#endregion
 //#region src/render.js
-function Gt(e, t = {}) {
-	let n = e.split("\n"), r = Kt(n, t.context);
+function Gt(e) {
+	return /^(\s*[-*_]\s*){3,}$/.test(e);
+}
+function Kt(e, t = {}) {
+	let n = e.split("\n"), r = qt(n, t.context);
 	function i(e) {
 		return !e || e === "RESET" ? null : e.startsWith("=#") || e.startsWith("#") ? e : x(e, r);
 	}
@@ -2704,19 +2707,27 @@ function Gt(e, t = {}) {
 		return n && (r += " " + n[1], i = t.replace(/class="[^"]*"/, "").trim()), `class="${r}"${i ? " " + i : ""}`;
 	}
 	function s(e) {
+		e = e.replace(/<!--[\s\S]*?-->/g, "");
 		let t = L(e, 0);
 		if (t.length === 0) return V(e);
 		let n = "", r = 0;
 		for (let i of t) {
 			i.range[0] > r && (n += V(e.slice(r, i.range[0])));
-			let t = i.attrs ? w(i.attrs) : null, c = i.attrs || "", l = i.type === "link", u = i.url || null, d = "span", f = "mdld-bracket";
-			i.type === "link" ? (d = "a", f = "mdld-link") : i.type === "code" ? (d = "code", f = "mdld-code") : i.type === "strong" ? (d = "strong", f = "mdld-bold") : i.type === "emphasis" && (d = "em", f = "mdld-italic");
-			let p = a(c, t, l, u), m = o(f, p);
-			n += `<${d} ${m}>${s(i.text)}</${d}>`, r = i.range[1];
+			let t = i.attrs ? w(i.attrs) : null, c = i.attrs || "", l = i.type === "link", u = i.url || null;
+			if (i.type === "image") {
+				let e = V(i.text), r = V(i.url), s = o("mdld-image", a(c, t, !1, null));
+				n += `<img src="${r}" alt="${e}" ${s} />`;
+			} else {
+				let e = "span", r = "mdld-bracket";
+				i.type === "link" ? (e = "a", r = "mdld-link") : i.type === "code" ? (e = "code", r = "mdld-code") : i.type === "strong" ? (e = "strong", r = "mdld-bold") : i.type === "emphasis" && (e = "em", r = "mdld-italic");
+				let d = a(c, t, l, u), f = o(r, d);
+				n += `<${e} ${f}>${s(i.text)}</${e}>`;
+			}
+			r = i.range[1];
 		}
 		return r < e.length && (n += V(e.slice(r))), n;
 	}
-	let c = [], l = 0, u = null;
+	let c = [], l = 0, u = null, d = !1;
 	for (; l < n.length;) {
 		let e = n[l];
 		if (u) {
@@ -2727,69 +2738,118 @@ function Gt(e, t = {}) {
 			l++;
 			continue;
 		}
-		if (e.trim() === "") {
+		if (d) {
+			let t = e.indexOf("-->");
+			if (t !== -1) d = !1, e = e.slice(t + 3);
+			else {
+				l++;
+				continue;
+			}
+		}
+		let t = "", i = e;
+		for (;;) {
+			let e = i.indexOf("<!--");
+			if (e === -1) {
+				t += i;
+				break;
+			}
+			let n = i.indexOf("-->", e);
+			if (n === -1) {
+				d = !0, t += i.slice(0, e);
+				break;
+			}
+			t += i.slice(0, e), i = i.slice(n + 3);
+		}
+		if (e = t, e.trim() === "") {
 			l++;
 			continue;
 		}
-		let t = O(e.trim());
-		if (t) {
+		let f = O(e.trim());
+		if (f) {
 			u = {
-				fenceChar: t.fenceChar,
-				fenceLength: t.fenceLength,
-				lang: t.lang,
-				attrs: t.attrs,
+				fenceChar: f.fenceChar,
+				fenceLength: f.fenceLength,
+				lang: f.lang,
+				attrs: f.attrs,
 				content: []
 			}, l++;
 			continue;
 		}
-		let i = k(e);
-		if (i) {
-			let e = r[i.prefix];
-			c.push(`<div class="mdld-prefix" data-prefix="${i.prefix}" data-raw="${V(i.iri)}" data-iri="${V(e)}" style="display:none"></div>`), l++;
+		let p = k(e);
+		if (p) {
+			let e = r[p.prefix];
+			c.push(`<div class="mdld-prefix" data-prefix="${p.prefix}" data-raw="${V(p.iri)}" data-iri="${V(e)}" style="display:none"></div>`), l++;
 			continue;
 		}
-		let d = A(e);
-		if (d) {
-			let e = d.attrs ? w(d.attrs) : null, t = o("mdld-heading", a(d.attrs, e));
-			c.push(`<h${d.depth} ${t}>${s(d.content)}</h${d.depth}>`), l++;
+		let m = A(e);
+		if (m) {
+			let e = m.attrs ? w(m.attrs) : null, t = o("mdld-heading", a(m.attrs, e));
+			c.push(`<h${m.depth} ${t}>${s(m.content)}</h${m.depth}>`), l++;
 			continue;
 		}
 		if (j(e)) {
-			for (c.push("<ul class=\"mdld-list\">"); l < n.length;) {
+			let t = /^\s*\d+[.)]\s/.test(e), r = t ? "ol" : "ul";
+			c.push(`<${r} class="mdld-list">`);
+			let i = [], u = null, d = (e, t) => {
+				let n = o("mdld-item", a(t, t ? w(t) : null));
+				c.push(`<li ${n}>${s(e.join("\n"))}</li>`);
+			};
+			for (; l < n.length;) {
 				let e = j(n[l]);
-				if (!e) break;
-				let t = e.attrs ? w(e.attrs) : null, r = o("mdld-item", a(e.attrs, t));
-				c.push(`<li ${r}>${s(e.content)}</li>`), l++;
+				if (e) {
+					let r = /^\s*\d+[.)]\s/.test(n[l]);
+					if (i.length > 0 && r !== t) break;
+					i.length > 0 && (d(i, u), i = []), i.push(e.content), u = e.attrs, l++;
+				} else if (n[l].trim() === "") {
+					let e = l + 1;
+					for (; e < n.length && n[e].trim() === "";) e++;
+					if (e < n.length) {
+						if (j(n[e]) && /^\s*\d+[.)]\s/.test(n[e]) === t) {
+							i.push(""), l = e;
+							continue;
+						}
+						if (/^\s{2,}/.test(n[e]) || /^\t/.test(n[e])) {
+							i.push(""), l = e;
+							continue;
+						}
+					}
+					break;
+				} else if (/^\s{2,}/.test(n[l]) || /^\t/.test(n[l])) i.push(n[l].replace(/^(\s{2,}|\t)/, "")), l++;
+				else break;
 			}
-			c.push("</ul>");
+			i.length > 0 && d(i, u), c.push(`</${r}>`);
 			continue;
 		}
-		let f = M(e);
-		if (f) {
-			let e = [f.content];
+		let h = M(e);
+		if (h) {
+			let e = [h.content];
 			for (l++; l < n.length;) {
 				let t = M(n[l]);
 				if (!t) break;
 				e.push(t.content), l++;
 			}
-			let t = f.attrs ? w(f.attrs) : null, r = o("mdld-quote", a(f.attrs, t)), i = e.join("\n");
-			c.push(`<blockquote ${r}>${s(i)}</blockquote>`);
+			let t = h.attrs ? w(h.attrs) : null, i = o("mdld-quote", a(h.attrs, t)), s = Kt(e.join("\n"), { context: r });
+			c.push(`<blockquote ${i}>${s}</blockquote>`);
 			continue;
 		}
-		let p = ee(e);
-		if (p) {
-			let e = w(`=${p.content}`), t = o("mdld-standalone", a(`=${p.content}`, e));
+		let g = N(e);
+		if (g) {
+			let e = w(`=${g.content}`), t = o("mdld-standalone", a(`=${g.content}`, e));
 			c.push(`<div ${t} style="display:none"></div>`), l++;
 			continue;
 		}
-		let m = [e];
-		for (l++; l < n.length && n[l].trim() !== "" && !O(n[l].trim()) && !k(n[l]) && !A(n[l]) && !j(n[l]) && !M(n[l]) && !ee(n[l]);) m.push(n[l]), l++;
-		let h = m.join("\n");
-		c.push(`<p class="mdld-paragraph">${s(h)}</p>`);
+		if (Gt(e)) {
+			c.push("<hr class=\"mdld-hr\" />"), l++;
+			continue;
+		}
+		let _ = [e];
+		for (l++; l < n.length && n[l].trim() !== "" && !O(n[l].trim()) && !k(n[l]) && !A(n[l]) && !j(n[l]) && !M(n[l]) && !N(n[l]) && !Gt(n[l]);) _.push(n[l]), l++;
+		let v = _.join("\n");
+		c.push(`<p class="mdld-paragraph">${s(v)}</p>`);
 	}
 	return c.join("\n");
 }
-function Kt(t, n = {}) {
+function qt(t, n = {}) {
 	let r = {
 		...e,
 		...n
@@ -2807,7 +2867,7 @@ function Kt(t, n = {}) {
 	}
 	return r;
 }
-function qt(e) {
+function Jt(e) {
 	let t = [], n = 0;
 	for (; n < e.length;) {
 		for (; n < e.length && /\s/.test(e[n]);) n++;
@@ -2821,7 +2881,7 @@ function qt(e) {
 			let r = e.indexOf("</p>", n);
 			if (r === -1) break;
 			let i = e.indexOf(">", n) + 1, a = e.slice(i, r);
-			t.push(Jt(a)), n = r + 4;
+			t.push(Yt(a)), n = r + 4;
 		} else if (a.startsWith("<div") && Y(a, "class")?.includes("mdld-prefix")) {
 			let r = e.indexOf("></div>", n);
 			if (r === -1) break;
@@ -2836,35 +2896,35 @@ function qt(e) {
 			let r = e.indexOf("</code></pre>", n);
 			if (r === -1) break;
 			let i = e.slice(n, r + 13), a = i.indexOf(">") + 1, o = i.indexOf(">", a) + 1, s = i.slice(a, o), c = i.slice(o, i.length - 13), l = (Y(s, "class") || "").match(/language-(\w+)/), u = l ? l[1] : "", d = Y(s, "data-annotation");
-			t.push(`\`\`\`${u}${d ? " " + d : ""}\n${Xt(c)}\n\`\`\``), n = r + 13;
+			t.push(`\`\`\`${u}${d ? " " + d : ""}\n${Zt(c)}\n\`\`\``), n = r + 13;
 		} else if (e[n] === "<" && /^<h[1-6]/.test(e.slice(n, n + 4))) {
 			let r = e[n + 2], i = `</h${r}>`, a = e.indexOf(i, n);
 			if (a === -1) break;
 			let o = e.slice(n, a + i.length), s = o.indexOf(">") + 1, c = o.slice(0, s), l = o.slice(s, o.length - i.length), u = "#".repeat(parseInt(r)), d = Y(c, "data-annotation");
-			t.push(`${u} ${Jt(l)}${d ? " " + d : ""}`), n = a + i.length;
+			t.push(`${u} ${Yt(l)}${d ? " " + d : ""}`), n = a + i.length;
 		} else if (e.startsWith("<blockquote", n)) {
 			let r = e.indexOf("</blockquote>", n);
 			if (r === -1) break;
 			let i = e.slice(n, r + 13), a = i.indexOf(">") + 1, o = i.slice(0, a), s = i.slice(a, i.length - 13), c = Y(o, "data-annotation"), l = Jt(s).split("\n").map((e) => e.trim() ? `> ${e}` : ">").join("\n");
 			t.push(c ? `${l} ${c}` : l), n = r + 13;
-		} else if (e.startsWith("<ul class=\"mdld-list\">", n)) {
-			let r = e.indexOf("</ul>", n);
-			if (r === -1) break;
-			let i = e.slice(n + 21, r), a = [], o = 0;
-			for (; o < i.length;) {
-				let e = i.indexOf("<li", o);
+		} else if (e.startsWith("<ul class=\"mdld-list\">", n) || e.startsWith("<ol class=\"mdld-list\">", n)) {
+			let r = e.startsWith("<ol", n), i = r ? "</ol>" : "</ul>", a = e.indexOf(i, n);
+			if (a === -1) break;
+			let o = e.slice(n + 21, a), s = [], c = 0, l = 1;
+			for (; c < o.length;) {
+				let e = o.indexOf("<li", c);
 				if (e === -1) break;
-				let t = i.indexOf("</li>", e);
+				let t = o.indexOf("</li>", e);
 				if (t === -1) break;
-				let n = i.slice(e, t + 5), r = n.indexOf(">") + 1, s = n.slice(0, r), c = n.slice(r, n.length - 5), l = Y(s, "data-annotation");
-				a.push(`- ${Jt(c)}${l ? " " + l : ""}`), o = t + 5;
+				let n = o.slice(e, t + 5), i = n.indexOf(">") + 1, a = n.slice(0, i), u = n.slice(i, n.length - 5), d = Y(a, "data-annotation"), f = Yt(u).split("\n"), p = r ? "   " : "  ", m = f.map((e, t) => t === 0 ? e : `${p}${e}`).join("\n"), h = r ? `${l}. ` : "- ";
+				s.push(`${h}${m}${d ? " " + d : ""}`), l++, c = t + 5;
 			}
-			t.push(a.join("\n")), n = r + 5;
-		} else n++;
+			t.push(s.join("\n")), n = a + i.length;
+		} else a.startsWith("<hr") && Y(a, "class")?.includes("mdld-hr") ? (t.push("---"), n = i + 1) : n++;
 	}
 	return t.join("\n\n");
 }
-function Jt(e) {
+function Yt(e) {
 	let t = "", n = 0;
 	for (; n < e.length;) if (e[n] === "<") {
 		let r = e.indexOf(">", n);
@@ -2877,31 +2937,51 @@ function Jt(e) {
 			n = r + 1;
 			continue;
 		}
-		let a = i.search(/[\s/]/), o = (a === -1 ? i : i.slice(0, a)).toLowerCase(), s = a === -1 ? "" : i.slice(a), c = `</${o}>`, l = 1, u = r + 1, d = !1;
+		let a = i.search(/[\s/]/), o = (a === -1 ? i : i.slice(0, a)).toLowerCase(), s = a === -1 ? "" : i.slice(a);
+		if (i.endsWith("/")) {
+			t += Xt(o, s, ""), n = r + 1;
+			continue;
+		}
+		let c = `</${o}>`, l = 1, u = r + 1, d = !1;
 		for (; u < e.length && l > 0;) {
-			let i = e.indexOf(`<${o}`, u), a = e.indexOf(c, u);
-			if (a === -1) break;
-			if (i !== -1 && i < a) l++, u = i + 1;
-			else {
-				if (l--, l === 0) {
-					let i = e.slice(r + 1, a);
-					t += Yt(o, s, i), n = a + c.length, d = !0;
+			let i = -1, a = u;
+			for (; a < e.length;) {
+				let t = e.indexOf(`<${o}`, a);
+				if (t === -1) break;
+				let n = e[t + o.length + 1];
+				if (n === " " || n === ">" || n === "/" || n === void 0) {
+					i = t;
 					break;
 				}
-				u = a + 1;
+				a = t + 1;
+			}
+			let f = e.indexOf(c, u);
+			if (f === -1) break;
+			if (i !== -1 && i < f) l++, u = i + 1;
+			else {
+				if (l--, l === 0) {
+					let i = e.slice(r + 1, f);
+					t += Xt(o, s, i), n = f + c.length, d = !0;
+					break;
+				}
+				u = f + 1;
 			}
 		}
 		d || (t += e[n], n++);
 	} else {
 		let r = e.indexOf("<", n), i = r === -1 ? e.length : r;
-		t += Xt(e.slice(n, i)), n = i;
+		t += Zt(e.slice(n, i)), n = i;
 	}
 	return t;
 }
-function Yt(e, t, n) {
-	let r = Y(t, "data-annotation"), i = Jt(n), a = r ? " " + r : "";
+function Xt(e, t, n) {
+	let r = Y(t, "data-annotation"), i = Yt(n), a = r ? " " + r : "";
 	switch (e) {
 		case "a": return `[${i}](${Y(t, "href") || ""})${a}`;
+		case "img": {
+			let e = Y(t, "src") || "";
+			return `![${Y(t, "alt") || ""}](${e})${a}`;
+		}
 		case "span": return `[${i}]${a}`;
 		case "code": return `\`${i}\`${a}`;
 		case "strong": return `**${i}**${a}`;
@@ -2911,9 +2991,9 @@ function Yt(e, t, n) {
 }
 function Y(e, t) {
 	let n = RegExp(`(?:\\s|^)${t}=(["'])(.*?)\\1`, "is"), r = e.match(n);
-	return r ? Xt(r[2]) : null;
+	return r ? Zt(r[2]) : null;
 }
-function Xt(e) {
+function Zt(e) {
 	return String(e).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
 }
 //#endregion
@@ -2936,7 +3016,7 @@ function Q(e, t) {
 	}
 	return !1;
 }
-function Zt(e, t) {
+function Qt(e, t) {
 	let n = e[t];
 	if (n === "*" && t + 1 < e.length && e[t + 1] === "*") {
 		let n = e.indexOf("**", t + 2);
@@ -2990,8 +3070,8 @@ function Zt(e, t) {
 	}
 	return null;
 }
-var Qt = /* @__PURE__ */ new Map();
-function $t(e) {
+var $t = /* @__PURE__ */ new Map();
+function en(e) {
 	let t = 0;
 	for (let n = 0; n < e.length; n++) {
 		let r = e.charCodeAt(n);
@@ -2999,12 +3079,12 @@ function $t(e) {
 	}
 	return Math.abs(t);
 }
-function en(e) {
-	if (Qt.has(e)) return Qt.get(e);
-	let t = $t(e), n = `hsl(${t % 360}, ${15 + t % 10}%, ${45 + t % 10}%)`;
-	return Qt.set(e, n), n;
+function tn(e) {
+	if ($t.has(e)) return $t.get(e);
+	let t = en(e), n = `hsl(${t % 360}, ${15 + t % 10}%, ${45 + t % 10}%)`;
+	return $t.set(e, n), n;
 }
-function tn(t) {
+function nn(t) {
 	let n = /* @__PURE__ */ new Map(), r = /^\[(\w+)\]\s*<([^>]*)>\s*$/gm, i;
 	for (; (i = r.exec(t)) !== null;) {
 		let e = i[1], t = i[2];
@@ -3025,13 +3105,13 @@ function $(e, t, n) {
 	if (i > 0) {
 		let t = e.slice(0, i), r = e.slice(i + 1);
 		if (n.has(t)) {
-			let e = n.get(t), i = en(e), a = e + r, o = en(a);
+			let e = n.get(t), i = tn(e), a = e + r, o = tn(a);
 			return `<span data-iri="${a}"><span style="color: ${i}">${X(t)}</span><span style="color: ${Z.marker}">:</span><span  style="color: ${o}">${X(r)}</span></span> `;
 		}
 	}
-	return e.startsWith("http:") || e.startsWith("https:") || e.startsWith("tag:") || e.startsWith("urn:") ? `<span style="color: ${en(e)}">${X(e)}</span> ` : `<span style="color: ${r}">${X(e)}</span> `;
+	return e.startsWith("http:") || e.startsWith("https:") || e.startsWith("tag:") || e.startsWith("urn:") ? `<span style="color: ${tn(e)}">${X(e)}</span> ` : `<span style="color: ${r}">${X(e)}</span> `;
 }
-function nn(e, t) {
+function rn(e, t) {
 	let n = e.trim().split(/\s+/), r = "", i = !1;
 	for (let e = 0; e < n.length; e++) {
 		let a = n[e];
@@ -3074,8 +3154,8 @@ function nn(e, t) {
 	}
 	return r.trim();
 }
-function rn(e) {
-	let t = tn(e), n = "", r = 0;
+function an(e) {
+	let t = nn(e), n = "", r = 0;
 	for (; r < e.length;) {
 		let i = e[r];
 		if (i === "{") {
@@ -3084,7 +3164,7 @@ function rn(e) {
 				n += X(i), r++;
 				continue;
 			}
-			let o = nn(e.slice(r + 1, a), t);
+			let o = rn(e.slice(r + 1, a), t);
 			n += `<span class="mdld-annotation"><span style="color: ${Z.annotation}; opacity: 0.75">{</span>`, n += o, n += `<span style="color: ${Z.annotation}; opacity: 0.75">}</span></span>`, r = a + 1;
 			continue;
 		}
@@ -3099,7 +3179,7 @@ function rn(e) {
 			if (s < e.length && e[s] === "<") {
 				let i = e.indexOf(">", s);
 				if (i !== -1) {
-					let a = e.slice(s + 1, i), c = t.has(o) ? en(t.get(o)) : Z.text;
+					let a = e.slice(s + 1, i), c = t.has(o) ? tn(t.get(o)) : Z.text;
 					n += `<span style="color: ${Z.annotation}; opacity: 0.75">[</span><span style="color: ${c}">${X(o)}</span><span style="color: ${Z.annotation}; opacity: 0.75">]</span> <span style="color: ${Z.text}; opacity: 0.6">&lt;${X(a)}&gt;</span>`, r = i + 1;
 					continue;
 				}
@@ -3109,7 +3189,7 @@ function rn(e) {
 			continue;
 		}
 		if (i === "*" || i === "_" || i === "`") {
-			let t = Zt(e, r);
+			let t = Qt(e, r);
 			if (t) {
 				n += t.html, r = t.nextIndex;
 				continue;
@@ -3125,7 +3205,7 @@ function rn(e) {
 					if (e === -1) break;
 					let n = c.slice(u, d);
 					l += X(n);
-					let r = nn(c.slice(d + 1, e), t);
+					let r = rn(c.slice(d + 1, e), t);
 					l += `<span class="mdld-annotation"><span style="color: ${Z.annotation}; opacity: 0.75">{</span>` + r + `<span style="color: ${Z.annotation}; opacity: 0.75">}</span></span>`, u = e + 1, d = c.indexOf("{", u);
 				}
 				l += X(c.slice(u));
@@ -3155,4 +3235,4 @@ function rn(e) {
 	return n;
 }
 //#endregion
-export { e as DEFAULT_CONTEXT, _ as DataFactory, Vt as Layout, Wt as QuadGraph, Z as TOKEN_COLORS, Qt as colorCache, Et as crawl, qt as deconstruct, X as escapeHtml, x as expandIRI, lt as extractLinks, Ge as generate, Ke as generateNode, en as getIRIColor, y as hash, $t as hashIRI, rn as highlight, v as locate, at as memoryCache, He as merge, Te as parse, w as parseSemanticBlock, Gt as render, S as shortenIRI, Ze as updateValue };
+export { e as DEFAULT_CONTEXT, _ as DataFactory, Vt as Layout, Wt as QuadGraph, Z as TOKEN_COLORS, $t as colorCache, Et as crawl, Jt as deconstruct, X as escapeHtml, x as expandIRI, lt as extractLinks, Ge as generate, Ke as generateNode, tn as getIRIColor, y as hash, en as hashIRI, an as highlight, v as locate, at as memoryCache, He as merge, Te as parse, w as parseSemanticBlock, Kt as render, S as shortenIRI, Ze as updateValue };

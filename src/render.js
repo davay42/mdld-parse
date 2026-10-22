@@ -6,6 +6,10 @@ import { escapeHtml } from './shared.js';
 import { expandIRI, parseSemanticBlock } from './utils.js';
 import { DEFAULT_CONTEXT } from './constants.js';
 
+function detectHr(line) {
+  return /^(\s*[-*_]\s*){3,}$/.test(line);
+}
+
 /**
  * MD-LD UI Renderer
  * 
@@ -42,8 +46,6 @@ export function render(src, options = {}) {
       attrs.push(`data-iri="${escapeHtml(iri)}"`);
     }
 
-    // For links, always use the original URL (fallbackHref) as-is, never expand it
-    // This preserves local URLs like ./local/path and prevents rdfs prefix bugs
     if (isLink && fallbackHref) {
       attrs.push(`href="${escapeHtml(fallbackHref)}"`);
     }
@@ -72,6 +74,8 @@ export function render(src, options = {}) {
   }
 
   function renderInline(text) {
+    text = text.replace(/<!--[\s\S]*?-->/g, '');
+
     const carriers = scanInlineCarriers(text, 0);
     if (carriers.length === 0) return escapeHtml(text);
 
@@ -86,17 +90,25 @@ export function render(src, options = {}) {
       const isLink = c.type === 'link';
       const fallbackHref = c.url || null;
 
-      let tag = 'span';
-      let baseClass = 'mdld-bracket';
-      if (c.type === 'link') { tag = 'a'; baseClass = 'mdld-link'; }
-      else if (c.type === 'code') { tag = 'code'; baseClass = 'mdld-code'; }
-      else if (c.type === 'strong') { tag = 'strong'; baseClass = 'mdld-bold'; }
-      else if (c.type === 'emphasis') { tag = 'em'; baseClass = 'mdld-italic'; }
+      if (c.type === 'image') {
+        const alt = escapeHtml(c.text);
+        const src = escapeHtml(c.url);
+        const customAttrs = getAttrs(raw, sem, false, null);
+        const attrString = mergeClasses('mdld-image', customAttrs);
+        out += `<img src="${src}" alt="${alt}" ${attrString} />`;
+      } else {
+        let tag = 'span';
+        let baseClass = 'mdld-bracket';
+        if (c.type === 'link') { tag = 'a'; baseClass = 'mdld-link'; }
+        else if (c.type === 'code') { tag = 'code'; baseClass = 'mdld-code'; }
+        else if (c.type === 'strong') { tag = 'strong'; baseClass = 'mdld-bold'; }
+        else if (c.type === 'emphasis') { tag = 'em'; baseClass = 'mdld-italic'; }
 
-      const customAttrs = getAttrs(raw, sem, isLink, fallbackHref);
-      const attrString = mergeClasses(baseClass, customAttrs);
+        const customAttrs = getAttrs(raw, sem, isLink, fallbackHref);
+        const attrString = mergeClasses(baseClass, customAttrs);
 
-      out += `<${tag} ${attrString}>${renderInline(c.text)}</${tag}>`;
+        out += `<${tag} ${attrString}>${renderInline(c.text)}</${tag}>`;
+      }
       lastPos = c.range[1];
     }
 
@@ -107,9 +119,10 @@ export function render(src, options = {}) {
   const out = [];
   let i = 0;
   let codeBlock = null;
+  let inComment = false;
 
   while (i < lines.length) {
-    const line = lines[i];
+    let line = lines[i];
 
     if (codeBlock) {
       const fenceClosePattern = new RegExp(`^${codeBlock.fenceChar}{${codeBlock.fenceLength},}\\s*$`);
@@ -127,6 +140,36 @@ export function render(src, options = {}) {
       i++;
       continue;
     }
+
+    if (inComment) {
+      const endIdx = line.indexOf('-->');
+      if (endIdx !== -1) {
+        inComment = false;
+        line = line.slice(endIdx + 3);
+      } else {
+        i++;
+        continue;
+      }
+    }
+
+    let processedLine = '';
+    let current = line;
+    while (true) {
+      const startIdx = current.indexOf('<!--');
+      if (startIdx === -1) {
+        processedLine += current;
+        break;
+      }
+      const endIdx = current.indexOf('-->', startIdx);
+      if (endIdx === -1) {
+        inComment = true;
+        processedLine += current.slice(0, startIdx);
+        break;
+      }
+      processedLine += current.slice(0, startIdx);
+      current = current.slice(endIdx + 3);
+    }
+    line = processedLine;
 
     if (line.trim() === '') { i++; continue; }
 
@@ -146,8 +189,6 @@ export function render(src, options = {}) {
     const prefix = detectPrefix(line);
     if (prefix) {
       const resolvedIri = context[prefix.prefix];
-      // data-raw preserves the original folded form (e.g. "my:journal:") 
-      // for lossless prefix folding roundtrip
       out.push(`<div class="mdld-prefix" data-prefix="${prefix.prefix}" data-raw="${escapeHtml(prefix.iri)}" data-iri="${escapeHtml(resolvedIri)}" style="display:none"></div>`);
       i++;
       continue;
@@ -165,17 +206,67 @@ export function render(src, options = {}) {
 
     const list = detectList(line);
     if (list) {
-      out.push('<ul class="mdld-list">');
+      const isOrdered = /^\s*\d+[.)]\s/.test(line);
+      const listTag = isOrdered ? 'ol' : 'ul';
+      out.push(`<${listTag} class="mdld-list">`);
+
+      let currentListItemLines = [];
+      let currentAttrs = null;
+
+      const processListItem = (content, attrs) => {
+        const sem = attrs ? parseSemanticBlock(attrs) : null;
+        const customAttrs = getAttrs(attrs, sem);
+        const attrString = mergeClasses('mdld-item', customAttrs);
+        out.push(`<li ${attrString}>${renderInline(content.join('\n'))}</li>`);
+      };
+
       while (i < lines.length) {
         const l = detectList(lines[i]);
-        if (!l) break;
-        const sem = l.attrs ? parseSemanticBlock(l.attrs) : null;
-        const customAttrs = getAttrs(l.attrs, sem);
-        const attrString = mergeClasses('mdld-item', customAttrs);
-        out.push(`<li ${attrString}>${renderInline(l.content)}</li>`);
-        i++;
+        if (l) {
+          const nextIsOrdered = /^\s*\d+[.)]\s/.test(lines[i]);
+          if (currentListItemLines.length > 0 && nextIsOrdered !== isOrdered) break;
+
+          if (currentListItemLines.length > 0) {
+            processListItem(currentListItemLines, currentAttrs);
+            currentListItemLines = [];
+          }
+          currentListItemLines.push(l.content);
+          currentAttrs = l.attrs;
+          i++;
+        } else if (lines[i].trim() === '') {
+          let peek = i + 1;
+          while (peek < lines.length && lines[peek].trim() === '') peek++;
+
+          if (peek < lines.length) {
+            const nextList = detectList(lines[peek]);
+            if (nextList) {
+              const nextIsOrdered = /^\s*\d+[.)]\s/.test(lines[peek]);
+              if (nextIsOrdered === isOrdered) {
+                currentListItemLines.push('');
+                i = peek;
+                continue;
+              }
+            }
+            if (/^\s{2,}/.test(lines[peek]) || /^\t/.test(lines[peek])) {
+              currentListItemLines.push('');
+              i = peek;
+              continue;
+            }
+          }
+          break;
+        } else if (/^\s{2,}/.test(lines[i]) || /^\t/.test(lines[i])) {
+          currentListItemLines.push(lines[i].replace(/^(\s{2,}|\t)/, ''));
+          i++;
+        } else {
+          break;
+        }
       }
-      out.push('</ul>');
+
+      if (currentListItemLines.length > 0) {
+        processListItem(currentListItemLines, currentAttrs);
+      }
+
+      out.push(`</${listTag}>`);
       continue;
     }
 
@@ -192,8 +283,9 @@ export function render(src, options = {}) {
       const sem = blockquote.attrs ? parseSemanticBlock(blockquote.attrs) : null;
       const customAttrs = getAttrs(blockquote.attrs, sem);
       const attrString = mergeClasses('mdld-quote', customAttrs);
-      const carrierText = quoteLines.join('\n');
-      out.push(`<blockquote ${attrString}>${renderInline(carrierText)}</blockquote>`);
+
+      const innerHtml = render(quoteLines.join('\n'), { context });
+      out.push(`<blockquote ${attrString}>${innerHtml}</blockquote>`);
       continue;
     }
 
@@ -207,15 +299,23 @@ export function render(src, options = {}) {
       continue;
     }
 
+    if (detectHr(line)) {
+      out.push(`<hr class="mdld-hr" />`);
+      i++;
+      continue;
+    }
+
     let paraLines = [line];
     i++;
     while (i < lines.length && lines[i].trim() !== '' &&
       !detectFence(lines[i].trim()) && !detectPrefix(lines[i]) &&
       !detectHeading(lines[i]) && !detectList(lines[i]) &&
-      !detectBlockquote(lines[i]) && !detectStandaloneSubject(lines[i])) {
+      !detectBlockquote(lines[i]) && !detectStandaloneSubject(lines[i]) &&
+      !detectHr(lines[i])) {
       paraLines.push(lines[i]);
       i++;
     }
+
     const paraText = paraLines.join('\n');
     out.push(`<p class="mdld-paragraph">${renderInline(paraText)}</p>`);
   }
@@ -262,7 +362,6 @@ export function deconstruct(html) {
 
     const openTag = html.slice(nextTagStart, tagEnd + 1);
 
-    // Check for paragraph first (before blockquote to avoid false matches)
     if (openTag.startsWith('<p') && extractAttr(openTag, 'class')?.includes('mdld-paragraph')) {
       const close = html.indexOf('</p>', pos);
       if (close === -1) break;
@@ -290,9 +389,8 @@ export function deconstruct(html) {
       if (closePre === -1) break;
       const full = html.slice(pos, closePre + 13);
 
-      // FIX: Skip past <pre> to find <code> opening tag
-      const preClose = full.indexOf('>') + 1; // End of <pre>
-      const codeOpenEnd = full.indexOf('>', preClose) + 1; // End of <code ...>
+      const preClose = full.indexOf('>') + 1;
+      const codeOpenEnd = full.indexOf('>', preClose) + 1;
       const codeTag = full.slice(preClose, codeOpenEnd);
       const content = full.slice(codeOpenEnd, full.length - 13);
 
@@ -324,16 +422,20 @@ export function deconstruct(html) {
       const openTag = full.slice(0, openEnd);
       const content = full.slice(openEnd, full.length - 13);
       const ann = extractAttr(openTag, 'data-annotation');
-      const lines = deconstructInline(content).split('\n');
-      const quoted = lines.map(l => l.trim() ? `> ${l}` : '>').join('\n');
+
+      const innerMd = deconstruct(content);
+      const quoted = innerMd.split('\n').map(l => l.trim() ? `> ${l}` : '>').join('\n');
       blocks.push(ann ? `${quoted} ${ann}` : quoted);
       pos = close + 13;
-    } else if (html.startsWith('<ul class="mdld-list">', pos)) {
-      const close = html.indexOf('</ul>', pos);
+    } else if (html.startsWith('<ul class="mdld-list">', pos) || html.startsWith('<ol class="mdld-list">', pos)) {
+      const isOrdered = html.startsWith('<ol', pos);
+      const closeTag = isOrdered ? '</ol>' : '</ul>';
+      const close = html.indexOf(closeTag, pos);
       if (close === -1) break;
       const inner = html.slice(pos + 21, close);
       const items = [];
       let itemPos = 0;
+      let counter = 1;
       while (itemPos < inner.length) {
         const liStart = inner.indexOf('<li', itemPos);
         if (liStart === -1) break;
@@ -344,11 +446,22 @@ export function deconstruct(html) {
         const openTag = liFull.slice(0, openEnd);
         const liContent = liFull.slice(openEnd, liFull.length - 5);
         const ann = extractAttr(openTag, 'data-annotation');
-        items.push(`- ${deconstructInline(liContent)}${ann ? ' ' + ann : ''}`);
+
+        const deconContent = deconstructInline(liContent);
+        const lines = deconContent.split('\n');
+        const indent = isOrdered ? '   ' : '  ';
+        const indented = lines.map((l, idx) => idx === 0 ? l : `${indent}${l}`).join('\n');
+
+        const bullet = isOrdered ? `${counter}. ` : '- ';
+        items.push(`${bullet}${indented}${ann ? ' ' + ann : ''}`);
+        counter++;
         itemPos = liClose + 5;
       }
       blocks.push(items.join('\n'));
-      pos = close + 5;
+      pos = close + closeTag.length;
+    } else if (openTag.startsWith('<hr') && extractAttr(openTag, 'class')?.includes('mdld-hr')) {
+      blocks.push('---');
+      pos = tagEnd + 1;
     } else {
       pos++;
     }
@@ -370,14 +483,33 @@ function deconstructInline(html) {
       const tagName = (spaceOrEnd === -1 ? tagContent : tagContent.slice(0, spaceOrEnd)).toLowerCase();
       const attrs = spaceOrEnd === -1 ? '' : tagContent.slice(spaceOrEnd);
 
+      if (tagContent.endsWith('/')) {
+        out += deconstructInlineElement(tagName, attrs, '');
+        i = closeGt + 1;
+        continue;
+      }
+
       const closeTag = `</${tagName}>`;
       let depth = 1;
       let j = closeGt + 1;
       let found = false;
       while (j < html.length && depth > 0) {
-        const nextOpen = html.indexOf(`<${tagName}`, j);
+        let nextOpen = -1;
+        let searchIdx = j;
+        while (searchIdx < html.length) {
+          const idx = html.indexOf(`<${tagName}`, searchIdx);
+          if (idx === -1) break;
+          const nextChar = html[idx + tagName.length + 1];
+          if (nextChar === ' ' || nextChar === '>' || nextChar === '/' || nextChar === undefined) {
+            nextOpen = idx;
+            break;
+          }
+          searchIdx = idx + 1;
+        }
+
         const nextClose = html.indexOf(closeTag, j);
         if (nextClose === -1) break;
+
         if (nextOpen !== -1 && nextOpen < nextClose) {
           depth++;
           j = nextOpen + 1;
@@ -413,6 +545,11 @@ function deconstructInlineElement(tagName, attrs, inner) {
     case 'a': {
       const href = extractAttr(attrs, 'href') || '';
       return `[${content}](${href})${suffix}`;
+    }
+    case 'img': {
+      const src = extractAttr(attrs, 'src') || '';
+      const alt = extractAttr(attrs, 'alt') || '';
+      return `![${alt}](${src})${suffix}`;
     }
     case 'span': return `[${content}]${suffix}`;
     case 'code': return `\`${content}\`${suffix}`;
