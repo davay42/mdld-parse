@@ -72,6 +72,9 @@ export function render(src, options = {}) {
   }
 
   function renderInline(text) {
+    // Strip HTML comments from inline text before parsing carriers
+    text = text.replace(/<!--[\s\S]*?-->/g, '');
+
     const carriers = scanInlineCarriers(text, 0);
     if (carriers.length === 0) return escapeHtml(text);
 
@@ -107,9 +110,10 @@ export function render(src, options = {}) {
   const out = [];
   let i = 0;
   let codeBlock = null;
+  let inComment = false; // Tracks multi-line HTML comments
 
   while (i < lines.length) {
-    const line = lines[i];
+    let line = lines[i];
 
     if (codeBlock) {
       const fenceClosePattern = new RegExp(`^${codeBlock.fenceChar}{${codeBlock.fenceLength},}\\s*$`);
@@ -127,6 +131,37 @@ export function render(src, options = {}) {
       i++;
       continue;
     }
+
+    // Handle HTML comments (block level & multi-line)
+    if (inComment) {
+      const endIdx = line.indexOf('-->');
+      if (endIdx !== -1) {
+        inComment = false;
+        line = line.slice(endIdx + 3);
+      } else {
+        i++;
+        continue;
+      }
+    }
+
+    let processedLine = '';
+    let current = line;
+    while (true) {
+      const startIdx = current.indexOf('<!--');
+      if (startIdx === -1) {
+        processedLine += current;
+        break;
+      }
+      const endIdx = current.indexOf('-->', startIdx);
+      if (endIdx === -1) {
+        inComment = true;
+        processedLine += current.slice(0, startIdx);
+        break;
+      }
+      processedLine += current.slice(0, startIdx);
+      current = current.slice(endIdx + 3);
+    }
+    line = processedLine;
 
     if (line.trim() === '') { i++; continue; }
 
@@ -165,7 +200,10 @@ export function render(src, options = {}) {
 
     const list = detectList(line);
     if (list) {
-      out.push('<ul class="mdld-list">');
+      // Check if the list is ordered (e.g., "1. ", "2) ")
+      const isOrdered = /^\s*\d+[.)]\s/.test(line);
+      const listTag = isOrdered ? 'ol' : 'ul';
+      out.push(`<${listTag} class="mdld-list">`);
       while (i < lines.length) {
         const l = detectList(lines[i]);
         if (!l) break;
@@ -175,7 +213,7 @@ export function render(src, options = {}) {
         out.push(`<li ${attrString}>${renderInline(l.content)}</li>`);
         i++;
       }
-      out.push('</ul>');
+      out.push(`</${listTag}>`);
       continue;
     }
 
@@ -328,12 +366,15 @@ export function deconstruct(html) {
       const quoted = lines.map(l => l.trim() ? `> ${l}` : '>').join('\n');
       blocks.push(ann ? `${quoted} ${ann}` : quoted);
       pos = close + 13;
-    } else if (html.startsWith('<ul class="mdld-list">', pos)) {
-      const close = html.indexOf('</ul>', pos);
+    } else if (html.startsWith('<ul class="mdld-list">', pos) || html.startsWith('<ol class="mdld-list">', pos)) {
+      const isOrdered = html.startsWith('<ol', pos);
+      const closeTag = isOrdered ? '</ol>' : '</ul>';
+      const close = html.indexOf(closeTag, pos);
       if (close === -1) break;
       const inner = html.slice(pos + 21, close);
       const items = [];
       let itemPos = 0;
+      let counter = 1;
       while (itemPos < inner.length) {
         const liStart = inner.indexOf('<li', itemPos);
         if (liStart === -1) break;
@@ -344,11 +385,13 @@ export function deconstruct(html) {
         const openTag = liFull.slice(0, openEnd);
         const liContent = liFull.slice(openEnd, liFull.length - 5);
         const ann = extractAttr(openTag, 'data-annotation');
-        items.push(`- ${deconstructInline(liContent)}${ann ? ' ' + ann : ''}`);
+        const bullet = isOrdered ? `${counter}. ` : '- ';
+        items.push(`${bullet}${deconstructInline(liContent)}${ann ? ' ' + ann : ''}`);
+        counter++;
         itemPos = liClose + 5;
       }
       blocks.push(items.join('\n'));
-      pos = close + 5;
+      pos = close + closeTag.length;
     } else {
       pos++;
     }
