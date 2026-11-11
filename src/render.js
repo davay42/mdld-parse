@@ -10,6 +10,10 @@ function detectHr(line) {
   return /^(\s*[-*_]\s*){3,}$/.test(line);
 }
 
+function isExternalHref(href) {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href);
+}
+
 /**
  * MD-LD UI Renderer
  * 
@@ -105,7 +109,10 @@ export function render(src, options = {}) {
         else if (c.type === 'emphasis') { tag = 'em'; baseClass = 'mdld-italic'; }
 
         const customAttrs = getAttrs(raw, sem, isLink, fallbackHref);
-        const attrString = mergeClasses(baseClass, customAttrs);
+        const attrString = mergeClasses(baseClass,
+          isLink && fallbackHref && isExternalHref(fallbackHref)
+            ? customAttrs + ' target="_blank" rel="noopener noreferrer"'
+            : customAttrs);
 
         out += `<${tag} ${attrString}>${renderInline(c.text)}</${tag}>`;
       }
