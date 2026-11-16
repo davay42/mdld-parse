@@ -501,6 +501,8 @@ Convert MD-LD to semantic HTML with preserved annotations.
 - Preserves complete MD-LD syntax in `data-annotation` for roundtrip reconstruction
 - Resolves IRIs into `data-iri` attributes for easy querying
 - Adds semantic CSS classes: `.mdld-heading`, `.mdld-link`, `.typed`, `.retracted`
+- External links (`http(s)://`, `mailto:`, any scheme, protocol-relative) get `target="_blank" rel="noopener noreferrer"`
+- Standard Markdown/HTML passthrough: raw HTML blocks (`<table>`, `<div>`, …) and inline HTML render unescaped per CommonMark rules; code spans stay escaped
 - Platform-agnostic: works in Node.js, Deno, browsers, edge workers
 
 **Example:**
@@ -539,6 +541,10 @@ const mdld = deconstruct(html);
 - Server-side rendering: render MD-LD to HTML, send to client
 - Client-side graph extraction: `parse(deconstruct(document.body.innerHTML))`
 - Offline-first apps: cache HTML, reconstruct quads on demand
+
+**Notes:**
+- Raw HTML blocks pass through `deconstruct()` verbatim, so `<table>` and friends roundtrip losslessly
+- `deconstruct()` only recognizes elements carrying `mdld-*` classes — hand-written HTML without them is treated as raw passthrough
 
 ## 🎨 Graph Visualization — `<quad-graph>`
 

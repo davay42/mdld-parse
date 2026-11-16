@@ -81,6 +81,31 @@ This is the first crystallization point: **presentation should not be coupled to
 
 ---
 
+## Standard Markdown and Raw HTML
+
+MD-LD is a strict superset of Markdown, and the renderer honors that contract. Anything Markdown can express, MD-LD renders — the semantic layer is additive, never subtractive.
+
+**Raw HTML blocks** follow the CommonMark rules. A line beginning with a block-level tag (`<table>`, `<div>`, `<section>`, headings, lists, …) opens an HTML block that runs until a blank line; `<script>`, `<pre>`, `<style>`, and `<textarea>` run until their matching close tag instead. The markup is emitted verbatim — never escaped:
+
+```markdown
+The comma must remain distinct:
+
+<table>
+<thead><tr><th>Comma</th><th>Ratio</th></tr></thead>
+<tbody><tr><td>Pythagorean</td><td>531441:524288</td></tr></tbody>
+</table>
+```
+
+renders as a real `<table>` element, and `deconstruct()` passes the block through unchanged, so it round-trips losslessly alongside the annotated content.
+
+**Inline HTML** (`<b>`, `<span class="x">`, `<a href="…">`, …) is likewise preserved inside paragraphs, headings, and list items. The exception is code: content inside backtick spans and fenced code blocks is always HTML-escaped, so `` `<b>` `` renders as literal text.
+
+**Links** get one piece of renderer policy on top of the passthrough: any link whose `href` has a URI scheme (`https:`, `mailto:`, `ftp:`, …) or is protocol-relative (`//host/…`) is emitted with `target="_blank" rel="noopener noreferrer"`, so external references never navigate away from the host document. Fragment (`#section`) and relative links are untouched.
+
+This is the presentation layer's only opinionated behavior. Everything else — tables, embeds, custom elements, math, whatever HTML the author writes — flows through exactly as written, because the text remains the source of truth and the HTML remains its reversible projection.
+
+---
+
 ## Server, Client, and the Wire
 
 Because the HTML is a lossless codec, it completely dissolves the boundary between Server-Side Rendering (SSR) and Client-Side Rendering (CSR). Both modes produce identical graphs, and you can switch between them based on your deployment constraints without changing your data model.
@@ -134,7 +159,7 @@ A naive implementation of `deconstruct()` would rely on the browser's `DOMParser
 
 Instead, `deconstruct()` is implemented as a **pure string scanner**. Because the `render()` function emits a strictly constrained subset of HTML (a known grammar of tags, attributes, and nesting), the deconstructor can parse it using simple string indexing and regular expressions. 
 
-It looks for `<div class="mdld-prefix">`, `<h1`, `<pre><code`, and `<p class="mdld-paragraph">`. It extracts attributes by name, recursively walks inline nesting by counting tag depth, and unescapes HTML entities. 
+It looks for `<div class="mdld-prefix">`, `<h1 class="mdld-heading">`, `<pre><code class="mdld-codeblock">`, and `<p class="mdld-paragraph">`. It extracts attributes by name, recursively walks inline nesting by counting tag depth, and unescapes HTML entities. Anything that does not carry an `mdld-*` class is treated as a raw HTML block and passed through verbatim — which is what makes author-supplied `<table>` and `<div>` markup survive the round trip.
 
 ```js
 // Works identically in Node.js, Deno, and the Browser
