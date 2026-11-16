@@ -1,7 +1,6 @@
 import { shortenIRI, expandIRI, DataFactory } from './utils.js';
 import { DEFAULT_CONTEXT, RDFS_LABEL, RDF_TYPE } from './constants.js';
 import {
-    isLiteral,
     collectUsedPrefixes,
     sortQuadsByPredicate,
     generatePrefixDeclaration,
@@ -144,9 +143,17 @@ function normalizeAndSortQuads(quads) {
             if (sComp !== 0) return sComp;
             const pComp = a.predicate.value.localeCompare(b.predicate.value);
             if (pComp !== 0) return pComp;
-            const oA = isLiteral(a.object) ? a.object.value : a.object.value;
-            const oB = isLiteral(b.object) ? b.object.value : b.object.value;
-            return oA.localeCompare(oB);
+            const oComp = a.object.value.localeCompare(b.object.value);
+            if (oComp !== 0) return oComp;
+            // Tiebreaks for equal object values: term type, then datatype,
+            // then language — keeps output canonical for graph comparison
+            const tComp = String(a.object.termType).localeCompare(String(b.object.termType));
+            if (tComp !== 0) return tComp;
+            const dtA = a.object.datatype?.value ?? a.object.datatype ?? '';
+            const dtB = b.object.datatype?.value ?? b.object.datatype ?? '';
+            const dtComp = String(dtA).localeCompare(String(dtB));
+            if (dtComp !== 0) return dtComp;
+            return String(a.object.language ?? '').localeCompare(String(b.object.language ?? ''));
         });
 }
 

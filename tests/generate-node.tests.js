@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { parse, generateNode } from '../src/index.js';
+import { parse, generate, generateNode } from '../src/index.js';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -149,6 +149,48 @@ export const generateNodeTests = [
       assert(pageText.includes('food:calories ^^xsd:integer'), 'Datatype-focused page should render the full literal triple with the datatype');
       assert(pageText.includes('food:prepTime ^^xsd:integer'), 'Datatype-focused page should render multiple integer property uses');
       assert(!pageText.includes('# integer'), 'Datatype-focused page should not create a synthetic datatype heading');
+    }
+  },
+  {
+    name: 'Generate - canonical output is independent of quad order',
+    fn: () => {
+      // Edge cases: same object value with different datatype/language,
+      // multiple subjects, types, labels, and object IRIs
+      const md = `[ex] <http://e.org/>
+[xsd] <http://www.w3.org/2001/XMLSchema#>
+
+## Alpha {=ex:a .ex:Type ex:label}
+[1] {ex:p}
+[1] {ex:p ^^xsd:integer}
+[1] {ex:p @en}
+[Beta] {+ex:b ?ex:link label}
+[2] {ex:q ^^xsd:integer}`;
+
+      const { quads, context } = parse({ text: md });
+      assert(quads.length >= 8, `Expected at least 8 quads, got ${quads.length}`);
+
+      const forward = generate({ quads, context }).text;
+      const reversed = generate({ quads: [...quads].reverse(), context }).text;
+      const shuffled = generate({
+        quads: [quads[5], quads[0], quads[7], quads[2], quads[4], quads[1], quads[6], quads[3]],
+        context
+      }).text;
+
+      assert(forward === reversed, 'Reversed quad order must produce identical text');
+      assert(forward === shuffled, 'Shuffled quad order must produce identical text');
+
+      // Canonical ordering: datatype/language tiebreaks are stable
+      const langIdx = forward.indexOf('{ex:p @en}');
+      const intIdx = forward.indexOf('{ex:p ^^xsd:integer}');
+      const plainIdx = forward.indexOf('[1] {ex:p}\n');
+      assert(langIdx !== -1 && intIdx !== -1 && plainIdx !== -1,
+        'All literal variants must render');
+      assert(langIdx < intIdx && intIdx < plainIdx,
+        'Literal tiebreak order must be @en < datatype < plain');
+
+      // Different quad sets must produce different documents
+      const different = generate({ quads: quads.slice(1), context }).text;
+      assert(forward !== different, 'Different quad sets must produce different text');
     }
   }
 ];
