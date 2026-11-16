@@ -442,6 +442,8 @@ Generate deterministic MDLD from RDF quads.
 
 **Features:** Visual styling, label-in-heading, round-trip safe, diff generation, language preference.
 
+**Canonical output:** `generate()` is a deterministic serializer — quads are normalized into a total order (subject → predicate → object → term type → datatype → language) before rendering, so the same quad *set* always produces byte-identical text regardless of input array order. This makes it usable for RDF graph comparison: `generate(g1).text === generate(g2).text` iff the graphs are equal (modulo blank nodes, which are out of scope, and named graphs, which MD-LD does not serialize). Note that options (`context`, `primarySubject`, `compactInline`, `renderReverse`, `lang`, `remove`) are part of the canonical form — compare outputs generated with the same options.
+
 **Example with language preference:**
 ```javascript
 const { text } = generate({

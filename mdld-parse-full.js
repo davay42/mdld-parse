@@ -1511,8 +1511,12 @@ function at(e) {
 		if (n !== 0) return n;
 		let r = e.predicate.value.localeCompare(t.predicate.value);
 		if (r !== 0) return r;
-		let i = (Ee(e.object), e.object.value), a = (Ee(t.object), t.object.value);
-		return i.localeCompare(a);
+		let i = e.object.value.localeCompare(t.object.value);
+		if (i !== 0) return i;
+		let a = String(e.object.termType).localeCompare(String(t.object.termType));
+		if (a !== 0) return a;
+		let o = e.object.datatype?.value ?? e.object.datatype ?? "", s = t.object.datatype?.value ?? t.object.datatype ?? "", c = String(o).localeCompare(String(s));
+		return c === 0 ? String(e.object.language ?? "").localeCompare(String(t.object.language ?? "")) : c;
 	});
 }
 function ot(e) {
