@@ -47,6 +47,8 @@ Creates: `ex:doc#section1`, `ex:doc#section2`
 
 Lists are pure Markdown structure with **no semantic scope**. Each list item requires explicit annotations.
 
+Supported markers: `-`, `+`, `*` bullets and `1.` / `1)` ordered items (non-1 starts keep their number via `<ol start>` in HTML). Changing the bullet character or ordered delimiter starts a new list.
+
 ```md
 [@vocab] <http://www.w3.org/2000/01/rdf-schema#>
 
@@ -295,6 +297,19 @@ ex:code a ex:SoftwareSourceCode ;
 ```turtle
 ex:article rdfs:comment "MD-LD bridges Markdown and RDF." .
 ```
+
+Consecutive `>` lines accumulate into one quoted block. A trailing `{...}` annotation binds to **all unannotated lines since the previous annotation** (or the quote start):
+
+```markdown
+> A dense, rustic bread
+> with toasted walnuts. {description}
+```
+
+```turtle
+ex:recipe rdfs:description "A dense, rustic bread\nwith toasted walnuts." .
+```
+
+Each `{...}`-annotated line closes its own segment, so `> a {x}\n> b {y}` still produces two independent annotations bound to `a` and `b` respectively.
 
 ### Reverse Relations
 

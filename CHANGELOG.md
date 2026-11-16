@@ -1,5 +1,36 @@
 # MD-LD evolution
 
+## v1.1.1 CommonMark rendering compliance
+
+### Added
+- **CommonMark HTML blocks in `render()`**: raw HTML (`<table>`, `<div>`, `<section>`, …) passes through unescaped — block tags run to a blank line, `script`/`pre`/`style`/`textarea` run to their close tag, lone inline tags can't interrupt paragraphs. `deconstruct()` passes raw blocks through verbatim, so they round-trip losslessly
+- **Inline HTML passthrough**: `<b>`, `<a href>`, custom elements render raw inside paragraphs/headings/list items; code spans and fenced blocks stay escaped
+- **Full CommonMark link destinations**: `[text](#fragment)`, `[text](/path)`, `[text](mailto:…)`, titles (`"…"`, `'…'`, `(…)`, incl. parenthesized titles), balanced/nested parens in destinations, and `![alt](src)` images — previously non-`http(s)` destinations were silently swallowed
+- **External link policy**: any `href` with a URI scheme or protocol-relative `//` gets `target="_blank" rel="noopener noreferrer"`; fragment and relative links stay on-page
+- **Entity references**: `&amp;`, `&copy;`, `&#169;`, `&#xA9;` and ~150 named entities decode; invalid entities stay literal
+- **Backslash escapes**: `\*`, `\[`, `\<`, `\\` suppress markup in both carrier scanning and text rendering
+- **Hard line breaks**: 2+ trailing spaces or `\` before a newline render `<br />`; `deconstruct()` maps back to the two-space form
+- **Indented code blocks**: 4+ spaces or tab at block start → `<pre><code>`; can't interrupt paragraphs; deconstructs as fenced code
+- **Ordered lists**: `1)` delimiter supported; non-1 starts emit `<ol start="N">` (preserved through deconstruct)
+- **List correctness**: bullet-marker (`-`/`+`/`*`) and ordered-delimiter (`.`/`)`) changes now split lists per CommonMark
+- **Heading closing sequences**: `# Title #` strips trailing hashes (requires preceding space)
+- **Blockquote lazy continuation**: unmarked paragraph lines continue a quote in `render()`
+- **Multiline blockquote semantics in `parse()`**: consecutive `>` lines accumulate — a trailing `{...}` annotation binds to the whole quoted text (`> a\n> b {ann}` → `a\nb`), while annotated lines still close their own segment so per-line bindings are unchanged
+
+### Fixed
+- **Emphasis delimiter runs**: CommonMark left-/right-flanking rules — `snake_case_name`, `2 * 3 * 4`, `a * b * c` no longer italicize; `_` gets the stricter intraword rule; nested `*a **b** c*` / `**a *b* c**` pair correctly via depth-tracked closer matching
+- **Escaped punctuation** no longer triggers carriers (`\*`, `\[`, `\<`) or inline HTML
+- **Per-line blockquote annotations** on non-first `>` lines were silently dropped by `render()` — now preserved
+- **`deconstruct()`** re-escapes significant punctuation so literal `<`, `*`, `[`, `` ` `` can't resurrect as markup on re-render
+
+### Documented limitations
+- Setext headings, reference-style/shortcut links, and GFM extensions (pipe tables, strikethrough, task lists) are deliberately unsupported — see README and `docs/render.md` for rationale
+
+### Technical Details
+- New tokenizers: `detectHtmlBlock()`, `detectIndentedCode()`; `detectBracketLink()` rewritten with real destination/title parsing; `detectEmphasis()` rewritten with flanking + delimiter-depth matching
+- `parse()` gains a `quoteBlock` accumulator (same pattern as `codeBlock`) — bounded per-line consumption, no arbitrary lookahead
+- 188 tests passing
+
 ## v1.1.0 Crawl an links clarity
 
 ### Added

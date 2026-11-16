@@ -131,6 +131,8 @@ A `{...}` block can attach to exactly one **value carrier** - the piece of Markd
 | ````lang {...}`` | Code block content | ````js {=ex:code .ex:SoftwareSourceCode}` |
 | `~~~lang {...}` | Tilde code block content | `~~~js {=ex:code ex:codecontent}` |
 
+**Multiline blockquotes:** consecutive `>` lines form a single quoted block. A `{...}` annotation binds to all unannotated lines accumulated since the previous annotation (or the quote start). Each annotated line closes its own segment, so `> a {x}` / `> b {y}` remain independent.
+
 ### Links and Media (with URLs)
 
 | Markdown | What it captures | Literal behavior | Type behavior |

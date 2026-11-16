@@ -250,7 +250,12 @@ Fragments always attach to the **current subject base**.
 > A dense, rustic bread with toasted walnuts. {description}
 ```
 
-Readable prose → structured data.
+Readable prose → structured data. Consecutive `>` lines accumulate — a trailing annotation binds the whole quoted text:
+
+```md
+> A dense, rustic bread
+> with toasted walnuts. {description}
+```
 
 ---
 
