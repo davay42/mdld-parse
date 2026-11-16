@@ -1,4 +1,4 @@
-//#region src/crawl.js
+// src/crawl.js
 /**
 * crawl — a platform-agnostic linked-text-document crawler.
 *
@@ -656,5 +656,4 @@ async function crawl(startUrl, options = {}) {
 *   status?: number, message: string}>} errors
 * @property {boolean} aborted
 */
-//#endregion
 export { crawl, extractLinks, memoryCache };

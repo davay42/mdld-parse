@@ -1,4 +1,4 @@
-//#region src/constants.js
+// src/constants.js
 /**
 * Shared utilities for MD-LD Parser and Renderer
 * Ensures DRY code and consistent CommonMark processing
@@ -19,8 +19,7 @@ var XSD_BOOLEAN = "http://www.w3.org/2001/XMLSchema#boolean";
 var XSD_INTEGER = "http://www.w3.org/2001/XMLSchema#integer";
 var XSD_DOUBLE = "http://www.w3.org/2001/XMLSchema#double";
 var URL_REGEX = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file|urn:uuid):/;
-//#endregion
-//#region src/utils.js
+// src/utils.js
 var VALID_URI_SCHEMES = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file):/;
 var Term = class {
 	constructor(id) {
@@ -431,8 +430,7 @@ function createLiteral(value, datatype, language, context, dataFactory) {
 	if (language) return dataFactory.literal(value, language);
 	return dataFactory.literal(value);
 }
-//#endregion
-//#region src/tokenizers.js
+// src/tokenizers.js
 /**
 * Character-based Tokenizers for MDLD
 * 
@@ -913,8 +911,7 @@ function scanInlineCarriers(text, baseOffset = 0) {
 	}
 	return carriers;
 }
-//#endregion
-//#region src/shared.js
+// src/shared.js
 var FENCE_CLOSE_PATTERNS = /* @__PURE__ */ new Map();
 function getFenceClosePattern(fenceChar) {
 	if (!FENCE_CLOSE_PATTERNS.has(fenceChar)) FENCE_CLOSE_PATTERNS.set(fenceChar, new RegExp(`^(${fenceChar}{3,})`));
@@ -1136,8 +1133,7 @@ function generateRetractionText(quad, context) {
 		return `[${value}] {${annotation}}\n`;
 	}
 }
-//#endregion
-//#region src/parse.js
+// src/parse.js
 function parse(firstArg, secondArg = {}) {
 	const isNamedParams = typeof firstArg === "object" && firstArg !== null && "text" in firstArg;
 	const text = isNamedParams ? firstArg.text : firstArg;
@@ -1841,8 +1837,7 @@ var TOKEN_PROCESSORS = {
 	list: (token, state) => processTokenWithBlockTracking(token, state, processTokenAnnotations, createBlockEntry),
 	standalone: (token, state) => processStandaloneSubject(token, state)
 };
-//#endregion
-//#region src/merge.js
+// src/merge.js
 /**
 * Creates a unique key for quad identity matching - using shared utility
 * @param {Quad} quad 
@@ -1949,8 +1944,7 @@ function merge(docs, options = {}) {
 		primary: primaryObjects
 	};
 }
-//#endregion
-//#region src/generate.js
+// src/generate.js
 var iriCache = /* @__PURE__ */ new Map();
 var CACHE_SIZE_LIMIT = 1e3;
 function getCachedShortIRI(iri, context) {
@@ -2191,8 +2185,7 @@ function buildLabelLookup(subjectGroups, lang = null) {
 	}
 	return labelLookup;
 }
-//#endregion
-//#region src/index.js
+// src/index.js
 /**
 * Update the value of a quad in MDLD text and return the updated text
 *
@@ -2208,5 +2201,4 @@ function updateValue({ text, quad, value, origin }) {
 	if (!location || !location.valueRange) return text;
 	return text.substring(0, location.valueRange.start) + value + text.substring(location.valueRange.end);
 }
-//#endregion
 export { DEFAULT_CONTEXT, DataFactory, expandIRI, generate, generateNode, hash, locate, merge, parse, parseSemanticBlock, shortenIRI, updateValue };

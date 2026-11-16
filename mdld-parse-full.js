@@ -1,4 +1,4 @@
-//#region src/constants.js
+// src/constants.js
 var e = {
 	"@vocab": "http://www.w3.org/2000/01/rdf-schema#",
 	rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
@@ -296,8 +296,7 @@ function E(e) {
 function D(e, t, n, r, i) {
 	return t ? i.literal(e, i.namedNode(x(t, r))) : n ? i.literal(e, n) : i.literal(e);
 }
-//#endregion
-//#region src/tokenizers.js
+// src/tokenizers.js
 function O(e) {
 	if (e.length < 3) return null;
 	let t = e[0];
@@ -467,29 +466,25 @@ function se(e, t) {
 	for (; t + r < e.length && e[t + r] === n;) r++;
 	if (r > 2 || !oe(e, t, r, n).canOpen) return null;
 	let i = r === 1 ? "emphasis" : "strong", a = t + r, o = a, s = 0;
-	for (; o < e.length;) {
-		if (e[o] === n) {
-			let t = 1;
-			for (; o + t < e.length && e[o + t] === n;) t++;
-			let c = oe(e, o, t, n);
-			if (s === 0 && c.canClose && t >= r) {
-				let t = e.slice(a, o);
-				if (t.length === 0) return null;
-				let n = o + r, s = I(e, n), c = s ? s.endPos : n;
-				return {
-					type: i,
-					content: t,
-					attrs: s?.attrs || null,
-					endPos: c,
-					contentStart: a,
-					contentEnd: o
-				};
-			}
-			c.canClose ? s = Math.max(0, s - 1) : c.canOpen && s++, o += t;
-			continue;
+	for (; o < e.length;) if (e[o] === n) {
+		let t = 1;
+		for (; o + t < e.length && e[o + t] === n;) t++;
+		let c = oe(e, o, t, n);
+		if (s === 0 && c.canClose && t >= r) {
+			let t = e.slice(a, o);
+			if (t.length === 0) return null;
+			let n = o + r, s = I(e, n), c = s ? s.endPos : n;
+			return {
+				type: i,
+				content: t,
+				attrs: s?.attrs || null,
+				endPos: c,
+				contentStart: a,
+				contentEnd: o
+			};
 		}
-		o++;
-	}
+		c.canClose ? s = Math.max(0, s - 1) : c.canOpen && s++, o += t;
+	} else o++;
 	return null;
 }
 function z(e, t) {
@@ -642,8 +637,7 @@ function fe(e, t = 0) {
 	}
 	return n;
 }
-//#endregion
-//#region src/shared.js
+// src/shared.js
 var pe = /* @__PURE__ */ new Map();
 function me(e) {
 	return pe.has(e) || pe.set(e, RegExp(`^(${e}{3,})`)), pe.get(e);
@@ -814,8 +808,7 @@ function Ie(e, t) {
 		return a.includes("\n") ? `~~~ {${r}}\n${a}\n~~~\n` : o.includes("integer") || o.includes("decimal") || o.includes("double") || o.includes("float") ? `\`${a}\` {${r}}\n` : o.includes("boolean") ? `**${a}** {${r}}\n` : `[${a}] {${r}}\n`;
 	}
 }
-//#endregion
-//#region src/parse.js
+// src/parse.js
 function Le(t, n = {}) {
 	let r = typeof t == "object" && !!t && "text" in t, i = r ? t.text : t, a = r ? {
 		context: t.context,
@@ -862,9 +855,7 @@ function Le(t, n = {}) {
 				o.ctx[r] && r !== "@vocab" && (e = o.ctx[r] + i);
 			}
 			o.ctx[t.prefix] = e;
-			continue;
-		}
-		Qe[t.type]?.(t, o);
+		} else Qe[t.type]?.(t, o);
 	}
 	o.quads = Array.from(o.quadBuffer.values());
 	let c = [];
@@ -1393,8 +1384,7 @@ var Qe = {
 	list: (e, t) => H(e, t, W, U),
 	standalone: (e, t) => Ze(e, t)
 };
-//#endregion
-//#region src/merge.js
+// src/merge.js
 function G(e) {
 	return E(e);
 }
@@ -1463,8 +1453,7 @@ function et(t, n = {}) {
 		primary: l
 	};
 }
-//#endregion
-//#region src/generate.js
+// src/generate.js
 var K = /* @__PURE__ */ new Map(), tt = 1e3;
 function q(e, t) {
 	let n = `${e}|${JSON.stringify(t)}`;
@@ -1624,14 +1613,12 @@ function ct(e, t = null) {
 	}
 	return n;
 }
-//#endregion
-//#region src/index.js
+// src/index.js
 function lt({ text: e, quad: t, value: n, origin: r }) {
 	let i = v(t, r?.quadIndex ? r : Le({ text: e }).origin);
 	return !i || !i.valueRange ? e : e.substring(0, i.valueRange.start) + n + e.substring(i.valueRange.end);
 }
-//#endregion
-//#region src/crawl.js
+// src/crawl.js
 var ut = /* @__PURE__ */ new Set(["http:", "https:"]), dt = "text/markdown, text/x-mdld, text/plain;q=0.9, text/html;q=0.8, application/xhtml+xml;q=0.8, */*;q=0.5", ft = 5, pt = 5, mt = 100, ht = /\.(md|mdld|markdown|html?|xhtml)$/i, gt = /image\/|audio\/|video\/|font\/|application\/(octet-stream|zip|gzip|pdf|wasm|protobuf)/i;
 function _t(e = 500) {
 	let t = /* @__PURE__ */ new Map();
@@ -1689,17 +1676,17 @@ function St(e, t, n) {
 				for (; c.charCodeAt(e) === r;) e++;
 				e >= i && c.slice(e).trim() === "" && (i = 0);
 			}
-			continue;
-		}
-		if (l <= 3 && (u === 96 || u === 126)) {
-			let e = 0;
-			for (; c.charCodeAt(e) === u;) e++;
-			if (e >= 3) {
-				r = u, i = e;
-				continue;
+		} else {
+			if (l <= 3 && (u === 96 || u === 126)) {
+				let e = 0;
+				for (; c.charCodeAt(e) === u;) e++;
+				if (e >= 3) {
+					r = u, i = e;
+					continue;
+				}
 			}
+			l <= 3 && u === 91 && Ct(c, t, n) || wt(s, t, n);
 		}
-		l <= 3 && u === 91 && Ct(c, t, n) || wt(s, t, n);
 	}
 }
 function Ct(e, t, n) {
@@ -1735,18 +1722,13 @@ function wt(e, t, n) {
 	let r = 0;
 	for (; r < e.length;) {
 		let i = e.charCodeAt(r);
-		if (i === 92) {
-			r += 2;
-			continue;
-		}
-		if (i === 96) {
+		if (i === 92) r += 2;
+		else if (i === 96) {
 			let t = 1;
 			for (; e.charCodeAt(r + t) === 96;) t++;
 			let n = Tt(e, r + t, t);
 			r = n === -1 ? r + t : n;
-			continue;
-		}
-		if (i === 60) {
+		} else if (i === 60) {
 			if (e.startsWith("<!--", r)) {
 				let t = e.indexOf("-->", r + 4);
 				if (t === -1) return;
@@ -1759,16 +1741,16 @@ function wt(e, t, n) {
 				continue;
 			}
 			r++;
-			continue;
-		}
-		if (i === 93 && e.charCodeAt(r + 1) === 40) {
-			let i = Dt(e, r + 2);
-			if (i) {
-				Lt(e.slice(i.urlStart, i.urlEnd), t, n), r = i.end + 1;
-				continue;
+		} else {
+			if (i === 93 && e.charCodeAt(r + 1) === 40) {
+				let i = Dt(e, r + 2);
+				if (i) {
+					Lt(e.slice(i.urlStart, i.urlEnd), t, n), r = i.end + 1;
+					continue;
+				}
 			}
+			r++;
 		}
-		r++;
 	}
 }
 function Tt(e, t, n) {
@@ -1805,27 +1787,26 @@ function Dt(e, t) {
 	let n = 0, r = t;
 	for (; r < e.length;) {
 		let i = e[r];
-		if (i === "\\") {
-			r += 2;
-			continue;
+		if (i === "\\") r += 2;
+		else {
+			if (i === "(") n++;
+			else if (i === ")") {
+				if (n === 0) return {
+					urlStart: t,
+					urlEnd: r,
+					end: r
+				};
+				n--;
+			} else if (i === " " || i === "	") {
+				let n = Ot(e, r);
+				return n === -1 ? null : {
+					urlStart: t,
+					urlEnd: r,
+					end: n
+				};
+			}
+			r++;
 		}
-		if (i === "(") n++;
-		else if (i === ")") {
-			if (n === 0) return {
-				urlStart: t,
-				urlEnd: r,
-				end: r
-			};
-			n--;
-		} else if (i === " " || i === "	") {
-			let n = Ot(e, r);
-			return n === -1 ? null : {
-				urlStart: t,
-				urlEnd: r,
-				end: n
-			};
-		}
-		r++;
 	}
 	return null;
 }
@@ -1864,9 +1845,7 @@ function kt(e, t, n) {
 			if (i === -1) return;
 			let a = Ft(e.slice(r, i + 1), "href");
 			a && Lt(a, t, n), r = i + 1;
-			continue;
-		}
-		r = i + 1;
+		} else r = i + 1;
 	}
 }
 function At(e, t) {
@@ -2109,8 +2088,7 @@ async function Rt(e, t = {}) {
 		aborted: y
 	};
 }
-//#endregion
-//#region \0@oxc-project+runtime@0.149.0/helpers/esm/typeof.js
+// \0@oxc-project+runtime@0.156.0/helpers/esm/typeof.js
 function J(e) {
 	"@babel/helpers - typeof";
 	return J = typeof Symbol == "function" && typeof Symbol.iterator == "symbol" ? function(e) {
@@ -2119,8 +2097,7 @@ function J(e) {
 		return e && typeof Symbol == "function" && e.constructor === Symbol && e !== Symbol.prototype ? "symbol" : typeof e;
 	}, J(e);
 }
-//#endregion
-//#region \0@oxc-project+runtime@0.149.0/helpers/esm/toPrimitive.js
+// \0@oxc-project+runtime@0.156.0/helpers/esm/toPrimitive.js
 function zt(e, t) {
 	if (J(e) != "object" || !e) return e;
 	var n = e[Symbol.toPrimitive];
@@ -2131,14 +2108,12 @@ function zt(e, t) {
 	}
 	return (t === "string" ? String : Number)(e);
 }
-//#endregion
-//#region \0@oxc-project+runtime@0.149.0/helpers/esm/toPropertyKey.js
+// \0@oxc-project+runtime@0.156.0/helpers/esm/toPropertyKey.js
 function Bt(e) {
 	var t = zt(e, "string");
 	return J(t) == "symbol" ? t : t + "";
 }
-//#endregion
-//#region \0@oxc-project+runtime@0.149.0/helpers/esm/defineProperty.js
+// \0@oxc-project+runtime@0.156.0/helpers/esm/defineProperty.js
 function Vt(e, t, n) {
 	return (t = Bt(t)) in e ? Object.defineProperty(e, t, {
 		value: n,
@@ -2147,8 +2122,7 @@ function Vt(e, t, n) {
 		writable: !0
 	}) : e[t] = n, e;
 }
-//#endregion
-//#region src/graph.js
+// src/graph.js
 var Ht = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", Ut = new Map([
 	"http://www.w3.org/2000/01/rdf-schema#label",
 	"http://www.w3.org/2004/02/skos/core#prefLabel",
@@ -2831,8 +2805,7 @@ Vt(nn, "observedAttributes", [
 	"link-dist",
 	"labels"
 ]), typeof customElements < "u" && !customElements.get("quad-graph") && customElements.define("quad-graph", nn);
-//#endregion
-//#region src/render.js
+// src/render.js
 function rn(e) {
 	return /^(\s*[-*_]\s*){3,}$/.test(e);
 }
@@ -2985,11 +2958,8 @@ function fn(e) {
 	let t = "", n = 0;
 	for (; n < e.length;) {
 		let r = e[n];
-		if (r === "\\" && n + 1 < e.length && ln.indexOf(e[n + 1]) !== -1) {
-			t += e[n + 1], n += 2;
-			continue;
-		}
-		if (r === "&") {
+		if (r === "\\" && n + 1 < e.length && ln.indexOf(e[n + 1]) !== -1) t += e[n + 1], n += 2;
+		else if (r === "&") {
 			let r = e.indexOf(";", n + 1);
 			if (r !== -1 && r - n <= 33) {
 				let i = e.slice(n + 1, r), a = i[0] === "#" ? dn(i) : Object.prototype.hasOwnProperty.call(un, i) ? un[i] : null;
@@ -2999,9 +2969,7 @@ function fn(e) {
 				}
 			}
 			t += "&", n++;
-			continue;
-		}
-		t += r, n++;
+		} else t += r, n++;
 	}
 	return t;
 }
@@ -3031,13 +2999,7 @@ function mn(e) {
 }
 function hn(e) {
 	let t = "", n = 0, r;
-	for (cn.lastIndex = 0; r = cn.exec(e);) {
-		if (pn(e, r.index)) {
-			cn.lastIndex = r.index + 1;
-			continue;
-		}
-		t += mn(V(fn(e.slice(n, r.index)))) + r[0], n = r.index + r[0].length;
-	}
+	for (cn.lastIndex = 0; r = cn.exec(e);) pn(e, r.index) ? cn.lastIndex = r.index + 1 : (t += mn(V(fn(e.slice(n, r.index)))) + r[0], n = r.index + r[0].length);
 	return t + mn(V(fn(e.slice(n))));
 }
 function gn(e, t = {}) {
@@ -3155,11 +3117,7 @@ function gn(e, t = {}) {
 					for (; e < n.length && n[e].trim() === "";) e++;
 					if (e < n.length) {
 						let r = j(n[e]);
-						if (r && /^\s*\d+[.)]\s/.test(n[e]) === t && i(r)) {
-							f.push(""), l = e;
-							continue;
-						}
-						if (/^\s{2,}/.test(n[e]) || /^\t/.test(n[e])) {
+						if (r && /^\s*\d+[.)]\s/.test(n[e]) === t && i(r) || /^\s{2,}/.test(n[e]) || /^\t/.test(n[e])) {
 							f.push(""), l = e;
 							continue;
 						}
@@ -3178,12 +3136,11 @@ function gn(e, t = {}) {
 			let t = sn(e[e.length - 1]);
 			for (; l < n.length;) {
 				let r = M(n[l]);
-				if (r) {
-					e.push(r.attrs ? `${r.content} {${r.attrs}}` : r.content), t = sn(r.content), l++;
-					continue;
+				if (r) e.push(r.attrs ? `${r.content} {${r.attrs}}` : r.content), t = sn(r.content), l++;
+				else {
+					if (!t || n[l].trim() === "" || on(n[l])) break;
+					e.push(n[l]), t = !0, l++;
 				}
-				if (!t || n[l].trim() === "" || on(n[l])) break;
-				e.push(n[l]), t = !0, l++;
 			}
 			let i = g.attrs ? w(g.attrs) : null, s = o("mdld-quote", a(g.attrs, i)), u = gn(e.join("\n"), { context: r });
 			c.push(`<blockquote ${s}>${u}</blockquote>`);
@@ -3407,8 +3364,7 @@ function Y(e, t) {
 function Cn(e) {
 	return String(e).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
 }
-//#endregion
-//#region src/highlight.js
+// src/highlight.js
 function X(e) {
 	return String(e).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;").replaceAll("'", "&#39;");
 }
@@ -3544,24 +3500,16 @@ function kn(e, t) {
 		if (i = !1, a.startsWith("?") || a.startsWith("!")) {
 			let e = a[0], n = a.slice(1), i = o ? Z.retraction : Z.marker;
 			r += `<span style="color: ${i}">${X(e)}</span>${$(n, o, t)}`;
-			continue;
-		}
-		if (a.startsWith("^^")) {
+		} else if (a.startsWith("^^")) {
 			let e = a.slice(2), n = o ? Z.retraction : Z.marker;
 			r += `<span style="color: ${n}">${X("^^")}</span>${$(e, o, t)}`;
-			continue;
-		}
-		if (a.startsWith("@")) {
+		} else if (a.startsWith("@")) {
 			let e = a.slice(1), n = o ? Z.retraction : Z.marker;
 			r += `<span style="color: ${n}">${X("@")}</span>${$(e, o, t)}`;
-			continue;
-		}
-		if (a.startsWith(".")) {
+		} else if (a.startsWith(".")) {
 			let e = a.slice(1), n = o ? Z.retraction : Z.marker;
 			r += `<span style="color: ${n}">${X(".")}</span>${$(e, o, t)}`;
-			continue;
-		}
-		r += $(a, o, t);
+		} else r += $(a, o, t);
 	}
 	return r.trim();
 }
@@ -3577,9 +3525,7 @@ function An(e) {
 			}
 			let o = kn(e.slice(r + 1, a), t);
 			n += `<span class="mdld-annotation"><span style="color: ${Z.annotation}; opacity: 0.75">{</span>`, n += o, n += `<span style="color: ${Z.annotation}; opacity: 0.75">}</span></span>`, r = a + 1;
-			continue;
-		}
-		if (i === "[") {
+		} else if (i === "[") {
 			let a = e.indexOf("]", r);
 			if (a === -1) {
 				n += X(i), r++;
@@ -3597,53 +3543,52 @@ function An(e) {
 			}
 			let c = e.slice(r + 1, a), l = Q(e, a + 1) ? Z.marker : Z.value, u = X(c);
 			n += `<span style="color: ${l}; opacity: 0.85">[</span><span style="background-color: ${l}15">${u}</span><span style="color: ${l}; opacity: 0.85">]</span>`, r = a + 1;
-			continue;
-		}
-		if (i === "*" || i === "_" || i === "`") {
-			let t = wn(e, r);
-			if (t) {
-				n += t.html, r = t.nextIndex;
-				continue;
-			}
-		}
-		if (i === "#") {
-			let i = 0, a = r;
-			for (; a < e.length && e[a] === "#";) i++, a++;
-			if (i <= 6 && (a >= e.length || e[a] === " " || e[a] === "	")) {
-				let o = e.indexOf("\n", a), s = o === -1 ? e.length : o, c = e.slice(a, s).trim(), l = "", u = 0, d = c.indexOf("{");
-				for (; d !== -1;) {
-					let e = c.indexOf("}", d);
-					if (e === -1) break;
-					let n = c.slice(u, d);
-					l += X(n);
-					let r = kn(c.slice(d + 1, e), t);
-					l += `<span class="mdld-annotation"><span style="color: ${Z.annotation}; opacity: 0.75">{</span>` + r + `<span style="color: ${Z.annotation}; opacity: 0.75">}</span></span>`, u = e + 1, d = c.indexOf("{", u);
+		} else {
+			if (i === "*" || i === "_" || i === "`") {
+				let t = wn(e, r);
+				if (t) {
+					n += t.html, r = t.nextIndex;
+					continue;
 				}
-				l += X(c.slice(u));
-				let f = c.includes("{") && c.includes("}"), p = `h${i}`, m = "#".repeat(i), h = f ? `color: ${Z.marker}; opacity: 0.8` : "";
-				n += `<${p} style="margin: 0; font-weight: 600;"><span style="${h}">${m}</span> ${l}</${p}>`, r = s;
-				continue;
 			}
-		}
-		if (i === "-" || i === "*") {
-			let t = r > 0 ? e[r - 1] : "\n";
-			if ((t === "\n" || t === "\r" || t === " " || t === "	") && e[r + 1] === " ") {
-				let t = Q(e, r + 2) ? `color: ${Z.marker}; opacity: 0.85` : "";
-				n += `<span style="${t}">${X(i)}</span>`, r++;
-				continue;
+			if (i === "#") {
+				let i = 0, a = r;
+				for (; a < e.length && e[a] === "#";) i++, a++;
+				if (i <= 6 && (a >= e.length || e[a] === " " || e[a] === "	")) {
+					let o = e.indexOf("\n", a), s = o === -1 ? e.length : o, c = e.slice(a, s).trim(), l = "", u = 0, d = c.indexOf("{");
+					for (; d !== -1;) {
+						let e = c.indexOf("}", d);
+						if (e === -1) break;
+						let n = c.slice(u, d);
+						l += X(n);
+						let r = kn(c.slice(d + 1, e), t);
+						l += `<span class="mdld-annotation"><span style="color: ${Z.annotation}; opacity: 0.75">{</span>` + r + `<span style="color: ${Z.annotation}; opacity: 0.75">}</span></span>`, u = e + 1, d = c.indexOf("{", u);
+					}
+					l += X(c.slice(u));
+					let f = c.includes("{") && c.includes("}"), p = `h${i}`, m = "#".repeat(i), h = f ? `color: ${Z.marker}; opacity: 0.8` : "";
+					n += `<${p} style="margin: 0; font-weight: 600;"><span style="${h}">${m}</span> ${l}</${p}>`, r = s;
+					continue;
+				}
 			}
-		}
-		if (i === ">") {
-			let t = r > 0 ? e[r - 1] : "\n";
-			if ((t === "\n" || t === "\r" || t === " " || t === "	") && e[r + 1] === " ") {
-				let t = Q(e, r + 2) ? `color: ${Z.marker}; opacity: 0.85` : "";
-				n += `<span style="${t}">${X(i)}</span>`, r++;
-				continue;
+			if (i === "-" || i === "*") {
+				let t = r > 0 ? e[r - 1] : "\n";
+				if ((t === "\n" || t === "\r" || t === " " || t === "	") && e[r + 1] === " ") {
+					let t = Q(e, r + 2) ? `color: ${Z.marker}; opacity: 0.85` : "";
+					n += `<span style="${t}">${X(i)}</span>`, r++;
+					continue;
+				}
 			}
+			if (i === ">") {
+				let t = r > 0 ? e[r - 1] : "\n";
+				if ((t === "\n" || t === "\r" || t === " " || t === "	") && e[r + 1] === " ") {
+					let t = Q(e, r + 2) ? `color: ${Z.marker}; opacity: 0.85` : "";
+					n += `<span style="${t}">${X(i)}</span>`, r++;
+					continue;
+				}
+			}
+			n += X(i), r++;
 		}
-		n += X(i), r++;
 	}
 	return n;
 }
-//#endregion
 export { e as DEFAULT_CONTEXT, _ as DataFactory, $t as Layout, nn as QuadGraph, Z as TOKEN_COLORS, Tn as colorCache, Rt as crawl, yn as deconstruct, X as escapeHtml, x as expandIRI, xt as extractLinks, rt as generate, it as generateNode, Dn as getIRIColor, y as hash, En as hashIRI, An as highlight, v as locate, _t as memoryCache, et as merge, Le as parse, w as parseSemanticBlock, gn as render, S as shortenIRI, lt as updateValue };
