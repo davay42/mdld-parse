@@ -1,6 +1,6 @@
 import {
   detectFence, detectPrefix, detectHeading, detectList,
-  detectBlockquote, detectStandaloneSubject, detectHtmlBlock, scanInlineCarriers
+  detectBlockquote, detectStandaloneSubject, detectHtmlBlock, detectIndentedCode, scanInlineCarriers
 } from './tokenizers.js';
 import { escapeHtml } from './shared.js';
 import { expandIRI, parseSemanticBlock } from './utils.js';
@@ -14,7 +14,139 @@ function isExternalHref(href) {
   return /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href);
 }
 
+// Does this line start any block-level construct? (used for lazy blockquote
+// continuation and could serve paragraph interruption checks)
+function isBlockStart(line) {
+  const t = line.trim();
+  return !!(detectFence(t) || detectPrefix(line) || detectHeading(line) ||
+    detectList(line) || detectBlockquote(line) || detectHtmlBlock(line) ||
+    detectHr(line) || detectStandaloneSubject(line) || detectIndentedCode(line));
+}
+
+// Stripped blockquote content that can host a lazily-continued paragraph:
+// non-blank and not itself a structural block start (lists/quotes are fine —
+// their items contain paragraphs).
+function isLazyParagraphContent(content) {
+  const t = content.trim();
+  if (t === '') return false;
+  return !(detectFence(t) || detectHeading(t) || detectHtmlBlock(t) ||
+    detectHr(t) || detectStandaloneSubject(t) || detectPrefix(t));
+}
+
 const INLINE_HTML_RE = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?\/?>/g;
+
+const ASCII_PUNCT = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
+
+const NAMED_ENTITIES = Object.assign(Object.create(null), {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0',
+  copy: '©', reg: '®', trade: '™', hellip: '…', mdash: '—', ndash: '–',
+  lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', laquo: '«', raquo: '»',
+  times: '×', divide: '÷', plusmn: '±', deg: '°', micro: 'µ', para: '¶',
+  sect: '§', middot: '·', bull: '•', dagger: '†', Dagger: '‡', permil: '‰',
+  prime: '′', Prime: '″', euro: '€', pound: '£', yen: '¥', cent: '¢',
+  curren: '¤', brvbar: '¦', uml: '¨', ordf: 'ª', ordm: 'º', iexcl: '¡',
+  iquest: '¿', szlig: 'ß', shy: '\u00ad', ensp: '\u2002', emsp: '\u2003',
+  thinsp: '\u2009', zwnj: '\u200c', zwj: '\u200d', lrm: '\u200e', rlm: '\u200f',
+  oline: '‾', frasl: '⁄', weierp: '℘', image: 'ℑ', real: 'ℜ', alefsym: 'ℵ',
+  larr: '←', uarr: '↑', rarr: '→', darr: '↓', harr: '↔', crarr: '↵',
+  lArr: '⇐', uArr: '⇑', rArr: '⇒', dArr: '⇓', hArr: '⇔',
+  forall: '∀', part: '∂', exist: '∃', empty: '∅', nabla: '∇', isin: '∈',
+  notin: '∉', ni: '∋', prod: '∏', sum: '∑', minus: '−', lowast: '∗',
+  radic: '√', prop: '∝', infin: '∞', ang: '∠', and: '∧', or: '∨',
+  cap: '∩', cup: '∪', int: '∫', there4: '∴', sim: '∼', cong: '≅',
+  asymp: '≈', ne: '≠', equiv: '≡', le: '≤', ge: '≥', sub: '⊂', sup: '⊃',
+  nsub: '⊄', sube: '⊆', supe: '⊇', oplus: '⊕', otimes: '⊗', perp: '⊥',
+  sdot: '⋅', lceil: '⌈', rceil: '⌉', lfloor: '⌊', rfloor: '⌋', lang: '〈',
+  rang: '〉', loz: '◊', spades: '♠', clubs: '♣', hearts: '♥', diams: '♦'
+});
+
+function decodeNumericEntity(body) {
+  let digits = body.slice(1);
+  let radix = 10;
+  if (digits[0] === 'x' || digits[0] === 'X') { radix = 16; digits = digits.slice(1); }
+  if (digits === '') return null;
+  for (let k = 0; k < digits.length; k++) {
+    const c = digits[k];
+    const ok = radix === 10
+      ? c >= '0' && c <= '9'
+      : (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    if (!ok) return null;
+  }
+  const cp = parseInt(digits, radix);
+  if (cp === 0 || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return '�';
+  try { return String.fromCodePoint(cp); } catch { return '�'; }
+}
+
+// Single pass: backslash-escaped punctuation becomes literal (and can never
+// start an entity), entity references decode to their characters.
+function decodeInlineText(s) {
+  let out = '';
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === '\\' && i + 1 < s.length && ASCII_PUNCT.indexOf(s[i + 1]) !== -1) {
+      out += s[i + 1];
+      i += 2;
+      continue;
+    }
+    if (ch === '&') {
+      const semi = s.indexOf(';', i + 1);
+      if (semi !== -1 && semi - i <= 33) {
+        const body = s.slice(i + 1, semi);
+        const decoded = body[0] === '#'
+          ? decodeNumericEntity(body)
+          : (Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, body) ? NAMED_ENTITIES[body] : null);
+        if (decoded !== null) {
+          out += decoded;
+          i = semi + 1;
+          continue;
+        }
+      }
+      out += '&';
+      i++;
+      continue;
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
+function isEscapedAt(s, pos) {
+  let n = 0;
+  let j = pos - 1;
+  while (j >= 0 && s[j] === '\\') { n++; j--; }
+  return n % 2 === 1;
+}
+
+// CommonMark hard break: 2+ trailing spaces or a backslash before a newline
+// (not at end of block — the final line has no trailing \n, so it can't match)
+function applyHardBreaks(escaped) {
+  let out = '';
+  let i = 0;
+  while (i < escaped.length) {
+    const nl = escaped.indexOf('\n', i);
+    if (nl === -1) { out += escaped.slice(i); break; }
+
+    let contentEnd = nl;
+    let hard = false;
+    if (escaped[nl - 1] === '\\' && escaped[nl - 2] !== '\\') {
+      contentEnd = nl - 1;
+      hard = true;
+    } else {
+      let j = nl;
+      while (j > i && escaped[j - 1] === ' ') j--;
+      if (nl - j >= 2) {
+        contentEnd = j;
+        hard = true;
+      }
+    }
+
+    out += escaped.slice(i, contentEnd) + (hard ? '<br />\n' : '\n');
+    i = nl + 1;
+  }
+  return out;
+}
 
 function escapeTextPreserveHtml(s) {
   let out = '';
@@ -22,10 +154,14 @@ function escapeTextPreserveHtml(s) {
   let m;
   INLINE_HTML_RE.lastIndex = 0;
   while ((m = INLINE_HTML_RE.exec(s))) {
-    out += escapeHtml(s.slice(last, m.index)) + m[0];
+    if (isEscapedAt(s, m.index)) {
+      INLINE_HTML_RE.lastIndex = m.index + 1;
+      continue;
+    }
+    out += applyHardBreaks(escapeHtml(decodeInlineText(s.slice(last, m.index)))) + m[0];
     last = m.index + m[0].length;
   }
-  return out + escapeHtml(s.slice(last));
+  return out + applyHardBreaks(escapeHtml(decodeInlineText(s.slice(last))));
 }
 
 /**
@@ -108,12 +244,14 @@ export function render(src, options = {}) {
       const isLink = c.type === 'link';
       const fallbackHref = c.url || null;
 
+      const titleAttr = c.title ? ` title="${escapeHtml(c.title)}"` : '';
+
       if (c.type === 'image') {
         const alt = escapeHtml(c.text);
         const src = escapeHtml(c.url);
         const customAttrs = getAttrs(raw, sem, false, null);
         const attrString = mergeClasses('mdld-image', customAttrs);
-        out += `<img src="${src}" alt="${alt}" ${attrString} />`;
+        out += `<img src="${src}" alt="${alt}" ${attrString}${titleAttr} />`;
       } else {
         let tag = 'span';
         let baseClass = 'mdld-bracket';
@@ -129,7 +267,7 @@ export function render(src, options = {}) {
             : customAttrs);
 
         const inner = c.type === 'code' ? escapeHtml(c.text) : renderInline(c.text);
-        out += `<${tag} ${attrString}>${inner}</${tag}>`;
+        out += `<${tag} ${attrString}${titleAttr}>${inner}</${tag}>`;
       }
       lastPos = c.range[1];
     }
@@ -230,7 +368,13 @@ export function render(src, options = {}) {
     if (list) {
       const isOrdered = /^\s*\d+[.)]\s/.test(line);
       const listTag = isOrdered ? 'ol' : 'ul';
-      out.push(`<${listTag} class="mdld-list">`);
+      // CommonMark: changing bullet marker or ordered delimiter starts a new list
+      const sameMarker = (m) => isOrdered
+        ? m.marker[m.marker.length - 1] === list.marker[list.marker.length - 1]
+        : m.marker === list.marker;
+      const startNum = isOrdered ? parseInt(list.marker, 10) : 1;
+      const startAttr = isOrdered && startNum !== 1 ? ` start="${startNum}"` : '';
+      out.push(`<${listTag} class="mdld-list"${startAttr}>`);
 
       let currentListItemLines = [];
       let currentAttrs = null;
@@ -246,7 +390,8 @@ export function render(src, options = {}) {
         const l = detectList(lines[i]);
         if (l) {
           const nextIsOrdered = /^\s*\d+[.)]\s/.test(lines[i]);
-          if (currentListItemLines.length > 0 && nextIsOrdered !== isOrdered) break;
+          if (currentListItemLines.length > 0 &&
+            (nextIsOrdered !== isOrdered || !sameMarker(l))) break;
 
           if (currentListItemLines.length > 0) {
             processListItem(currentListItemLines, currentAttrs);
@@ -263,7 +408,7 @@ export function render(src, options = {}) {
             const nextList = detectList(lines[peek]);
             if (nextList) {
               const nextIsOrdered = /^\s*\d+[.)]\s/.test(lines[peek]);
-              if (nextIsOrdered === isOrdered) {
+              if (nextIsOrdered === isOrdered && sameMarker(nextList)) {
                 currentListItemLines.push('');
                 i = peek;
                 continue;
@@ -296,10 +441,24 @@ export function render(src, options = {}) {
     if (blockquote) {
       let quoteLines = [blockquote.content];
       i++;
+      // Track whether the last quote line can lazily continue a paragraph
+      let lazyOk = isLazyParagraphContent(quoteLines[quoteLines.length - 1]);
       while (i < lines.length) {
         const bq = detectBlockquote(lines[i]);
-        if (!bq) break;
-        quoteLines.push(bq.content);
+        if (bq) {
+          // Preserve per-line annotations as inline carriers — only the
+          // first line's attrs become block-level attributes
+          quoteLines.push(bq.attrs ? `${bq.content} {${bq.attrs}}` : bq.content);
+          lazyOk = isLazyParagraphContent(bq.content);
+          i++;
+          continue;
+        }
+        // CommonMark lazy continuation: a paragraph line inside a quote may
+        // omit the '>' marker — but only while the quote's last block is a
+        // paragraph and the line doesn't start a new block itself.
+        if (!lazyOk || lines[i].trim() === '' || isBlockStart(lines[i])) break;
+        quoteLines.push(lines[i]);
+        lazyOk = true;
         i++;
       }
       const sem = blockquote.attrs ? parseSemanticBlock(blockquote.attrs) : null;
@@ -346,6 +505,25 @@ export function render(src, options = {}) {
         }
       }
       out.push(blockLines.join('\n'));
+      continue;
+    }
+
+    if (detectIndentedCode(line)) {
+      const codeLines = [];
+      while (i < lines.length) {
+        const l = lines[i];
+        if (l.trim() === '') {
+          codeLines.push('');
+          i++;
+          continue;
+        }
+        const ind = detectIndentedCode(l);
+        if (!ind) break;
+        codeLines.push(l.slice(ind.indent.length));
+        i++;
+      }
+      while (codeLines.length > 0 && codeLines[codeLines.length - 1] === '') codeLines.pop();
+      out.push(`<pre><code class="mdld-codeblock language-text">${escapeHtml(codeLines.join('\n'))}</code></pre>`);
       continue;
     }
 
@@ -481,15 +659,17 @@ export function deconstruct(html) {
       const quoted = innerMd.split('\n').map(l => l.trim() ? `> ${l}` : '>').join('\n');
       blocks.push(ann ? `${quoted} ${ann}` : quoted);
       pos = close + 13;
-    } else if (html.startsWith('<ul class="mdld-list">', pos) || html.startsWith('<ol class="mdld-list">', pos)) {
-      const isOrdered = html.startsWith('<ol', pos);
+    } else if ((openTag.startsWith('<ul') || openTag.startsWith('<ol')) &&
+      extractAttr(openTag, 'class')?.includes('mdld-list')) {
+      const isOrdered = openTag.startsWith('<ol');
       const closeTag = isOrdered ? '</ol>' : '</ul>';
       const close = html.indexOf(closeTag, pos);
       if (close === -1) break;
-      const inner = html.slice(pos + 21, close);
+      const openEnd = html.indexOf('>', pos) + 1;
+      const inner = html.slice(openEnd, close);
       const items = [];
       let itemPos = 0;
-      let counter = 1;
+      let counter = isOrdered ? (parseInt(extractAttr(openTag, 'start') || '1', 10) || 1) : 1;
       while (itemPos < inner.length) {
         const liStart = inner.indexOf('<li', itemPos);
         if (liStart === -1) break;
@@ -536,7 +716,22 @@ export function deconstruct(html) {
   return blocks.join('\n\n');
 }
 
-function deconstructInline(html) {
+// Re-escape characters that are literal in HTML text but significant in
+// Markdown source ('<' would otherwise resurrect as a live tag on re-render).
+// Skipped inside code spans where markup is literal anyway.
+function mdEscapeText(s) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '&') out += '&amp;';
+    else if (ch === '<') out += '&lt;';
+    else if (ch === '\\' || ch === '`' || ch === '*' || ch === '_' || ch === '[' || ch === ']') out += '\\' + ch;
+    else out += ch;
+  }
+  return out;
+}
+
+function deconstructInline(html, inCode = false) {
   let out = '';
   let i = 0;
   while (i < html.length) {
@@ -551,7 +746,7 @@ function deconstructInline(html) {
       const attrs = spaceOrEnd === -1 ? '' : tagContent.slice(spaceOrEnd);
 
       if (tagContent.endsWith('/')) {
-        out += deconstructInlineElement(tagName, attrs, '');
+        out += deconstructInlineElement(tagName, attrs, '', inCode);
         i = closeGt + 1;
         continue;
       }
@@ -584,7 +779,7 @@ function deconstructInline(html) {
           depth--;
           if (depth === 0) {
             const inner = html.slice(closeGt + 1, nextClose);
-            out += deconstructInlineElement(tagName, attrs, inner);
+            out += deconstructInlineElement(tagName, attrs, inner, inCode);
             i = nextClose + closeTag.length;
             found = true;
             break;
@@ -596,32 +791,36 @@ function deconstructInline(html) {
     } else {
       const nextTag = html.indexOf('<', i);
       const textEnd = nextTag === -1 ? html.length : nextTag;
-      out += unescapeHtml(html.slice(i, textEnd));
+      const text = unescapeHtml(html.slice(i, textEnd));
+      out += inCode ? text : mdEscapeText(text);
       i = textEnd;
     }
   }
   return out;
 }
 
-function deconstructInlineElement(tagName, attrs, inner) {
+function deconstructInlineElement(tagName, attrs, inner, inCode = false) {
   const ann = extractAttr(attrs, 'data-annotation');
-  const content = deconstructInline(inner);
+  const content = deconstructInline(inner, inCode || tagName === 'code');
   const suffix = ann ? ' ' + ann : '';
+  const title = extractAttr(attrs, 'title');
+  const titleStr = title ? ` "${title}"` : '';
 
   switch (tagName) {
     case 'a': {
       const href = extractAttr(attrs, 'href') || '';
-      return `[${content}](${href})${suffix}`;
+      return `[${content}](${href}${titleStr})${suffix}`;
     }
     case 'img': {
       const src = extractAttr(attrs, 'src') || '';
       const alt = extractAttr(attrs, 'alt') || '';
-      return `![${alt}](${src})${suffix}`;
+      return `![${alt}](${src}${titleStr})${suffix}`;
     }
     case 'span': return `[${content}]${suffix}`;
     case 'code': return `\`${content}\`${suffix}`;
     case 'strong': return `**${content}**${suffix}`;
     case 'em': return `*${content}*${suffix}`;
+    case 'br': return '  ' + suffix;
     default: return content + suffix;
   }
 }

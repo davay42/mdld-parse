@@ -100,9 +100,20 @@ renders as a real `<table>` element, and `deconstruct()` passes the block throug
 
 **Inline HTML** (`<b>`, `<span class="x">`, `<a href="…">`, …) is likewise preserved inside paragraphs, headings, and list items. The exception is code: content inside backtick spans and fenced code blocks is always HTML-escaped, so `` `<b>` `` renders as literal text.
 
-**Links** get one piece of renderer policy on top of the passthrough: any link whose `href` has a URI scheme (`https:`, `mailto:`, `ftp:`, …) or is protocol-relative (`//host/…`) is emitted with `target="_blank" rel="noopener noreferrer"`, so external references never navigate away from the host document. Fragment (`#section`) and relative links are untouched.
+**Links** follow CommonMark destination rules: `[text](#fragment)`, `[text](/relative/path)`, `[text](mailto:…)`, and titles (`[text](url "title")`, including parenthesized titles) all render as real anchors, and `![alt](src)` renders as `<img>`. One piece of renderer policy sits on top: any link whose `href` has a URI scheme (`https:`, `mailto:`, `ftp:`, …) or is protocol-relative (`//host/…`) is emitted with `target="_blank" rel="noopener noreferrer"`, so external references never navigate away from the host document. Fragment (`#section`) and relative links stay on the same page. An invalid destination — `[text](not a link)` — is left as literal text rather than silently swallowed.
+
+**Entities and escapes** behave as CommonMark specifies: `&amp;`, `&copy;`, `&#169;`, `&#xA9;` and friends decode to their characters, and backslash-escaped punctuation (`\*`, `\[`, `\<`) renders literally without triggering markup. `deconstruct()` re-escapes significant punctuation, so `\*not emph\*` survives the round trip as literal asterisks.
 
 This is the presentation layer's only opinionated behavior. Everything else — tables, embeds, custom elements, math, whatever HTML the author writes — flows through exactly as written, because the text remains the source of truth and the HTML remains its reversible projection.
+
+### Deliberate CommonMark limitations
+
+MD-LD is a *strict* superset of Markdown, and a few CommonMark features are intentionally unsupported because they conflict with the grammar or the round-trip guarantee:
+
+- **Setext headings** (`===`/`---` underlines) require lookahead that collides with per-line annotation parsing and with `---` as a horizontal rule. ATX `#` headings are the supported form.
+- **Reference-style links** need document-level definition state that `deconstruct()` cannot faithfully reconstruct (it emits resolved inline destinations). Inline `[text](url)` is the supported form; shortcut references `[ref]` would be ambiguous with MD-LD's `[text]` bracket spans.
+- **GFM extensions** — pipe tables, strikethrough, task lists, `www.` autolinks — are out of scope; raw HTML covers tables.
+- Smaller edges: `***text***` renders as `*<strong>text</strong>*` rather than nested emphasis; `[text]()` stays literal; indented code inside list items is not detected; inline HTML tags are dropped by `deconstruct()` (their text content is preserved).
 
 ---
 

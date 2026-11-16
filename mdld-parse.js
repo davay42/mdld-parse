@@ -504,6 +504,8 @@ function detectHeading(line) {
 		attrs = attrsMatch[1];
 		content = trimmed.slice(0, -attrsMatch[0].length).trim();
 	}
+	content = content.replace(/[ \t]+#+[ \t]*$/, "");
+	if (/^#+$/.test(content)) content = "";
 	return {
 		depth,
 		content,
@@ -526,7 +528,7 @@ function detectList(line) {
 	else if (char >= "0" && char <= "9") {
 		let numEnd = pos + 1;
 		while (numEnd < line.length && line[numEnd] >= "0" && line[numEnd] <= "9") numEnd++;
-		if (numEnd >= line.length || line[numEnd] !== ".") return null;
+		if (numEnd >= line.length || line[numEnd] !== "." && line[numEnd] !== ")") return null;
 		marker = line.slice(pos, numEnd + 1);
 		contentStart = numEnd + 1;
 	} else return null;
@@ -636,6 +638,28 @@ function detectAngleBracketUrl(text, startPos) {
 		contentEnd: closeAngle
 	};
 }
+var UNICODE_PUNCT_RE = /\p{P}/u;
+var UNICODE_WS_RE = /\s/;
+function isUnicodeWs(ch) {
+	return ch === void 0 || UNICODE_WS_RE.test(ch);
+}
+function isUnicodePunct(ch) {
+	return ch !== void 0 && UNICODE_PUNCT_RE.test(ch);
+}
+function delimiterFlags(text, start, len, char) {
+	const before = start > 0 ? text[start - 1] : void 0;
+	const after = start + len < text.length ? text[start + len] : void 0;
+	const leftFlanking = !isUnicodeWs(after) && (!isUnicodePunct(after) || isUnicodeWs(before) || isUnicodePunct(before));
+	const rightFlanking = !isUnicodeWs(before) && (!isUnicodePunct(before) || isUnicodeWs(after) || isUnicodePunct(after));
+	if (char === "_") return {
+		canOpen: leftFlanking && (!rightFlanking || isUnicodePunct(before)),
+		canClose: rightFlanking && (!leftFlanking || isUnicodePunct(after))
+	};
+	return {
+		canOpen: leftFlanking,
+		canClose: rightFlanking
+	};
+}
 /**
 * Detect emphasis/strong spans: *text* or _text_
 * EBNF: emphasisSpan = "*", text, "*" | "_", text, "_"
@@ -647,28 +671,35 @@ function detectEmphasis(text, startPos) {
 	let delimCount = 1;
 	while (startPos + delimCount < text.length && text[startPos + delimCount] === char) delimCount++;
 	if (delimCount > 2) return null;
+	if (!delimiterFlags(text, startPos, delimCount, char).canOpen) return null;
 	const type = delimCount === 1 ? "emphasis" : "strong";
-	const closer = char.repeat(delimCount);
 	const contentStart = startPos + delimCount;
 	let pos = contentStart;
+	let depth = 0;
 	while (pos < text.length) {
-		if (text.slice(pos, pos + delimCount) === closer) {
-			if (pos + delimCount < text.length && text[pos + delimCount] === char) {
-				pos++;
-				continue;
+		if (text[pos] === char) {
+			let runLen = 1;
+			while (pos + runLen < text.length && text[pos + runLen] === char) runLen++;
+			const flags = delimiterFlags(text, pos, runLen, char);
+			if (depth === 0 && flags.canClose && runLen >= delimCount) {
+				const content = text.slice(contentStart, pos);
+				if (content.length === 0) return null;
+				const endPos = pos + delimCount;
+				const attrsResult = extractAttributes(text, endPos);
+				const finalPos = attrsResult ? attrsResult.endPos : endPos;
+				return {
+					type,
+					content,
+					attrs: attrsResult?.attrs || null,
+					endPos: finalPos,
+					contentStart,
+					contentEnd: pos
+				};
 			}
-			const content = text.slice(contentStart, pos);
-			const endPos = pos + delimCount;
-			const attrsResult = extractAttributes(text, endPos);
-			const finalPos = attrsResult ? attrsResult.endPos : endPos;
-			return {
-				type,
-				content,
-				attrs: attrsResult?.attrs || null,
-				endPos: finalPos,
-				contentStart,
-				contentEnd: pos
-			};
+			if (flags.canClose) depth = Math.max(0, depth - 1);
+			else if (flags.canOpen) depth++;
+			pos += runLen;
+			continue;
 		}
 		pos++;
 	}
@@ -705,6 +736,48 @@ function detectCodeSpan(text, startPos) {
 	}
 	return null;
 }
+function parseLinkTitle(s) {
+	if (s.length < 2) return null;
+	const open = s[0];
+	const close = s[s.length - 1];
+	return open === "\"" && close === "\"" || open === "'" && close === "'" || open === "(" && close === ")" ? s.slice(1, -1) : null;
+}
+function parseLinkDestination(inner) {
+	const s = inner.trim();
+	if (s === "") return null;
+	let dest, rest;
+	if (s[0] === "<") {
+		const close = s.indexOf(">");
+		if (close === -1) return null;
+		dest = s.slice(1, close);
+		rest = s.slice(close + 1).trim();
+	} else {
+		let w = 0;
+		while (w < s.length && s[w] !== " " && s[w] !== "	" && s[w] !== "\n") w++;
+		dest = s.slice(0, w);
+		rest = s.slice(w).trim();
+		let depth = 0;
+		for (let k = 0; k < dest.length; k++) {
+			if (dest[k] === "(") depth++;
+			else if (dest[k] === ")") depth--;
+			if (depth < 0) return null;
+		}
+		if (depth !== 0) return null;
+	}
+	if (dest === "") return null;
+	if (rest !== "") {
+		const title = parseLinkTitle(rest);
+		if (title === null) return null;
+		return {
+			dest,
+			title
+		};
+	}
+	return {
+		dest,
+		title: null
+	};
+}
 /**
 * Detect bracket link: [text](url) or [text]{...} or [text] alone
 * EBNF: linkSpan = "[", text, "](", text, ")" | "[", text, "]"
@@ -716,14 +789,20 @@ function detectBracketLink(text, startPos) {
 	const linkText = text.slice(startPos + 1, bracketEnd);
 	let pos = bracketEnd + 1;
 	let url = null;
+	let title = null;
 	if (pos < text.length && text[pos] === "(") {
-		const parenEnd = text.indexOf(")", pos + 1);
-		if (parenEnd !== -1) {
-			const potentialUrl = text.slice(pos + 1, parenEnd);
-			const lowerUrl = potentialUrl.toLowerCase();
-			if (lowerUrl.startsWith("http://") || lowerUrl.startsWith("https://")) url = potentialUrl;
-			pos = parenEnd + 1;
+		let parenEnd = text.indexOf(")", pos + 1);
+		while (parenEnd !== -1) {
+			const parsed = parseLinkDestination(text.slice(pos + 1, parenEnd));
+			if (parsed) {
+				url = parsed.dest;
+				title = parsed.title;
+				pos = parenEnd + 1;
+				break;
+			}
+			parenEnd = text.indexOf(")", parenEnd + 1);
 		}
+		if (url === null) return null;
 	} else if (pos < text.length && text[pos] === "<") {
 		const closeAngle = text.indexOf(">", pos + 1);
 		if (closeAngle !== -1) {
@@ -740,6 +819,7 @@ function detectBracketLink(text, startPos) {
 		type: url ? "link" : "span",
 		text: linkText,
 		url,
+		title,
 		attrs: attrsResult?.attrs || null,
 		endPos: finalPos,
 		contentStart: startPos + 1,
@@ -750,6 +830,15 @@ function detectBracketLink(text, startPos) {
 * Scan text for all inline carriers using character-based detection
 * Memory-optimized version - minimizes object allocations
 */
+function isEscaped(text, pos) {
+	let n = 0;
+	let j = pos - 1;
+	while (j >= 0 && text[j] === "\\") {
+		n++;
+		j--;
+	}
+	return n % 2 === 1;
+}
 function scanInlineCarriers(text, baseOffset = 0) {
 	const carriers = [];
 	const len = text.length;
@@ -757,7 +846,21 @@ function scanInlineCarriers(text, baseOffset = 0) {
 	while (pos < len) {
 		const char = text[pos];
 		let detected = null;
+		if (isEscaped(text, pos)) {
+			pos++;
+			continue;
+		}
 		switch (char) {
+			case "!":
+				if (text[pos + 1] === "[") {
+					const inner = detectBracketLink(text, pos + 1);
+					if (inner && inner.url) {
+						detected = inner;
+						detected.type = "image";
+					}
+				}
+				break;
+			case "<":
 			case "<":
 				detected = detectAngleBracketUrl(text, pos);
 				if (detected) {
@@ -801,6 +904,7 @@ function scanInlineCarriers(text, baseOffset = 0) {
 			valueRange,
 			attrs,
 			url,
+			title: detected.title || null,
 			pos: detected.endPos
 		};
 		if (attrs) carrier.attrsRange = [absContentEnd, absEnd];
@@ -1126,6 +1230,7 @@ function scanTokens(text) {
 	let pos = 0;
 	let codeBlock = null;
 	let sfcBlock = null;
+	let quoteBlock = null;
 	function detectSfcStart(trimmed) {
 		if (trimmed.startsWith("<!--")) return true;
 		return /^<(script|style|template)\b/i.test(trimmed);
@@ -1168,6 +1273,11 @@ function scanTokens(text) {
 		return true;
 	}
 	const PROCESSORS = [
+		{
+			type: "quoteContent",
+			test: () => quoteBlock !== null,
+			process: handleQuoteContent
+		},
 		{
 			type: "fence",
 			test: (line) => detectFence(line.trim()),
@@ -1296,15 +1406,66 @@ function scanTokens(text) {
 		mdLines.push(cleanList);
 		return true;
 	}
+	function quoteValueStart(line) {
+		return line.startsWith("> ") ? 2 : line.indexOf(">") + 1;
+	}
+	function emitQuoteSegment(qb) {
+		if (!qb.parts.length) return;
+		const last = qb.parts[qb.parts.length - 1];
+		const text = qb.parts.map((p) => p.content).join("\n");
+		tokens.push(createToken("blockquote", [qb.segStart, qb.end], text, last.attrs, calcAttrsRange(last.line, last.attrs, last.lineStart), [qb.segValueStart, qb.valueEnd]));
+		qb.parts = [];
+		qb.segStart = null;
+	}
 	function handleBlockquote(line, lineStart, pos) {
 		const result = detectBlockquote(line);
-		const attrs = result.attrs;
-		const valueStartInLine = line.startsWith("> ") ? 2 : line.indexOf(">") + 1;
-		const valueEndInLine = valueStartInLine + result.content.length;
-		tokens.push(createToken("blockquote", [lineStart, pos - 1], result.content, attrs, calcAttrsRange(line, attrs, lineStart), [lineStart + valueStartInLine, lineStart + valueEndInLine]));
-		const cleanBlockquote = `> ${result.content}`;
-		mdLines.push(cleanBlockquote);
+		const valueStartInLine = quoteValueStart(line);
+		quoteBlock = {
+			segStart: lineStart,
+			segValueStart: lineStart + valueStartInLine,
+			end: pos - 1,
+			valueEnd: lineStart + valueStartInLine + result.content.length,
+			parts: [{
+				content: result.content,
+				attrs: result.attrs,
+				line,
+				lineStart,
+				valueStartInLine
+			}]
+		};
+		mdLines.push(`> ${result.content}`);
+		if (result.attrs) emitQuoteSegment(quoteBlock);
 		return true;
+	}
+	function flushQuoteBlock() {
+		if (!quoteBlock) return;
+		emitQuoteSegment(quoteBlock);
+		quoteBlock = null;
+	}
+	function handleQuoteContent(line, lineStart, pos) {
+		const bq = detectBlockquote(line);
+		if (bq) {
+			const valueStartInLine = quoteValueStart(line);
+			const qb = quoteBlock;
+			if (!qb.parts.length) {
+				qb.segStart = lineStart;
+				qb.segValueStart = lineStart + valueStartInLine;
+			}
+			qb.parts.push({
+				content: bq.content,
+				attrs: bq.attrs,
+				line,
+				lineStart,
+				valueStartInLine
+			});
+			qb.end = pos - 1;
+			qb.valueEnd = lineStart + valueStartInLine + bq.content.length;
+			mdLines.push(`> ${bq.content}`);
+			if (bq.attrs) emitQuoteSegment(qb);
+			return true;
+		}
+		flushQuoteBlock();
+		return false;
 	}
 	function handlePara(line, lineStart, pos) {
 		const leadingWhitespace = line.search(/\S/);
@@ -1356,6 +1517,7 @@ function scanTokens(text) {
 		pos += line.length + 1;
 		for (const processor of PROCESSORS) if (processor.test(line) && processor.process(line, lineStart, pos)) break;
 	}
+	flushQuoteBlock();
 	return {
 		tokens,
 		md: mdLines.join("\n")
