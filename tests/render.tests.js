@@ -160,6 +160,79 @@ comment
       const q2 = parse(md2).quads;
       assertRender(q1.length === q2.length, `Ordered list quads: ${q1.length} vs ${q2.length}`);
     }
+  },
+  {
+    name: 'External links open in a new tab',
+    fn: () => {
+      const md = `[ex] <http://example.org/>
+See [the spec](https://example.com/spec) and [Example](http://example.com).`;
+      const html = render(md);
+
+      assertRender(html.includes('href="https://example.com/spec"'), 'External href must be preserved');
+      assertRender(html.includes('target="_blank"'), 'External link must have target="_blank"');
+      assertRender(html.includes('rel="noopener noreferrer"'), 'External link must have safe rel');
+      assertRender((html.match(/target="_blank"/g) || []).length === 2, 'Both external links must open in new tab');
+
+      const md2 = deconstruct(html);
+      assertRender(md2.includes('[the spec](https://example.com/spec)'), 'Link must roundtrip');
+    }
+  },
+  {
+    name: 'HTML blocks render raw and roundtrip',
+    fn: () => {
+      const md = `[ex] <http://example.org/>
+# Comma {=ex:comma}
+
+The comma must remain distinct:
+
+<table>
+<thead><tr><th>Comma</th><th>Ratio</th></tr></thead>
+<tbody>
+<tr><td>Pythagorean</td><td>531441:524288</td></tr>
+</tbody>
+</table>
+
+Trailing paragraph.`;
+      const html = render(md);
+
+      assertRender(html.includes('<table>'), 'Table tag must render raw');
+      assertRender(html.includes('<td>Pythagorean</td>'), 'Table cells must not be escaped');
+      assertRender(!html.includes('&lt;table&gt;'), 'Table must not be escaped');
+
+      const md2 = deconstruct(html);
+      assertRender(md2.includes('<table>'), 'Table must survive deconstruct');
+      assertRender(md2.includes('</table>'), 'Table close tag must survive deconstruct');
+      assertRender(md2.includes('Trailing paragraph.'), 'Following paragraph must survive');
+    }
+  },
+  {
+    name: 'Inline HTML passes through, code spans stay escaped',
+    fn: () => {
+      const md = `Text with <b>bold html</b> and \`code <i>not html</i>\`.`;
+      const html = render(md);
+
+      assertRender(html.includes('<b>bold html</b>'), 'Inline HTML must render raw');
+      assertRender(html.includes('code &lt;i&gt;not html&lt;/i&gt;'), 'Code span content must be escaped');
+      assertRender(!html.includes('<i>not html</i>'), 'Code span must not leak HTML');
+    }
+  },
+  {
+    name: 'Block HTML interrupts paragraphs, lone inline tags do not',
+    fn: () => {
+      const md = `before
+<div>raw block</div>
+
+next para
+<span>lone</span>
+still same para`;
+      const html = render(md);
+
+      assertRender(html.includes('<div>raw block</div>'), 'Div block must render raw');
+      assertRender(html.includes('before</p>'), 'Paragraph must end before HTML block');
+      // <span> alone on a line cannot interrupt a paragraph (CommonMark type 7)
+      assertRender(html.includes('next para\n<span>lone</span>\nstill same para'),
+        'Lone inline tag must stay inside the paragraph');
+    }
   }
 ];
 

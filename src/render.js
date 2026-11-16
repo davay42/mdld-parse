@@ -1,6 +1,6 @@
 import {
   detectFence, detectPrefix, detectHeading, detectList,
-  detectBlockquote, detectStandaloneSubject, scanInlineCarriers
+  detectBlockquote, detectStandaloneSubject, detectHtmlBlock, scanInlineCarriers
 } from './tokenizers.js';
 import { escapeHtml } from './shared.js';
 import { expandIRI, parseSemanticBlock } from './utils.js';
@@ -12,6 +12,20 @@ function detectHr(line) {
 
 function isExternalHref(href) {
   return /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href);
+}
+
+const INLINE_HTML_RE = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?\/?>/g;
+
+function escapeTextPreserveHtml(s) {
+  let out = '';
+  let last = 0;
+  let m;
+  INLINE_HTML_RE.lastIndex = 0;
+  while ((m = INLINE_HTML_RE.exec(s))) {
+    out += escapeHtml(s.slice(last, m.index)) + m[0];
+    last = m.index + m[0].length;
+  }
+  return out + escapeHtml(s.slice(last));
 }
 
 /**
@@ -81,13 +95,13 @@ export function render(src, options = {}) {
     text = text.replace(/<!--[\s\S]*?-->/g, '');
 
     const carriers = scanInlineCarriers(text, 0);
-    if (carriers.length === 0) return escapeHtml(text);
+    if (carriers.length === 0) return escapeTextPreserveHtml(text);
 
     let out = '';
     let lastPos = 0;
 
     for (const c of carriers) {
-      if (c.range[0] > lastPos) out += escapeHtml(text.slice(lastPos, c.range[0]));
+      if (c.range[0] > lastPos) out += escapeTextPreserveHtml(text.slice(lastPos, c.range[0]));
 
       const sem = c.attrs ? parseSemanticBlock(c.attrs) : null;
       const raw = c.attrs || '';
@@ -114,12 +128,13 @@ export function render(src, options = {}) {
             ? customAttrs + ' target="_blank" rel="noopener noreferrer"'
             : customAttrs);
 
-        out += `<${tag} ${attrString}>${renderInline(c.text)}</${tag}>`;
+        const inner = c.type === 'code' ? escapeHtml(c.text) : renderInline(c.text);
+        out += `<${tag} ${attrString}>${inner}</${tag}>`;
       }
       lastPos = c.range[1];
     }
 
-    if (lastPos < text.length) out += escapeHtml(text.slice(lastPos));
+    if (lastPos < text.length) out += escapeTextPreserveHtml(text.slice(lastPos));
     return out;
   }
 
@@ -312,13 +327,35 @@ export function render(src, options = {}) {
       continue;
     }
 
+    const htmlBlock = detectHtmlBlock(line);
+    if (htmlBlock) {
+      const blockLines = [line];
+      i++;
+      if (htmlBlock.closeTag) {
+        const needle = htmlBlock.closeTag.toLowerCase();
+        while (i < lines.length) {
+          blockLines.push(lines[i]);
+          const done = lines[i].toLowerCase().includes(needle);
+          i++;
+          if (done) break;
+        }
+      } else {
+        while (i < lines.length && lines[i].trim() !== '') {
+          blockLines.push(lines[i]);
+          i++;
+        }
+      }
+      out.push(blockLines.join('\n'));
+      continue;
+    }
+
     let paraLines = [line];
     i++;
     while (i < lines.length && lines[i].trim() !== '' &&
       !detectFence(lines[i].trim()) && !detectPrefix(lines[i]) &&
       !detectHeading(lines[i]) && !detectList(lines[i]) &&
       !detectBlockquote(lines[i]) && !detectStandaloneSubject(lines[i]) &&
-      !detectHr(lines[i])) {
+      !detectHr(lines[i]) && !detectHtmlBlock(lines[i], true)) {
       paraLines.push(lines[i]);
       i++;
     }
@@ -353,6 +390,10 @@ function buildRenderContext(lines, userContext = {}) {
  * Pure string scanning over our constrained output format.
  * Platform-agnostic: no DOMParser, no browser APIs required.
  */
+// Matches the block-level tags emitted by render() — used to find the end of
+// a raw HTML block during deconstruction.
+const MDLD_BLOCK_START_RE = /^<(?:p class="mdld-paragraph"|div class="mdld-prefix"|div class="mdld-standalone"|pre><code class="mdld-codeblock|h[1-6] class="mdld-heading"|blockquote class="mdld-quote"|ul class="mdld-list"|ol class="mdld-list"|hr class="mdld-hr")/;
+
 export function deconstruct(html) {
   const blocks = [];
   let pos = 0;
@@ -392,14 +433,18 @@ export function deconstruct(html) {
       if (ann) blocks.push(ann);
       pos = end + 6;
     } else if (html.startsWith('<pre><code', pos)) {
+      const preClose = html.indexOf('>', pos) + 1;
+      const codeOpenEnd = html.indexOf('>', preClose) + 1;
+      const codeTag = html.slice(preClose, codeOpenEnd);
+      if (!extractAttr(codeTag, 'class')?.includes('mdld-codeblock')) {
+        pos = nextTagStart + 1;
+        continue;
+      }
       const closePre = html.indexOf('</code></pre>', pos);
       if (closePre === -1) break;
       const full = html.slice(pos, closePre + 13);
 
-      const preClose = full.indexOf('>') + 1;
-      const codeOpenEnd = full.indexOf('>', preClose) + 1;
-      const codeTag = full.slice(preClose, codeOpenEnd);
-      const content = full.slice(codeOpenEnd, full.length - 13);
+      const content = full.slice(codeOpenEnd - pos, full.length - 13);
 
       const classMatch = extractAttr(codeTag, 'class');
       const langMatch = (classMatch || '').match(/language-(\w+)/);
@@ -408,7 +453,8 @@ export function deconstruct(html) {
 
       blocks.push(`\`\`\`${lang}${ann ? ' ' + ann : ''}\n${unescapeHtml(content)}\n\`\`\``);
       pos = closePre + 13;
-    } else if (html[pos] === '<' && /^<h[1-6]/.test(html.slice(pos, pos + 4))) {
+    } else if (html[pos] === '<' && /^<h[1-6]/.test(html.slice(pos, pos + 4)) &&
+      extractAttr(openTag, 'class')?.includes('mdld-heading')) {
       const level = html[pos + 2];
       const closeTag = `</h${level}>`;
       const close = html.indexOf(closeTag, pos);
@@ -421,7 +467,8 @@ export function deconstruct(html) {
       const ann = extractAttr(openTag, 'data-annotation');
       blocks.push(`${hashes} ${deconstructInline(content)}${ann ? ' ' + ann : ''}`);
       pos = close + closeTag.length;
-    } else if (html.startsWith('<blockquote', pos)) {
+    } else if (html.startsWith('<blockquote', pos) &&
+      extractAttr(openTag, 'class')?.includes('mdld-quote')) {
       const close = html.indexOf('</blockquote>', pos);
       if (close === -1) break;
       const full = html.slice(pos, close + 13);
@@ -469,6 +516,19 @@ export function deconstruct(html) {
     } else if (openTag.startsWith('<hr') && extractAttr(openTag, 'class')?.includes('mdld-hr')) {
       blocks.push('---');
       pos = tagEnd + 1;
+    } else if (html[pos] === '<' && /^<\/?[A-Za-z]/.test(html.slice(pos, pos + 3))) {
+      // Raw HTML block (e.g. <table>): pass through until a blank line or
+      // the next MD-LD block element.
+      let end = pos;
+      while (end < html.length) {
+        const nl = html.indexOf('\n', end);
+        const lineEnd = nl === -1 ? html.length : nl;
+        const line = html.slice(end, lineEnd);
+        if (end !== pos && (line.trim() === '' || MDLD_BLOCK_START_RE.test(line.trimStart()))) break;
+        end = nl === -1 ? html.length : nl + 1;
+      }
+      blocks.push(html.slice(pos, end).trim());
+      pos = end;
     } else {
       pos++;
     }

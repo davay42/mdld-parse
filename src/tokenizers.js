@@ -250,6 +250,53 @@ export function detectStandaloneSubject(line) {
     return { content };
 }
 
+// CommonMark HTML block tag names (type 6)
+const HTML_BLOCK_TAGS = new Set([
+    'address', 'article', 'aside', 'base', 'basefont', 'blockquote', 'body',
+    'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dialog', 'dir',
+    'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form',
+    'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header',
+    'hr', 'html', 'iframe', 'legend', 'li', 'link', 'main', 'menu', 'menuitem',
+    'nav', 'noframes', 'ol', 'optgroup', 'option', 'p', 'param', 'search',
+    'section', 'summary', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead',
+    'title', 'tr', 'track', 'ul'
+]);
+
+// Raw-text elements: block ends at the matching close tag (CommonMark type 1)
+const HTML_RAW_TEXT_TAGS = new Set(['script', 'pre', 'style', 'textarea']);
+
+/**
+ * Detect an HTML block start (CommonMark HTML blocks).
+ * Returns { tag, closeTag, interrupt } or null.
+ * - interrupt: whether the block may interrupt a paragraph (type 7 cannot).
+ * - closeTag: if set, the block ends on the line containing this string;
+ *   otherwise it ends at the first blank line.
+ */
+export function detectHtmlBlock(line, interruptOnly = false) {
+    const trimmed = line.trim();
+    if (trimmed[0] !== '<') return null;
+
+    const m = trimmed.match(/^<(\/?)([A-Za-z][A-Za-z0-9-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/);
+    if (!m) return null;
+
+    const tag = m[2].toLowerCase();
+    const closing = m[1] === '/';
+    let interrupt = true;
+    let closeTag = null;
+
+    if (!closing && HTML_RAW_TEXT_TAGS.has(tag)) {
+        closeTag = `</${tag}`;
+    } else if (!HTML_BLOCK_TAGS.has(tag)) {
+        // Type 7: any other complete open tag alone on its line; cannot
+        // interrupt a paragraph.
+        if (closing || m[0] !== trimmed) return null;
+        interrupt = false;
+    }
+
+    if (interruptOnly && !interrupt) return null;
+    return { tag, closeTag, interrupt };
+}
+
 // ============================================================================
 // INLINE CARRIER TOKENIZERS (Character-based within block content)
 // ============================================================================
