@@ -501,8 +501,10 @@ Convert MD-LD to semantic HTML with preserved annotations.
 - Preserves complete MD-LD syntax in `data-annotation` for roundtrip reconstruction
 - Resolves IRIs into `data-iri` attributes for easy querying
 - Adds semantic CSS classes: `.mdld-heading`, `.mdld-link`, `.typed`, `.retracted`
-- External links (`http(s)://`, `mailto:`, any scheme, protocol-relative) get `target="_blank" rel="noopener noreferrer"`
-- Standard Markdown/HTML passthrough: raw HTML blocks (`<table>`, `<div>`, …) and inline HTML render unescaped per CommonMark rules; code spans stay escaped
+- External links (`http(s)://`, `mailto:`, any scheme, protocol-relative) get `target="_blank" rel="noopener noreferrer"`; fragment (`#`) and relative links stay on-page
+- Full CommonMark inline links: `[text](#fragment)`, `[text](/path)`, `[text](mailto:…)`, titles (`[t](url "title")`), and images `![alt](src)`
+- Entity references (`&amp;`, `&copy;`, `&#169;`, `&#xA9;`) decode; backslash escapes (`\*`) suppress markup
+- Standard Markdown/HTML passthrough: raw HTML blocks (`<table>`, `<div>`, …), inline HTML, hard breaks (`<br />`), and indented code blocks render per CommonMark; code stays escaped
 - Platform-agnostic: works in Node.js, Deno, browsers, edge workers
 
 **Example:**
@@ -545,6 +547,14 @@ const mdld = deconstruct(html);
 **Notes:**
 - Raw HTML blocks pass through `deconstruct()` verbatim, so `<table>` and friends roundtrip losslessly
 - `deconstruct()` only recognizes elements carrying `mdld-*` classes — hand-written HTML without them is treated as raw passthrough
+
+**CommonMark compatibility — deliberate limitations:**
+- **Setext headings** (`Title` + `===`/`---`) are not supported: they need lookahead that conflicts with per-line annotation parsing, and `---` already means `<hr>`. Use ATX `#` headings.
+- **Reference-style links** (`[text][ref]`, `[ref]: url`) are not supported: definitions require document-level state that wouldn't survive `deconstruct()` round-trips anyway. Use inline `[text](url)`.
+- **Shortcut references** (`[ref]` alone as a link) conflict with MD-LD's `[text]` bracket-span syntax.
+- **GFM extensions** (pipe tables, `~~strikethrough~~`, task lists, `www.` autolinks) are out of scope — use raw HTML for tables.
+- Combined emphasis `***text***` renders as `*<strong>text</strong>*`, not nested `<em><strong>`.
+- Empty link destinations `[text]()` stay literal; indented code inside list items is not recognized; inline HTML tags are dropped by `deconstruct()` (inner text preserved).
 
 ## 🎨 Graph Visualization — `<quad-graph>`
 

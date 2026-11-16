@@ -148,6 +148,7 @@ function scanTokens(text) {
     let pos = 0;
     let codeBlock = null;
     let sfcBlock = null;
+    let quoteBlock = null;
 
     function detectSfcStart(trimmed) {
         if (trimmed.startsWith('<!--')) return true;
@@ -191,6 +192,7 @@ function scanTokens(text) {
     }
 
     const PROCESSORS = [
+        { type: 'quoteContent', test: () => quoteBlock !== null, process: handleQuoteContent },
         { type: 'fence', test: line => detectFence(line.trim()), process: handleFence },
         { type: 'codeContent', test: () => codeBlock, process: line => codeBlock.content.push(line) },
         { type: 'sfcContent', test: () => sfcBlock, process: handleSfcContent },
@@ -285,18 +287,67 @@ function scanTokens(text) {
         return true;
     }
 
+    // Accumulate consecutive '>' lines. Each line carrying a trailing {..}
+    // annotation closes a semantic segment: unannotated lines accumulate and
+    // bind to the NEXT annotation (or emit as a plain segment at quote end).
+    // This keeps per-line annotation semantics while letting a trailing
+    // annotation cover the whole quoted text (CommonMark block semantics).
+    function quoteValueStart(line) {
+        return line.startsWith('> ') ? 2 : line.indexOf('>') + 1;
+    }
+
+    function emitQuoteSegment(qb) {
+        if (!qb.parts.length) return;
+        const last = qb.parts[qb.parts.length - 1];
+        const text = qb.parts.map(p => p.content).join('\n');
+        tokens.push(createToken('blockquote', [qb.segStart, qb.end], text,
+            last.attrs,
+            calcAttrsRange(last.line, last.attrs, last.lineStart),
+            [qb.segValueStart, qb.valueEnd]));
+        qb.parts = [];
+        qb.segStart = null;
+    }
+
     function handleBlockquote(line, lineStart, pos) {
         const result = detectBlockquote(line);
-        const attrs = result.attrs;
-        const valueStartInLine = line.startsWith('> ') ? 2 : line.indexOf('>') + 1;
-        const valueEndInLine = valueStartInLine + result.content.length;
-        tokens.push(createToken('blockquote', [lineStart, pos - 1], result.content, attrs,
-            calcAttrsRange(line, attrs, lineStart),
-            [lineStart + valueStartInLine, lineStart + valueEndInLine]));
+        const valueStartInLine = quoteValueStart(line);
 
-        const cleanBlockquote = `> ${result.content}`;
-        mdLines.push(cleanBlockquote);
+        quoteBlock = {
+            segStart: lineStart,
+            segValueStart: lineStart + valueStartInLine,
+            end: pos - 1,
+            valueEnd: lineStart + valueStartInLine + result.content.length,
+            parts: [{ content: result.content, attrs: result.attrs, line, lineStart, valueStartInLine }]
+        };
+        mdLines.push(`> ${result.content}`);
+        if (result.attrs) emitQuoteSegment(quoteBlock);
         return true;
+    }
+
+    function flushQuoteBlock() {
+        if (!quoteBlock) return;
+        emitQuoteSegment(quoteBlock);
+        quoteBlock = null;
+    }
+
+    function handleQuoteContent(line, lineStart, pos) {
+        const bq = detectBlockquote(line);
+        if (bq) {
+            const valueStartInLine = quoteValueStart(line);
+            const qb = quoteBlock;
+            if (!qb.parts.length) {
+                qb.segStart = lineStart;
+                qb.segValueStart = lineStart + valueStartInLine;
+            }
+            qb.parts.push({ content: bq.content, attrs: bq.attrs, line, lineStart, valueStartInLine });
+            qb.end = pos - 1;
+            qb.valueEnd = lineStart + valueStartInLine + bq.content.length;
+            mdLines.push(`> ${bq.content}`);
+            if (bq.attrs) emitQuoteSegment(qb);
+            return true;
+        }
+        flushQuoteBlock();
+        return false; // let other processors handle this line
     }
 
     function handlePara(line, lineStart, pos) {
@@ -377,6 +428,8 @@ function scanTokens(text) {
             }
         }
     }
+
+    flushQuoteBlock();
 
     const mdContent = mdLines.join('\n');
     return { tokens, md: mdContent };

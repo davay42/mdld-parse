@@ -217,6 +217,206 @@ Trailing paragraph.`;
     }
   },
   {
+    name: 'Indented code blocks render and roundtrip',
+    fn: () => {
+      const md = `para
+
+    code line 1
+    code line 2
+
+    after blank
+
+after`;
+      const html = render(md);
+
+      assertRender(html.includes('<pre><code class="mdld-codeblock language-text">'), 'Indented code must render as code block');
+      assertRender(html.includes('code line 1\ncode line 2'), 'Indent must be stripped from content');
+      assertRender(!html.includes('    code line'), 'Leading indent must not leak into HTML');
+
+      const md2 = deconstruct(html);
+      assertRender(md2.includes('```'), 'Code block must reconstruct as fenced code');
+      assertRender(md2.includes('code line 1'), 'Code content must survive');
+    }
+  },
+  {
+    name: 'Fragment, relative, and mailto links render as anchors',
+    fn: () => {
+      const md = `See [Terms](#terms), [Docs](/guide), and [Email](mailto:a@b.c).`;
+      const html = render(md);
+
+      assertRender(html.includes('href="#terms"'), 'Fragment link must render');
+      assertRender(html.includes('href="/guide"'), 'Relative link must render');
+      assertRender(html.includes('href="mailto:a@b.c"'), 'Mailto link must render');
+      assertRender(!html.includes('(#terms)'), 'Destination must not be swallowed');
+      // Fragment links stay on the same page
+      const fragTag = html.slice(html.indexOf('href="#terms"') - 20, html.indexOf('href="#terms"') + 60);
+      assertRender(!fragTag.includes('target="_blank"'), 'Fragment link must not open in new tab');
+
+      const md2 = deconstruct(html);
+      assertRender(md2.includes('[Terms](#terms)'), 'Fragment link must roundtrip');
+    }
+  },
+  {
+    name: 'Link titles render as title attribute and roundtrip',
+    fn: () => {
+      const html = render('[T](https://x.com "a title") and [U](/p (paren title))');
+      assertRender(html.includes('title="a title"'), 'Title must render as attribute');
+      assertRender(!html.includes('href="https://x.com &quot;'), 'Title must not leak into href');
+      assertRender(html.includes('title="paren title"'), 'Paren title must render');
+
+      const md2 = deconstruct(html);
+      assertRender(md2.includes('"a title"'), 'Title must reconstruct');
+    }
+  },
+  {
+    name: 'Images render as img elements',
+    fn: () => {
+      const html = render('A ![alt text](https://x.com/i.png) here.');
+      assertRender(html.includes('<img src="https://x.com/i.png" alt="alt text"'), 'Image must render as <img>');
+      assertRender(!html.includes('!<a'), 'Image must not render as literal ! + link');
+
+      const md2 = deconstruct(html);
+      assertRender(md2.includes('![alt text](https://x.com/i.png)'), 'Image must roundtrip');
+    }
+  },
+  {
+    name: 'Entities decode and backslash escapes suppress markup',
+    fn: () => {
+      const html = render('fish &amp; chips &#169; and \\*not emph\\*');
+      assertRender(html.includes('fish &amp; chips ©'), 'Entities must decode');
+      assertRender(html.includes('*not emph*'), 'Escaped asterisks must render literally');
+      assertRender(!html.includes('<em'), 'Escaped asterisks must not emphasize');
+
+      const md2 = deconstruct(html);
+      assertRender(md2.includes('\\*not emph\\*'), 'Escaped punctuation must reconstruct escaped');
+    }
+  },
+  {
+    name: 'Ordered lists support ) delimiter and start attribute',
+    fn: () => {
+      const html = render('1) paren\n2) list');
+      assertRender(html.includes('<ol class="mdld-list">'), ') delimiter must render as <ol>');
+      assertRender(html.includes('paren') && html.includes('list'), 'Items must render');
+
+      const html2 = render('3. third\n4. fourth');
+      assertRender(html2.includes('start="3"'), 'Non-1 start must emit start attribute');
+      const md2 = deconstruct(html2);
+      assertRender(md2.includes('3. third') && md2.includes('4. fourth'),
+        'Deconstruct must preserve start numbering');
+    }
+  },
+  {
+    name: 'Heading closing hashes are stripped',
+    fn: () => {
+      assertRender(render('# Title #').includes('>Title</h1>'), 'Closing # must be stripped');
+      assertRender(render('# C# keep').includes('C# keep'), 'Intraword # must be kept');
+      assertRender(render('## h2 ## {=ex:h}', { context: { ex: 'http://example.com/' } }).includes('>h2</h2>'), 'Closing # before attrs must strip');
+    }
+  },
+  {
+    name: 'List marker changes split lists',
+    fn: () => {
+      const html = render('- a\n+ b\n* c');
+      assertRender((html.match(/<ul class="mdld-list">/g) || []).length === 3,
+        'Each bullet marker must start a new list');
+      const html2 = render('1. a\n2) b');
+      assertRender((html2.match(/<ol class="mdld-list"/g) || []).length === 2,
+        'Ordered delimiter change must split lists');
+    }
+  },
+  {
+    name: 'Blockquote lazy continuation and per-line annotations',
+    fn: () => {
+      const html = render('> quote line1\nlazy continuation');
+      assertRender(html.includes('quote line1\nlazy continuation'),
+        'Lazy line must continue the quote paragraph');
+      assertRender(html.includes('</blockquote>') && !html.includes('</blockquote>\n<p'),
+        'Lazy line must not escape the quote');
+
+      // Per-line annotations on non-first quote lines must not be dropped
+      const html2 = render('> first\n> second {=ex:s .ex:T}');
+      assertRender(html2.includes('{=ex:s .ex:T}'), 'Annotation must survive in HTML');
+      const md2 = deconstruct(html2);
+      assertRender(md2.includes('{=ex:s .ex:T}'), 'Annotation must roundtrip');
+    }
+  },
+  {
+    name: 'Multiline blockquote annotations bind to accumulated text',
+    fn: () => {
+      // Trailing annotation covers all unannotated quote lines
+      const md = `[ex] <http://e.org/>
+> line one
+> line two {=ex:s .ex:T ex:label}`;
+      const { quads } = parse(md);
+      const labelQuad = quads.find(q => String(q.predicate?.value ?? q.predicate).endsWith('/label'));
+      assertRender(labelQuad, 'Label quad must exist');
+      assertRender(String(labelQuad.object?.value ?? labelQuad.object).includes('line one\nline two'),
+        'Annotation must bind to whole quote text');
+
+      // Per-line annotations on consecutive quote lines stay independent
+      const md2 = `[ex] <http://e.org/>
+> a {=ex:x .ex:T ex:l1}
+> b {=ex:y .ex:T ex:l2}`;
+      const q2 = parse(md2).quads;
+      const l1 = q2.find(q => String(q.predicate?.value ?? q.predicate).endsWith('/l1'));
+      const l2 = q2.find(q => String(q.predicate?.value ?? q.predicate).endsWith('/l2'));
+      assertRender(String(l1.object?.value ?? l1.object) === 'a', 'First annotation binds its own line');
+      assertRender(String(l2.object?.value ?? l2.object) === 'b', 'Second annotation binds its own line');
+    }
+  },
+  {
+    name: 'Emphasis follows CommonMark flanking rules',
+    fn: () => {
+      // Intraword underscores and spaced asterisks must not emphasize
+      assertRender(render('snake_case_name').includes('snake_case_name'), 'Intraword _ must stay literal');
+      assertRender(render('2 * 3 * 4').includes('2 * 3 * 4'), 'Spaced * must stay literal');
+      // But intraword asterisks and real emphasis still work
+      assertRender(render('a*b*c').includes('<em class="mdld-italic">b</em>'), 'Intraword * may emphasize');
+      assertRender(render('*em* **strong**').includes('<strong class="mdld-bold">strong</strong>'), 'Strong must render');
+      // Nested emphasis pairs correctly
+      const nested = render('*a **b** c*');
+      assertRender(nested.includes('<strong class="mdld-bold">b</strong>'), 'Nested strong must render inside em');
+      assertRender(nested.indexOf('<em') < nested.indexOf('<strong'), 'Outer em must wrap inner strong');
+      // Escaped delimiters stay literal
+      assertRender(render('\\*not emph\\*').includes('*not emph*'), 'Escaped * must stay literal');
+    }
+  },
+  {
+    name: 'Invalid link destinations stay literal',
+    fn: () => {
+      const html = render('[bad](not a link) stays');
+      assertRender(html.includes('[bad](not a link)'), 'Invalid destination must remain literal text');
+      assertRender(!html.includes('mdld-link'), 'Invalid destination must not become a link');
+    }
+  },
+  {
+    name: 'Indented code cannot interrupt a paragraph',
+    fn: () => {
+      const html = render('para text\n    still paragraph');
+      assertRender(html.includes('<p class="mdld-paragraph">para text\n    still paragraph</p>'),
+        'Indented line after paragraph text must stay in the paragraph');
+    }
+  },
+  {
+    name: 'Hard line breaks render as <br /> and roundtrip',
+    fn: () => {
+      const md = `line one  
+line two\\
+line three
+line four  `;
+      const html = render(md);
+
+      assertRender(html.includes('line one<br />'), 'Two trailing spaces must produce <br />');
+      assertRender(html.includes('line two<br />'), 'Backslash must produce <br />');
+      assertRender(!html.includes('line three<br'), 'Soft break must not produce <br />');
+      // Trailing spaces on the last line of a block are not a hard break
+      assertRender(html.includes('line four  </p>'), 'End-of-block spaces must not produce <br />');
+
+      const md2 = deconstruct(html);
+      assertRender(md2.includes('line one  \nline two'), 'Hard breaks must reconstruct');
+    }
+  },
+  {
     name: 'Block HTML interrupts paragraphs, lone inline tags do not',
     fn: () => {
       const md = `before

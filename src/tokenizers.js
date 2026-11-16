@@ -116,6 +116,10 @@ export function detectHeading(line) {
         content = trimmed.slice(0, -attrsMatch[0].length).trim();
     }
 
+    // CommonMark closing sequence: optional spaces + #+ + optional spaces
+    content = content.replace(/[ \t]+#+[ \t]*$/, '');
+    if (/^#+$/.test(content)) content = '';
+
     return { depth, content, attrs };
 }
 
@@ -140,12 +144,12 @@ export function detectList(line) {
     if (char === '-' || char === '*' || char === '+') {
         marker = char;
     } else if (char >= '0' && char <= '9') {
-        // Ordered list: digits followed by .
+        // Ordered list: digits followed by . or )
         let numEnd = pos + 1;
         while (numEnd < line.length && line[numEnd] >= '0' && line[numEnd] <= '9') {
             numEnd++;
         }
-        if (numEnd >= line.length || line[numEnd] !== '.') return null;
+        if (numEnd >= line.length || (line[numEnd] !== '.' && line[numEnd] !== ')')) return null;
         marker = line.slice(pos, numEnd + 1);
         contentStart = numEnd + 1;
     } else {
@@ -266,6 +270,18 @@ const HTML_BLOCK_TAGS = new Set([
 const HTML_RAW_TEXT_TAGS = new Set(['script', 'pre', 'style', 'textarea']);
 
 /**
+ * Detect indented code block line: 4+ spaces or a tab (CommonMark).
+ * Cannot interrupt a paragraph — callers must only check at block start.
+ */
+export function detectIndentedCode(line) {
+    if (line[0] === '\t') return { indent: '\t' };
+    if (line[0] === ' ' && line[1] === ' ' && line[2] === ' ' && line[3] === ' ') {
+        return { indent: '    ' };
+    }
+    return null;
+}
+
+/**
  * Detect an HTML block start (CommonMark HTML blocks).
  * Returns { tag, closeTag, interrupt } or null.
  * - interrupt: whether the block may interrupt a paragraph (type 7 cannot).
@@ -364,6 +380,36 @@ export function detectAngleBracketUrl(text, startPos) {
     };
 }
 
+const UNICODE_PUNCT_RE = /\p{P}/u;
+const UNICODE_WS_RE = /\s/;
+
+function isUnicodeWs(ch) {
+    return ch === undefined || UNICODE_WS_RE.test(ch);
+}
+
+function isUnicodePunct(ch) {
+    return ch !== undefined && UNICODE_PUNCT_RE.test(ch);
+}
+
+// CommonMark flanking rules for a delimiter run of `char` over [start, start+len)
+function delimiterFlags(text, start, len, char) {
+    const before = start > 0 ? text[start - 1] : undefined;
+    const after = start + len < text.length ? text[start + len] : undefined;
+
+    const leftFlanking = !isUnicodeWs(after) &&
+        (!isUnicodePunct(after) || isUnicodeWs(before) || isUnicodePunct(before));
+    const rightFlanking = !isUnicodeWs(before) &&
+        (!isUnicodePunct(before) || isUnicodeWs(after) || isUnicodePunct(after));
+
+    if (char === '_') {
+        return {
+            canOpen: leftFlanking && (!rightFlanking || isUnicodePunct(before)),
+            canClose: rightFlanking && (!leftFlanking || isUnicodePunct(after))
+        };
+    }
+    return { canOpen: leftFlanking, canClose: rightFlanking };
+}
+
 /**
  * Detect emphasis/strong spans: *text* or _text_
  * EBNF: emphasisSpan = "*", text, "*" | "_", text, "_"
@@ -382,37 +428,50 @@ export function detectEmphasis(text, startPos) {
 
     if (delimCount > 2) return null; // Only 1 or 2 allowed
 
-    const type = delimCount === 1 ? 'emphasis' : 'strong';
-    const closer = char.repeat(delimCount);
+    // The opening run must be able to open emphasis
+    if (!delimiterFlags(text, startPos, delimCount, char).canOpen) return null;
 
-    // Find closing delimiter
+    const type = delimCount === 1 ? 'emphasis' : 'strong';
     const contentStart = startPos + delimCount;
     let pos = contentStart;
+    let depth = 0;
 
     while (pos < text.length) {
-        // Check for closing delimiter
-        if (text.slice(pos, pos + delimCount) === closer) {
-            // Must not be followed by same char (would be longer delimiter)
-            if (pos + delimCount < text.length && text[pos + delimCount] === char) {
-                pos++;
-                continue;
+        if (text[pos] === char) {
+            // Measure the full delimiter run at this position
+            let runLen = 1;
+            while (pos + runLen < text.length && text[pos + runLen] === char) {
+                runLen++;
             }
 
-            const content = text.slice(contentStart, pos);
-            const endPos = pos + delimCount;
+            const flags = delimiterFlags(text, pos, runLen, char);
 
-            // Check for attributes after
-            const attrsResult = extractAttributes(text, endPos);
-            const finalPos = attrsResult ? attrsResult.endPos : endPos;
+            if (depth === 0 && flags.canClose && runLen >= delimCount) {
+                const content = text.slice(contentStart, pos);
+                if (content.length === 0) return null;
 
-            return {
-                type,
-                content,
-                attrs: attrsResult?.attrs || null,
-                endPos: finalPos,
-                contentStart,
-                contentEnd: pos
-            };
+                const endPos = pos + delimCount;
+
+                // Check for attributes after
+                const attrsResult = extractAttributes(text, endPos);
+                const finalPos = attrsResult ? attrsResult.endPos : endPos;
+
+                return {
+                    type,
+                    content,
+                    attrs: attrsResult?.attrs || null,
+                    endPos: finalPos,
+                    contentStart,
+                    contentEnd: pos
+                };
+            }
+
+            // Nested same-char delimiters: openers push, closers pop —
+            // approximates the CommonMark delimiter-stack pairing
+            if (flags.canClose) depth = Math.max(0, depth - 1);
+            else if (flags.canOpen) depth++;
+            pos += runLen;
+            continue;
         }
         pos++;
     }
@@ -466,6 +525,53 @@ export function detectCodeSpan(text, startPos) {
     return null;
 }
 
+// Parse a link title: "...", '...', or (...)
+function parseLinkTitle(s) {
+    if (s.length < 2) return null;
+    const open = s[0];
+    const close = s[s.length - 1];
+    const match = (open === '"' && close === '"') ||
+        (open === "'" && close === "'") ||
+        (open === '(' && close === ')');
+    return match ? s.slice(1, -1) : null;
+}
+
+// Parse the inside of "(...)" as a CommonMark link destination + optional title.
+// Returns { dest, title } or null when invalid (caller emits literal text).
+function parseLinkDestination(inner) {
+    const s = inner.trim();
+    if (s === '') return null;
+
+    let dest, rest;
+    if (s[0] === '<') {
+        const close = s.indexOf('>');
+        if (close === -1) return null;
+        dest = s.slice(1, close);
+        rest = s.slice(close + 1).trim();
+    } else {
+        let w = 0;
+        while (w < s.length && s[w] !== ' ' && s[w] !== '\t' && s[w] !== '\n') w++;
+        dest = s.slice(0, w);
+        rest = s.slice(w).trim();
+        // Bare destinations may contain balanced parentheses only
+        let depth = 0;
+        for (let k = 0; k < dest.length; k++) {
+            if (dest[k] === '(') depth++;
+            else if (dest[k] === ')') depth--;
+            if (depth < 0) return null;
+        }
+        if (depth !== 0) return null;
+    }
+    if (dest === '') return null;
+
+    if (rest !== '') {
+        const title = parseLinkTitle(rest);
+        if (title === null) return null;
+        return { dest, title };
+    }
+    return { dest, title: null };
+}
+
 /**
  * Detect bracket link: [text](url) or [text]{...} or [text] alone
  * EBNF: linkSpan = "[", text, "](", text, ")" | "[", text, "]"
@@ -479,18 +585,21 @@ export function detectBracketLink(text, startPos) {
     const linkText = text.slice(startPos + 1, bracketEnd);
     let pos = bracketEnd + 1;
     let url = null;
+    let title = null;
     if (pos < text.length && text[pos] === '(') {
-        const parenEnd = text.indexOf(')', pos + 1);
-        if (parenEnd !== -1) {
-            const potentialUrl = text.slice(pos + 1, parenEnd);
-
-            const lowerUrl = potentialUrl.toLowerCase();
-            if (lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://')) {
-                url = potentialUrl;
+        // Try successive ')' candidates — titles may contain parentheses
+        let parenEnd = text.indexOf(')', pos + 1);
+        while (parenEnd !== -1) {
+            const parsed = parseLinkDestination(text.slice(pos + 1, parenEnd));
+            if (parsed) {
+                url = parsed.dest;
+                title = parsed.title;
+                pos = parenEnd + 1;
+                break;
             }
-
-            pos = parenEnd + 1;
+            parenEnd = text.indexOf(')', parenEnd + 1);
         }
+        if (url === null) return null;
     } else if (pos < text.length && text[pos] === '<') {
         // Check for <url> after ]
         const closeAngle = text.indexOf('>', pos + 1);
@@ -516,6 +625,7 @@ export function detectBracketLink(text, startPos) {
         type: carrierType,
         text: linkText,
         url,
+        title,
         attrs: attrsResult?.attrs || null,
         endPos: finalPos,
         contentStart: startPos + 1,
@@ -550,6 +660,14 @@ export function calcRanges(token, baseOffset) {
  * Scan text for all inline carriers using character-based detection
  * Memory-optimized version - minimizes object allocations
  */
+// Count preceding backslashes; odd count means this char is escaped
+function isEscaped(text, pos) {
+    let n = 0;
+    let j = pos - 1;
+    while (j >= 0 && text[j] === '\\') { n++; j--; }
+    return n % 2 === 1;
+}
+
 export function scanInlineCarriers(text, baseOffset = 0) {
     const carriers = [];
     const len = text.length;
@@ -559,8 +677,25 @@ export function scanInlineCarriers(text, baseOffset = 0) {
         const char = text[pos];
         let detected = null;
 
+        // Escaped punctuation (\*, \[, \<, …) never starts a carrier
+        if (isEscaped(text, pos)) {
+            pos++;
+            continue;
+        }
+
         // Fast path: only check carrier start characters
         switch (char) {
+            case '!':
+                if (text[pos + 1] === '[') {
+                    const inner = detectBracketLink(text, pos + 1);
+                    if (inner && inner.url) {
+                        detected = inner;
+                        detected.type = 'image';
+                    }
+                }
+                break;
+
+            case '<':
             case '<':
                 detected = detectAngleBracketUrl(text, pos);
                 if (detected) {
@@ -622,6 +757,7 @@ export function scanInlineCarriers(text, baseOffset = 0) {
             valueRange,
             attrs: attrs,
             url: url,
+            title: detected.title || null,
             pos: detected.endPos
         };
 
