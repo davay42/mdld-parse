@@ -50,19 +50,19 @@
 		"url": "https://github.com/davay42/mdld-parse/issues"
 	},
 	"devDependencies": {
-		"@unocss/extractor-pug": "^66.10.2",
-		"@vitejs/plugin-vue": "^6.0.8",
-		"@vueuse/core": "^14.4.0",
-		"codejar": "^4.3.0",
-		"markdown-it": "^15.0.2",
-		"n3": "^2.7.12",
+		"@unocss/extractor-pug": "^66.13.0",
+		"@vitejs/plugin-vue": "^6.0.11",
+		"@vueuse/core": "^15.0.0",
+		"codejar": "^5.0.0",
+		"markdown-it": "^15.0.3",
+		"n3": "^2.13.12",
 		"rdfa-parse": "^1.0.1",
-		"shiki": "^4.4.3",
-		"unocss": "^66.10.2",
-		"vite": "^8.3.0",
-		"vite-plugin-singlefile": "^2.3.3",
+		"shiki": "^4.6.0",
+		"unocss": "^66.13.0",
+		"vite": "^8.3.8",
+		"vite-plugin-singlefile": "^2.3.4",
 		"vscode-textmate": "^9.3.2",
 		"vue": "^3.6.0-beta.17"
 	},
-	"packageManager": "pnpm@11.26.0+sha512.fc0e2bf890b9f983611f1ab68c0637bce914390653699f83c1a78b005ed25f2c81e77920c8fd8eee2ecf0b58b28cdcb00a84d97f69bcf7c56b2f344710238664"
+	"packageManager": "pnpm@12.21.0+sha512.66fd8278ee28935ce951792d34367ff3af5c432a2756445823029533835b8da529bbe0be5130afd56ed0713fb8789e47bad82d93bd5ae2fe54b15562d6276ef0"
 }
