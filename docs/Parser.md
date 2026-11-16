@@ -34,13 +34,21 @@ export function scanInlineCarriers(text)     // [text], **bold**, `code`, <URL>
 ```javascript
 // Block-level detection in scanTokens()
 const PROCESSORS = [
-    { type: 'fence', test: line => detectHeading(line), process: handleFence },
+    { type: 'quoteContent', test: () => quoteBlock !== null, process: handleQuoteContent },
+    { type: 'fence', test: line => detectFence(line.trim()), process: handleFence },
+    { type: 'codeContent', test: () => codeBlock, process: line => codeBlock.content.push(line) },
+    { type: 'sfcContent', test: () => sfcBlock, process: handleSfcContent },
+    { type: 'sfcStart', test: line => detectSfcStart(line.trim()), process: handleSfcStart },
     { type: 'prefix', test: line => detectPrefix(line), process: handlePrefix },
+    { type: 'standalone', test: line => detectStandaloneSubject(line), process: handleStandaloneSubject },
     { type: 'heading', test: line => detectHeading(line), process: handleHeading },
     { type: 'list', test: line => detectList(line), process: handleList },
     { type: 'blockquote', test: line => detectBlockquote(line), process: handleBlockquote },
     { type: 'para', test: line => line.trim(), process: handlePara }
 ];
+```
+
+`quoteContent` runs first: while a blockquote is open it consumes consecutive `>` lines into one accumulated segment — a trailing `{...}` annotation binds to all unannotated lines since the previous annotation (or quote start). This gives CommonMark-style multiline quote semantics without lookahead: consumption is decided per line.
 
 // Inline carrier detection in getCarriers()
 function getCarriers(token) {
