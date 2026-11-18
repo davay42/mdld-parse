@@ -1,5 +1,5 @@
 /**
- * <quad-graph> — zero-dependency RDF quad graph renderer (ESM, Canvas2D, ~650 LOC).
+ * <quad-graph> — zero-dependency RDF quad graph renderer (ESM, Canvas2D, ~670 LOC).
  *
  *   import './quad-graph.js'
  *   const element = document.createElement('quad-graph');
@@ -55,7 +55,8 @@ export class Layout {
         this.theta = n > 50000 ? 1.2 : n > 5000 ? 1.0 : 0.85;
         this.relink();
     }
-    /** Hubs get longer links (room for their leaves) and weaker springs (d3-style 1/min(deg)). */
+    /** Hubs get longer links (room for their leaves) and weaker springs (d3-style 1/min(deg)).
+       rdf:type edges use normal force for structure but are hidden visually. */
     relink() {
         const { ls, lt, deg, linkDist } = this, m = ls.length;
         this.len = new Float32Array(m); this.str = new Float32Array(m); this.bias = new Float32Array(m);
@@ -192,7 +193,15 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:gra
 .hud{position:absolute;left:8px;top:6px;font:11px/1.2 system-ui,sans-serif;opacity:.6;pointer-events:none;display:flex;gap:8px;align-items:center;color:#ccc}
 .bar{width:44px;height:3px;border-radius:2px;background:#444;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#1D9E75}
 .tip{position:absolute;left:0;top:0;pointer-events:none;max-width:320px;padding:6px 9px;border-radius:7px;font:12px/1.4 system-ui,sans-serif;background:#2a2a2a;color:#eee;border:1px solid #444;box-shadow:0 4px 16px #0003;display:none;z-index:2;overflow-wrap:anywhere}
-.tip b{display:block}.tip small{display:block;opacity:.6}`;
+.tip b{display:block}.tip small{display:block;opacity:.6}
+.graphs{position:absolute;right:8px;top:6px;font:11px/1.2 system-ui,sans-serif;background:#222;border:1px solid #444;border-radius:6px;padding:4px 8px;max-height:200px;overflow-y:auto;max-width:260px;opacity:.9;z-index:3}
+.graphs.collapsed{max-width:auto}
+.graphs.collapsed .graphs-list{display:none}
+.graphs-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-weight:600;color:#aaa}
+.graphs-item{display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer}
+.graphs-item:hover{color:#fff}
+.graphs-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;flex:1}
+.graphs-hidden{opacity:0.4}`;
 
 /* ───────────────────────────── Web component ───────────────────────────── */
 export class QuadGraph extends Base {
@@ -200,15 +209,17 @@ export class QuadGraph extends Base {
     constructor() {
         super();
         const root = this.attachShadow({ mode: 'open' });
-        root.innerHTML = `<style>${CSS}</style><canvas></canvas><div class="hud"><span></span><div class="bar"><i></i></div></div><div class="tip"></div>`;
+        root.innerHTML = `<style>${CSS}</style><canvas></canvas><div class="hud"><span></span><div class="bar"><i></i></div></div><div class="tip"></div><div class="graphs"><div class="graphs-header"><span>Graphs</span><span class="graphs-toggle" style="cursor:pointer">▼</span></div><div class="graphs-list"></div></div>`;
         this._cv = root.querySelector('canvas'); this._g2 = this._cv.getContext('2d');
         this._stat = root.querySelector('.hud span'); this._bar = root.querySelector('.bar i'); this._tip = root.querySelector('.tip');
+        this._graphsPanel = root.querySelector('.graphs'); this._graphsList = root.querySelector('.graphs-list'); this._graphsToggle = root.querySelector('.graphs-toggle');
         this._quads = []; this._pfx = []; this._L = new Layout(); this._ids = null; this._names = []; this._typ = new Int32Array(0);
         this._classes = [null]; this._lits = new Map(); this._lab = new Map(); this._lc = []; this._plc = [];
         this._v = { k: 1, x: 0, y: 0 }; this._w = 600; this._h = 480; this._dpr = 1; this._fg = '#888'; this._halo = 'rgba(255,255,255,.8)'; this._tt = -1e9;
         this._sel = -1; this._hov = -1; this._nl = []; this._el = []; this._auto = true; this._fc = 0; this._ht = 0; this._st = '';
         this._occ = new Uint8Array(0); this._oc = 1; this._or = 1; this._ptrs = new Map(); this._gs = null;
         this._bend = new Float32Array(0); this._lp = new Int32Array(0); this._pc = []; this._fill = []; this._ring = [];
+        this._graphs = []; this._edgeGraph = new Uint16Array(0); this._nodeGraphs = []; this._visibleGraphs = new Set(); this._nodeVisible = new Uint8Array(0);
         this._pOff = this._pList = this._cOff = this._cList = this._order = this._off = this._adj = new Int32Array(0);
         this._bind();
     }
@@ -260,10 +271,14 @@ export class QuadGraph extends Base {
     _ingest() {
         const ids = new Map(), names = [], litN = [], typ = [], ls = [], lt = [], lp = [], lab = new Map(), lits = new Map();
         const classes = [null], classIdx = new Map(), preds = [], predIdx = new Map(), seen = new Set();
+        const graphs = [], graphIdx = new Map(), edgeGraph = [], nodeGraphs = [];
         const idOf = t => t.termType === 'BlankNode' ? '_:' + t.value : t.value;
-        const node = id => { let i = ids.get(id); if (i === undefined) { i = names.length; ids.set(id, i); names.push(id); litN.push(0); typ.push(0); } return i; };
+        const node = id => { let i = ids.get(id); if (i === undefined) { i = names.length; ids.set(id, i); names.push(id); litN.push(0); typ.push(0); nodeGraphs.push(new Set()); } return i; };
+        const graphOf = g => g.termType === 'DefaultGraph' ? 'default' : g.value;
         for (const q of this._quads) {
             if (!q || !q.subject || !q.predicate || !q.object) continue;
+            const g = graphOf(q.graph);
+            let gi = graphIdx.get(g); if (gi === undefined) { gi = graphs.length; graphIdx.set(g, gi); graphs.push(g); }
             const o = q.object, p = q.predicate.value, sid = idOf(q.subject), si = node(sid);
             if (o.termType === 'Literal') {
                 litN[si]++;
@@ -277,14 +292,51 @@ export class QuadGraph extends Base {
             let pi = predIdx.get(p); if (pi === undefined) { pi = preds.length; predIdx.set(p, pi); preds.push(p); }
             const key = (si * 1048576 + ti) * 4096 + (pi & 4095);
             if (seen.has(key)) continue; seen.add(key);
-            ls.push(si); lt.push(ti); lp.push(pi);
+            ls.push(si); lt.push(ti); lp.push(pi); edgeGraph.push(gi);
+            nodeGraphs[si].add(gi); nodeGraphs[ti].add(gi);
             if (p === RDF_TYPE && o.termType === 'NamedNode' && !typ[si]) {
                 let c = classIdx.get(o.value); if (c === undefined) { c = classes.length; classIdx.set(o.value, c); classes.push(o.value); }
                 typ[si] = c;
             }
         }
-        for (let c = 1; c < classes.length; c++) { const i = ids.get(classes[c]); if (!typ[i]) typ[i] = c; }  // class nodes share their class colour
+        for (let c = 1; c < classes.length; c++) { const i = ids.get(classes[c]); if (i !== undefined && !typ[i]) typ[i] = c; }  // class nodes share their class colour
         const n = names.length, m = ls.length, LS = Int32Array.from(ls), LT = Int32Array.from(lt), LP = Int32Array.from(lp);
+        // Mark rdf:type edges (for weaker/longer springs + hidden rendering)
+        const isType = new Uint8Array(m);
+        for (let e = 0; e < m; e++) if (preds[LP[e]] === RDF_TYPE) isType[e] = 1;
+        // Compute node visibility per graph
+        this._visibleGraphs = new Set(graphs.map((_, i) => i));
+        this._nodeVisible = new Uint8Array(n);
+        for (let i = 0; i < n; i++) {
+            this._nodeVisible[i] = 0;
+            for (const g of nodeGraphs[i]) if (this._visibleGraphs.has(g)) { this._nodeVisible[i] = 1; break; }
+        }
+        // Build graph panel if more than 1 graph
+        if (graphs.length > 1) {
+            this._graphsPanel.classList.remove('collapsed');
+            this._graphsToggle.textContent = '▼';
+            this._graphsList.innerHTML = '';
+            const sortedIndices = graphs.map((_, i) => i).sort((a, b) => graphs[a].localeCompare(graphs[b]));
+            sortedIndices.forEach(i => {
+                const g = graphs[i];
+                const div = document.createElement('div');
+                div.className = 'graphs-item';
+                div.dataset.idx = i;
+                const dot = document.createElement('span');
+                dot.textContent = '●';
+                dot.style.color = this._visibleGraphs.has(i) ? '#1D9E75' : '#666';
+                const name = document.createElement('span');
+                name.className = 'graphs-name';
+                name.textContent = g === 'default' ? 'default' : this._shortenGraphName(g);
+                name.title = g;
+                div.append(dot, name);
+                div.onclick = () => this._toggleGraph(i);
+                this._graphsList.appendChild(div);
+            });
+        } else {
+            this._graphsPanel.classList.add('collapsed');
+            this._graphsToggle.textContent = '▶';
+        }
         // CSR adjacency (edge ids) + degree
         const off = new Int32Array(n + 1); for (let e = 0; e < m; e++) { off[LS[e] + 1]++; off[LT[e] + 1]++; }
         for (let i = 0; i < n; i++) off[i + 1] += off[i];
@@ -319,7 +371,8 @@ export class QuadGraph extends Base {
         this._ring = classes.map((c, i) => i ? `hsl(${hash(c) % 360} 70% 36%)` : 'hsl(215 12% 42%)');
         Object.assign(this, {
             _ids: ids, _names: names, _typ: Int32Array.from(typ), _classes: classes, _lits: lits, _lab: lab, _lc: [], _plc: [], _preds: preds,
-            _bend: bend, _lp: LP, _pOff: pOff, _pList: pList, _cOff: cOff, _cList: cList, _order: order, _off: off, _adj: adj
+            _bend: bend, _lp: LP, _isType: isType, _graphs: graphs, _edgeGraph: Uint16Array.from(edgeGraph), _nodeGraphs: nodeGraphs,
+            _pOff: pOff, _pList: pList, _cOff: cOff, _cList: cList, _order: order, _off: off, _adj: adj
         });
         const L = this._L; L.charge = Math.abs(parseFloat(this.getAttribute('charge'))) || 40; L.linkDist = parseFloat(this.getAttribute('link-dist')) || 45;
         L.load(x, y, LS, LT, deg, r, mass, pin); if (hadOld) L.alpha = 0.5;
@@ -334,6 +387,30 @@ export class QuadGraph extends Base {
         const m = iri.match(/[#/:]([^#/:]+)\/?$/); let s = m ? m[1] : iri;
         try { s = decodeURIComponent(s); } catch { }
         return s;
+    }
+    _shortenGraphName(iri) {
+        const curie = this._curie(iri);
+        if (curie !== iri && curie.length <= 30) return curie;
+        if (iri.length <= 30) return iri;
+        const mid = Math.floor((iri.length - 10) / 2);
+        return iri.slice(0, 5) + '...' + iri.slice(-mid - 5);
+    }
+    _toggleGraph(idx) {
+        if (this._visibleGraphs.has(idx)) this._visibleGraphs.delete(idx); else this._visibleGraphs.add(idx);
+        const n = this._L.n, nv = this._nodeVisible;
+        if (!n || !this._nodeGraphs.length) return;
+        for (let i = 0; i < n; i++) {
+            nv[i] = 0;
+            for (const g of this._nodeGraphs[i]) if (this._visibleGraphs.has(g)) { nv[i] = 1; break; }
+        }
+        // Update panel UI
+        this._graphsList.querySelectorAll('.graphs-item').forEach(div => {
+            const i = parseInt(div.dataset.idx, 10);
+            const dot = div.querySelector('span:first-child');
+            dot.style.color = this._visibleGraphs.has(i) ? '#1D9E75' : '#666';
+            div.classList.toggle('graphs-hidden', !this._visibleGraphs.has(i));
+        });
+        this._dirty = true; this._wake();
     }
     _label(i) { return this._lc[i] ??= this._lab.get(this._names[i])?.[0] ?? this._curie(this._names[i]); }
     _plabel(p) { return this._plc[p] ??= this._lab.get(this._preds[p])?.[0] ?? this._curie(this._preds[p]); }
@@ -380,7 +457,9 @@ export class QuadGraph extends Base {
         if (this._dirty) { this._dirty = false; this._draw(); }
         const now = performance.now();
         if (now - this._ht > 150 || !more) {
-            this._ht = now; const s = `${L.n.toLocaleString()} nodes · ${L.ls.length.toLocaleString()} links`;
+            this._ht = now;
+            const gcount = this._graphs.length;
+            const s = `${L.n.toLocaleString()} nodes · ${L.ls.length.toLocaleString()} links${gcount > 1 ? ` · ${gcount} graphs` : ''}`;
             if (s !== this._st) this._stat.textContent = this._st = s;
             this._bar.style.width = (more ? Math.min(1, L.alpha) * 100 : 0) + '%';
         }
@@ -393,10 +472,12 @@ export class QuadGraph extends Base {
         g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
         if (!L.n) return;
         if (performance.now() - this._tt > 1000) this._theme();
-        const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, bend = this._bend;
+        const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, bend = this._bend, isType = this._isType;
         const x0 = -v.x * inv, y0 = -v.y * inv, x1 = (W - v.x) * inv, y1 = (H - v.y) * inv;
         g.setTransform(d * k, 0, 0, d * k, d * v.x, d * v.y); g.lineCap = 'round';
         const addEdge = (e, ap) => {
+            if (!this._nodeVisible[ls[e]] || !this._nodeVisible[lt[e]]) return;
+            if (!this._visibleGraphs.has(this._edgeGraph[e])) return;
             const s = ls[e], t = lt[e], sx = x[s], sy = y[s], tx = x[t], ty = y[t];
             if ((sx < x0 && tx < x0) || (sx > x1 && tx > x1) || (sy < y0 && ty < y0) || (sy > y1 && ty > y1)) return;
             const dx = tx - sx, dy = ty - sy, len = Math.sqrt(dx * dx + dy * dy) || 1e-6, ux = dx / len, uy = dy / len;
@@ -414,15 +495,21 @@ export class QuadGraph extends Base {
         for (let p = 0; p < this._pc.length; p++) {
             const ap = arrows ? new Path2D() : null; g.beginPath();
             for (let a = this._pOff[p]; a < this._pOff[p + 1]; a++) addEdge(this._pList[a], ap);
-            g.globalAlpha = base; g.strokeStyle = this._pc[p]; g.stroke();
-            if (ap) { g.globalAlpha = Math.min(1, base * 1.5); g.fillStyle = this._pc[p]; g.fill(ap); }
+            // rdf:type edges: gray and faint
+            const isTypePred = this._preds[p] === RDF_TYPE;
+            g.globalAlpha = isTypePred ? base * 0.33 : base;
+            g.strokeStyle = isTypePred ? '#666' : this._pc[p];
+            g.stroke();
+            if (ap) { g.globalAlpha = Math.min(1, (isTypePred ? base * 0.25 : base) * 1.5); g.fillStyle = isTypePred ? '#666' : this._pc[p]; g.fill(ap); }
         }
         // nodes, batched per class; sub-pixel nodes become rects
         const ring = k > 0.65 && (L.n < 30000 || k > 2); g.lineWidth = 1.4 * inv; g.globalAlpha = sel >= 0 ? 0.28 : 1;
         for (let cl = 0; cl < this._fill.length; cl++) {
             g.beginPath();
             for (let a = this._cOff[cl]; a < this._cOff[cl + 1]; a++) {
-                const i = this._cList[a], px = x[i], py = y[i], ri = r[i];
+                const i = this._cList[a];
+                if (!this._nodeVisible[i]) continue;
+                const px = x[i], py = y[i], ri = r[i];
                 if (px + ri < x0 || px - ri > x1 || py + ri < y0 || py - ri > y1) continue;
                 if (ri * k < 1) { const h = 0.9 * inv; g.rect(px - h, py - h, 2 * h, 2 * h); } else { g.moveTo(px + ri, py); g.arc(px, py, ri, 0, TAU); }
             }
@@ -458,6 +545,7 @@ export class QuadGraph extends Base {
             return true;
         };
         const put = (i, force) => {                          // -1 offscreen, 0 rejected, 1 drawn
+            if (!this._nodeVisible[i]) return -1;
             const sx = x[i] * k + v.x, sy = y[i] * k + v.y, rs = r[i] * k;
             if (sx < -60 || sx > W + 60 || sy < -10 || sy > H + 30) return -1;
             if (!force && rs < 2) return 0;
@@ -472,6 +560,8 @@ export class QuadGraph extends Base {
         if (k < 0.5 || !ls.length) return;
         g.font = '9px system-ui,sans-serif'; g.globalAlpha = 0.9; g.lineWidth = 1;
         for (let e = 0, cnt = 0; e < ls.length && cnt < 150; e++) {
+            if (this._isType[e]) continue; // skip rdf:type edge labels
+            if (!this._visibleGraphs.has(this._edgeGraph[e])) continue; // skip hidden graph edge labels
             const s = ls[e], t = lt[e], dx = (x[t] - x[s]) * k, dy = (y[t] - y[s]) * k, len = Math.sqrt(dx * dx + dy * dy);
             if (len < 70) continue;
             const b = this._bend[e] * k, mx = (x[s] + x[t]) / 2 * k + v.x - dy / len * b, my = (y[s] + y[t]) / 2 * k + v.y + dx / len * b;
@@ -508,9 +598,14 @@ export class QuadGraph extends Base {
         if (t._i !== i) {
             t._i = i; t.replaceChildren();
             const add = (tag, txt) => { const e = document.createElement(tag); e.textContent = txt; t.append(e); };
-            add('b', this._label(i)); add('small', this._names[i]);
-            const c = this._typ[i]; if (c && this._classes[c] !== this._names[i]) add('small', 'a ' + this._curie(this._classes[c]));
-            for (const [p, val] of this._lits.get(i) || []) add('div', this._curie(p) + ': ' + (val.length > 80 ? val.slice(0, 80) + '…' : val));
+            add('b', this._label(i));
+            const c = this._typ[i];
+            if (c && this._classes[c] !== this._names[i]) add('small', 'a ' + this._curie(this._classes[c]));
+            add('small', this._names[i]);
+            for (const [p, val] of this._lits.get(i) || []) {
+                const short = val.length > 200 ? val.slice(0, 200) + '…' : val;
+                add('div', this._curie(p) + ': ' + short);
+            }
             add('small', this._L.deg[i] + ' links');
         }
         t.style.display = 'block';
@@ -559,6 +654,10 @@ export class QuadGraph extends Base {
         };
         cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
         cv.addEventListener('pointerleave', () => { if (this._hov >= 0 && !P.size) { this._hov = -1; this._dirty = true; this._wake(); } this._showTip(-1); });
+        this._graphsToggle.addEventListener('click', () => {
+            this._graphsPanel.classList.toggle('collapsed');
+            this._graphsToggle.textContent = this._graphsPanel.classList.contains('collapsed') ? '▶' : '▼';
+        });
         cv.addEventListener('dblclick', e => {
             const p = this._xy(e), i = this._pick(p.x, p.y);
             if (i >= 0) { this._L.pin[i] ^= 1; this._L.reheat(0.2); this._dirty = true; this._wake(); } else this.fit();
