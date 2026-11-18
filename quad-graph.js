@@ -34,7 +34,7 @@ function _defineProperty(e, r, t) {
 }
 // src/graph.js
 /**
-* <quad-graph> — zero-dependency RDF quad graph renderer (ESM, Canvas2D, ~650 LOC).
+* <quad-graph> — zero-dependency RDF quad graph renderer (ESM, Canvas2D, ~670 LOC).
 *
 *   import './quad-graph.js'
 *   const element = document.createElement('quad-graph');
@@ -131,7 +131,8 @@ var Layout = class {
 		this.theta = n > 5e4 ? 1.2 : n > 5e3 ? 1 : .85;
 		this.relink();
 	}
-	/** Hubs get longer links (room for their leaves) and weaker springs (d3-style 1/min(deg)). */
+	/** Hubs get longer links (room for their leaves) and weaker springs (d3-style 1/min(deg)).
+	rdf:type edges use normal force for structure but are hidden visually. */
 	relink() {
 		const { ls, lt, deg, linkDist } = this, m = ls.length;
 		this.len = new Float32Array(m);
@@ -382,17 +383,28 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:gra
 .hud{position:absolute;left:8px;top:6px;font:11px/1.2 system-ui,sans-serif;opacity:.6;pointer-events:none;display:flex;gap:8px;align-items:center;color:#ccc}
 .bar{width:44px;height:3px;border-radius:2px;background:#444;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#1D9E75}
 .tip{position:absolute;left:0;top:0;pointer-events:none;max-width:320px;padding:6px 9px;border-radius:7px;font:12px/1.4 system-ui,sans-serif;background:#2a2a2a;color:#eee;border:1px solid #444;box-shadow:0 4px 16px #0003;display:none;z-index:2;overflow-wrap:anywhere}
-.tip b{display:block}.tip small{display:block;opacity:.6}`;
+.tip b{display:block}.tip small{display:block;opacity:.6}
+.graphs{position:absolute;right:8px;top:6px;font:11px/1.2 system-ui,sans-serif;background:#222;border:1px solid #444;border-radius:6px;padding:4px 8px;max-height:200px;overflow-y:auto;max-width:260px;opacity:.9;z-index:3}
+.graphs.collapsed{max-width:auto}
+.graphs.collapsed .graphs-list{display:none}
+.graphs-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-weight:600;color:#aaa}
+.graphs-item{display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer}
+.graphs-item:hover{color:#fff}
+.graphs-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;flex:1}
+.graphs-hidden{opacity:0.4}`;
 var QuadGraph = class extends Base {
 	constructor() {
 		super();
 		const root = this.attachShadow({ mode: "open" });
-		root.innerHTML = `<style>${CSS}</style><canvas></canvas><div class="hud"><span></span><div class="bar"><i></i></div></div><div class="tip"></div>`;
+		root.innerHTML = `<style>${CSS}</style><canvas></canvas><div class="hud"><span></span><div class="bar"><i></i></div></div><div class="tip"></div><div class="graphs"><div class="graphs-header"><span>Graphs</span><span class="graphs-toggle" style="cursor:pointer">▼</span></div><div class="graphs-list"></div></div>`;
 		this._cv = root.querySelector("canvas");
 		this._g2 = this._cv.getContext("2d");
 		this._stat = root.querySelector(".hud span");
 		this._bar = root.querySelector(".bar i");
 		this._tip = root.querySelector(".tip");
+		this._graphsPanel = root.querySelector(".graphs");
+		this._graphsList = root.querySelector(".graphs-list");
+		this._graphsToggle = root.querySelector(".graphs-toggle");
 		this._quads = [];
 		this._pfx = [];
 		this._L = new Layout();
@@ -433,6 +445,11 @@ var QuadGraph = class extends Base {
 		this._pc = [];
 		this._fill = [];
 		this._ring = [];
+		this._graphs = [];
+		this._edgeGraph = /* @__PURE__ */ new Uint16Array(0);
+		this._nodeGraphs = [];
+		this._visibleGraphs = /* @__PURE__ */ new Set();
+		this._nodeVisible = /* @__PURE__ */ new Uint8Array(0);
 		this._pOff = this._pList = this._cOff = this._cList = this._order = this._off = this._adj = /* @__PURE__ */ new Int32Array(0);
 		this._bind();
 	}
@@ -558,6 +575,7 @@ var QuadGraph = class extends Base {
 	_ingest() {
 		const ids = /* @__PURE__ */ new Map(), names = [], litN = [], typ = [], ls = [], lt = [], lp = [], lab = /* @__PURE__ */ new Map(), lits = /* @__PURE__ */ new Map();
 		const classes = [null], classIdx = /* @__PURE__ */ new Map(), preds = [], predIdx = /* @__PURE__ */ new Map(), seen = /* @__PURE__ */ new Set();
+		const graphs = [], graphIdx = /* @__PURE__ */ new Map(), edgeGraph = [], nodeGraphs = [];
 		const idOf = (t) => t.termType === "BlankNode" ? "_:" + t.value : t.value;
 		const node = (id) => {
 			let i = ids.get(id);
@@ -567,11 +585,20 @@ var QuadGraph = class extends Base {
 				names.push(id);
 				litN.push(0);
 				typ.push(0);
+				nodeGraphs.push(/* @__PURE__ */ new Set());
 			}
 			return i;
 		};
+		const graphOf = (g) => g.termType === "DefaultGraph" ? "default" : g.value;
 		for (const q of this._quads) {
 			if (!q || !q.subject || !q.predicate || !q.object) continue;
+			const g = graphOf(q.graph);
+			let gi = graphIdx.get(g);
+			if (gi === void 0) {
+				gi = graphs.length;
+				graphIdx.set(g, gi);
+				graphs.push(g);
+			}
 			const o = q.object, p = q.predicate.value, sid = idOf(q.subject), si = node(sid);
 			if (o.termType === "Literal") {
 				litN[si]++;
@@ -600,6 +627,9 @@ var QuadGraph = class extends Base {
 			ls.push(si);
 			lt.push(ti);
 			lp.push(pi);
+			edgeGraph.push(gi);
+			nodeGraphs[si].add(gi);
+			nodeGraphs[ti].add(gi);
 			if (p === RDF_TYPE && o.termType === "NamedNode" && !typ[si]) {
 				let c = classIdx.get(o.value);
 				if (c === void 0) {
@@ -612,9 +642,44 @@ var QuadGraph = class extends Base {
 		}
 		for (let c = 1; c < classes.length; c++) {
 			const i = ids.get(classes[c]);
-			if (!typ[i]) typ[i] = c;
+			if (i !== void 0 && !typ[i]) typ[i] = c;
 		}
 		const n = names.length, m = ls.length, LS = Int32Array.from(ls), LT = Int32Array.from(lt), LP = Int32Array.from(lp);
+		const isType = new Uint8Array(m);
+		for (let e = 0; e < m; e++) if (preds[LP[e]] === RDF_TYPE) isType[e] = 1;
+		this._visibleGraphs = new Set(graphs.map((_, i) => i));
+		this._nodeVisible = new Uint8Array(n);
+		for (let i = 0; i < n; i++) {
+			this._nodeVisible[i] = 0;
+			for (const g of nodeGraphs[i]) if (this._visibleGraphs.has(g)) {
+				this._nodeVisible[i] = 1;
+				break;
+			}
+		}
+		if (graphs.length > 1) {
+			this._graphsPanel.classList.remove("collapsed");
+			this._graphsToggle.textContent = "▼";
+			this._graphsList.innerHTML = "";
+			graphs.map((_, i) => i).sort((a, b) => graphs[a].localeCompare(graphs[b])).forEach((i) => {
+				const g = graphs[i];
+				const div = document.createElement("div");
+				div.className = "graphs-item";
+				div.dataset.idx = i;
+				const dot = document.createElement("span");
+				dot.textContent = "●";
+				dot.style.color = this._visibleGraphs.has(i) ? "#1D9E75" : "#666";
+				const name = document.createElement("span");
+				name.className = "graphs-name";
+				name.textContent = g === "default" ? "default" : this._shortenGraphName(g);
+				name.title = g;
+				div.append(dot, name);
+				div.onclick = () => this._toggleGraph(i);
+				this._graphsList.appendChild(div);
+			});
+		} else {
+			this._graphsPanel.classList.add("collapsed");
+			this._graphsToggle.textContent = "▶";
+		}
 		const off = new Int32Array(n + 1);
 		for (let e = 0; e < m; e++) {
 			off[LS[e] + 1]++;
@@ -677,6 +742,10 @@ var QuadGraph = class extends Base {
 			_preds: preds,
 			_bend: bend,
 			_lp: LP,
+			_isType: isType,
+			_graphs: graphs,
+			_edgeGraph: Uint16Array.from(edgeGraph),
+			_nodeGraphs: nodeGraphs,
 			_pOff: pOff,
 			_pList: pList,
 			_cOff: cOff,
@@ -711,6 +780,34 @@ var QuadGraph = class extends Base {
 			s = decodeURIComponent(s);
 		} catch {}
 		return s;
+	}
+	_shortenGraphName(iri) {
+		const curie = this._curie(iri);
+		if (curie !== iri && curie.length <= 30) return curie;
+		if (iri.length <= 30) return iri;
+		const mid = Math.floor((iri.length - 10) / 2);
+		return iri.slice(0, 5) + "..." + iri.slice(-mid - 5);
+	}
+	_toggleGraph(idx) {
+		if (this._visibleGraphs.has(idx)) this._visibleGraphs.delete(idx);
+		else this._visibleGraphs.add(idx);
+		const n = this._L.n, nv = this._nodeVisible;
+		if (!n || !this._nodeGraphs.length) return;
+		for (let i = 0; i < n; i++) {
+			nv[i] = 0;
+			for (const g of this._nodeGraphs[i]) if (this._visibleGraphs.has(g)) {
+				nv[i] = 1;
+				break;
+			}
+		}
+		this._graphsList.querySelectorAll(".graphs-item").forEach((div) => {
+			const i = parseInt(div.dataset.idx, 10);
+			const dot = div.querySelector("span:first-child");
+			dot.style.color = this._visibleGraphs.has(i) ? "#1D9E75" : "#666";
+			div.classList.toggle("graphs-hidden", !this._visibleGraphs.has(i));
+		});
+		this._dirty = true;
+		this._wake();
 	}
 	_label(i) {
 		var _this$_lc;
@@ -823,7 +920,8 @@ var QuadGraph = class extends Base {
 		const now = performance.now();
 		if (now - this._ht > 150 || !more) {
 			this._ht = now;
-			const s = `${L.n.toLocaleString()} nodes · ${L.ls.length.toLocaleString()} links`;
+			const gcount = this._graphs.length;
+			const s = `${L.n.toLocaleString()} nodes · ${L.ls.length.toLocaleString()} links${gcount > 1 ? ` · ${gcount} graphs` : ""}`;
 			if (s !== this._st) this._stat.textContent = this._st = s;
 			this._bar.style.width = (more ? Math.min(1, L.alpha) * 100 : 0) + "%";
 		}
@@ -836,10 +934,13 @@ var QuadGraph = class extends Base {
 		if (!L.n) return;
 		if (performance.now() - this._tt > 1e3) this._theme();
 		const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, bend = this._bend;
+		this._isType;
 		const x0 = -v.x * inv, y0 = -v.y * inv, x1 = (W - v.x) * inv, y1 = (H - v.y) * inv;
 		g.setTransform(d * k, 0, 0, d * k, d * v.x, d * v.y);
 		g.lineCap = "round";
 		const addEdge = (e, ap) => {
+			if (!this._nodeVisible[ls[e]] || !this._nodeVisible[lt[e]]) return;
+			if (!this._visibleGraphs.has(this._edgeGraph[e])) return;
 			const s = ls[e], t = lt[e], sx = x[s], sy = y[s], tx = x[t], ty = y[t];
 			if (sx < x0 && tx < x0 || sx > x1 && tx > x1 || sy < y0 && ty < y0 || sy > y1 && ty > y1) return;
 			const dx = tx - sx, dy = ty - sy, len = Math.sqrt(dx * dx + dy * dy) || 1e-6, ux = dx / len, uy = dy / len;
@@ -861,12 +962,13 @@ var QuadGraph = class extends Base {
 			const ap = arrows ? new Path2D() : null;
 			g.beginPath();
 			for (let a = this._pOff[p]; a < this._pOff[p + 1]; a++) addEdge(this._pList[a], ap);
-			g.globalAlpha = base;
-			g.strokeStyle = this._pc[p];
+			const isTypePred = this._preds[p] === RDF_TYPE;
+			g.globalAlpha = isTypePred ? base * .33 : base;
+			g.strokeStyle = isTypePred ? "#666" : this._pc[p];
 			g.stroke();
 			if (ap) {
-				g.globalAlpha = Math.min(1, base * 1.5);
-				g.fillStyle = this._pc[p];
+				g.globalAlpha = Math.min(1, (isTypePred ? base * .25 : base) * 1.5);
+				g.fillStyle = isTypePred ? "#666" : this._pc[p];
 				g.fill(ap);
 			}
 		}
@@ -876,7 +978,9 @@ var QuadGraph = class extends Base {
 		for (let cl = 0; cl < this._fill.length; cl++) {
 			g.beginPath();
 			for (let a = this._cOff[cl]; a < this._cOff[cl + 1]; a++) {
-				const i = this._cList[a], px = x[i], py = y[i], ri = r[i];
+				const i = this._cList[a];
+				if (!this._nodeVisible[i]) continue;
+				const px = x[i], py = y[i], ri = r[i];
 				if (px + ri < x0 || px - ri > x1 || py + ri < y0 || py - ri > y1) continue;
 				if (ri * k < 1) {
 					const h = .9 * inv;
@@ -950,6 +1054,7 @@ var QuadGraph = class extends Base {
 			return true;
 		};
 		const put = (i, force) => {
+			if (!this._nodeVisible[i]) return -1;
 			const sx = x[i] * k + v.x, sy = y[i] * k + v.y, rs = r[i] * k;
 			if (sx < -60 || sx > W + 60 || sy < -10 || sy > H + 30) return -1;
 			if (!force && rs < 2) return 0;
@@ -977,6 +1082,8 @@ var QuadGraph = class extends Base {
 		g.globalAlpha = .9;
 		g.lineWidth = 1;
 		for (let e = 0, cnt = 0; e < ls.length && cnt < 150; e++) {
+			if (this._isType[e]) continue;
+			if (!this._visibleGraphs.has(this._edgeGraph[e])) continue;
 			const s = ls[e], t = lt[e], dx = (x[t] - x[s]) * k, dy = (y[t] - y[s]) * k, len = Math.sqrt(dx * dx + dy * dy);
 			if (len < 70) continue;
 			const b = this._bend[e] * k, mx = (x[s] + x[t]) / 2 * k + v.x - dy / len * b, my = (y[s] + y[t]) / 2 * k + v.y + dx / len * b;
@@ -1051,10 +1158,13 @@ var QuadGraph = class extends Base {
 				t.append(e);
 			};
 			add("b", this._label(i));
-			add("small", this._names[i]);
 			const c = this._typ[i];
 			if (c && this._classes[c] !== this._names[i]) add("small", "a " + this._curie(this._classes[c]));
-			for (const [p, val] of this._lits.get(i) || []) add("div", this._curie(p) + ": " + (val.length > 80 ? val.slice(0, 80) + "…" : val));
+			add("small", this._names[i]);
+			for (const [p, val] of this._lits.get(i) || []) {
+				const short = val.length > 200 ? val.slice(0, 200) + "…" : val;
+				add("div", this._curie(p) + ": " + short);
+			}
 			add("small", this._L.deg[i] + " links");
 		}
 		t.style.display = "block";
@@ -1185,6 +1295,10 @@ var QuadGraph = class extends Base {
 				this._wake();
 			}
 			this._showTip(-1);
+		});
+		this._graphsToggle.addEventListener("click", () => {
+			this._graphsPanel.classList.toggle("collapsed");
+			this._graphsToggle.textContent = this._graphsPanel.classList.contains("collapsed") ? "▶" : "▼";
 		});
 		cv.addEventListener("dblclick", (e) => {
 			const p = this._xy(e), i = this._pick(p.x, p.y);

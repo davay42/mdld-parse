@@ -395,10 +395,10 @@ var ee = /* @__PURE__ */ new Set(/* @__PURE__ */ "address.article.aside.base.bas
 	"style",
 	"textarea"
 ]);
-function ne(e) {
+function P(e) {
 	return e[0] === "	" ? { indent: "	" } : e[0] === " " && e[1] === " " && e[2] === " " && e[3] === " " ? { indent: "    " } : null;
 }
-function P(e, t = !1) {
+function F(e, t = !1) {
 	let n = e.trim();
 	if (n[0] !== "<") return null;
 	let r = n.match(/^<(\/?)([A-Za-z][A-Za-z0-9-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/);
@@ -415,12 +415,12 @@ function P(e, t = !1) {
 		interrupt: o
 	};
 }
-function F(e, t, n = "[", r = "]") {
+function ne(e, t, n = "[", r = "]") {
 	let i = 1, a = t + 1;
 	for (; a < e.length && i > 0;) e[a] === n && i++, e[a] === r && i--, i > 0 && a++;
 	return i === 0 ? a : null;
 }
-function I(e, t) {
+function re(e, t) {
 	let n = t;
 	for (; n < e.length && (e[n] === " " || e[n] === "	");) n++;
 	if (n >= e.length || e[n] !== "{") return null;
@@ -430,7 +430,7 @@ function I(e, t) {
 		endPos: r + 1
 	};
 }
-function re(e, t) {
+function ie(e, t) {
 	if (e[t] !== "<") return null;
 	let n = e.indexOf(">", t + 1);
 	if (n === -1) return null;
@@ -442,18 +442,18 @@ function re(e, t) {
 		contentEnd: n
 	} : null;
 }
-var ie = /\p{P}/u, ae = /\s/;
+var ae = /\p{P}/u, oe = /\s/;
+function I(e) {
+	return e === void 0 || oe.test(e);
+}
 function L(e) {
-	return e === void 0 || ae.test(e);
+	return e !== void 0 && ae.test(e);
 }
-function R(e) {
-	return e !== void 0 && ie.test(e);
-}
-function oe(e, t, n, r) {
-	let i = t > 0 ? e[t - 1] : void 0, a = t + n < e.length ? e[t + n] : void 0, o = !L(a) && (!R(a) || L(i) || R(i)), s = !L(i) && (!R(i) || L(a) || R(a));
+function R(e, t, n, r) {
+	let i = t > 0 ? e[t - 1] : void 0, a = t + n < e.length ? e[t + n] : void 0, o = !I(a) && (!L(a) || I(i) || L(i)), s = !I(i) && (!L(i) || I(a) || L(a));
 	return r === "_" ? {
-		canOpen: o && (!s || R(i)),
-		canClose: s && (!o || R(a))
+		canOpen: o && (!s || L(i)),
+		canClose: s && (!o || L(a))
 	} : {
 		canOpen: o,
 		canClose: s
@@ -464,16 +464,16 @@ function se(e, t) {
 	if (n !== "*" && n !== "_") return null;
 	let r = 1;
 	for (; t + r < e.length && e[t + r] === n;) r++;
-	if (r > 2 || !oe(e, t, r, n).canOpen) return null;
+	if (r > 2 || !R(e, t, r, n).canOpen) return null;
 	let i = r === 1 ? "emphasis" : "strong", a = t + r, o = a, s = 0;
 	for (; o < e.length;) if (e[o] === n) {
 		let t = 1;
 		for (; o + t < e.length && e[o + t] === n;) t++;
-		let c = oe(e, o, t, n);
+		let c = R(e, o, t, n);
 		if (s === 0 && c.canClose && t >= r) {
 			let t = e.slice(a, o);
 			if (t.length === 0) return null;
-			let n = o + r, s = I(e, n), c = s ? s.endPos : n;
+			let n = o + r, s = re(e, n), c = s ? s.endPos : n;
 			return {
 				type: i,
 				content: t,
@@ -487,7 +487,7 @@ function se(e, t) {
 	} else o++;
 	return null;
 }
-function z(e, t) {
+function ce(e, t) {
 	if (e[t] !== "`") return null;
 	let n = 1;
 	for (; t + n < e.length && e[t + n] === "`";) n++;
@@ -495,7 +495,7 @@ function z(e, t) {
 	let r = "`".repeat(n), i = t + n, a = i;
 	for (; a < e.length;) {
 		if (e.slice(a, a + n) === r) {
-			let t = e.slice(i, a), r = a + n, o = I(e, r), s = o ? o.endPos : r;
+			let t = e.slice(i, a), r = a + n, o = re(e, r), s = o ? o.endPos : r;
 			return {
 				type: "code",
 				content: t,
@@ -509,12 +509,12 @@ function z(e, t) {
 	}
 	return null;
 }
-function ce(e) {
+function le(e) {
 	if (e.length < 2) return null;
 	let t = e[0], n = e[e.length - 1];
 	return t === "\"" && n === "\"" || t === "'" && n === "'" || t === "(" && n === ")" ? e.slice(1, -1) : null;
 }
-function le(e) {
+function ue(e) {
 	let t = e.trim();
 	if (t === "") return null;
 	let n, r;
@@ -532,7 +532,7 @@ function le(e) {
 	}
 	if (n === "") return null;
 	if (r !== "") {
-		let e = ce(r);
+		let e = le(r);
 		return e === null ? null : {
 			dest: n,
 			title: e
@@ -543,15 +543,15 @@ function le(e) {
 		title: null
 	};
 }
-function ue(e, t) {
+function de(e, t) {
 	if (e[t] !== "[") return null;
-	let n = F(e, t, "[", "]");
+	let n = ne(e, t, "[", "]");
 	if (!n) return null;
 	let r = e.slice(t + 1, n), i = n + 1, a = null, o = null;
 	if (i < e.length && e[i] === "(") {
 		let t = e.indexOf(")", i + 1);
 		for (; t !== -1;) {
-			let n = le(e.slice(i + 1, t));
+			let n = ue(e.slice(i + 1, t));
 			if (n) {
 				a = n.dest, o = n.title, i = t + 1;
 				break;
@@ -566,7 +566,7 @@ function ue(e, t) {
 			n.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/) && (a = n, i = t + 1);
 		}
 	}
-	let s = I(e, i), c = s ? s.endPos : i;
+	let s = re(e, i), c = s ? s.endPos : i;
 	return {
 		type: a ? "link" : "span",
 		text: r,
@@ -578,41 +578,41 @@ function ue(e, t) {
 		contentEnd: n
 	};
 }
-function de(e, t) {
+function fe(e, t) {
 	let n = 0, r = t - 1;
 	for (; r >= 0 && e[r] === "\\";) n++, r--;
 	return n % 2 == 1;
 }
-function fe(e, t = 0) {
+function pe(e, t = 0) {
 	let n = [], r = e.length, i = 0;
 	for (; i < r;) {
 		let r = e[i], a = null;
-		if (de(e, i)) {
+		if (fe(e, i)) {
 			i++;
 			continue;
 		}
 		switch (r) {
 			case "!":
 				if (e[i + 1] === "[") {
-					let t = ue(e, i + 1);
+					let t = de(e, i + 1);
 					t && t.url && (a = t, a.type = "image");
 				}
 				break;
 			case "<":
 			case "<":
-				if (a = re(e, i), a) {
-					let t = I(e, a.endPos);
+				if (a = ie(e, i), a) {
+					let t = re(e, a.endPos);
 					t && (a.attrs = t.attrs, a.endPos = t.endPos), a.type = "link", a.text = a.url;
 				}
 				break;
 			case "[":
-				a = ue(e, i);
+				a = de(e, i);
 				break;
 			case "*":
 			case "_":
 				a = se(e, i);
 				break;
-			case "`": a = z(e, i);
+			case "`": a = ce(e, i);
 		}
 		if (!a) {
 			i++;
@@ -638,9 +638,9 @@ function fe(e, t = 0) {
 	return n;
 }
 // src/shared.js
-var pe = /* @__PURE__ */ new Map();
+var z = /* @__PURE__ */ new Map();
 function me(e) {
-	return pe.has(e) || pe.set(e, RegExp(`^(${e}{3,})`)), pe.get(e);
+	return z.has(e) || z.set(e, RegExp(`^(${e}{3,})`)), z.get(e);
 }
 function he(e, t, n, r, i) {
 	let a = r + (r < e.length && e[r] === " " ? 1 : e.slice(r).match(/^\s+/)?.[0]?.length || 0);
@@ -1089,7 +1089,7 @@ function ze(e) {
 		l = l.replace(/`[^`]+`/g, (e) => (u.push(e), `__INLINE_CODE_${u.length - 1}__`));
 		let d = [];
 		l = l.replace(/\{\{(?:[^{}]|\{[^{}]*\})*\}\}/g, (e) => (d.push(e), `__VUE_INTERPOLATION_${d.length - 1}__`));
-		let f = fe(l, 0);
+		let f = pe(l, 0);
 		for (let e = f.length - 1; e >= 0; e--) {
 			let t = f[e];
 			if (t.attrs && (t.type === "emphasis" || t.type === "code")) {
@@ -1119,7 +1119,7 @@ function ze(e) {
 	};
 }
 function Be(e, t = 0) {
-	return fe(e, t);
+	return pe(e, t);
 }
 function U(e, t) {
 	let n = e._blockId || y(`${e.type}:${e.range?.[0]}:${e.range?.[1]}`);
@@ -2330,15 +2330,15 @@ function en(e, t, n, r, i, a, o, s, c, l) {
 		o[e] = Math.cos(n) * r, s[e] = Math.sin(n) * r, c[e] = 1, u[p++] = e, h();
 	}
 }
-var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;color:#eee;touch-action:none;user-select:none;-webkit-user-select:none;background:#1a1a1a}\ncanvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;background:#1a1a1a}\n.hud{position:absolute;left:8px;top:6px;font:11px/1.2 system-ui,sans-serif;opacity:.6;pointer-events:none;display:flex;gap:8px;align-items:center;color:#ccc}\n.bar{width:44px;height:3px;border-radius:2px;background:#444;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#1D9E75}\n.tip{position:absolute;left:0;top:0;pointer-events:none;max-width:320px;padding:6px 9px;border-radius:7px;font:12px/1.4 system-ui,sans-serif;background:#2a2a2a;color:#eee;border:1px solid #444;box-shadow:0 4px 16px #0003;display:none;z-index:2;overflow-wrap:anywhere}\n.tip b{display:block}.tip small{display:block;opacity:.6}", nn = class extends Yt {
+var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;color:#eee;touch-action:none;user-select:none;-webkit-user-select:none;background:#1a1a1a}\ncanvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;background:#1a1a1a}\n.hud{position:absolute;left:8px;top:6px;font:11px/1.2 system-ui,sans-serif;opacity:.6;pointer-events:none;display:flex;gap:8px;align-items:center;color:#ccc}\n.bar{width:44px;height:3px;border-radius:2px;background:#444;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#1D9E75}\n.tip{position:absolute;left:0;top:0;pointer-events:none;max-width:320px;padding:6px 9px;border-radius:7px;font:12px/1.4 system-ui,sans-serif;background:#2a2a2a;color:#eee;border:1px solid #444;box-shadow:0 4px 16px #0003;display:none;z-index:2;overflow-wrap:anywhere}\n.tip b{display:block}.tip small{display:block;opacity:.6}\n.graphs{position:absolute;right:8px;top:6px;font:11px/1.2 system-ui,sans-serif;background:#222;border:1px solid #444;border-radius:6px;padding:4px 8px;max-height:200px;overflow-y:auto;max-width:260px;opacity:.9;z-index:3}\n.graphs.collapsed{max-width:auto}\n.graphs.collapsed .graphs-list{display:none}\n.graphs-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-weight:600;color:#aaa}\n.graphs-item{display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer}\n.graphs-item:hover{color:#fff}\n.graphs-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;flex:1}\n.graphs-hidden{opacity:0.4}", nn = class extends Yt {
 	constructor() {
 		super();
 		let e = this.attachShadow({ mode: "open" });
-		e.innerHTML = `<style>${tn}</style><canvas></canvas><div class="hud"><span></span><div class="bar"><i></i></div></div><div class="tip"></div>`, this._cv = e.querySelector("canvas"), this._g2 = this._cv.getContext("2d"), this._stat = e.querySelector(".hud span"), this._bar = e.querySelector(".bar i"), this._tip = e.querySelector(".tip"), this._quads = [], this._pfx = [], this._L = new $t(), this._ids = null, this._names = [], this._typ = /* @__PURE__ */ new Int32Array(), this._classes = [null], this._lits = /* @__PURE__ */ new Map(), this._lab = /* @__PURE__ */ new Map(), this._lc = [], this._plc = [], this._v = {
+		e.innerHTML = `<style>${tn}</style><canvas></canvas><div class="hud"><span></span><div class="bar"><i></i></div></div><div class="tip"></div><div class="graphs"><div class="graphs-header"><span>Graphs</span><span class="graphs-toggle" style="cursor:pointer">▼</span></div><div class="graphs-list"></div></div>`, this._cv = e.querySelector("canvas"), this._g2 = this._cv.getContext("2d"), this._stat = e.querySelector(".hud span"), this._bar = e.querySelector(".bar i"), this._tip = e.querySelector(".tip"), this._graphsPanel = e.querySelector(".graphs"), this._graphsList = e.querySelector(".graphs-list"), this._graphsToggle = e.querySelector(".graphs-toggle"), this._quads = [], this._pfx = [], this._L = new $t(), this._ids = null, this._names = [], this._typ = /* @__PURE__ */ new Int32Array(), this._classes = [null], this._lits = /* @__PURE__ */ new Map(), this._lab = /* @__PURE__ */ new Map(), this._lc = [], this._plc = [], this._v = {
 			k: 1,
 			x: 0,
 			y: 0
-		}, this._w = 600, this._h = 480, this._dpr = 1, this._fg = "#888", this._halo = "rgba(255,255,255,.8)", this._tt = -1e9, this._sel = -1, this._hov = -1, this._nl = [], this._el = [], this._auto = !0, this._fc = 0, this._ht = 0, this._st = "", this._occ = /* @__PURE__ */ new Uint8Array(), this._oc = 1, this._or = 1, this._ptrs = /* @__PURE__ */ new Map(), this._gs = null, this._bend = /* @__PURE__ */ new Float32Array(), this._lp = /* @__PURE__ */ new Int32Array(), this._pc = [], this._fill = [], this._ring = [], this._pOff = this._pList = this._cOff = this._cList = this._order = this._off = this._adj = /* @__PURE__ */ new Int32Array(), this._bind();
+		}, this._w = 600, this._h = 480, this._dpr = 1, this._fg = "#888", this._halo = "rgba(255,255,255,.8)", this._tt = -1e9, this._sel = -1, this._hov = -1, this._nl = [], this._el = [], this._auto = !0, this._fc = 0, this._ht = 0, this._st = "", this._occ = /* @__PURE__ */ new Uint8Array(), this._oc = 1, this._or = 1, this._ptrs = /* @__PURE__ */ new Map(), this._gs = null, this._bend = /* @__PURE__ */ new Float32Array(), this._lp = /* @__PURE__ */ new Int32Array(), this._pc = [], this._fill = [], this._ring = [], this._graphs = [], this._edgeGraph = /* @__PURE__ */ new Uint16Array(), this._nodeGraphs = [], this._visibleGraphs = /* @__PURE__ */ new Set(), this._nodeVisible = /* @__PURE__ */ new Uint8Array(), this._pOff = this._pList = this._cOff = this._cList = this._order = this._off = this._adj = /* @__PURE__ */ new Int32Array(), this._bind();
 	}
 	connectedCallback() {
 		this._ro = new ResizeObserver(() => this._resize()), this._ro.observe(this), this._mq = typeof matchMedia < "u" ? matchMedia("(prefers-color-scheme: dark)") : null, this._onTheme = () => {
@@ -2421,65 +2421,85 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 		}));
 	}
 	_ingest() {
-		let e = /* @__PURE__ */ new Map(), t = [], n = [], r = [], i = [], a = [], o = [], s = /* @__PURE__ */ new Map(), c = /* @__PURE__ */ new Map(), l = [null], u = /* @__PURE__ */ new Map(), d = [], f = /* @__PURE__ */ new Map(), p = /* @__PURE__ */ new Set(), m = (e) => e.termType === "BlankNode" ? "_:" + e.value : e.value, h = (i) => {
+		let e = /* @__PURE__ */ new Map(), t = [], n = [], r = [], i = [], a = [], o = [], s = /* @__PURE__ */ new Map(), c = /* @__PURE__ */ new Map(), l = [null], u = /* @__PURE__ */ new Map(), d = [], f = /* @__PURE__ */ new Map(), p = /* @__PURE__ */ new Set(), m = [], h = /* @__PURE__ */ new Map(), g = [], _ = [], v = (e) => e.termType === "BlankNode" ? "_:" + e.value : e.value, y = (i) => {
 			let a = e.get(i);
-			return a === void 0 && (a = t.length, e.set(i, a), t.push(i), n.push(0), r.push(0)), a;
-		};
+			return a === void 0 && (a = t.length, e.set(i, a), t.push(i), n.push(0), r.push(0), _.push(/* @__PURE__ */ new Set())), a;
+		}, b = (e) => e.termType === "DefaultGraph" ? "default" : e.value;
 		for (let e of this._quads) {
 			if (!e || !e.subject || !e.predicate || !e.object) continue;
-			let t = e.object, g = e.predicate.value, _ = m(e.subject), v = h(_);
-			if (t.termType === "Literal") {
-				n[v]++;
-				let e = Ut.get(g);
+			let t = b(e.graph), x = h.get(t);
+			x === void 0 && (x = m.length, h.set(t, x), m.push(t));
+			let S = e.object, C = e.predicate.value, w = v(e.subject), T = y(w);
+			if (S.termType === "Literal") {
+				n[T]++;
+				let e = Ut.get(C);
 				if (e !== void 0) {
-					let n = s.get(_);
-					(!n || e < n[1]) && s.set(_, [t.value, e]);
+					let t = s.get(w);
+					(!t || e < t[1]) && s.set(w, [S.value, e]);
 				}
-				let r = c.get(v);
-				r || c.set(v, r = []), r.length < Wt && r.push([g, t.value]);
+				let t = c.get(T);
+				t || c.set(T, t = []), t.length < Wt && t.push([C, S.value]);
 				continue;
 			}
-			if (t.termType !== "NamedNode" && t.termType !== "BlankNode") continue;
-			let y = h(m(t));
-			if (v === y) continue;
-			let b = f.get(g);
-			b === void 0 && (b = d.length, f.set(g, b), d.push(g));
-			let x = (v * 1048576 + y) * 4096 + (b & 4095);
-			if (!p.has(x) && (p.add(x), i.push(v), a.push(y), o.push(b), g === Ht && t.termType === "NamedNode" && !r[v])) {
-				let e = u.get(t.value);
-				e === void 0 && (e = l.length, u.set(t.value, e), l.push(t.value)), r[v] = e;
+			if (S.termType !== "NamedNode" && S.termType !== "BlankNode") continue;
+			let E = y(v(S));
+			if (T === E) continue;
+			let D = f.get(C);
+			D === void 0 && (D = d.length, f.set(C, D), d.push(C));
+			let O = (T * 1048576 + E) * 4096 + (D & 4095);
+			if (!p.has(O) && (p.add(O), i.push(T), a.push(E), o.push(D), g.push(x), _[T].add(x), _[E].add(x), C === Ht && S.termType === "NamedNode" && !r[T])) {
+				let e = u.get(S.value);
+				e === void 0 && (e = l.length, u.set(S.value, e), l.push(S.value)), r[T] = e;
 			}
 		}
 		for (let t = 1; t < l.length; t++) {
 			let n = e.get(l[t]);
-			r[n] || (r[n] = t);
+			n !== void 0 && !r[n] && (r[n] = t);
 		}
-		let g = t.length, _ = i.length, v = Int32Array.from(i), y = Int32Array.from(a), b = Int32Array.from(o), x = new Int32Array(g + 1);
-		for (let e = 0; e < _; e++) x[v[e] + 1]++, x[y[e] + 1]++;
-		for (let e = 0; e < g; e++) x[e + 1] += x[e];
-		let S = x.slice(0, g), C = new Int32Array(2 * _), w = new Int32Array(g);
-		for (let e = 0; e < _; e++) C[S[v[e]]++] = e, C[S[y[e]]++] = e;
-		let T = new Float64Array(g), E = new Float64Array(g);
-		for (let e = 0; e < g; e++) w[e] = x[e + 1] - x[e], T[e] = Math.min(18, 3 + 1.6 * Math.sqrt(w[e] + .5 * n[e])), E[e] = 1 + .5 * Math.sqrt(w[e]);
-		let D = /* @__PURE__ */ new Map(), O = new Float32Array(_), k = (e) => Math.min(v[e], y[e]) * 1048576 + Math.max(v[e], y[e]);
-		for (let e = 0; e < _; e++) D.set(k(e), (D.get(k(e)) || 0) + 1);
-		let A = /* @__PURE__ */ new Map();
-		for (let e = 0; e < _; e++) {
-			let t = k(e), n = D.get(t);
+		let x = t.length, S = i.length, C = Int32Array.from(i), w = Int32Array.from(a), T = Int32Array.from(o), E = new Uint8Array(S);
+		for (let e = 0; e < S; e++) d[T[e]] === Ht && (E[e] = 1);
+		this._visibleGraphs = new Set(m.map((e, t) => t)), this._nodeVisible = new Uint8Array(x);
+		for (let e = 0; e < x; e++) {
+			this._nodeVisible[e] = 0;
+			for (let t of _[e]) if (this._visibleGraphs.has(t)) {
+				this._nodeVisible[e] = 1;
+				break;
+			}
+		}
+		m.length > 1 ? (this._graphsPanel.classList.remove("collapsed"), this._graphsToggle.textContent = "▼", this._graphsList.innerHTML = "", m.map((e, t) => t).sort((e, t) => m[e].localeCompare(m[t])).forEach((e) => {
+			let t = m[e], n = document.createElement("div");
+			n.className = "graphs-item", n.dataset.idx = e;
+			let r = document.createElement("span");
+			r.textContent = "●", r.style.color = this._visibleGraphs.has(e) ? "#1D9E75" : "#666";
+			let i = document.createElement("span");
+			i.className = "graphs-name", i.textContent = t === "default" ? "default" : this._shortenGraphName(t), i.title = t, n.append(r, i), n.onclick = () => this._toggleGraph(e), this._graphsList.appendChild(n);
+		})) : (this._graphsPanel.classList.add("collapsed"), this._graphsToggle.textContent = "▶");
+		let D = new Int32Array(x + 1);
+		for (let e = 0; e < S; e++) D[C[e] + 1]++, D[w[e] + 1]++;
+		for (let e = 0; e < x; e++) D[e + 1] += D[e];
+		let O = D.slice(0, x), k = new Int32Array(2 * S), A = new Int32Array(x);
+		for (let e = 0; e < S; e++) k[O[C[e]]++] = e, k[O[w[e]]++] = e;
+		let j = new Float64Array(x), M = new Float64Array(x);
+		for (let e = 0; e < x; e++) A[e] = D[e + 1] - D[e], j[e] = Math.min(18, 3 + 1.6 * Math.sqrt(A[e] + .5 * n[e])), M[e] = 1 + .5 * Math.sqrt(A[e]);
+		let N = /* @__PURE__ */ new Map(), ee = new Float32Array(S), te = (e) => Math.min(C[e], w[e]) * 1048576 + Math.max(C[e], w[e]);
+		for (let e = 0; e < S; e++) N.set(te(e), (N.get(te(e)) || 0) + 1);
+		let P = /* @__PURE__ */ new Map();
+		for (let e = 0; e < S; e++) {
+			let t = te(e), n = N.get(t);
 			if (n < 2) continue;
-			let r = A.get(t) || 0;
-			A.set(t, r + 1), O[e] = (r - (n - 1) / 2) * 16 * (v[e] < y[e] ? 1 : -1);
+			let r = P.get(t) || 0;
+			P.set(t, r + 1), ee[e] = (r - (n - 1) / 2) * 16 * (C[e] < w[e] ? 1 : -1);
 		}
-		let j = this._ids, M = this._L, N = M.x, ee = M.y, te = M.pin, ne = this._seed;
+		let F = this._ids, ne = this._L, re = ne.x, ie = ne.y, ae = ne.pin, oe = this._seed;
 		this._seed = null;
-		let P = new Float64Array(g), F = new Float64Array(g), I = new Uint8Array(g), re = new Uint8Array(g);
-		for (let e = 0; e < g; e++) {
-			let n = ne?.[t[e]], r = j?.get(t[e]);
-			n ? (P[e] = n[0], F[e] = n[1], I[e] = 1) : r !== void 0 && (P[e] = N[r], F[e] = ee[r], I[e] = 1, re[e] = te[r] & 1);
+		let I = new Float64Array(x), L = new Float64Array(x), R = new Uint8Array(x), se = new Uint8Array(x);
+		for (let e = 0; e < x; e++) {
+			let n = oe?.[t[e]], r = F?.get(t[e]);
+			n ? (I[e] = n[0], L[e] = n[1], R[e] = 1) : r !== void 0 && (I[e] = re[r], L[e] = ie[r], R[e] = 1, se[e] = ae[r] & 1);
 		}
-		let ie = j && j.size > 0 && I.some((e) => e), ae = Int32Array.from({ length: g }, (e, t) => t).sort((e, t) => w[t] - w[e]);
-		en(g, v, y, x, C, ae, P, F, I, M.linkDist);
-		let [L, R] = Qt(b, d.length), [oe, se] = Qt(r, l.length);
+		let ce = F && F.size > 0 && R.some((e) => e), le = Int32Array.from({ length: x }, (e, t) => t).sort((e, t) => A[t] - A[e]);
+		en(x, C, w, D, k, le, I, L, R, ne.linkDist);
+		let [ue, de] = Qt(T, d.length), [fe, pe] = Qt(r, l.length);
 		this._pc = d.map((e) => e === Ht ? "hsl(220 8% 55%)" : `hsl(${Xt(e) % 360} 50% 55%)`), this._fill = l.map((e, t) => t ? `hsl(${Xt(e) % 360} 70% 56%)` : "hsl(215 12% 62%)"), this._ring = l.map((e, t) => t ? `hsl(${Xt(e) % 360} 70% 36%)` : "hsl(215 12% 42%)"), Object.assign(this, {
 			_ids: e,
 			_names: t,
@@ -2490,18 +2510,22 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 			_lc: [],
 			_plc: [],
 			_preds: d,
-			_bend: O,
-			_lp: b,
-			_pOff: L,
-			_pList: R,
-			_cOff: oe,
-			_cList: se,
-			_order: ae,
-			_off: x,
-			_adj: C
+			_bend: ee,
+			_lp: T,
+			_isType: E,
+			_graphs: m,
+			_edgeGraph: Uint16Array.from(g),
+			_nodeGraphs: _,
+			_pOff: ue,
+			_pList: de,
+			_cOff: fe,
+			_cList: pe,
+			_order: le,
+			_off: D,
+			_adj: k
 		});
 		let z = this._L;
-		z.charge = Math.abs(parseFloat(this.getAttribute("charge"))) || 40, z.linkDist = parseFloat(this.getAttribute("link-dist")) || 45, z.load(P, F, v, y, w, T, E, re), ie && (z.alpha = .5), this._sel = -1, this._hov = -1, this._nl = [], this._el = [], this._tip.style.display = "none", ie || (this._auto = !0, g && Object.assign(this._v, this._fitTarget())), this._theme(), this._dirty = !0, this._wake();
+		z.charge = Math.abs(parseFloat(this.getAttribute("charge"))) || 40, z.linkDist = parseFloat(this.getAttribute("link-dist")) || 45, z.load(I, L, C, w, A, j, M, se), ce && (z.alpha = .5), this._sel = -1, this._hov = -1, this._nl = [], this._el = [], this._tip.style.display = "none", ce || (this._auto = !0, x && Object.assign(this._v, this._fitTarget())), this._theme(), this._dirty = !0, this._wake();
 	}
 	_curie(e) {
 		for (let [t, n] of this._pfx) if (e.length > n.length && e.startsWith(n)) return t + ":" + e.slice(n.length);
@@ -2510,6 +2534,30 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 			n = decodeURIComponent(n);
 		} catch {}
 		return n;
+	}
+	_shortenGraphName(e) {
+		let t = this._curie(e);
+		if (t !== e && t.length <= 30) return t;
+		if (e.length <= 30) return e;
+		let n = Math.floor((e.length - 10) / 2);
+		return e.slice(0, 5) + "..." + e.slice(-n - 5);
+	}
+	_toggleGraph(e) {
+		this._visibleGraphs.has(e) ? this._visibleGraphs.delete(e) : this._visibleGraphs.add(e);
+		let t = this._L.n, n = this._nodeVisible;
+		if (t && this._nodeGraphs.length) {
+			for (let e = 0; e < t; e++) {
+				n[e] = 0;
+				for (let t of this._nodeGraphs[e]) if (this._visibleGraphs.has(t)) {
+					n[e] = 1;
+					break;
+				}
+			}
+			this._graphsList.querySelectorAll(".graphs-item").forEach((e) => {
+				let t = parseInt(e.dataset.idx, 10), n = e.querySelector("span:first-child");
+				n.style.color = this._visibleGraphs.has(t) ? "#1D9E75" : "#666", e.classList.toggle("graphs-hidden", !this._visibleGraphs.has(t));
+			}), this._dirty = !0, this._wake();
+		}
 	}
 	_label(e) {
 		var t;
@@ -2576,8 +2624,8 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 		let r = performance.now();
 		if (r - this._ht > 150 || !n) {
 			this._ht = r;
-			let t = `${e.n.toLocaleString()} nodes · ${e.ls.length.toLocaleString()} links`;
-			t !== this._st && (this._stat.textContent = this._st = t), this._bar.style.width = (n ? Math.min(1, e.alpha) * 100 : 0) + "%";
+			let t = this._graphs.length, i = `${e.n.toLocaleString()} nodes · ${e.ls.length.toLocaleString()} links${t > 1 ? ` · ${t} graphs` : ""}`;
+			i !== this._st && (this._stat.textContent = this._st = i), this._bar.style.width = (n ? Math.min(1, e.alpha) * 100 : 0) + "%";
 		}
 		(n || this._anim) && this._wake();
 	}
@@ -2585,9 +2633,12 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 		let e = this._L, t = this._cv, n = this._g2, r = this._dpr, i = this._v, a = this._w, o = this._h;
 		if (n.setTransform(1, 0, 0, 1, 0, 0), n.clearRect(0, 0, t.width, t.height), !e.n) return;
 		performance.now() - this._tt > 1e3 && this._theme();
-		let { x: s, y: c, r: l, ls: u, lt: d } = e, f = i.k, p = 1 / f, m = u.length, h = this._sel, g = this._bend, _ = -i.x * p, v = -i.y * p, y = (a - i.x) * p, b = (o - i.y) * p;
+		let { x: s, y: c, r: l, ls: u, lt: d } = e, f = i.k, p = 1 / f, m = u.length, h = this._sel, g = this._bend;
+		this._isType;
+		let _ = -i.x * p, v = -i.y * p, y = (a - i.x) * p, b = (o - i.y) * p;
 		n.setTransform(r * f, 0, 0, r * f, r * i.x, r * i.y), n.lineCap = "round";
 		let x = (e, t) => {
+			if (!this._nodeVisible[u[e]] || !this._nodeVisible[d[e]] || !this._visibleGraphs.has(this._edgeGraph[e])) return;
 			let r = u[e], i = d[e], a = s[r], o = c[r], m = s[i], h = c[i];
 			if (a < _ && m < _ || a > y && m > y || o < v && h < v || o > b && h > b) return;
 			let x = m - a, S = h - o, C = Math.sqrt(x * x + S * S) || 1e-6, w = x / C, T = S / C, E = a + w * l[r], D = o + T * l[r], O = m - w * (l[i] + 1), k = h - T * (l[i] + 1), A = g[e];
@@ -2601,14 +2652,17 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 			let t = S ? new Path2D() : null;
 			n.beginPath();
 			for (let n = this._pOff[e]; n < this._pOff[e + 1]; n++) x(this._pList[n], t);
-			n.globalAlpha = C, n.strokeStyle = this._pc[e], n.stroke(), t && (n.globalAlpha = Math.min(1, C * 1.5), n.fillStyle = this._pc[e], n.fill(t));
+			let r = this._preds[e] === Ht;
+			n.globalAlpha = r ? C * .33 : C, n.strokeStyle = r ? "#666" : this._pc[e], n.stroke(), t && (n.globalAlpha = Math.min(1, (r ? C * .25 : C) * 1.5), n.fillStyle = r ? "#666" : this._pc[e], n.fill(t));
 		}
 		let w = f > .65 && (e.n < 3e4 || f > 2);
 		n.lineWidth = 1.4 * p, n.globalAlpha = h >= 0 ? .28 : 1;
 		for (let e = 0; e < this._fill.length; e++) {
 			n.beginPath();
 			for (let t = this._cOff[e]; t < this._cOff[e + 1]; t++) {
-				let e = this._cList[t], r = s[e], i = c[e], a = l[e];
+				let e = this._cList[t];
+				if (!this._nodeVisible[e]) continue;
+				let r = s[e], i = c[e], a = l[e];
 				if (!(r + a < _ || r - a > y || i + a < v || i - a > b)) {
 					if (a * f < 1) {
 						let e = .9 * p;
@@ -2648,6 +2702,7 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 			for (let e = o; e <= c; e++) for (let t = a; t <= s; t++) p[e * m + t] = 1;
 			return !0;
 		}, g = (t, n) => {
+			if (!this._nodeVisible[t]) return -1;
 			let o = r[t] * l + c.x, s = i[t] * l + c.y, p = a[t] * l;
 			if (o < -60 || o > u + 60 || s < -10 || s > d + 30) return -1;
 			if (!n && p < 2) return 0;
@@ -2666,6 +2721,7 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 		if (!(l < .5 || !o.length)) {
 			e.font = "9px system-ui,sans-serif", e.globalAlpha = .9, e.lineWidth = 1;
 			for (let t = 0, n = 0; t < o.length && n < 150; t++) {
+				if (this._isType[t] || !this._visibleGraphs.has(this._edgeGraph[t])) continue;
 				let a = o[t], f = s[t], p = (r[f] - r[a]) * l, m = (i[f] - i[a]) * l, g = Math.sqrt(p * p + m * m);
 				if (g < 70) continue;
 				let _ = this._bend[t] * l, v = (r[a] + r[f]) / 2 * l + c.x - m / g * _, y = (i[a] + i[f]) / 2 * l + c.y + p / g * _;
@@ -2719,10 +2775,13 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 				let n = document.createElement(e);
 				n.textContent = t, r.append(n);
 			};
-			t("b", this._label(e)), t("small", this._names[e]);
+			t("b", this._label(e));
 			let n = this._typ[e];
-			n && this._classes[n] !== this._names[e] && t("small", "a " + this._curie(this._classes[n]));
-			for (let [n, r] of this._lits.get(e) || []) t("div", this._curie(n) + ": " + (r.length > 80 ? r.slice(0, 80) + "…" : r));
+			n && this._classes[n] !== this._names[e] && t("small", "a " + this._curie(this._classes[n])), t("small", this._names[e]);
+			for (let [n, r] of this._lits.get(e) || []) {
+				let e = r.length > 200 ? r.slice(0, 200) + "…" : r;
+				t("div", this._curie(n) + ": " + e);
+			}
 			t("small", this._L.deg[e] + " links");
 		}
 		r.style.display = "block";
@@ -2793,6 +2852,8 @@ var tn = ":host{display:block;position:relative;height:480px;overflow:hidden;col
 		};
 		e.addEventListener("pointerup", n), e.addEventListener("pointercancel", n), e.addEventListener("pointerleave", () => {
 			this._hov >= 0 && !t.size && (this._hov = -1, this._dirty = !0, this._wake()), this._showTip(-1);
+		}), this._graphsToggle.addEventListener("click", () => {
+			this._graphsPanel.classList.toggle("collapsed"), this._graphsToggle.textContent = this._graphsPanel.classList.contains("collapsed") ? "▶" : "▼";
 		}), e.addEventListener("dblclick", (e) => {
 			let t = this._xy(e), n = this._pick(t.x, t.y);
 			n >= 0 ? (this._L.pin[n] ^= 1, this._L.reheat(.2), this._dirty = !0, this._wake()) : this.fit();
@@ -2817,11 +2878,11 @@ function an(e) {
 	return /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(e);
 }
 function on(e) {
-	return !!(O(e.trim()) || k(e) || A(e) || j(e) || M(e) || P(e) || rn(e) || N(e) || ne(e));
+	return !!(O(e.trim()) || k(e) || A(e) || j(e) || M(e) || F(e) || rn(e) || N(e) || P(e));
 }
 function sn(e) {
 	let t = e.trim();
-	return t !== "" && !(O(t) || A(t) || P(t) || rn(t) || N(t) || k(t));
+	return t !== "" && !(O(t) || A(t) || F(t) || rn(t) || N(t) || k(t));
 }
 var cn = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?\/?>/g, ln = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", un = Object.assign(Object.create(null), {
 	amp: "&",
@@ -3023,7 +3084,7 @@ function gn(e, t = {}) {
 	}
 	function s(e) {
 		e = e.replace(/<!--[\s\S]*?-->/g, "");
-		let t = fe(e, 0);
+		let t = pe(e, 0);
 		if (t.length === 0) return hn(e);
 		let n = "", r = 0;
 		for (let i of t) {
@@ -3160,7 +3221,7 @@ function gn(e, t = {}) {
 			c.push("<hr class=\"mdld-hr\" />"), l++;
 			continue;
 		}
-		let v = P(e);
+		let v = F(e);
 		if (v) {
 			let t = [e];
 			if (l++, v.closeTag) {
@@ -3174,7 +3235,7 @@ function gn(e, t = {}) {
 			c.push(t.join("\n"));
 			continue;
 		}
-		if (ne(e)) {
+		if (P(e)) {
 			let e = [];
 			for (; l < n.length;) {
 				let t = n[l];
@@ -3182,7 +3243,7 @@ function gn(e, t = {}) {
 					e.push(""), l++;
 					continue;
 				}
-				let r = ne(t);
+				let r = P(t);
 				if (!r) break;
 				e.push(t.slice(r.indent.length)), l++;
 			}
@@ -3191,7 +3252,7 @@ function gn(e, t = {}) {
 			continue;
 		}
 		let y = [e];
-		for (l++; l < n.length && n[l].trim() !== "" && !O(n[l].trim()) && !k(n[l]) && !A(n[l]) && !j(n[l]) && !M(n[l]) && !N(n[l]) && !rn(n[l]) && !P(n[l], !0);) y.push(n[l]), l++;
+		for (l++; l < n.length && n[l].trim() !== "" && !O(n[l].trim()) && !k(n[l]) && !A(n[l]) && !j(n[l]) && !M(n[l]) && !N(n[l]) && !rn(n[l]) && !F(n[l], !0);) y.push(n[l]), l++;
 		let b = y.join("\n");
 		c.push(`<p class="mdld-paragraph">${s(b)}</p>`);
 	}
