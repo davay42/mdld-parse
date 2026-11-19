@@ -2,6 +2,7 @@ import { parse } from './parse.js';
 import { merge } from './merge.js';
 import { generate, generateNode } from './generate.js';
 import { DEFAULT_CONTEXT } from './constants.js';
+import { render, deconstruct } from './render.js';
 import {
     DataFactory,
     hash,
@@ -11,7 +12,7 @@ import {
     locate
 } from './utils.js';
 
-export { parse, merge, generate, generateNode, DEFAULT_CONTEXT, DataFactory, hash, expandIRI, shortenIRI, parseSemanticBlock, locate };
+export { parse, merge, generate, generateNode, DEFAULT_CONTEXT, DataFactory, hash, expandIRI, shortenIRI, parseSemanticBlock, locate, render, deconstruct };
 
 /**
  * Update the value of a quad in MDLD text and return the updated text
