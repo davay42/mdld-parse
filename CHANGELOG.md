@@ -1,6 +1,6 @@
 # MD-LD evolution
 
-## v1.1.1 CommonMark rendering compliance
+## v1.1.2 CommonMark rendering compliance
 
 ### Added
 - **CommonMark HTML blocks in `render()`**: raw HTML (`<table>`, `<div>`, `<section>`, …) passes through unescaped — block tags run to a blank line, `script`/`pre`/`style`/`textarea` run to their close tag, lone inline tags can't interrupt paragraphs. `deconstruct()` passes raw blocks through verbatim, so they round-trip losslessly
