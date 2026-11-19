@@ -58,24 +58,31 @@ Or use `importmap` in the browser:
 
 
 ```javascript
-import { parse, generate, merge, render, deconstruct } from 'mdld-parse';
+import { parse, generate, merge, render, deconstruct, highlight } from 'mdld-parse';
 
 // Parse MDLD to RDF quads
-const result = parse({ text: mdldString });
-console.log(result.quads); // RDF/JS quads
-console.log(result.primary); // Primary metadata (subject, type, label, comment)
-console.log(result.statements); // Elevated statements
-console.log(result.origin); // Provenance tracking
+const { quads, primary, statements, origin } = parse({ text: mdldString });
+console.log(quads); // RDF/JS quads
+console.log(primary); // Primary metadata (subject, type, label, comment)
+console.log(statements); // Elevated statements
+console.log(origin); // Provenance tracking
 
 // Generate MDLD from quads
-const { text } = generate({ quads: result.quads });
+const { text } = generate({ quads });
+
+// Highlight MDLD text with syntax coloring
+const highlighted = highlight(text);
 
 // Render to semantic HTML with preserved annotations
-const html = render(mdldString);
+const html = render(text);
 
 // Reconstruct MDLD from HTML (lossless roundtrip)
 const reconstructed = deconstruct(html);
-const quads = parse(reconstructed).quads; // Same quads as original!
+const reconstructedQuads = parse(reconstructed).quads; // Same quads as original!
+
+// Verify roundtrip integrity by using generate() as canonicalization
+const canonical = generate({ quads: reconstructedQuads });
+console.log('Roundtrip preserved:', text === canonical.text);
 
 // Lossy rendering for privacy-preserving publishing
 const cleanHtml = render(parse(mdldString).md);

@@ -1120,7 +1120,7 @@ function resolveObject(sem, state) {
 	if (sem.object.startsWith("#")) return resolveFragment(sem.object.substring(1), state.currentSubject, state.df);
 	return state.df.namedNode(expandIRI(sem.object, state.ctx));
 }
-function escapeHtml(text) {
+function escapeHtml$1(text) {
 	if (!text) return "";
 	return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
 }
@@ -2535,10 +2535,10 @@ function escapeTextPreserveHtml(s) {
 			INLINE_HTML_RE.lastIndex = m.index + 1;
 			continue;
 		}
-		out += applyHardBreaks(escapeHtml(decodeInlineText(s.slice(last, m.index)))) + m[0];
+		out += applyHardBreaks(escapeHtml$1(decodeInlineText(s.slice(last, m.index)))) + m[0];
 		last = m.index + m[0].length;
 	}
-	return out + applyHardBreaks(escapeHtml(decodeInlineText(s.slice(last))));
+	return out + applyHardBreaks(escapeHtml$1(decodeInlineText(s.slice(last))));
 }
 /**
 * MD-LD UI Renderer
@@ -2558,12 +2558,12 @@ function render(src, options = {}) {
 	function getAttrs(rawAnnotation, parsedSem, isLink = false, fallbackHref = null) {
 		const attrs = [];
 		const classes = [];
-		if (rawAnnotation) attrs.push(`data-annotation="${escapeHtml("{" + rawAnnotation + "}")}"`);
+		if (rawAnnotation) attrs.push(`data-annotation="${escapeHtml$1("{" + rawAnnotation + "}")}"`);
 		let iri = null;
 		if (parsedSem?.subject && parsedSem.subject !== "RESET") iri = safeExpand(parsedSem.subject);
 		else if (parsedSem?.object) iri = safeExpand(parsedSem.object);
-		if (iri) attrs.push(`data-iri="${escapeHtml(iri)}"`);
-		if (isLink && fallbackHref) attrs.push(`href="${escapeHtml(fallbackHref)}"`);
+		if (iri) attrs.push(`data-iri="${escapeHtml$1(iri)}"`);
+		if (isLink && fallbackHref) attrs.push(`href="${escapeHtml$1(fallbackHref)}"`);
 		if (parsedSem?.types?.some((t) => !t.remove)) classes.push("typed");
 		if (parsedSem?.predicates?.some((p) => p.remove) || parsedSem?.types?.some((t) => t.remove)) classes.push("retracted");
 		if (classes.length > 0) attrs.unshift(`class="${classes.join(" ")}"`);
@@ -2591,10 +2591,10 @@ function render(src, options = {}) {
 			const raw = c.attrs || "";
 			const isLink = c.type === "link";
 			const fallbackHref = c.url || null;
-			const titleAttr = c.title ? ` title="${escapeHtml(c.title)}"` : "";
+			const titleAttr = c.title ? ` title="${escapeHtml$1(c.title)}"` : "";
 			if (c.type === "image") {
-				const alt = escapeHtml(c.text);
-				const src = escapeHtml(c.url);
+				const alt = escapeHtml$1(c.text);
+				const src = escapeHtml$1(c.url);
 				const attrString = mergeClasses("mdld-image", getAttrs(raw, sem, false, null));
 				out += `<img src="${src}" alt="${alt}" ${attrString}${titleAttr} />`;
 			} else {
@@ -2615,7 +2615,7 @@ function render(src, options = {}) {
 				}
 				const customAttrs = getAttrs(raw, sem, isLink, fallbackHref);
 				const attrString = mergeClasses(baseClass, isLink && fallbackHref && isExternalHref(fallbackHref) ? customAttrs + " target=\"_blank\" rel=\"noopener noreferrer\"" : customAttrs);
-				const inner = c.type === "code" ? escapeHtml(c.text) : renderInline(c.text);
+				const inner = c.type === "code" ? escapeHtml$1(c.text) : renderInline(c.text);
 				out += `<${tag} ${attrString}${titleAttr}>${inner}</${tag}>`;
 			}
 			lastPos = c.range[1];
@@ -2635,7 +2635,7 @@ function render(src, options = {}) {
 				const carrierText = codeBlock.content.join("\n");
 				const customAttrs = getAttrs(codeBlock.attrs, sem);
 				const attrString = mergeClasses(`mdld-codeblock language-${codeBlock.lang || "text"}`, customAttrs);
-				out.push(`<pre><code ${attrString}>${escapeHtml(carrierText)}</code></pre>`);
+				out.push(`<pre><code ${attrString}>${escapeHtml$1(carrierText)}</code></pre>`);
 				codeBlock = null;
 			} else codeBlock.content.push(line);
 			i++;
@@ -2688,7 +2688,7 @@ function render(src, options = {}) {
 		const prefix = detectPrefix(line);
 		if (prefix) {
 			const resolvedIri = context[prefix.prefix];
-			out.push(`<div class="mdld-prefix" data-prefix="${prefix.prefix}" data-raw="${escapeHtml(prefix.iri)}" data-iri="${escapeHtml(resolvedIri)}" style="display:none"></div>`);
+			out.push(`<div class="mdld-prefix" data-prefix="${prefix.prefix}" data-raw="${escapeHtml$1(prefix.iri)}" data-iri="${escapeHtml$1(resolvedIri)}" style="display:none"></div>`);
 			i++;
 			continue;
 		}
@@ -2825,7 +2825,7 @@ function render(src, options = {}) {
 				i++;
 			}
 			while (codeLines.length > 0 && codeLines[codeLines.length - 1] === "") codeLines.pop();
-			out.push(`<pre><code class="mdld-codeblock language-text">${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+			out.push(`<pre><code class="mdld-codeblock language-text">${escapeHtml$1(codeLines.join("\n"))}</code></pre>`);
 			continue;
 		}
 		let paraLines = [line];
@@ -3095,6 +3095,325 @@ function extractAttr(tag, name) {
 function unescapeHtml(s) {
 	return String(s).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
 }
+// src/highlight.js
+/**
+* MD-LD Syntax Highlighter
+* 
+* A performant, token-based syntax highlighter for MD-LD (Markdown Linked Data).
+* Uses simple string operations rather than complex grammars for reliability
+* and maintainability.
+* 
+* Features:
+* - Token-based parsing with string operations
+* - Markdown formatting support with semantic distinction
+* - Lookahead detection for legal value carriers
+* - Orange semantic markers vs default markdown spans
+* - Annotation, value carrier, and heading highlighting
+*/
+function escapeHtml(s) {
+	return String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;").replaceAll("'", "&#39;");
+}
+var TOKEN_COLORS = {
+	text: "#6b7280",
+	marker: "#f97316",
+	retraction: "#dc2626",
+	value: "#eab308",
+	annotation: "#4b5563"
+};
+function hasFollowingAnnotation(code, endPos) {
+	let i = endPos;
+	while (i < code.length && code[i] !== "\n" && code[i] !== "\r") {
+		if (code[i] === "{") return true;
+		i++;
+	}
+	return false;
+}
+function processMarkdownFormattingAtPosition(code, startPos) {
+	const char = code[startPos];
+	if (char === "*" && startPos + 1 < code.length && code[startPos + 1] === "*") {
+		const endPos = code.indexOf("**", startPos + 2);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 2, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 2) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
+			return {
+				html: `<span${color}>**</span><strong>${escapeHtml(content)}</strong><span${color}>**</span>`,
+				nextIndex: endPos + 2
+			};
+		}
+	}
+	if (char === "_" && startPos + 1 < code.length && code[startPos + 1] === "_") {
+		const endPos = code.indexOf("__", startPos + 2);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 2, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 2) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
+			return {
+				html: `<span${color}>__</span><strong>${escapeHtml(content)}</strong><span${color}>__</span>`,
+				nextIndex: endPos + 2
+			};
+		}
+	}
+	if (char === "*") {
+		const endPos = code.indexOf("*", startPos + 1);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 1, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
+			return {
+				html: `<span${color}>*</span><em>${escapeHtml(content)}</em><span${color}>*</span>`,
+				nextIndex: endPos + 1
+			};
+		}
+	}
+	if (char === "_") {
+		const endPos = code.indexOf("_", startPos + 1);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 1, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
+			return {
+				html: `<span${color}>_</span><em>${escapeHtml(content)}</em><span${color}>_</span>`,
+				nextIndex: endPos + 1
+			};
+		}
+	}
+	if (char === "`") {
+		const endPos = code.indexOf("`", startPos + 1);
+		if (endPos !== -1) {
+			const content = code.slice(startPos + 1, endPos);
+			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
+			return {
+				html: `<span${color}>\`</span><code style="background-color:#7773">${escapeHtml(content)}</code><span${color}>\`</span>`,
+				nextIndex: endPos + 1
+			};
+		}
+	}
+	return null;
+}
+var colorCache = /* @__PURE__ */ new Map();
+function hashIRI(iri) {
+	let hash = 0;
+	for (let i = 0; i < iri.length; i++) {
+		const char = iri.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash = hash & hash;
+	}
+	return Math.abs(hash);
+}
+function getIRIColor(iri) {
+	if (colorCache.has(iri)) return colorCache.get(iri);
+	const hash = hashIRI(iri);
+	const color = `hsl(${hash % 360}, ${15 + hash % 10}%, ${45 + hash % 10}%)`;
+	colorCache.set(iri, color);
+	return color;
+}
+function extractPrefixes(code) {
+	const prefixes = /* @__PURE__ */ new Map();
+	const prefixRegex = /^\[(\w+)\]\s*<([^>]*)>\s*$/gm;
+	let match;
+	while ((match = prefixRegex.exec(code)) !== null) {
+		const prefixName = match[1];
+		let iri = match[2];
+		if (iri.includes(":")) {
+			const colonIndex = iri.indexOf(":");
+			if (colonIndex > 0) {
+				const refPrefix = iri.slice(0, colonIndex);
+				const refSuffix = iri.slice(colonIndex + 1);
+				if (prefixes.has(refPrefix)) iri = prefixes.get(refPrefix) + refSuffix;
+			}
+		}
+		prefixes.set(prefixName, iri);
+	}
+	for (const [key, iri] of Object.entries(DEFAULT_CONTEXT)) if (key !== "@vocab") prefixes.set(key, iri);
+	return prefixes;
+}
+function renderTerm(part, isRetracted, prefixes) {
+	const baseColor = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.text;
+	const colonIndex = part.indexOf(":");
+	if (colonIndex > 0) {
+		const prefix = part.slice(0, colonIndex);
+		const local = part.slice(colonIndex + 1);
+		if (prefixes.has(prefix)) {
+			const prefixIRI = prefixes.get(prefix);
+			const prefixColor = getIRIColor(prefixIRI);
+			const fullIRI = prefixIRI + local;
+			const localColor = getIRIColor(fullIRI);
+			return `<span data-iri="${fullIRI}"><span style="color: ${prefixColor}">${escapeHtml(prefix)}</span><span style="color: ${TOKEN_COLORS.marker}">:</span><span  style="color: ${localColor}">${escapeHtml(local)}</span></span> `;
+		}
+	}
+	if (part.startsWith("http:") || part.startsWith("https:") || part.startsWith("tag:") || part.startsWith("urn:")) return `<span style="color: ${getIRIColor(part)}">${escapeHtml(part)}</span> `;
+	return `<span style="color: ${baseColor}">${escapeHtml(part)}</span> `;
+}
+function parseAnnotation(content, prefixes) {
+	const parts = content.trim().split(/\s+/);
+	let result = "";
+	let nextTermIsRetracted = false;
+	for (let i = 0; i < parts.length; i++) {
+		const part = parts[i];
+		if (!part) continue;
+		if (part.startsWith("=") || part.startsWith("+")) {
+			const marker = part[0];
+			const rest = part.slice(1);
+			result += `<span style="color: ${TOKEN_COLORS.marker}">${escapeHtml(marker)}</span>${renderTerm(rest, false, prefixes)}`;
+			continue;
+		}
+		if (part === "-") {
+			nextTermIsRetracted = true;
+			result += `<span style="color: ${TOKEN_COLORS.retraction}">${escapeHtml(part)}</span> `;
+			continue;
+		}
+		if (part.startsWith("-") && part.length > 1) {
+			result += `<span style="color: ${TOKEN_COLORS.retraction}">${escapeHtml(part)}</span> `;
+			continue;
+		}
+		const isRetracted = nextTermIsRetracted;
+		nextTermIsRetracted = false;
+		if (part.startsWith("?") || part.startsWith("!")) {
+			const marker = part[0];
+			const rest = part.slice(1);
+			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
+			continue;
+		}
+		if (part.startsWith("^^")) {
+			const marker = "^^";
+			const rest = part.slice(2);
+			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
+			continue;
+		}
+		if (part.startsWith("@")) {
+			const marker = "@";
+			const rest = part.slice(1);
+			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
+			continue;
+		}
+		if (part.startsWith(".")) {
+			const marker = ".";
+			const rest = part.slice(1);
+			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
+			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
+			continue;
+		}
+		result += renderTerm(part, isRetracted, prefixes);
+	}
+	return result.trim();
+}
+function highlight(code) {
+	const prefixes = extractPrefixes(code);
+	let result = "";
+	let i = 0;
+	while (i < code.length) {
+		const char = code[i];
+		if (char === "{") {
+			const endIdx = code.indexOf("}", i);
+			if (endIdx === -1) {
+				result += escapeHtml(char);
+				i++;
+				continue;
+			}
+			const parsed = parseAnnotation(code.slice(i + 1, endIdx), prefixes);
+			result += `<span class="mdld-annotation"><span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>`;
+			result += parsed;
+			result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span></span>`;
+			i = endIdx + 1;
+			continue;
+		}
+		if (char === "[") {
+			const endBracket = code.indexOf("]", i);
+			if (endBracket === -1) {
+				result += escapeHtml(char);
+				i++;
+				continue;
+			}
+			const prefixName = code.slice(i + 1, endBracket);
+			let j = endBracket + 1;
+			while (j < code.length && /\s/.test(code[j])) j++;
+			if (j < code.length && code[j] === "<") {
+				const iriEnd = code.indexOf(">", j);
+				if (iriEnd !== -1) {
+					const iriContent = code.slice(j + 1, iriEnd);
+					const prefixColor = prefixes.has(prefixName) ? getIRIColor(prefixes.get(prefixName)) : TOKEN_COLORS.text;
+					result += `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">[</span><span style="color: ${prefixColor}">${escapeHtml(prefixName)}</span><span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">]</span> <span style="color: ${TOKEN_COLORS.text}; opacity: 0.6">&lt;${escapeHtml(iriContent)}&gt;</span>`;
+					i = iriEnd + 1;
+					continue;
+				}
+			}
+			const content = code.slice(i + 1, endBracket);
+			const bracketColor = hasFollowingAnnotation(code, endBracket + 1) ? TOKEN_COLORS.marker : TOKEN_COLORS.value;
+			const escapedContent = escapeHtml(content);
+			result += `<span style="color: ${bracketColor}; opacity: 0.85">[</span><span style="background-color: ${bracketColor}15">${escapedContent}</span><span style="color: ${bracketColor}; opacity: 0.85">]</span>`;
+			i = endBracket + 1;
+			continue;
+		}
+		if (char === "*" || char === "_" || char === "`") {
+			const processed = processMarkdownFormattingAtPosition(code, i);
+			if (processed) {
+				result += processed.html;
+				i = processed.nextIndex;
+				continue;
+			}
+		}
+		if (char === "#") {
+			let hashCount = 0;
+			let j = i;
+			while (j < code.length && code[j] === "#") {
+				hashCount++;
+				j++;
+			}
+			if (hashCount <= 6 && (j >= code.length || code[j] === " " || code[j] === "	")) {
+				const lineEnd = code.indexOf("\n", j);
+				const endIdx = lineEnd === -1 ? code.length : lineEnd;
+				const headerText = code.slice(j, endIdx).trim();
+				let processedHeaderText = "";
+				let lastIndex = 0;
+				let annotationStart = headerText.indexOf("{");
+				while (annotationStart !== -1) {
+					const annotationEnd = headerText.indexOf("}", annotationStart);
+					if (annotationEnd === -1) break;
+					const beforeText = headerText.slice(lastIndex, annotationStart);
+					processedHeaderText += escapeHtml(beforeText);
+					const parsedAnnotation = parseAnnotation(headerText.slice(annotationStart + 1, annotationEnd), prefixes);
+					processedHeaderText += `<span class="mdld-annotation"><span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">{</span>` + parsedAnnotation + `<span style="color: ${TOKEN_COLORS.annotation}; opacity: 0.75">}</span></span>`;
+					lastIndex = annotationEnd + 1;
+					annotationStart = headerText.indexOf("{", lastIndex);
+				}
+				processedHeaderText += escapeHtml(headerText.slice(lastIndex));
+				const hasAnnotation = headerText.includes("{") && headerText.includes("}");
+				const headingTag = `h${hashCount}`;
+				const headingStyle = `margin: 0; font-weight: 600;`;
+				const hashes = "#".repeat(hashCount);
+				const hashColor = hasAnnotation ? `color: ${TOKEN_COLORS.marker}; opacity: 0.8` : "";
+				result += `<${headingTag} style="${headingStyle}"><span style="${hashColor}">${hashes}</span> ${processedHeaderText}</${headingTag}>`;
+				i = endIdx;
+				continue;
+			}
+		}
+		if (char === "-" || char === "*") {
+			const prevChar = i > 0 ? code[i - 1] : "\n";
+			if (prevChar === "\n" || prevChar === "\r" || prevChar === " " || prevChar === "	") {
+				if (code[i + 1] === " ") {
+					const markerColor = hasFollowingAnnotation(code, i + 2) ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : "";
+					result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
+					i++;
+					continue;
+				}
+			}
+		}
+		if (char === ">") {
+			const prevChar = i > 0 ? code[i - 1] : "\n";
+			if (prevChar === "\n" || prevChar === "\r" || prevChar === " " || prevChar === "	") {
+				if (code[i + 1] === " ") {
+					const markerColor = hasFollowingAnnotation(code, i + 2) ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : "";
+					result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
+					i++;
+					continue;
+				}
+			}
+		}
+		result += escapeHtml(char);
+		i++;
+	}
+	return result;
+}
 // src/index.js
 /**
 * Update the value of a quad in MDLD text and return the updated text
@@ -3111,4 +3430,4 @@ function updateValue({ text, quad, value, origin }) {
 	if (!location || !location.valueRange) return text;
 	return text.substring(0, location.valueRange.start) + value + text.substring(location.valueRange.end);
 }
-export { DEFAULT_CONTEXT, DataFactory, deconstruct, expandIRI, generate, generateNode, hash, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue };
+export { DEFAULT_CONTEXT, DataFactory, deconstruct, expandIRI, generate, generateNode, hash, highlight, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue };
