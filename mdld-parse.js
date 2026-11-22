@@ -1475,7 +1475,7 @@ function scanTokens(text) {
 				codeBlock = null;
 				const closingFence = line.replace(/\r?\n.*$/, "");
 				mdLines.push(closingFence);
-			}
+			} else codeBlock.content.push(line);
 		}
 		return true;
 	}
