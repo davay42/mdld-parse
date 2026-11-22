@@ -39,7 +39,7 @@ SHACL (Shapes Constraint Language) is a W3C standard for validating RDF graphs. 
 
 Let's create a simple shape for validating user accounts:
 
-~~~~~~md {+#demo .cat:Demo ?cat:hasDemo cat:text}
+~~~~~~md {+cat:demo/start .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:users/>
 
 **User Validation Shape** {=ex:UserShape .sh:NodeShape label}
@@ -85,15 +85,13 @@ These are targeting predicates that determine which nodes get validated (not con
 
 > Targets all nodes that are instances of a specific RDF class (rdf:type) for shape validation. Essential for class-based validation scenarios across entire domains. {comment}
 
-<http://www.w3.org/ns/shacl#targetClass> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The targetClass constraint targets all nodes that are instances of a specific RDF class. This example validates all Product instances for business requirements.
 
-~~~~~~md {+#demo .cat:Demo ?cat:hasDemo cat:value}
+~~~~~~md {+cat:demo/targetClass .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:example.com,2026:targeting/>
 
 ## Product Validation Shape {=ex:ProductValidationShape .sh:NodeShape  label}
@@ -128,7 +126,7 @@ Price: [200.00] {ex:price ^^xsd:decimal}
 
 Target class targets all nodes that are instances of a specific RDF class for shape validation.
 
-~~~~~~md
+~~~~~~md  {+cat:pattern/targetClass .cat:Pattern ?cat:hasPattern cat:pattern}
 **[Shape] targets [Class] instances** {=ex:ShapeName .sh:NodeShape label}
 
 [Shape Name] {=ex:ShapeName .sh:NodeShape label} targets all [Class] {+ex:Class ?sh:targetClass} instances to validate requirements.
@@ -146,16 +144,6 @@ Target class targets all nodes that are instances of a specific RDF class for sh
 - Works with rdf:type relationships
 - Combine with targeting mechanisms for complex scenarios
 - Use for consistent validation across class instances
-
----
-
-## 🎯 Use Cases
-
-- **Domain validation** - Validate all instances of a domain class
-- **Business rules** - Enforce class-specific business requirements
-- **Data quality** - Ensure data consistency across class instances
-- **Schema enforcement** - Apply validation rules to entire class hierarchies
-- **Compliance** - Validate regulatory requirements for specific entity types
 
 ---
 
@@ -182,30 +170,20 @@ Target class targets all nodes that are instances of a specific RDF class for sh
 - ❌ Not considering performance for large datasets
 - ❌ Overusing target class when target node would be more appropriate
 
-
-
-
-
 <a id="targeting-targetnode"></a>
-
-
-[ex] <mdld:shacl/example/targeting/>
-
 
 # Target Node {=sh:targetNode .class:TargetingMechanism label}
 
 > Targets specific individual nodes identified by their IRI for precise, node-by-node validation. Perfect for critical infrastructure, testing scenarios, and executive-level validation. {comment}
 
-<http://www.w3.org/ns/shacl#targetNode> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The targetNode constraint targets specific individual nodes for validation. This example demonstrates critical infrastructure and executive validation scenarios.
 
-~~~~~~md
-[ex] <mdld:shacl/example/targeting/>
+~~~~~~md {+cat:demo/targetNode .cat:Demo ?cat:hasDemo cat:demo}
+[ex] <tag:example.com,2026:targeting/>
 
 ## Critical Infrastructure Demo
 
@@ -269,24 +247,7 @@ Target node targets specific individual nodes identified by their IRI for precis
 
 ---
 
-## 🎯 Use Cases
-
-- **Critical infrastructure** - Validate critical systems and infrastructure
-- **Executive validation** - Validate executive-level entities
-- **Testing scenarios** - Test specific nodes in isolation
-- **Compliance** - Validate specific regulatory entities
-- **Quality assurance** - Validate specific production nodes
-
----
-
 ## 🔧 Implementation Guidelines
-
-**When to use target node:**
-- **Critical infrastructure** - When validating specific critical systems
-- **Executive validation** - When validating executive-level entities
-- **Testing** - When testing specific nodes in isolation
-- **Compliance** - When validating specific regulatory entities
-- **Quality assurance** - When validating specific production nodes
 
 **Best practices:**
 - Use descriptive node identifiers for clarity
@@ -302,30 +263,18 @@ Target node targets specific individual nodes identified by their IRI for precis
 - ❌ Confusing target node with target class
 - ❌ Not documenting why specific nodes are targeted
 
-
-
-
-
 <a id="targeting-targetsubjectsof"></a>
-
-
-[ex] <mdld:shacl/example/targeting/>
-
 
 # Target Subjects Of {=sh:targetSubjectsOf .class:TargetingMechanism label}
 
 > Targets all subjects (nodes) that have a specific property pointing to any value. Useful for reverse relationship targeting, source validation, and validating entities that initiate relationships. {comment}
 
-<http://www.w3.org/ns/shacl#targetSubjectsOf> {?cat:fullIRI}
 
----
-
-## 📋 Quick Start Pattern
 
 The targetSubjectsOf constraint targets all subjects (nodes) that have a specific property pointing to any value. This example demonstrates management and approval scenarios where we validate entities that initiate relationships.
 
-~~~~~~md
-[ex] <mdld:shacl/example/targeting/>
+~~~~~~md {+cat:demo/targetSubjectsOf .cat:Demo ?cat:hasDemo cat:demo}
+[ex] <tag:my@example.org,2026:targeting/>
 
 ## Management Validation Demo
 
@@ -400,24 +349,7 @@ Target subjects of targets all subjects that have a specific property pointing t
 
 ---
 
-## 🎯 Use Cases
-
-- **Management validation** - Validate managers who manage teams
-- **Approval validation** - Validate approvers who approve requests
-- **Source validation** - Validate entities that initiate relationships
-- **Reverse relationship targeting** - Target based on outgoing relationships
-- **Business rules** - Enforce rules on relationship initiators
-
----
-
 ## 🔧 Implementation Guidelines
-
-**When to use target subjects of:**
-- **Management validation** - When validating managers or supervisors
-- **Approval validation** - When validating approvers or authorizers
-- **Source validation** - When validating relationship sources
-- **Reverse targeting** - When targeting based on outgoing relationships
-- **Business rules** - When enforcing rules on relationship initiators
 
 **Best practices:**
 - Use descriptive property names for clarity
@@ -433,30 +365,20 @@ Target subjects of targets all subjects that have a specific property pointing t
 - ❌ Not considering the direction of the relationship
 - ❌ Overusing when target class would be more appropriate
 
-
-
-
-
 <a id="targeting-targetobjectsof"></a>
-
-
-[ex] <mdld:shacl/example/targeting/>
-
 
 # Target Objects Of {=sh:targetObjectsOf .class:TargetingMechanism label}
 
 > Targets all objects (values) that are pointed to by a specific property. Ideal for validating referenced entities, relationship targets, and entities that are the destination of relationships. {comment}
 
-<http://www.w3.org/ns/shacl#targetObjectsOf> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The targetObjectsOf constraint targets all objects (nodes) that are referenced by a specific property. This example demonstrates team membership and product reference scenarios where we validate entities that are referenced by others.
 
-~~~~~~md
-[ex] <mdld:shacl/example/targeting/>
+~~~~~~md {+cat:demo/targetObjectsOf .cat:Demo ?cat:hasDemo cat:demo}
+[ex] <tag:example.com,2026:targeting/>
 
 ## Team Membership Demo
 
@@ -536,16 +458,6 @@ Target objects of targets all objects that are pointed to by a specific property
 
 ---
 
-## 🎯 Use Cases
-
-- **Team membership validation** - Validate team members referenced by teams
-- **Product reference validation** - Validate products referenced by orders
-- **Destination validation** - Validate entities that are relationship targets
-- **Referenced entity validation** - Validate entities referenced by others
-- **Business rules** - Enforce rules on relationship destinations
-
----
-
 ## 🔧 Implementation Guidelines
 
 **When to use target objects of:**
@@ -569,10 +481,6 @@ Target objects of targets all objects that are pointed to by a specific property
 - ❌ Not considering the direction of the relationship
 - ❌ Overusing when target class would be more appropriate
 
-
-
-
-
 <a id="syntax-reference"></a>
 
 ## 📝 MDLD Syntax Reference
@@ -595,17 +503,10 @@ Target objects of targets all objects that are pointed to by a specific property
 ~~~~~~
 
 **For detailed syntax, see:**
-- MDLD Spec: `/Users/davay/Documents/DeFUCC/MDLD/mdld-parse/spec/Spec.md`
-- Few-shot examples: `/Users/davay/Documents/DeFUCC/MDLD/mdld-parse/examples/few-shot.md`
-
-
-
-
+- MDLD Spec: `https://mdld.js.org/spec/Spec.md`
+- Few-shot examples: `https://mdld.js.org/examples/few-shot.md`
 
 <a id="constraints-index"></a>
-
-
-
 
 ### 📋 Constraint {=class:Constraint ?member .Class label}
 
@@ -627,8 +528,6 @@ We can broadly divide them into these type groups:
 ---
 
 [Syntax Reference](#syntax-reference)
-
----
 
 # Catalog {=mdld:shapes}
 
@@ -724,26 +623,19 @@ Need to check if these are working:
 ## Some constraints are environment dependent, are not tested to be working and are [Not covered] {=cat:notCovered .Class label} by this calalog.
 
 
-
-
-
 <a id="constraints-class"></a>
-
-
 
 # Class {=sh:class .class:Constraint label}
 
 > Expects each value to be an instance of a specific class (RDF type) {comment}
 
-<http://www.w3.org/ns/shacl#class> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The class constraint ensures property values are instances of a specific RDF class. This example validates that employee managers must be Person instances.
 
-~~~~~~md
+~~~~~~md {+cat:demo/class .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:class/>
 
 ## Employee Test Shape {=ex:EmployeeTestShape .sh:NodeShape  label}
@@ -809,15 +701,13 @@ Manager: [robot] {+ex:robot ?ex:manager ex:Role}
 
 > Expects a literal value to have certain datatype {comment}
 
-<http://www.w3.org/ns/shacl#datatype> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The datatype constraint ensures literal values have the correct datatype. This example validates that product prices must be decimal values.
 
-~~~~~~md
+~~~~~~md {+cat:demo/datatype .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:datatype/>
 
 ## Product Test Shape {=ex:ProductTestShape .sh:NodeShape sh:name}
@@ -869,28 +759,19 @@ Price: [29.99] {ex:price ^^xsd:string}
 - ❌ Forgetting to specify the datatype prefix
 - ❌ Not combining with minCount for required properties
 
-
-
-
-
 <a id="constraints-nodekind"></a>
-
-
-
 
 # Node Kind {=sh:nodeKind .class:Constraint label}
 
 > Expects a node to be of a specific kind (blank node, IRI, or literal) {comment}
 
-<http://www.w3.org/ns/shacl#nodeKind> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The nodeKind constraint expects a node to be of a specific kind (blank node, IRI, or literal). This example validates that content must be literal and references must be IRIs.
 
-~~~~~~md
+~~~~~~md {+cat:demo/nodekind .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:nodekind/>
 
 ## Document Test Shape {=ex:DocumentTestShape .sh:NodeShape  label}
@@ -946,34 +827,23 @@ Reference: [text] {ex:reference}
 - ❌ Wrong syntax for IRI vs literal
 - ❌ Confusing with datatype (nodeKind for IRI/Literal, datatype for literal types)
 
-
-
-
-
 <a id="constraints-count"></a>
-
-
-
 
 # Min Count {=sh:minCount .class:Constraint label}
 
 > Specifies the minimum number of values a property must have {comment}
 
-<http://www.w3.org/ns/shacl#minCount> {?cat:fullIRI}
-
 # Max Count {=sh:maxCount .class:Constraint label}
 
 > Specifies the maximum number of values a property can have {comment}
 
-<http://www.w3.org/ns/shacl#maxCount> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 Count constraints specify the minimum and maximum number of values a property must have. This example validates that email must be exactly one value.
 
-~~~~~~md
+~~~~~~md {+cat:demo/count .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:count/>
 
 ## Person Test Shape {=ex:PersonTestShape .sh:NodeShape  sh:name}
@@ -1027,45 +897,29 @@ Email: [personal@example.com] {ex:email}
 - ❌ Using negative values for counts
 - ❌ Confusing minCount with maxCount
 
-
-
-
-
 <a id="constraints-range"></a>
 
+# Range Constraints
 
-
-# Minimum Inclusive {=sh:minInclusive .class:Constraint label}
-
+## Minimum Inclusive {=sh:minInclusive .class:Constraint label}
 > Specifies the minimum inclusive value for range constraints {comment}
 
-<http://www.w3.org/ns/shacl#minInclusive> {?cat:fullIRI}
-
-# Maximum Inclusive {=sh:maxInclusive .class:Constraint label}
-
+## Maximum Inclusive {=sh:maxInclusive .class:Constraint label}
 > Specifies the maximum inclusive value for range constraints {comment}
 
-<http://www.w3.org/ns/shacl#maxInclusive> {?cat:fullIRI}
-
-# Minimum Exclusive {=sh:minExclusive .class:Constraint label}
-
+## Minimum Exclusive {=sh:minExclusive .class:Constraint label}
 > Specifies the minimum exclusive value for range constraints {comment}
 
-<http://www.w3.org/ns/shacl#minExclusive> {?cat:fullIRI}
-
-# Maximum Exclusive {=sh:maxExclusive .class:Constraint label}
-
+## Maximum Exclusive {=sh:maxExclusive .class:Constraint label}
 > Specifies the maximum exclusive value for range constraints {comment}
-
-<http://www.w3.org/ns/shacl#maxExclusive> {?cat:fullIRI}
 
 ---
 
-## 📋 Quick Start Pattern
+
 
 Range constraints specify minimum and maximum values for numeric or date properties. This example validates that product prices must be between 10 and 100 inclusive.
 
-~~~~~~md
+~~~~~~md {+cat:demo/range .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
 ## Product Test Shape {=ex:ProductTestShape .sh:NodeShape label}
@@ -1119,29 +973,21 @@ Price: [5] {ex:price ^^xsd:decimal}
 - ❌ Forgetting to specify the datatype
 - ❌ Confusing inclusive with exclusive bounds
 
-
-
-
-
 <a id="constraints-comparison"></a>
-
-
 
 # Comparison Constraints {=sh:lessThan .class:ComparisonConstraint label}
 
 > Validates property values against reference nodes using comparison operators {comment}
 
-<http://www.w3.org/ns/shacl#lessThan> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#lessThanOrEquals> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#equals> {?cat:fullIRI}
+Also provides [Less than or equals] {+sh:lessThanOrEquals .class:ComparisonConstraint label} and [Equals] {+sh:equals .class:ComparisonConstraint label} constraints.
 
 ---
 
-## 📋 Quick Start Pattern
+
 
 Comparison constraints validate property values against reference nodes using comparison operators. This example validates that order dates must be before shipping dates.
 
-~~~~~~md
+~~~~~~md {+cat:demo/comparison .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:comparison/>
 
 ## Order Test Shape {=ex:OrderTestShape .sh:NodeShape  label}
@@ -1196,27 +1042,19 @@ Shipping Date: [2024-06-20] {ex:shippingDate ^^xsd:date}
 - ❌ Forgetting both properties must be present
 - ❌ Using wrong comparison operator
 
-
-
-
-
 <a id="constraints-disjoint"></a>
-
-
 
 # Disjoint {=sh:disjoint .class:DisjointConstraint label}
 
 > Ensures that values of a property are disjoint with values of another property {comment}
 
-<http://www.w3.org/ns/shacl#disjoint> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The disjoint constraint ensures that values of a property are disjoint with values of another property. This example validates that preferred labels must be different from alternative labels.
 
-~~~~~~md
+~~~~~~md  {+cat:demo/disjoint .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:disjoint/>
 
 ## Label Test Shape {=ex:DisjointExampleShape .sh:NodeShape label}
@@ -1269,27 +1107,19 @@ Alternative Label: [Germany] {ex:altLabel}
 - ❌ Using disjoint when properties should be related
 - ❌ Forgetting both properties must be present
 
-
-
-
-
 <a id="constraints-not"></a>
-
-
 
 # NOT Constraint {=sh:not .class:LogicalConstraint label}
 
 > Requires value nodes to NOT conform to a given shape {comment}
 
-<http://www.w3.org/ns/shacl#not> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The NOT constraint requires value nodes to NOT conform to a given shape. This example validates that users cannot have a deleted status.
 
-~~~~~~md
+~~~~~~md {+cat:demo/not .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:not/>
 
 ## User Status Shape {=ex:UserStatusShape .sh:NodeShape  label}
@@ -1340,23 +1170,15 @@ Status: [deleted] {ex:status}
 - ❌ Creating circular dependencies
 - ❌ Making forbidden shapes too complex
 
-
-
-
-
 <a id="constraints-and"></a>
-
-
 
 # AND Constraint {=sh:and .class:LogicalConstraint label}
 
 > Requires all constraints in the list to be satisfied {comment}
 
-<http://www.w3.org/ns/shacl#and> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The AND constraint requires all specified constraints to be satisfied. This example validates that products must have both a price and a category.
 
@@ -1392,7 +1214,7 @@ Category: [Electronics] {ex:category}
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Constraints List] {=ex:and-l1 ?sh:and .rdf:List}: [First] {+ex:first ?rdf:first}, then [rest] {=ex:and-l2 ?rdf:rest} by [Second] {+ex:second ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
+[Constraints List] {=ex:and-list ?sh:and .rdf:List}: [First] {=ex:first ?rdf:first}, then [rest] {=ex:and-l2 ?rdf:rest} followed by [Second] {+ex:second ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 ~~~~~~
 
 **Use for:** Multi-property validation, cross-field validation, business rule combinations
@@ -1417,27 +1239,19 @@ Category: [Electronics] {ex:category}
 - ❌ Forgetting subject reset {=} after list
 - ❌ Reusing list identifiers causing collisions
 
-
-
-
-
 <a id="constraints-or"></a>
-
-
 
 # OR Constraint {=sh:or .class:LogicalConstraint label}
 
 > Requires at least one constraint in the list to be satisfied {comment}
 
-<http://www.w3.org/ns/shacl#or> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The OR constraint requires at least one of the specified constraints to be satisfied. This example validates that a contact must be either an email (contains @) or a phone number (contains -).
 
-~~~~~~md
+~~~~~~md {+cat:demo/or .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:or/>
 
 ## Contact Validation Shape {=ex:ContactValidationShape .sh:NodeShape label}
@@ -1498,27 +1312,19 @@ Contact: [invalid] {ex:contact}
 - ❌ Reusing list identifiers causing collisions
 - ❌ Overlapping alternatives causing ambiguity
 
-
-
-
-
 <a id="constraints-xone"></a>
-
-
 
 # XONE Constraint {=sh:xone .class:LogicalConstraint label}
 
 > Requires exactly one constraint in the list to be satisfied (exclusive OR) {comment}
 
-<http://www.w3.org/ns/shacl#xone> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The XONE constraint requires exactly one of the specified constraints to be satisfied. This example validates that a role must be exactly one type (admin or user), not both and not neither.
 
-~~~~~~md
+~~~~~~md {+cat:demo/xone .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:xone/>
 
 ## Role Validation Shape {=ex:RoleValidationShape .sh:NodeShape label}
@@ -1579,33 +1385,21 @@ Role: [guest] {ex:role}
 - ❌ Reusing list identifiers causing collisions
 - ❌ Overlapping alternatives causing ambiguous results
 
-
-
-
-
 <a id="constraints-length"></a>
 
-
-
 # Min Length {=sh:minLength .class:Constraint label}
-
 > Specifies the minimum length of string values {comment}
 
-<http://www.w3.org/ns/shacl#minLength> {?cat:fullIRI}
-
 # Max Length {=sh:maxLength .class:Constraint label}
-
 > Specifies the maximum length of string values {comment}
-
-<http://www.w3.org/ns/shacl#maxLength> {?cat:fullIRI}
 
 ---
 
-## 📋 Quick Start Pattern
+
 
 Length constraints specify the minimum and maximum length of string values. This example validates that usernames must be between 3 and 20 characters.
 
-~~~~~~md
+~~~~~~md {+cat:demo/length .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:length/>
 
 ## User Account Test Shape {=ex:UserAccountTestShape .sh:NodeShape  label}
@@ -1656,24 +1450,16 @@ Username: [jd] {ex:username}
 - ❌ Forgetting datatype ^^xsd:integer
 - ❌ Using negative values for lengths
 
-
-
-
-
 <a id="constraints-pattern"></a>
 
-
-
 # Pattern {=sh:pattern .class:PatternConstraint label}
-
 > Validates string values against regular expression patterns {comment}
 
-<http://www.w3.org/ns/shacl#pattern> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#flags> {?cat:fullIRI}
+Also may have [Flags] {+sh:flags .class:PatternConstraint label} added.
 
 ---
 
-## 📋 Quick Start Pattern
+
 
 The pattern constraint validates string values against regular expression patterns. This example validates that emails must end with example.com.
 
@@ -1730,27 +1516,19 @@ Email: [user@example.org] {ex:email}
 - ❌ Using overly complex regex
 - ❌ Forgetting pattern only works with strings
 
-
-
-
-
 <a id="constraints-language"></a>
-
-
 
 # Language In {=sh:languageIn .class:StringConstraint label}
 
 > Constrains string literals to have language tags from a specified list {comment}
 
-<http://www.w3.org/ns/shacl#languageIn> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The languageIn constraint constrains string literals to have language tags from a specified list. This example validates that document titles must be in English or French.
 
-~~~~~~md
+~~~~~~md {+cat:demo/language .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:language/>
 
 ## Multilingual Document Shape {=ex:MultilingualDocumentShape .sh:NodeShape  label}
@@ -1804,27 +1582,19 @@ Title: [Hallo Welt] {ex:title @de}
 - ❌ Forgetting subject reset {=} after list
 - ❌ Reusing list identifiers causing collisions
 
-
-
-
-
 <a id="constraints-uniquelang"></a>
-
-
 
 # Unique Languages {=sh:uniqueLang .class:UniqueLanguageConstraint label}
 
 > Ensures that language tags of string literals are unique within a property {comment}
 
-<http://www.w3.org/ns/shacl#uniqueLang> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The uniqueLang constraint ensures that language tags of string literals are unique within a property. This example validates that document titles cannot have duplicate language tags.
 
-~~~~~~md
+~~~~~~md {+cat:demo/uniqueLang .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:uniqueLang/>
 
 ## Unique Language Example Shape {=ex:UniqueLangExampleShape .sh:NodeShape label}
@@ -1877,27 +1647,19 @@ Title: [Hola Mundo] {ex:title @en}
 - ❌ Using uniqueLang on non-language-tagged literals
 - ❌ Forgetting to use @lang syntax
 
-
-
-
-
 <a id="constraints-hasvalue"></a>
-
-
 
 # Has Value {=sh:hasValue .class:Constraint label}
 
 > Requires a property to have exactly this specific value {comment}
 
-<http://www.w3.org/ns/shacl#hasValue> {?cat:fullIRI}
-
 ---
 
-## 📋 Quick Start Pattern
+
 
 The hasValue constraint requires a property to have exactly a specific value. This example validates that server status must be exactly "active".
 
-~~~~~~md
+~~~~~~md {+cat:demo/hasvalue .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:hasvalue/>
 
 ## System Status Test Shape {=ex:SystemStatusTestShape .sh:NodeShape label}
@@ -1950,27 +1712,14 @@ Status: [standby] {ex:status}
 - ❌ Forgetting hasValue requires exact match
 - ❌ Not combining with minCount for required properties
 
-
-
-
-
 <a id="constraints-node"></a>
 
-
-
 # Node {=sh:node .class:NodeConstraint label}
-
 > Requires property values to conform to a specific node shape {comment}
-
-<http://www.w3.org/ns/shacl#node> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
 
 The node constraint requires property values to conform to a specific node shape. This example validates that employee addresses must conform to an AddressShape with minimum street length.
 
-~~~~~~md
+~~~~~~md {+cat:demo/node .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:node/>
 
 ## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape  label}
@@ -2026,27 +1775,15 @@ Street: [St] {ex:street}
 - ❌ Not defining the referenced shape
 - ❌ Confusing node with class constraint (node for structure, class for type)
 
-
-
-
-
 <a id="constraints-in"></a>
-
-
 
 # Value Enumeration {=sh:in .class:PresenceConstraint label}
 
 > Constrains property values to be within a specified list of allowed values {comment}
 
-<http://www.w3.org/ns/shacl#in> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The in constraint constrains property values to be within a specified list of allowed values. This example validates that status must be either "Active" or "Inactive".
 
-~~~~~~md
+~~~~~~md {+cat:demo/in .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:in/>
 
 ## Status Validation Shape {=ex:StatusValidationShape .sh:NodeShape  label}
@@ -2103,28 +1840,17 @@ Status: [Pending] {+ex:Pending ?ex:status}
 - ❌ Reusing list identifiers causing collisions
 - ❌ Not combining with minCount for required properties
 
-
-
-
-
 <a id="constraints-qualifiedcount"></a>
 
-
-
-# Qualified Count {=sh:qualifiedMinCount .class:QualifiedConstraint label}
+# Minimum Qualified Count {=sh:qualifiedMinCount .class:QualifiedConstraint label}
 
 > Applies count constraints only to values that meet additional shape criteria {comment}
 
-<http://www.w3.org/ns/shacl#qualifiedMinCount> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#qualifiedMaxCount> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
+And it's opposite boundary - [Maximum Qualified Count] {=sh:qualifiedMaxCount .class:QualifiedConstraint label}
 
 Qualified count constraints apply count constraints only to values that meet additional shape criteria. This example validates that employees must have exactly one work email (matching the WorkEmailShape pattern).
 
-~~~~~~md
+~~~~~~md {+cat:demo/qualified .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:qualified/>
 
 ## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape  label}
@@ -2153,7 +1879,7 @@ Email: [bob@gmail.com] {ex:email}
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must have exactly [count] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} values that conform to [Shape] {=ex:ShapeName ?sh:qualifiedValueShape}.
+[Property] {+ex:propertyName ?sh:path} must have exactly [count] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} values that conform to [Shape] {+ex:ShapeName ?sh:qualifiedValueShape}.
 ~~~~~~
 
 **Use for:** Work email validation, primary contact validation, conditional counting
@@ -2177,32 +1903,16 @@ Email: [bob@gmail.com] {ex:email}
 - ❌ Forgetting to define the qualified shape
 - ❌ Confusing qualified count with regular count
 
-
-
-
-
 <a id="constraints-closed"></a>
-
-[mdld] <https://mdld.js.org/vocab/>
-[cat] <https://mdld.js.org/shacl/catalog/>
-[schema] <http://schema.org/>
-
 
 # Closed World Constraint {=sh:closed .class:ClosedWorldConstraint label}
 
 > Enables closed world validation where only explicitly declared properties are allowed. Essential for strict data modeling, schema enforcement, and preventing property proliferation in RDF graphs. {comment}
 
-<http://www.w3.org/ns/shacl#closed> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The closed constraint enables closed world validation where only explicitly declared properties are allowed. This example validates that person data can only have declared properties (name, age).
 
-~~~~~~md
+~~~~~~md {+cat:demo/closed .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:closed/>
-[schema] <http://schema.org/>
 
 ## Person Data Demo
 
@@ -2294,27 +2004,15 @@ The closed constraint enables closed world validation where only explicitly decl
 - ❌ Overusing closed world validation
 - ❌ Not documenting the closed world assumption
 
-
-
-
-
 <a id="constraints-deactivated"></a>
-
-
 
 # Deactivated {=sh:deactivated .class:DeactivatedConstraint label}
 
 > Temporarily disables specific constraints during validation {comment}
 
-<http://www.w3.org/ns/shacl#deactivated> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The deactivated constraint temporarily disables specific constraints during validation. This example shows a deactivated category rule while the status rule remains active.
 
-~~~~~~md
+~~~~~~md {+cat:demo/deactivated .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:deactivated/>
 
 ## Deactivated Example Shape {=ex:DeactivatedExampleShape .sh:NodeShape label}
@@ -2369,30 +2067,17 @@ Category: [inactive] {ex:status}
 - ❌ Forgetting to reactivate deactivated constraints
 - ❌ Using deactivated instead of removing obsolete constraints
 
-
-
-
-
 <a id="constraints-severity"></a>
-
-[mdld] <https://mdld.js.org/vocab/>
-[cat] <https://mdld.js.org/shacl/catalog/>
-[ex] <http://example.org/>
 
 # Severity Levels {=sh:severity .class:SeverityConstraint label}
 
 > Defines the severity level of validation violations (Info, Warning, Violation). Essential for prioritizing validation results and managing different types of constraint failures. {comment}
 
-<http://www.w3.org/ns/shacl#severity> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#message> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
+Paired with the text [message] {+sh:message ?seeAlso}
 
 The severity constraint defines the severity level of validation violations (Info, Warning, Violation). This example demonstrates user account validation with different severity levels for different constraints.
 
-~~~~~~md
+~~~~~~md {+cat:demo/severity .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
 ## User Validation Shape {=ex:UserValidationShape .sh:NodeShape label}
@@ -2450,16 +2135,6 @@ The severity constraint defines the severity level of validation violations.
 
 ---
 
-## 🎯 Use Cases
-
-- **Prioritization** - Prioritize critical vs non-critical issues
-- **User feedback** - Provide different feedback based on severity
-- **Compliance** - Distinguish between critical compliance issues and recommendations
-- **Data quality** - Manage different types of data quality issues
-- **Workflow management** - Route issues based on severity
-
----
-
 ## 🔧 Implementation Guidelines
 
 **When to use severity:**
@@ -2483,27 +2158,15 @@ The severity constraint defines the severity level of validation violations.
 - ❌ Not combining severity with message
 - ❌ Forgetting to assign severity to constraints
 
-
-
-
-
 <a id="constraints-message"></a>
-
-
 
 # Violation Message {=sh:message .class:MessageConstraint label}
 
 > Provides human-readable error messages for constraint violations {comment}
 
-<http://www.w3.org/ns/shacl#message> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The message constraint provides human-readable error messages for constraint violations. This example shows a custom violation message for contract value validation.
 
-~~~~~~md
+~~~~~~md {+cat:demo/message .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:message/>
 
 ## Business Rule Validation Shape {=ex:BusinessRuleValidationShape .sh:NodeShape  label}
@@ -2555,27 +2218,14 @@ Value: [-1000.00] {ex:contractValue ^^xsd:decimal}
 - ❌ Using technical jargon instead of business language
 - ❌ Writing vague or unclear messages
 
-
-
-
-
 <a id="constraints-js"></a>
 
-
-
 # JavaScript Function {=sh:js .class:Constraint label}
-
 > Allows custom JavaScript validation functions for complex constraint logic {comment}
-
-<http://www.w3.org/ns/shacl#js> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
 
 The JavaScript constraint allows custom JavaScript validation functions for complex constraint logic. This example validates that event dates must be valid JavaScript dates.
 
-~~~~~~md
+~~~~~~md {+cat:demo/js .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:js/>
 
 ## Date Validation Shape {=ex:DateValidationShape .sh:NodeShape  label}
@@ -2584,10 +2234,10 @@ Validates all [member] {+member ?sh:targetObjectsOf} entities with valid **date*
 
 **Event date must be valid** {=ex:DatePropertyShape .sh:PropertyShape sh:message} requires [eventDate] {+ex:eventDate ?sh:path} to be a valid JS date:
 
-~~~~~~js {=ex:DateJSConstraint ?sh:JSConstraint sh:js}
+~~~js {=ex:DateJSConstraint ?sh:JSConstraint sh:js}
 const date = new Date(value);
 return !isNaN(date.getTime());
-~~~~~~
+~~~
 
 ---
 
@@ -2638,13 +2288,7 @@ return result;
 - ❌ Writing overly complex JavaScript functions
 - ❌ Not testing JavaScript functions thoroughly
 
-
-
-
-
 <a id="teach-choosing-constraints"></a>
-
-
 
 # Choosing the Right Constraint
 
@@ -2735,13 +2379,7 @@ return result;
 
 See [Constraints](#constraints-index) for detailed documentation on each constraint.
 
-
-
-
-
 <a id="teach-practical-workflow"></a>
-
-
 
 # Practical Workflow: Designing a Complete Shape
 
@@ -2763,8 +2401,6 @@ We need to validate product data with these requirements:
 
 # Product Validation Shape {=ex:ProductShape .sh:NodeShape  label}
 Validates all [Product] {+ex:Product ?sh:targetClass} instances to have mandatory [name] {+ex:NameRule ?sh:property sh:name}, [price] {+ex:PriceRule ?sh:property sh:name} and [category] {+ex:CategoryRule ?sh:property sh:name} assigned.
-
-
 ~~~~~~
 
 ## Step 2: Add Required Properties
@@ -2823,7 +2459,7 @@ Validates all [Product] {+ex:Product ?sh:targetClass} instances to have mandator
 
 ## Complete Shape
 
-~~~~~~md
+~~~~~~md {+cat:demo/product .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:product/>
 
 **Product Validation Shape** {=ex:ProductShape .sh:NodeShape  label}
@@ -2845,11 +2481,9 @@ Validates all [Product] {+ex:Product ?sh:targetClass} instances to have mandator
 
 **Product SKU must match pattern** {=ex:SKURule .sh:PropertyShape}
 [sku] {+ex:sku ?sh:path} must match [PROD-\d{5}] {sh:pattern}.
-~~~~~~
 
-## Test Data
+======
 
-~~~~~~md
 ### Test Data {=ex:data .Container}
 
 #### Valid Product {=ex:Laptop .ex:Product ?member}
@@ -2895,15 +2529,9 @@ Description: [Small] {ex:description}
 - Explore [Targeting Mechanisms](#targeting-index) for more targeting options
 - Learn about specific [Constraints](#constraints-index) for detailed constraint patterns
 
-
-
-
-
 <a id="teach-advanced"></a>
 
-
-
-# Advanced Shape Composition Techniques
+# Advanced Shape Composition Techniques {=cat:teach/advanced .cat:Teach label}
 
 > Learn advanced SHACL techniques for complex validation scenarios in MDLD {comment}
 
@@ -2947,10 +2575,10 @@ The NOT constraint prevents data from conforming to a specific shape pattern.
 - Business rule enforcement
 
 **Example:**
-```md
+~~~md
 **Employee status cannot be terminated** {=ex:StatusRule .sh:PropertyShape ?sh:property}
 Employee status must not conform to [Terminated Status Shape] {+ex:TerminatedStatusShape ?sh:not}.
-```
+~~~
 
 ### 3. Qualified Count Constraints
 
@@ -2967,10 +2595,10 @@ Qualified count constraints allow you to count only values that conform to a spe
 - Business rules with exceptions
 
 **Example:**
-```md
+~~~md
 **Employee must have at least 2 completed projects** {=ex:ProjectsRule .sh:PropertyShape ?sh:property}
 [projects] {+ex:projects ?sh:path} must have at least [2] {sh:qualifiedMinCount ^^xsd:integer} values that conform to [Completed Project Shape] {=ex:CompletedProjectShape .sh:NodeShape ?sh:qualifiedValueShape}.
-```
+~~~
 
 ### 4. Multiple Constraints on Same Property
 
@@ -3002,17 +2630,17 @@ Status: [active] {ex:status}
 ~~~~~~
 
 **Key pattern:**
-```
+~~~
 - Use `[literal] {+ex:Identifier ?property}` to link to nested objects
 - Use `#####` headings to define nested objects with `{=ex:Identifier .ex:Class}`
 - Use `and` to chain multiple values
-```
+~~~
 
 ## Complete Example
 
 The following example demonstrates multiple advanced techniques in a single validation scenario:
 
-~~~~~~md
+~~~~~~md  {+cat:demo/advanced .cat:Demo ?cat:hasDemo cat:demo}
 [ex] <tag:my@example.org,2026:advanced/>
 
 ## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape label}
