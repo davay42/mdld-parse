@@ -23,7 +23,7 @@ We tried `shacl-engine` first. It's excellent software — but its reliance on g
 ## Quick Start
 
 ```javascript
-import { validate } from './mdld-shapes.js'
+import { validate } from './validator.js'
 import { parse } from 'mdld-parse'
 
 const { quads } = parse({ text: mdldString })
@@ -42,7 +42,7 @@ const report = validate({ shapes: shapeQuads,  dataQuads })
 ### Stateful validator (reusable shapes)
 
 ```javascript
-import { Validator } from './mdld-shapes.js'
+import { Validator } from './validator.js'
 
 const v = new Validator(shapeQuads)
 const r1 = v.validate(dataQuads1)
@@ -52,8 +52,8 @@ const r2 = v.validate(dataQuads2)
 ### CLI
 
 ```bash
-node validate.js ./shacl-demo.md
-# ❌ VIOLATIONS - 301 violation(s) found
+node selftest.js
+# 30 passed, 0 failed, 1 skipped — 31 demos in .../catalog.md
 ```
 
 ## Supported Constraints
@@ -254,7 +254,7 @@ const validator = new Validator(shapesDataset, { factory })
 const report = await validator.validate({ dataset: dataDataset })
 
 // After (mdld-shapes)
-import { validate } from './mdld-shapes.js'
+import { validate } from './validator.js'
 const report = validate({ shapes: shapesQuads,  dataQuads })
 ```
 
@@ -266,16 +266,16 @@ const report = validate({ shapes: shapesQuads,  dataQuads })
 ## Testing
 
 ```bash
-# Run the comparison tool against shacl-engine
-node compare-direct.js ./shacl-demo.md
-
-# Run individual constraint demos
-node validate.js ./constraints/class.demo.md
-node validate.js ./constraints/or.demo.md
-node validate.js ./constraints/and.demo.md
+# The catalog validates itself: every cat:Demo in catalog.md is parsed,
+# validated, and checked against its cat:expectedViolations count.
+node selftest.js
 ```
 
-The `compare-direct.js` tool runs both engines on the same file and reports per-constraint differences. Current status: **301/301 violations match, 0 differences**.
+`catalog.md` is the test suite. Each demo is a `cat:Demo` node carrying its
+MD-LD source (`cat:demo`) and expected violation count
+(`cat:expectedViolations`); `selftest.js` closes the loop by running every
+demo through this validator. Demos typed `cat:notCovered` (SHACL-JS, SPARQL)
+are skipped. Current status: **30/30 covered demos pass, 1 skipped**.
 
 ## Roadmap
 

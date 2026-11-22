@@ -189,7 +189,7 @@ The targetNode constraint targets specific individual nodes for validation. This
 
 ## Critical Infrastructure Demo
 
-The **Database Validation Shape** {=ex:DatabaseValidationShape .sh:NodeShape ?cat:hasShape label} targets the [Main Database] {+ex:MainDatabase ?sh:targetNode} for critical infrastructure validation: [status] {+#databaseStatus ?sh:property sh:name} and [uptime] {+#databaseUptime ?sh:property sh:name}.
+The **Database Validation Shape** {=ex:DatabaseValidationShape .sh:NodeShape label} targets the [Main Database] {+ex:MainDatabase ?sh:targetNode} for critical infrastructure validation: [status] {+#databaseStatus ?sh:property sh:name} and [uptime] {+#databaseUptime ?sh:property sh:name}.
 
 **Main database must be online** {=#databaseStatus .sh:PropertyShape sh:message} requires the [status] {+ex:status ?sh:path} property to be exactly [online] {sh:hasValue}.
 
@@ -197,7 +197,7 @@ The **Database Validation Shape** {=ex:DatabaseValidationShape .sh:NodeShape ?ca
 
 ## Executive Validation Demo
 
-**CEO Validation Shape** {=ex:CEOValidationShape .sh:NodeShape ?cat:hasShape label} targets the [CEO] {+ex:CEO ?sh:targetNode} for [executive] {+#executiveClearance ?sh:property sh:name} level clearance.
+**CEO Validation Shape** {=ex:CEOValidationShape .sh:NodeShape label} targets the [CEO] {+ex:CEO ?sh:targetNode} for [executive] {+#executiveClearance ?sh:property sh:name} level clearance.
 
 **CEO must have top-secret security clearance** {=#executiveClearance .sh:PropertyShape sh:message} requires the [securityClearance] {+ex:securityClearance ?sh:path} property to be exactly [top-secret] {sh:hasValue}.
 
@@ -629,7 +629,9 @@ Need to check if these are working:
 
 The class constraint ensures property values are instances of a specific RDF class. This example validates that employee managers must be Person instances.
 
-~~~~~~md {+cat:demo/class .cat:Demo ?cat:hasDemo cat:demo}
+### Class Demo {=cat:demo/class .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmployee fails because manager is not a Person)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:class/>
 
 ## Employee Test Shape {=ex:EmployeeTestShape .sh:NodeShape  label}
@@ -649,7 +651,6 @@ Manager: [john] {+ex:john ?ex:manager .ex:Person}
 Manager: [robot] {+ex:robot ?ex:manager ex:Role}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidEmployee fails because manager is not a Person)
 
 ---
 
@@ -701,7 +702,9 @@ Manager: [robot] {+ex:robot ?ex:manager ex:Role}
 
 The datatype constraint ensures literal values have the correct datatype. This example validates that product prices must be decimal values.
 
-~~~~~~md {+cat:demo/datatype .cat:Demo ?cat:hasDemo cat:demo}
+### Data Type Demo {=cat:demo/datatype .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fails because price is string, not decimal)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:datatype/>
 
 ## Product Test Shape {=ex:ProductTestShape .sh:NodeShape sh:name}
@@ -721,7 +724,6 @@ Price: [29.99] {ex:price ^^xsd:decimal}
 Price: [29.99] {ex:price ^^xsd:string}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidProduct fails because price is string, not decimal)
 
 ---
 
@@ -765,7 +767,9 @@ Price: [29.99] {ex:price ^^xsd:string}
 
 The nodeKind constraint expects a node to be of a specific kind (blank node, IRI, or literal). This example validates that content must be literal and references must be IRIs.
 
-~~~~~~md {+cat:demo/nodekind .cat:Demo ?cat:hasDemo cat:demo}
+### Node Kind Demo {=cat:demo/nodekind .cat:Demo ?cat:hasDemo}
+Expects `2` {cat:expectedViolations ^^xsd:integer} violations (InvalidDocument fails twice: content is IRI not literal, reference is text not IRI)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:nodekind/>
 
 ## Document Test Shape {=ex:DocumentTestShape .sh:NodeShape  label}
@@ -789,7 +793,6 @@ Content: <https://example.org> {?ex:content}
 Reference: [text] {ex:reference}
 ~~~~~~
 
-**Expected Result:** 2 violations (InvalidDocument fails twice: content is IRI not literal, reference is text not IRI)
 
 ---
 
@@ -837,7 +840,9 @@ Reference: [text] {ex:reference}
 
 Count constraints specify the minimum and maximum number of values a property must have. This example validates that email must be exactly one value.
 
-~~~~~~md {+cat:demo/count .cat:Demo ?cat:hasDemo cat:demo}
+### Count Demo {=cat:demo/count .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidPerson fails because it has two emails instead of one)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:count/>
 
 ## Person Test Shape {=ex:PersonTestShape .sh:NodeShape  sh:name}
@@ -858,7 +863,6 @@ Email: [work@example.com] {ex:email}
 Email: [personal@example.com] {ex:email}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidPerson fails because it has two emails instead of one)
 
 ---
 
@@ -913,7 +917,9 @@ Email: [personal@example.com] {ex:email}
 
 Range constraints specify minimum and maximum values for numeric or date properties. This example validates that product prices must be between 10 and 100 inclusive.
 
-~~~~~~md {+cat:demo/range .cat:Demo ?cat:hasDemo cat:demo}
+### Range Demo {=cat:demo/range .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fails because price is 5, below the minimum of 10)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
 ## Product Test Shape {=ex:ProductTestShape .sh:NodeShape label}
@@ -933,7 +939,6 @@ Price: [50] {ex:price ^^xsd:decimal}
 Price: [5] {ex:price ^^xsd:decimal}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidProduct fails because price is 5, below the minimum of 10)
 
 ---
 
@@ -981,7 +986,9 @@ Also provides [Less than or equals] {+sh:lessThanOrEquals .class:ComparisonConst
 
 Comparison constraints validate property values against reference nodes using comparison operators. This example validates that order dates must be before shipping dates.
 
-~~~~~~md {+cat:demo/comparison .cat:Demo ?cat:hasDemo cat:demo}
+### Comparison Demo {=cat:demo/comparison .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidOrder fails because order date is after shipping date)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:comparison/>
 
 ## Order Test Shape {=ex:OrderTestShape .sh:NodeShape  label}
@@ -1003,7 +1010,6 @@ Order Date: [2024-06-25] {ex:orderDate ^^xsd:date}
 Shipping Date: [2024-06-20] {ex:shippingDate ^^xsd:date}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidOrder fails because order date is after shipping date)
 
 ---
 
@@ -1048,7 +1054,9 @@ Shipping Date: [2024-06-20] {ex:shippingDate ^^xsd:date}
 
 The disjoint constraint ensures that values of a property are disjoint with values of another property. This example validates that preferred labels must be different from alternative labels.
 
-~~~~~~md  {+cat:demo/disjoint .cat:Demo ?cat:hasDemo cat:demo}
+### Disjoint Demo {=cat:demo/disjoint .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Germany fails because preferred and alternative labels are the same)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:disjoint/>
 
 ## Label Test Shape {=ex:DisjointExampleShape .sh:NodeShape label}
@@ -1070,7 +1078,6 @@ Preferred Label: [Germany] {ex:prefLabel}
 Alternative Label: [Germany] {ex:altLabel}
 ~~~~~~
 
-**Expected Result:** 1 violation (Germany fails because preferred and alternative labels are the same)
 
 ---
 
@@ -1113,7 +1120,9 @@ Alternative Label: [Germany] {ex:altLabel}
 
 The NOT constraint requires value nodes to NOT conform to a given shape. This example validates that users cannot have a deleted status.
 
-~~~~~~md {+cat:demo/not .cat:Demo ?cat:hasDemo cat:demo}
+### NOT Demo {=cat:demo/not .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidDeletedUser fails because status is deleted, which conforms to the forbidden shape)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:not/>
 
 ## User Status Shape {=ex:UserStatusShape .sh:NodeShape  label}
@@ -1133,7 +1142,6 @@ Status: [active] {ex:status}
 Status: [deleted] {ex:status}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidDeletedUser fails because status is deleted, which conforms to the forbidden shape)
 
 ---
 
@@ -1176,7 +1184,9 @@ Status: [deleted] {ex:status}
 
 The AND constraint requires all specified constraints to be satisfied. This example validates that products must have both a price and a category.
 
-~~~~~~md
+### AND Demo {=cat:demo/and .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (MissingPriceProduct fails because it lacks price)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:and/>
 
 ## Product Validation Shape {=ex:ProductValidationShape .sh:NodeShape label}
@@ -1201,7 +1211,6 @@ Category: [Electronics] {ex:category}
 Category: [Electronics] {ex:category}
 ~~~~~~
 
-**Expected Result:** 1 violation (MissingPriceProduct fails because it lacks price)
 
 ---
 
@@ -1245,7 +1254,9 @@ Category: [Electronics] {ex:category}
 
 The OR constraint requires at least one of the specified constraints to be satisfied. This example validates that a contact must be either an email (contains @) or a phone number (contains -).
 
-~~~~~~md {+cat:demo/or .cat:Demo ?cat:hasDemo cat:demo}
+### OR Demo {=cat:demo/or .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidContact fails because it matches neither email nor phone pattern)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:or/>
 
 ## Contact Validation Shape {=ex:ContactValidationShape .sh:NodeShape label}
@@ -1272,7 +1283,6 @@ Contact: [555-123-4567] {ex:contact}
 Contact: [invalid] {ex:contact}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidContact fails because it matches neither email nor phone pattern)
 
 ---
 
@@ -1318,7 +1328,9 @@ Contact: [invalid] {ex:contact}
 
 The XONE constraint requires exactly one of the specified constraints to be satisfied. This example validates that a role must be exactly one type (admin or user), not both and not neither.
 
-~~~~~~md {+cat:demo/xone .cat:Demo ?cat:hasDemo cat:demo}
+### XONE Demo {=cat:demo/xone .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (NoRole fails because it matches neither admin nor user)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:xone/>
 
 ## Role Validation Shape {=ex:RoleValidationShape .sh:NodeShape label}
@@ -1345,7 +1357,6 @@ Role: [user] {ex:role}
 Role: [guest] {ex:role}
 ~~~~~~
 
-**Expected Result:** 1 violation (NoRole fails because it matches neither admin nor user)
 
 ---
 
@@ -1393,7 +1404,9 @@ Role: [guest] {ex:role}
 
 Length constraints specify the minimum and maximum length of string values. This example validates that usernames must be between 3 and 20 characters.
 
-~~~~~~md {+cat:demo/length .cat:Demo ?cat:hasDemo cat:demo}
+### Length Demo {=cat:demo/length .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidUser fails because username is only 2 characters, below the minimum of 3)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:length/>
 
 ## User Account Test Shape {=ex:UserAccountTestShape .sh:NodeShape  label}
@@ -1413,7 +1426,6 @@ Username: [john_doe] {ex:username}
 Username: [jd] {ex:username}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidUser fails because username is only 2 characters, below the minimum of 3)
 
 ---
 
@@ -1457,7 +1469,9 @@ Also may have [Flags] {+sh:flags .class:PatternConstraint label} added.
 
 The pattern constraint validates string values against regular expression patterns. This example validates that emails must end with example.com.
 
-~~~~~~md
+### Pattern Demo {=cat:demo/pattern .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmail fails because it doesn't match the pattern - ends with .org not .com)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:pattern/>
 
 ## Email Validation Shape {=ex:PatternExampleShape .sh:NodeShape label}
@@ -1477,7 +1491,6 @@ Email: [user@example.com] {ex:email}
 Email: [user@example.org] {ex:email}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidEmail fails because it doesn't match the pattern - ends with .org not .com)
 
 ---
 
@@ -1522,7 +1535,9 @@ Email: [user@example.org] {ex:email}
 
 The languageIn constraint constrains string literals to have language tags from a specified list. This example validates that document titles must be in English or French.
 
-~~~~~~md {+cat:demo/language .cat:Demo ?cat:hasDemo cat:demo}
+### Language Demo {=cat:demo/language .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (GermanDocument fails because title language is de, not in the allowed list)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:language/>
 
 ## Multilingual Document Shape {=ex:MultilingualDocumentShape .sh:NodeShape  label}
@@ -1542,7 +1557,6 @@ Title: [Hello World] {ex:title @en}
 Title: [Hallo Welt] {ex:title @de}
 ~~~~~~
 
-**Expected Result:** 1 violation (GermanDocument fails because title language is de, not in the allowed list)
 
 ---
 
@@ -1588,7 +1602,9 @@ Title: [Hallo Welt] {ex:title @de}
 
 The uniqueLang constraint ensures that language tags of string literals are unique within a property. This example validates that document titles cannot have duplicate language tags.
 
-~~~~~~md {+cat:demo/uniqueLang .cat:Demo ?cat:hasDemo cat:demo}
+### UniqueLang Demo {=cat:demo/uniqueLang .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidDocument fails because it has duplicate @en language tags)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:uniqueLang/>
 
 ## Unique Language Example Shape {=ex:UniqueLangExampleShape .sh:NodeShape label}
@@ -1610,7 +1626,6 @@ Title: [Hello World] {ex:title @en}
 Title: [Hola Mundo] {ex:title @en}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidDocument fails because it has duplicate @en language tags)
 
 ---
 
@@ -1653,7 +1668,9 @@ Title: [Hola Mundo] {ex:title @en}
 
 The hasValue constraint requires a property to have exactly a specific value. This example validates that server status must be exactly "active".
 
-~~~~~~md {+cat:demo/hasvalue .cat:Demo ?cat:hasDemo cat:demo}
+### Has Value Demo {=cat:demo/hasvalue .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (BackupServer fails because status is standby, not active)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:hasvalue/>
 
 ## System Status Test Shape {=ex:SystemStatusTestShape .sh:NodeShape label}
@@ -1673,7 +1690,6 @@ Status: [active] {ex:status}
 Status: [standby] {ex:status}
 ~~~~~~
 
-**Expected Result:** 1 violation (BackupServer fails because status is standby, not active)
 
 ---
 
@@ -1713,7 +1729,9 @@ Status: [standby] {ex:status}
 
 The node constraint requires property values to conform to a specific node shape. This example validates that employee addresses must conform to an AddressShape with minimum street length.
 
-~~~~~~md {+cat:demo/node .cat:Demo ?cat:hasDemo cat:demo}
+### Node Demo {=cat:demo/node .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmployee fails because address doesn't conform to AddressShape - street is too short)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:node/>
 
 ## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape  label}
@@ -1737,7 +1755,6 @@ Address: [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}
 Street: [St] {ex:street}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidEmployee fails because address doesn't conform to AddressShape - street is too short)
 
 ---
 
@@ -1777,7 +1794,9 @@ Street: [St] {ex:street}
 
 The in constraint constrains property values to be within a specified list of allowed values. This example validates that status must be either "Active" or "Inactive".
 
-~~~~~~md {+cat:demo/in .cat:Demo ?cat:hasDemo cat:demo}
+### In Demo {=cat:demo/in .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidStatusEmployee fails because status is Pending, not in the allowed list)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:in/>
 
 ## Status Validation Shape {=ex:StatusValidationShape .sh:NodeShape  label}
@@ -1799,7 +1818,6 @@ Status: [Active] {+ex:Active ?ex:status}
 Status: [Pending] {+ex:Pending ?ex:status}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidStatusEmployee fails because status is Pending, not in the allowed list)
 
 ---
 
@@ -1844,7 +1862,9 @@ And it's opposite boundary - [Maximum Qualified Count] {=sh:qualifiedMaxCount .c
 
 Qualified count constraints apply count constraints only to values that meet additional shape criteria. This example validates that employees must have exactly one work email (matching the WorkEmailShape pattern).
 
-~~~~~~md {+cat:demo/qualified .cat:Demo ?cat:hasDemo cat:demo}
+### Qualified Demo {=cat:demo/qualified .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (NoWorkEmployee fails because it has 0 work emails - the email doesn't match the WorkEmailShape pattern)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:qualified/>
 
 ## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape  label}
@@ -1866,7 +1886,6 @@ Email: [john@company.org] {ex:email}
 Email: [bob@gmail.com] {ex:email}
 ~~~~~~
 
-**Expected Result:** 1 violation (NoWorkEmployee fails because it has 0 work emails - the email doesn't match the WorkEmailShape pattern)
 
 ---
 
@@ -1905,14 +1924,16 @@ Email: [bob@gmail.com] {ex:email}
 
 The closed constraint enables closed world validation where only explicitly declared properties are allowed. This example validates that person data can only have declared properties (name, age).
 
-~~~~~~md {+cat:demo/closed .cat:Demo ?cat:hasDemo cat:demo}
+### Closed Demo {=cat:demo/closed .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidPerson fails because it has undeclared email property)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:closed/>
 
 ## Person Data Demo
 
 **Only declared properties allowed** {=ex:ClosedExampleShape .sh:NodeShape label} targets [ValidPerson] {+ex:ValidPerson ?sh:targetNode} and [InvalidPerson] {+ex:InvalidPerson ?sh:targetNode} with **no additional properties** {sh:closed} constraint except [Name] {+ex:NameProperty ?sh:property sh:name} and [Age] {+ex:AgeProperty ?sh:property sh:name}.
 
-**Person must have a name** {=ex:NameProperty .sh:PropertyShape sh:message} ensures [name] {+schema:name ?sh:path} is [string] {+xsd:string ?sh:datatype} and [1] {sh:minCount ^^xsd:integer}.
+**Person must have a name** {=ex:NameProperty .sh:PropertyShape sh:message} ensures [name] {+ex:name ?sh:path} is [string] {+xsd:string ?sh:datatype} and [1] {sh:minCount ^^xsd:integer}.
 
 **Person must have exactly one age** {=ex:AgeProperty .sh:PropertyShape sh:message} ensures [age] {+ex:age ?sh:path} is [integer] {+xsd:integer ?sh:datatype} and exactly [1] {sh:minCount sh:maxCount ^^xsd:integer}.
 
@@ -1924,19 +1945,18 @@ The closed constraint enables closed world validation where only explicitly decl
 
 Person with only declared properties.
 
-Name: [John Doe] {schema:name ^^xsd:string}
+Name: [John Doe] {ex:name ^^xsd:string}
 Age: [30] {ex:age ^^xsd:integer}
 
 ### Invalid Person {=ex:InvalidPerson}
 
 Person with undeclared property (violates closed world constraint).
 
-Name: [Jane Smith] {schema:name ^^xsd:string}
+Name: [Jane Smith] {ex:name ^^xsd:string}
 Age: [25] {ex:age ^^xsd:integer}
 Email: [jane@example.com] {ex:email}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidPerson fails because it has undeclared email property)
 
 ---
 
@@ -2006,7 +2026,9 @@ The closed constraint enables closed world validation where only explicitly decl
 
 The deactivated constraint temporarily disables specific constraints during validation. This example shows a deactivated category rule while the status rule remains active.
 
-~~~~~~md {+cat:demo/deactivated .cat:Demo ?cat:hasDemo cat:demo}
+### Deactivated Demo {=cat:demo/deactivated .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidAccount fails because status is inactive; category rule is deactivated so it doesn't cause a violation)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:deactivated/>
 
 ## Deactivated Example Shape {=ex:DeactivatedExampleShape .sh:NodeShape label}
@@ -2030,7 +2052,6 @@ Status: [inactive] {ex:status}
 Category: [inactive] {ex:status}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidAccount fails because status is inactive; category rule is deactivated so it doesn't cause a violation)
 
 ---
 
@@ -2071,7 +2092,9 @@ Paired with the text [message] {+sh:message ?seeAlso}
 
 The severity constraint defines the severity level of validation violations (Info, Warning, Violation). This example demonstrates user account validation with different severity levels for different constraints.
 
-~~~~~~md {+cat:demo/severity .cat:Demo ?cat:hasDemo cat:demo}
+### Severity Demo {=cat:demo/severity .cat:Demo ?cat:hasDemo}
+Expects `3` {cat:expectedViolations ^^xsd:integer} violations (InvalidUser fails three times: Critical for invalid email, Warning for age > 120, Info for missing name)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
 ## User Validation Shape {=ex:UserValidationShape .sh:NodeShape label}
@@ -2099,7 +2122,6 @@ Age: [150] {ex:age ^^xsd:integer}
 Name: [] {ex:name}
 ~~~~~~
 
-**Expected Result:** 3 violations (InvalidUser fails three times: Critical for invalid email, Warning for age > 120, Info for missing name)
 
 ---
 
@@ -2160,7 +2182,9 @@ The severity constraint defines the severity level of validation violations.
 
 The message constraint provides human-readable error messages for constraint violations. This example shows a custom violation message for contract value validation.
 
-~~~~~~md {+cat:demo/message .cat:Demo ?cat:hasDemo cat:demo}
+### Message Demo {=cat:demo/message .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidContract fails with message "Contract value must be positive")
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:message/>
 
 ## Business Rule Validation Shape {=ex:BusinessRuleValidationShape .sh:NodeShape  label}
@@ -2180,7 +2204,6 @@ Value: [50000.00] {ex:contractValue ^^xsd:decimal}
 Value: [-1000.00] {ex:contractValue ^^xsd:decimal}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidContract fails with message "Contract value must be positive")
 
 ---
 
@@ -2219,7 +2242,9 @@ Value: [-1000.00] {ex:contractValue ^^xsd:decimal}
 
 The JavaScript constraint allows custom JavaScript validation functions for complex constraint logic. This example validates that event dates must be valid JavaScript dates.
 
-~~~~~~md {+cat:demo/js .cat:Demo ?cat:hasDemo cat:demo}
+### JS Demo {=cat:demo/js .cat:Demo ?cat:hasDemo .cat:notCovered}
+Requires SHACL-JS evaluation — not covered by the core validator.
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:js/>
 
 ## Date Validation Shape {=ex:DateValidationShape .sh:NodeShape  label}
@@ -2244,7 +2269,6 @@ Event Date: [2024-12-25] {ex:eventDate ^^xsd:date}
 Event Date: [not-a-date] {ex:eventDate}
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidEvent fails because "not-a-date" is not a valid JavaScript date)
 
 ---
 
@@ -2284,7 +2308,7 @@ return result;
 
 <a id="teach-choosing-constraints"></a>
 
-# Choosing the Right Constraint
+# Choosing the Right Constraint {=cat:teach/choosing .cat:Teach label}
 
 > A decision guide for selecting appropriate SHACL constraints for your validation needs {comment}
 
@@ -2375,7 +2399,7 @@ See [Constraints](#constraints-index) for detailed documentation on each constra
 
 <a id="teach-practical-workflow"></a>
 
-# Practical Workflow: Designing a Complete Shape
+# Practical Workflow: Designing a Complete Shape {=cat:teach/workflow .cat:Teach label}
 
 > Step-by-step example of designing a multi-constraint shape for a real-world use case {comment}
 
@@ -2453,7 +2477,9 @@ Validates all [Product] {+ex:Product ?sh:targetClass} instances to have mandator
 
 ## Complete Shape
 
-~~~~~~md {+cat:demo/product .cat:Demo ?cat:hasDemo cat:demo}
+### Product Demo {=cat:demo/product .cat:Demo ?cat:hasDemo}
+Expects `4` {cat:expectedViolations ^^xsd:integer} violations (InvalidProduct1-4 each fail once: missing name, negative price, invalid category, too-short description)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:product/>
 
 **Product Validation Shape** {=ex:ProductShape .sh:NodeShape  label}
@@ -2634,7 +2660,9 @@ Status: [active] {ex:status}
 
 The following example demonstrates multiple advanced techniques in a single validation scenario:
 
-~~~~~~md  {+cat:demo/advanced .cat:Demo ?cat:hasDemo cat:demo}
+### Advanced Demo {=cat:demo/advanced .cat:Demo ?cat:hasDemo}
+Expects `3` {cat:expectedViolations ^^xsd:integer} violations (Employee2 fails: invalid department; Employee4 fails: only 1 completed project, needs 2; Employee5 fails: negative salary; Employee1 and Employee3 pass — the sh:not on the literal status value cannot conform to TerminatedStatusShape)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:advanced/>
 
 ## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape label}
@@ -2739,7 +2767,6 @@ Status: [completed] {ex:status}
 Budget: [15000.00] {ex:budget ^^xsd:decimal}
 ~~~~~~
 
-**Expected Result:** 4 violations (Employee2 fails: invalid department; Employee3 fails: terminated status (NOT constraint); Employee4 fails: only 1 completed project, needs 2; Employee5 fails: negative salary; Employee1 passes)
 
 ## Best Practices
 
