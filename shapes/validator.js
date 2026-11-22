@@ -1149,6 +1149,33 @@ function sameValue(a, b) {
 }
 
 /** A projected object with no keys — carries no validated facts. */
+/**
+ * Precomputed extraction plan for a node shape, memoized on its shapeInfo:
+ * one entry per extractable property shape with name/nested/paths resolved
+ * once instead of per focus node.
+ */
+function projectionPlanFor(shapesDS, shapeTerm, shapeCache) {
+  const info = getShapeInfo(shapesDS, shapeTerm, shapeCache)
+  if (info.projectionPlan) return info.projectionPlan
+  const plan = []
+  for (const propShape of collectPropertyShapes(shapesDS, shapeTerm, shapeCache).values()) {
+    const pInfo = getShapeInfo(shapesDS, propShape, shapeCache)
+    if (pInfo.deactivated) continue
+    const names = valuesOf(shapesDS, propShape, sh('name'))
+    const nodeShapes = valuesOf(shapesDS, propShape, sh('node'))
+    const qualified = valuesOf(shapesDS, propShape, sh('qualifiedValueShape'))
+    plan.push({
+      shape: propShape,
+      name: names[0]?.value || null,
+      nested: nodeShapes[0] || (qualified.length > 0 ? qualified[0] : null),
+      pathTerms: pInfo.pathTerms,
+      gated: pInfo.constraints.length > 0,
+    })
+  }
+  info.projectionPlan = plan
+  return plan
+}
+
 function isEmptyPOJO(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) && Object.keys(v).length === 0
 }
@@ -1188,30 +1215,23 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
   const obj = {}
   const pending = new Map()  // key → projected values across all property shapes
 
-  for (const propShape of collectPropertyShapes(shapesDS, shapeTerm, shapeCache).values()) {
-    const pInfo = getShapeInfo(shapesDS, propShape, shapeCache)
-    if (pInfo.deactivated) continue
+  for (const entry of projectionPlanFor(shapesDS, shapeTerm, shapeCache)) {
     // validFields semantics: a property is emitted only if it conforms to
     // its shape — every key in the POJO is a validated fact. sh:js constraints
     // don't run here (allowJS: false), so js-guarded fields are kept.
     // Constraint-free property shapes skip the gate entirely.
-    if (pInfo.constraints.length > 0) {
+    if (entry.gated) {
       const gate = { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false }
-      if (validateNodeAgainstShape(dataDS, shapesDS, propShape, focusNode, gate).length > 0) continue
+      if (validateNodeAgainstShape(dataDS, shapesDS, entry.shape, focusNode, gate).length > 0) continue
     }
-    const names = valuesOf(shapesDS, propShape, sh('name'))
-    const nodeShapes = valuesOf(shapesDS, propShape, sh('node'))
-    const qualified = valuesOf(shapesDS, propShape, sh('qualifiedValueShape'))
-    const nested = nodeShapes.length > 0 ? nodeShapes[0] : (qualified.length > 0 ? qualified[0] : null)
-
-    for (const pathTerm of pInfo.pathTerms) {
-      const key = names[0]?.value || pathKey(pathTerm)
+    for (const pathTerm of entry.pathTerms) {
+      const key = entry.name || pathKey(pathTerm)
       const values = resolvePath(dataDS, shapesDS, focusNode, pathTerm)
       if (values.length === 0) continue
       if (!pending.has(key)) pending.set(key, [])
       const bucket = pending.get(key)
       for (const v of values) {
-        const projected = projectTerm(dataDS, shapesDS, v, nested, shapeCache, stack, maxDepth, options)
+        const projected = projectTerm(dataDS, shapesDS, v, entry.nested, shapeCache, stack, maxDepth, options)
         if (isEmptyPOJO(projected)) continue
         if (!bucket.some(x => sameValue(x, projected))) bucket.push(projected)
       }
@@ -1300,22 +1320,17 @@ function extractSubGraph(input, shapeIRI, options = {}) {
     visited.add(vkey)
 
     const info = getShapeInfo(shapesDS, shape, shapeCache)
-    const propShapes = [...collectPropertyShapes(shapesDS, shape, shapeCache).values()]
-      .filter(ps => !getShapeInfo(shapesDS, ps, shapeCache).deactivated)
+    const plan = projectionPlanFor(shapesDS, shape, shapeCache)
     // null = unconstrained node shape → keep every predicate on the subject
-    const allowed = propShapes.length === 0 && info.propertyShapes.length === 0 ? null : new Set()
+    const allowed = plan.length === 0 && info.propertyShapes.length === 0 ? null : new Set()
     const childShapes = new Map()  // object termKey → declared sh:node shape
 
-    for (const propShape of propShapes) {
-      const pInfo = getShapeInfo(shapesDS, propShape, shapeCache)
-      const nodeShapes = valuesOf(shapesDS, propShape, sh('node'))
-      const qualified = valuesOf(shapesDS, propShape, sh('qualifiedValueShape'))
-      const nested = nodeShapes.length > 0 ? nodeShapes[0] : (qualified.length > 0 ? qualified[0] : null)
-      for (const pathTerm of pInfo.pathTerms) {
+    for (const entry of plan) {
+      for (const pathTerm of entry.pathTerms) {
         const plain = isNamedNode(pathTerm) && !hasPathStructure(shapesDS, pathTerm)
         if (plain && allowed) allowed.add(termKey(pathTerm))
         for (const v of resolvePath(dataDS, shapesDS, node, pathTerm)) {
-          if (nested && (isNamedNode(v) || isBlankNode(v))) childShapes.set(termKey(v), nested)
+          if (entry.nested && (isNamedNode(v) || isBlankNode(v))) childShapes.set(termKey(v), entry.nested)
         }
       }
     }
