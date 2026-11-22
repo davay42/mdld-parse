@@ -39,7 +39,9 @@ SHACL (Shapes Constraint Language) is a W3C standard for validating RDF graphs. 
 
 Let's create a simple shape for validating user accounts:
 
-~~~~~~md {+cat:demo/start .cat:Demo ?cat:hasDemo cat:demo}
+### Initial demo {=cat:demo/start .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation.
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:users/>
 
 **User Validation Shape** {=ex:UserShape .sh:NodeShape label}
@@ -48,6 +50,8 @@ Validates all [User] {+ex:User ?sh:targetClass} instances to have a [name] {+ex:
 **Username is required** {=ex:UsernameRule .sh:PropertyShape sh:message} requires [username] {+ex:username ?sh:path} to have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
 
 **Email is required** {=ex:EmailRule .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value.
+
+Test user with a name: [Alice] {=ex:Alice .ex:User ex:username} but with no email. 
 ~~~~~~
 
 ## Key MDLD Syntax Patterns
@@ -91,7 +95,9 @@ These are targeting predicates that determine which nodes get validated (not con
 
 The targetClass constraint targets all nodes that are instances of a specific RDF class. This example validates all Product instances for business requirements.
 
-~~~~~~md {+cat:demo/targetClass .cat:Demo ?cat:hasDemo cat:demo}
+### Target Class Demo {=cat:demo/targetClass .cat:Demo ?cat:hasDemo}
+Expects `2` {cat:expectedViolations ^^xsd:integer} violations (InvalidProduct fails twice: missing name AND negative price; Service not validated since it's not a Product)
+~~~~~~md {cat:demo}
 [ex] <tag:example.com,2026:targeting/>
 
 ## Product Validation Shape {=ex:ProductValidationShape .sh:NodeShape  label}
@@ -118,15 +124,11 @@ Name: [Consulting] {ex:name}
 Price: [200.00] {ex:price ^^xsd:decimal}
 ~~~~~~
 
-**Expected Result:** 2 violations (InvalidProduct fails twice: missing name AND negative price; Service not validated since it's not a Product)
-
----
-
 ## 📝 MDLD Syntax Patterns
 
 Target class targets all nodes that are instances of a specific RDF class for shape validation.
 
-~~~~~~md  {+cat:pattern/targetClass .cat:Pattern ?cat:hasPattern cat:pattern}
+~~~~~~md
 **[Shape] targets [Class] instances** {=ex:ShapeName .sh:NodeShape label}
 
 [Shape Name] {=ex:ShapeName .sh:NodeShape label} targets all [Class] {+ex:Class ?sh:targetClass} instances to validate requirements.
@@ -178,11 +180,11 @@ Target class targets all nodes that are instances of a specific RDF class for sh
 
 ---
 
-
-
 The targetNode constraint targets specific individual nodes for validation. This example demonstrates critical infrastructure and executive validation scenarios.
 
-~~~~~~md {+cat:demo/targetNode .cat:Demo ?cat:hasDemo cat:demo}
+### Target Node Demo {=cat:demo/targetNode .cat:Demo ?cat:hasDemo}
+**Expected Result:** [3] {cat:expectedViolations ^^xsd:integer} violations (MainDatabase fails twice: status offline AND uptime < 99.9%; CEO fails: clearance is secret not top-secret; BackupDatabase and CFO not validated as they're not targeted)
+~~~~~~md {cat:demo}
 [ex] <tag:example.com,2026:targeting/>
 
 ## Critical Infrastructure Demo
@@ -217,8 +219,6 @@ Security Clearance: [secret] {ex:securityClearance}
 ### CFO {=ex:CFO}
 Security Clearance: [secret] {ex:securityClearance}
 ~~~~~~
-
-**Expected Result:** 3 violations (MainDatabase fails twice: status offline AND uptime < 99.9%; CEO fails: clearance is secret not top-secret; BackupDatabase and CFO not validated as they're not targeted)
 
 ---
 
@@ -269,11 +269,11 @@ Target node targets specific individual nodes identified by their IRI for precis
 
 > Targets all subjects (nodes) that have a specific property pointing to any value. Useful for reverse relationship targeting, source validation, and validating entities that initiate relationships. {comment}
 
-
-
 The targetSubjectsOf constraint targets all subjects (nodes) that have a specific property pointing to any value. This example demonstrates management and approval scenarios where we validate entities that initiate relationships.
 
-~~~~~~md {+cat:demo/targetSubjectsOf .cat:Demo ?cat:hasDemo cat:demo}
+### Target Subjects Of Demo {=cat:demo/targetSubjectsOf .cat:Demo ?cat:hasDemo }
+**Expected Result:** `3` {cat:expectedViolations ^^xsd:integer} violations (EngineeringManager fails twice: level < 3 AND teamSize > 10; FinanceApprover fails: authority < 2; JuniorDeveloper and RegularEmployee not validated as they don't initiate the relationships)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:targeting/>
 
 ## Management Validation Demo
@@ -319,8 +319,6 @@ Approves: [BudgetRequest] {ex:approves}
 ### Regular Employee {=ex:RegularEmployee}
 Authority: [0] {ex:authority ^^xsd:integer}
 ~~~~~~
-
-**Expected Result:** 3 violations (EngineeringManager fails twice: level < 3 AND teamSize > 10; FinanceApprover fails: authority < 2; JuniorDeveloper and RegularEmployee not validated as they don't initiate the relationships)
 
 ---
 
@@ -373,11 +371,11 @@ Target subjects of targets all subjects that have a specific property pointing t
 
 ---
 
-
-
 The targetObjectsOf constraint targets all objects (nodes) that are referenced by a specific property. This example demonstrates team membership and product reference scenarios where we validate entities that are referenced by others.
 
-~~~~~~md {+cat:demo/targetObjectsOf .cat:Demo ?cat:hasDemo cat:demo}
+### Target Objects Of Demo {=cat:demo/targetObjectsOf .cat:Demo ?cat:hasDemo label}
+**Expected Result:** `4` {cat:expectedViolations ^^xsd:integer} violations (EngineeringTeam fails twice: workload > 40 AND status inactive; ExpensiveProduct fails twice: price > 1000 AND unavailable; QATeam and AffordableProduct pass; developers and orders not validated as they're subjects, not objects)
+~~~~~~md {cat:demo}
 [ex] <tag:example.com,2026:targeting/>
 
 ## Team Membership Demo
@@ -428,10 +426,6 @@ References: [Expensive product] {+ex:ExpensiveProduct ?ex:references}
 ### Order456 {=ex:Order456}
 References: [Affordable product] {+ex:AffordableProduct ?ex:references}
 ~~~~~~
-
-**Expected Result:** 4 violations (EngineeringTeam fails twice: workload > 40 AND status inactive; ExpensiveProduct fails twice: price > 1000 AND unavailable; QATeam and AffordableProduct pass; developers and orders not validated as they're subjects, not objects)
-
----
 
 ## 📝 MDLD Syntax Patterns
 
