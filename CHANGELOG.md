@@ -1,5 +1,24 @@
 # MD-LD evolution
 
+## v1.2.0 Self-validating SHACL ecosystem
+
+### Added
+- **`mdld-parse/shapes` — zero-dependency SHACL Core validator** (`shapes/validator.js`, ~1,100 LOC, sync, no RDF libraries): consumes mdld-parse quads directly via `{ quads }` (auto shape/data classification), `{ shapes, data }`, or a reusable `Validator` class
+  - Full SHACL Core surface: all constraint components, all target types (`targetClass`/`targetNode`/`target`/`targetSubjectsOf`/`targetObjectsOf`), all property path types, logical constraints over RDF lists, qualified counts, closed shapes, `sh:message` templates (`{$value}`/`{$path}`/`{$focusNode}`), `sh:severity`, `sh:deactivated`
+  - **IRI path structures** — complex paths (`sh:inversePath`, `sh:alternativePath`, `sh:zeroOrMorePath`, `sh:oneOrMorePath`, `sh:zeroOrOnePath`, sequence lists) resolve on any term type, so MD-LD needs no blank nodes
+  - **SHACL-JS** — `sh:js` → `sh:JSConstraint` → `sh:script`, compiled once per constraint with validator helpers in scope; **opt-in via `allowJS: true`**, disabled by default so untrusted shapes cannot execute code
+  - `SUPPORTED_VOCABULARY` + `isSupportedTerm` exports for catalog↔validator sync checks
+- **`shapes/selftest.js` — the ecosystem validates itself**: parses `catalog.md` (32 `cat:Demo` worlds with `cat:demo` source + `cat:expectedViolations`), verifies ontology coverage of all 101 `sh:` properties in `ontology.md`, checks catalog↔validator sync, and runs the catalog's own SHACL shapes against itself — one command, nonzero exit on any drift
+- **`shapes/catalog.md` — the catalog is the test suite**: every constraint demo is an executable `cat:Demo` written as a small-business story in its own document voice; `cat:self` shapes enforce demo integrity declaratively
+- **`shapes/ontology.md`** — MD-LD rendering of the W3C SHACL vocabulary, used as the completeness ground truth (101 `sh:` properties, all accounted for: 28 demo / 24 included / 49 notCovered)
+- **`shapes/README.md`** — merged spec + catalog documentation; the single metadocument for the loop
+
+### Fixed
+- **Nested fences inside `~~~~~~` carriers** (`src/parse.js`) — fence-looking lines that don't close an open code block were silently dropped, losing their `{...}` annotations; they are now preserved as literal content per CommonMark
+
+### Documented limitations
+- SHACL-SPARQL, SHACL-AF, and external JS libraries (`jsLibrary`/`jsFunctionName`) remain out of scope by design; `qualifiedValueShapesDisjoint` and deep RDFS entailment are the honest remainder
+
 ## v1.1.2 CommonMark rendering compliance
 
 ### Added

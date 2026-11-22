@@ -2,10 +2,10 @@
 
 **Zero-dependency SHACL Core validator for the MD-LD ecosystem.**
 
-A single-file (~930 LOC), synchronous SHACL validator that achieves **100% parity with [shacl-engine](https://github.com/rdf-ext/shacl-engine)** on the W3C SHACL 1.2 Core test suite, with no external RDF libraries required.
+A single-file (~1,100 LOC), synchronous SHACL validator that achieves **100% parity with [shacl-engine](https://github.com/rdf-ext/shacl-engine)** on the W3C SHACL 1.2 Core test suite, with no external RDF libraries required.
 
 ```
-mdld-shapes.js  →  930 lines  →  0 dependencies  →  301/301 violations match
+validator.js  →  1,100 lines  →  0 dependencies  →  301/301 violations match
 ```
 
 ## Why
@@ -194,21 +194,22 @@ Despite 100% parity on the test suite, these subtle differences exist:
 
 ### Performance
 
-Benchmarks on an M1 MacBook Pro:
+Measured on Apple Silicon (reused `Validator` — shape work is cached):
 
-| Dataset size | Validation time |
-|--------------|----------------|
-| 100 quads | <1ms |
-| 1,000 quads | ~5ms |
-| 10,000 quads | ~50ms |
-| 100,000 quads | ~500ms |
+| Dataset | Data quads | Violations | Time |
+|---------|-----------|------------|------|
+| 100 products | 521 | 20 | 26ms |
+| 1,000 products | 5,187 | 200 | 33ms |
+| 5,000 products | 25,931 | 1,000 | 129ms |
+
+≈200K quads/sec on a 5-constraint product shape; scales linearly.
 
 The `Store` implementation is a thin wrapper over `Set<Quad>` with linear `match()`. For very large datasets, an indexed store would be faster — but MD-LD's use case is small-to-medium shapes.
 
 ## Architecture
 
 ```
-mdld-shapes.js (~930 LOC)
+validator.js (~1,100 LOC)
 ├── Namespaces & constants      (~30 LOC)
 ├── Term helpers                (~50 LOC)  termKey, termEquals, isLiteral
 ├── Store                       (~40 LOC)  Minimal RDF/JS DatasetCore
@@ -243,7 +244,7 @@ mdld-shapes.js (~930 LOC)
 | SHACL-AF | Partial | ❌ Out of scope |
 | Custom stores | Requires grapoi compat | Works with any DatasetCore |
 | Factory flexibility | Any RDF/JS factory | Specialized to mdld-parse |
-| Readability | Complex abstractions | ~930 LOC, single file |
+| Readability | Complex abstractions | ~1,100 LOC, single file |
 
 ## Migration from shacl-engine
 
@@ -263,35 +264,71 @@ const report = validate({ shapes: shapesQuads,  dataQuads })
 - No SPARQL/AF support; SHACL-JS only with explicit `allowJS: true`
 - Different error shapes on malformed input
 
-## Testing
+## The Self-Validating Loop
 
 ```bash
 node selftest.js   # the whole loop, one command
 ```
 
-`selftest.js` synchronizes all three documents:
+The catalog is not documentation *about* SHACL — it is SHACL. Four closed
+loops keep `ontology.md`, `catalog.md`, and `validator.js` synchronized:
 
-1. **Coverage** — every `sh:` property in `ontology.md` (the W3C vocabulary)
-   must be accounted for in `catalog.md` as demo / included / section /
-   notCovered.
-2. **Sync** — every term the catalog presents as covered must be implemented
-   in `validator.js` (`SUPPORTED_VOCABULARY`); implemented-but-marked-
-   notCovered terms are reported as warnings.
-3. **Demos** — every `cat:Demo`'s `cat:demo` source is parsed and validated;
-   the violation count must equal `cat:expectedViolations`.
-4. **Self** — the catalog's own SHACL shapes (`cat:self` section) are run
-   against the catalog graph: every demo must carry `cat:demo` source and,
-   unless marked `cat:notCovered`, a `cat:expectedViolations` integer
-   (enforced via `sh:or` over `cat:HasExpectedShape` / `cat:IsNotCoveredShape`).
+1. **Coverage** (ontology → catalog) — every `sh:` property defined in
+   `ontology.md` (the W3C vocabulary, ground truth) must be accounted for in
+   `catalog.md` as `demo` / `included` / `section` / `notCovered`.
+2. **Sync** (catalog ↔ validator) — every term the catalog presents as
+   covered must exist in `SUPPORTED_VOCABULARY` (exported from
+   `validator.js`); implemented-but-marked-`notCovered` terms are reported.
+3. **Demos** (catalog → validator) — every `cat:Demo`'s `cat:demo` source is
+   re-parsed and validated; the violation count must equal
+   `cat:expectedViolations`.
+4. **Self** (catalog → catalog) — the catalog's own SHACL shapes (`cat:self`
+   section) run against the catalog graph: every demo must carry `cat:demo`
+   source and, unless `cat:notCovered`, a `cat:expectedViolations` integer —
+   enforced by `sh:or` over `cat:HasExpectedShape` / `cat:IsNotCoveredShape`,
+   no procedural code.
 
-Current status: **30/30 covered demos pass, 1 skipped; catalog conforms to
-its own shapes; 101/101 ontology terms accounted for, 0 sync failures**.
+A fifth loop guards the document itself: `parse(text) → generate(quads) →
+parse()` must be quad-identical (verified: 521 quads, 0 diffs). The catalog
+is canonical MD-LD — what you read is exactly what the quads say.
+
+### Demo conventions
+
+Each demo is a `cat:Demo` node: `{=cat:demo/<name> .cat:Demo ?cat:hasDemo}`,
+an `Expects \`N\` {cat:expectedViolations ^^xsd:integer}` line, and a
+`~~~~~~md {cat:demo}` fence containing a complete MD-LD world. Demos are
+written as *stories* — each fenced world speaks in its own document voice
+(see `research.md` for the model), not as descriptions of validation.
+
+Authoring rules learned the hard way:
+
+- `[brackets]` are literal carriers — `"quotes"` produce no quads.
+- Link text becomes the literal value — `[jam] {ex:p ^^xsd:integer}` yields
+  `"jam"^^xsd:integer`.
+- Annotations bind to the *current subject* — moving `{+ex:X ?sh:path}`
+  between paragraphs silently re-binds the constraint.
+- `{$value}`/`{$path}`/`{$focusNode}` templates work in `**bold**` and
+  `##`-heading `sh:message` carriers.
+- Nested fences inside `~~~~~~` carriers are preserved (parser fix in
+  `parse.js`) — inner ```` ```js ```` blocks keep their annotations.
+
+### Trust boundary
+
+`sh:js` executes arbitrary JavaScript — **disabled by default**. Enable only
+for trusted shapes: `validate({ quads, allowJS: true })` or
+`new Validator(shapeQuads, { allowJS: true })`. `selftest.js` opts in
+explicitly because the catalog is trusted. Never enable on crawled or
+untrusted documents.
+
+**Current status:** 32/32 demos pass, 0 skipped; catalog conforms to its own
+shapes; 101/101 ontology terms accounted for; 0 sync failures.
 
 ## Roadmap
 
+- [x] ~~Implement `sh:message` template substitution~~ — done: `{$value}`, `{$path}`, `{$focusNode}`
 - [ ] Run the full [W3C SHACL 1.2 test suite](https://github.com/w3c/data-shapes/tree/gh-pages/shacl12-test-suite) and report coverage
+- [ ] Story-ify remaining demos (each in its own document voice)
 - [ ] Add indexed store for large datasets (>100K quads)
-- [ ] Implement `sh:message` template substitution (`{$value}`, `{$path}`)
 - [ ] Publish to npm as `@mdld/shapes`
 - [ ] Add browser bundle for SHACL Playground integration
 

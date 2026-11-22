@@ -805,6 +805,37 @@ JSON-file caching live in `docs/cache-adapters.md`.
 - **Partial-result-safe** — errors are collected in `result.errors`; the crawl continues
 - **Cancellable** — `AbortSignal` yields `{ aborted: true }` plus everything fetched so far
 
+## ✅ SHACL Validation — `mdld-parse/shapes`
+
+New in **v1.2.0**. A zero-dependency, synchronous **SHACL Core validator** (~1,100
+LOC, no RDF libraries) that consumes mdld-parse quads directly:
+
+```js
+import { validate } from 'mdld-parse/shapes';
+const report = validate({ quads });           // auto-classifies shapes vs data
+// or: validate({ shapes, data }) / new Validator(shapeQuads).validate(dataQuads)
+```
+
+- **Full SHACL Core surface** — all constraint components, all 5 target types,
+  all property path types (IRI structures — no blank nodes needed), logical
+  constraints (`not`/`and`/`or`/`xone` with RDF lists), qualified counts,
+  closed shapes, `sh:message` templates (`{$value}`/`{$path}`/`{$focusNode}`),
+  `sh:severity`/`sh:deactivated`
+- **SHACL-JS** (`sh:js` → `sh:JSConstraint` → `sh:script`) — opt-in via
+  `allowJS: true`, disabled by default so untrusted shapes can't execute code
+- **Out of scope by design** — SHACL-SPARQL, SHACL-AF, external JS libraries
+- **Measured** — ~200K quads/sec on a 5-constraint product shape (5,000 products / ~26K quads in ~130ms, Apple Silicon, shape work cached per `Validator`)
+
+The `shapes/` directory is itself a self-validating ecosystem: `catalog.md`
+holds 32 executable `cat:Demo` worlds with expected violation counts,
+`ontology.md` is the W3C vocabulary ground truth, and `selftest.js` closes
+the loop — every ontology term accounted for, every demo verified, and the
+catalog validated by its own SHACL shapes. See `shapes/README.md`.
+
+```bash
+node shapes/selftest.js   # 32/32 demos, catalog conforms to itself
+```
+
 ### Utility Functions
 
 ```javascript
