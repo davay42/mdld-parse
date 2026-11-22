@@ -93,8 +93,6 @@ These are targeting predicates that determine which nodes get validated (not con
 
 ---
 
-
-
 The targetClass constraint targets all nodes that are instances of a specific RDF class. This example validates all Product instances for business requirements.
 
 ### Target Class Demo {=cat:demo/targetClass .cat:Demo ?cat:hasDemo}
@@ -608,8 +606,6 @@ Some parts are still completely uncovered and don't work even on ttl or pure qua
 - SPARQL CONSTRUCT Query {+sh:construct ?cat:includes .class:SPARQLConstraint .cat:notCovered}
 - SPARQL UPDATE Query {+sh:update ?cat:includes .class:SPARQLConstraint .cat:notCovered}
 
-
-
 ## Property Path Constraints
 
 MD-LD expresses path structures with IRIs instead of blank nodes — `sh:path` points to a node carrying `sh:inversePath` / `sh:alternativePath` / `sh:zeroOrMorePath` / `sh:oneOrMorePath` / `sh:zeroOrOnePath`, or an `rdf:List` for sequence paths.
@@ -724,7 +720,6 @@ SHACL-AF and SHACL-SPARQL extension terms — not covered by this catalog:
 
 ## Some constraints are environment dependent, are not tested to be working and are [Not covered] {=cat:notCovered .Class label} by this calalog.
 
-
 <a id="constraints-class"></a>
 
 # Class {=sh:class .class:Constraint label}
@@ -732,8 +727,6 @@ SHACL-AF and SHACL-SPARQL extension terms — not covered by this catalog:
 > Expects each value to be an instance of a specific class (RDF type) {comment}
 
 ---
-
-
 
 The class constraint ensures property values are instances of a specific RDF class. This example validates that employee managers must be Person instances.
 
@@ -757,7 +750,6 @@ Our records show [john] {+ex:john ?ex:manager .ex:Person} as the manager — a r
 ### Invalid Employee {=ex:InvalidEmployee ?member}
 Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — the placeholder that started all this, fails.
 ~~~~~~
-
 
 ---
 
@@ -790,14 +782,7 @@ Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — th
 - ❌ Forgetting to define the class
 - ❌ Not combining with minCount for required properties
 
-
-
-
-
 <a id="constraints-datatype"></a>
-
-
-
 
 # Data Type {=sh:datatype .class:Constraint label}
 
@@ -805,12 +790,11 @@ Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — th
 
 ---
 
-
-
 The datatype constraint ensures literal values have the correct datatype. This example validates that product prices must be decimal values.
 
 ### Data Type Demo {=cat:demo/datatype .cat:Demo ?cat:hasDemo}
 Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fails because price is string, not decimal)
+
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:datatype/>
 
@@ -830,6 +814,14 @@ Priced at [29.99] {ex:price ^^xsd:decimal} — a real decimal, passes.
 Priced at [29.99] {ex:price ^^xsd:string} — same digits, wrong type, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+[
+    {
+        "name": "Valid Product",
+        "price": 29.99
+    }
+]
+~~~~~~
 
 ---
 
@@ -869,8 +861,6 @@ Priced at [29.99] {ex:price ^^xsd:string} — same digits, wrong type, fails.
 
 ---
 
-
-
 The nodeKind constraint expects a node to be of a specific kind (blank node, IRI, or literal). This example validates that content must be literal and references must be IRIs.
 
 ### Node Kind Demo {=cat:demo/nodekind .cat:Demo ?cat:hasDemo}
@@ -896,7 +886,6 @@ Our copy holds [text] {ex:content} as content and links out to <https://example.
 ### Invalid Document {=ex:InvalidDocument ?member}
 This filing is backwards: content is <https://example.org> {?ex:content} — a link where text belongs — and reference is [text] {ex:reference} — text where a link belongs.
 ~~~~~~
-
 
 ---
 
@@ -940,8 +929,6 @@ This filing is backwards: content is <https://example.org> {?ex:content} — a l
 
 ---
 
-
-
 Count constraints specify the minimum and maximum number of values a property must have. This example validates that email must be exactly one value.
 
 ### Count Demo {=cat:demo/count .cat:Demo ?cat:hasDemo}
@@ -964,7 +951,6 @@ Reachable at [work@example.com] {ex:email}.
 ### Invalid Person {=ex:InvalidPerson ?member}
 We hold two addresses for this member — [work@example.com] {ex:email} and [personal@example.com] {ex:email} — which breaks the one-email rule.
 ~~~~~~
-
 
 ---
 
@@ -1015,8 +1001,6 @@ We hold two addresses for this member — [work@example.com] {ex:email} and [per
 
 ---
 
-
-
 Range constraints specify minimum and maximum values for numeric or date properties. This example validates that product prices must be between 10 and 100 inclusive.
 
 ### Range Demo {=cat:demo/range .cat:Demo ?cat:hasDemo}
@@ -1039,7 +1023,6 @@ A banner at [50] {ex:price ^^xsd:decimal} — comfortably in range.
 ### Invalid Product {=ex:InvalidProduct ?member}
 A yard sign at [5] {ex:price ^^xsd:decimal} — below our ten-dollar floor, fails.
 ~~~~~~
-
 
 ---
 
@@ -1083,8 +1066,6 @@ Also provides [Less than or equals] {+sh:lessThanOrEquals .class:ComparisonConst
 
 ---
 
-
-
 Comparison constraints validate property values against reference nodes using comparison operators. This example validates that order dates must be before shipping dates.
 
 ### Comparison Demo {=cat:demo/comparison .cat:Demo ?cat:hasDemo}
@@ -1107,7 +1088,6 @@ Ordered [2024-06-15] {ex:orderDate ^^xsd:date}, ships [2024-06-20] {ex:shippingD
 ### Invalid Order {=ex:InvalidOrder ?member}
 Ordered [2024-06-25] {ex:orderDate ^^xsd:date} but supposedly ships [2024-06-20] {ex:shippingDate ^^xsd:date} — shipped before it was ordered, fails.
 ~~~~~~
-
 
 ---
 
@@ -1148,8 +1128,6 @@ Ordered [2024-06-25] {ex:orderDate ^^xsd:date} but supposedly ships [2024-06-20]
 
 ---
 
-
-
 The disjoint constraint ensures that values of a property are disjoint with values of another property. This example validates that preferred labels must be different from alternative labels.
 
 ### Disjoint Demo {=cat:demo/disjoint .cat:Demo ?cat:hasDemo}
@@ -1172,7 +1150,6 @@ Labeled [USA] {ex:prefLabel} officially, [United States] {ex:altLabel} informall
 ### Invalid Case {=ex:Germany ?member}
 Labeled [Germany] {ex:prefLabel} and also [Germany] {ex:altLabel} — the same word twice, fails.
 ~~~~~~
-
 
 ---
 
@@ -1211,8 +1188,6 @@ Labeled [Germany] {ex:prefLabel} and also [Germany] {ex:altLabel} — the same w
 
 ---
 
-
-
 The NOT constraint requires value nodes to NOT conform to a given shape. This example validates that users cannot have a deleted status.
 
 ### NOT Demo {=cat:demo/not .cat:Demo ?cat:hasDemo}
@@ -1236,7 +1211,6 @@ Still climbing — status [active] {ex:status}, passes.
 ### Invalid User {=ex:InvalidDeletedUser ?member}
 Cancelled last month — status [deleted] {ex:status}, matches the forbidden shape, fails.
 ~~~~~~
-
 
 ---
 
@@ -1275,8 +1249,6 @@ Cancelled last month — status [deleted] {ex:status}, matches the forbidden sha
 
 ---
 
-
-
 The AND constraint requires all specified constraints to be satisfied. This example validates that products must have both a price and a category.
 
 ### AND Demo {=cat:demo/and .cat:Demo ?cat:hasDemo}
@@ -1302,7 +1274,6 @@ Selling jars at [7] {ex:price ^^xsd:integer} dollars from the [preserves] {ex:ca
 ### Missing Price Product {=ex:MissingPriceProduct ?member}
 Selling from the [baked goods] {ex:category} stall but never listed a [price] {ex:note} — half an application, fails.
 ~~~~~~
-
 
 ---
 
@@ -1342,8 +1313,6 @@ Selling from the [baked goods] {ex:category} stall but never listed a [price] {e
 
 ---
 
-
-
 The OR constraint requires at least one of the specified constraints to be satisfied. This example validates that a contact must be either an email (contains @) or a phone number (contains -).
 
 ### OR Demo {=cat:demo/or .cat:Demo ?cat:hasDemo}
@@ -1372,7 +1341,6 @@ Or text [555-123-4567] {ex:contact} — either channel works.
 ### Invalid Contact {=ex:InvalidContact ?member}
 All we have is [invalid] {ex:contact} — no @, no digits, unreachable, fails.
 ~~~~~~
-
 
 ---
 
@@ -1414,8 +1382,6 @@ All we have is [invalid] {ex:contact} — no @, no digits, unreachable, fails.
 
 ---
 
-
-
 The XONE constraint requires exactly one of the specified constraints to be satisfied. This example validates that a role must be exactly one type (admin or user), not both and not neither.
 
 ### XONE Demo {=cat:demo/xone .cat:Demo ?cat:hasDemo}
@@ -1444,7 +1410,6 @@ Borrows drills on weekends — role [user] {ex:role}, passes.
 ### Invalid - No Role {=ex:NoRole ?member}
 Showing up as [guest] {ex:role} — neither badge type, fails.
 ~~~~~~
-
 
 ---
 
@@ -1488,8 +1453,6 @@ Showing up as [guest] {ex:role} — neither badge type, fails.
 
 ---
 
-
-
 Length constraints specify the minimum and maximum length of string values. This example validates that usernames must be between 3 and 20 characters.
 
 ### Length Demo {=cat:demo/length .cat:Demo ?cat:hasDemo}
@@ -1512,7 +1475,6 @@ Badge reads [john_doe] {ex:username} — fits nicely.
 ### Invalid User {=ex:InvalidUser ?member}
 Badge reads [jd] {ex:username} — two letters is not a name, fails.
 ~~~~~~
-
 
 ---
 
@@ -1552,8 +1514,6 @@ Also may have [Flags] {+sh:flags .class:PatternConstraint label} added.
 
 ---
 
-
-
 The pattern constraint validates string values against regular expression patterns. This example validates that emails must end with example.com.
 
 ### Pattern Demo {=cat:demo/pattern .cat:Demo ?cat:hasDemo}
@@ -1576,7 +1536,6 @@ Our [email] {+ex:email ?sh:path} must match [example\.com$] {sh:pattern}, case-i
 ### Invalid Email {=ex:InvalidEmail ?member}
 [user@example.org] {ex:email} — close, but .org isn't us, fails.
 ~~~~~~
-
 
 ---
 
@@ -1617,8 +1576,6 @@ Our [email] {+ex:email ?sh:path} must match [example\.com$] {sh:pattern}, case-i
 
 ---
 
-
-
 The languageIn constraint constrains string literals to have language tags from a specified list. This example validates that document titles must be in English or French.
 
 ### Language Demo {=cat:demo/language .cat:Demo ?cat:hasDemo}
@@ -1641,7 +1598,6 @@ Greeted with [Hello World] {ex:title @en} at the door.
 ### Invalid Document {=ex:GermanDocument ?member}
 Greeted with [Hallo Welt] {ex:title @de} — lovely German, but not one of our two languages, fails.
 ~~~~~~
-
 
 ---
 
@@ -1683,8 +1639,6 @@ Greeted with [Hallo Welt] {ex:title @de} — lovely German, but not one of our t
 
 ---
 
-
-
 The uniqueLang constraint ensures that language tags of string literals are unique within a property. This example validates that document titles cannot have duplicate language tags.
 
 ### UniqueLang Demo {=cat:demo/uniqueLang .cat:Demo ?cat:hasDemo}
@@ -1707,7 +1661,6 @@ One English title [Hello World] {ex:title @en}, one French [Bonjour Monde] {ex:t
 ### Invalid Document {=ex:InvalidNode ?member}
 Two English titles — [Hello World] {ex:title @en} and [Hola Mundo] {ex:title @en} — a duplicate @en tag, fails.
 ~~~~~~
-
 
 ---
 
@@ -1746,8 +1699,6 @@ Two English titles — [Hello World] {ex:title @en} and [Hola Mundo] {ex:title @
 
 ---
 
-
-
 The hasValue constraint requires a property to have exactly a specific value. This example validates that server status must be exactly "active".
 
 ### Has Value Demo {=cat:demo/hasvalue .cat:Demo ?cat:hasDemo}
@@ -1770,7 +1721,6 @@ Serving traffic — status [active] {ex:status}, passes.
 ### Invalid Server {=ex:BackupServer ?member}
 Warming spares — status [standby] {ex:status}, not active, fails.
 ~~~~~~
-
 
 ---
 
@@ -1833,7 +1783,6 @@ Leased at [Valid Address] {=ex:ValidAddress .ex:Address ?ex:address}, street [Ma
 Leased at [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}, street [St] {ex:street} — two letters is not an address, fails.
 ~~~~~~
 
-
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1892,7 +1841,6 @@ Currently [Active] {+ex:Active ?ex:status} — training three times a week.
 ### Invalid Employee {=ex:InvalidStatusEmployee ?member}
 Marked [Pending] {+ex:Pending ?ex:status} — we have no pending membership, fails.
 ~~~~~~
-
 
 ---
 
@@ -1960,7 +1908,6 @@ Reachable at [john@company.org] {ex:email} — on-domain, passes.
 Only reachable at [bob@gmail.com] {ex:email} — personal mail isn't a work email, fails.
 ~~~~~~
 
-
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -2021,7 +1968,6 @@ A clean card — [John Doe] {ex:name ^^xsd:string}, [30] {ex:age ^^xsd:integer},
 ### Invalid Person {=ex:InvalidPerson}
 A card with an [email] {ex:email} field we never print — [Jane Smith] {ex:name ^^xsd:string}, [25] {ex:age ^^xsd:integer} — undeclared property, fails.
 ~~~~~~
-
 
 ---
 
@@ -2115,7 +2061,6 @@ Badge [active] {ex:status}, floor tag [active] {ex:status} — passes.
 Badge [inactive] {ex:status}, floor tag [inactive] {ex:status} — fails on status alone; the suspended category rule stays quiet.
 ~~~~~~
 
-
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -2181,7 +2126,6 @@ Contact [email] {+ex:email ?sh:path} must be a [string] {+xsd:string ?sh:datatyp
 ### Invalid User {=ex:InvalidUser .ex:User}
 [invalid-email] {ex:email}, [150] {ex:age ^^xsd:integer}, [] {ex:name} — three problems, three severities.
 ~~~~~~
-
 
 ---
 
@@ -2263,7 +2207,6 @@ Signed for [50000.00] {ex:contractValue ^^xsd:decimal} — profitable work, pass
 Signed for [-1000.00] {ex:contractValue ^^xsd:decimal} — a contract that pays us to work, fails.
 ~~~~~~
 
-
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -2326,7 +2269,6 @@ Pottery night on [2024-12-25] {ex:eventDate ^^xsd:date} — a real date, passes.
 ### Invalid Event {=ex:InvalidEvent ?member}
 "Yoga, [not-a-date] {ex:eventDate}" — someone typed words into the date field, fails.
 ~~~~~~
-
 
 ---
 
@@ -2809,7 +2751,6 @@ Budget: [20000.00] {ex:budget ^^xsd:decimal}
 Status: [completed] {ex:status}
 Budget: [15000.00] {ex:budget ^^xsd:decimal}
 ~~~~~~
-
 
 ## Best Practices
 
