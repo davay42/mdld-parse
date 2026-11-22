@@ -252,6 +252,10 @@ function scanTokens(text) {
                 codeBlock = null;
                 const closingFence = line.replace(/\r?\n.*$/, '');
                 mdLines.push(closingFence);
+            } else {
+                // Fence-looking line that doesn't close this block is literal content
+                // (e.g. a nested fence inside a ~~~~~~ carrier)
+                codeBlock.content.push(line);
             }
         }
         return true;

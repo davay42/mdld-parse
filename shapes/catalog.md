@@ -2359,10 +2359,12 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEvent fails
 
 Validates all [member] {+member ?sh:targetObjectsOf} entities with valid **date** {+ex:DatePropertyShape ?sh:property sh:name}.
 
-**Event date must be valid** {=ex:DatePropertyShape .sh:PropertyShape sh:message} requires [eventDate] {+ex:eventDate ?sh:path} to be a valid JS date and satisfy [js check] {+ex:DateJSConstraint ?sh:js .sh:JSConstraint}.
+**Event date must be valid** {=ex:DatePropertyShape .sh:PropertyShape sh:message} requires [eventDate] {+ex:eventDate ?sh:path} to be a valid JS date and satisfy [js check] {+ex:DateJSConstraint ?sh:js}.
 
-**JS constraint script** {=ex:DateJSConstraint}
-[const date = new Date(value); return !isNaN(date.getTime());] {sh:script}
+```js {=ex:DateJSConstraint .sh:JSConstraint sh:script}
+const date = new Date(value);
+return !isNaN(date.getTime());
+```
 
 ---
 
