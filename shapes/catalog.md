@@ -56,6 +56,16 @@ Our [email] {+ex:email ?sh:path} must have at least [1] {sh:minCount ^^xsd:integ
 One signup gave a [name] — [Alice] {=ex:Alice .ex:User ex:username} — but never an email address, so the watering notices have nowhere to go.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UserShape": {
+        "ex:Alice": {
+            "name": "Alice"
+        }
+    }
+}
+~~~~~~
+
 ## Key MDLD Syntax Patterns
 
 | Pattern | Meaning | Example |
@@ -122,6 +132,20 @@ Price: [-50.00] {ex:price ^^xsd:decimal}
 ### Service {=ex:Service .ex:Service}
 Name: [Consulting] {ex:name}
 Price: [200.00] {ex:price ^^xsd:decimal}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductValidationShape": {
+        "ex:Laptop": {
+            "name": "MacBook Pro",
+            "price": 1299.99
+        },
+        "ex:InvalidProduct": {
+            "price": -50
+        }
+    }
+}
 ~~~~~~
 
 ## 📝 MDLD Syntax Patterns
@@ -218,6 +242,22 @@ Security Clearance: [secret] {ex:securityClearance}
 
 ### CFO {=ex:CFO}
 Security Clearance: [secret] {ex:securityClearance}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DatabaseValidationShape": {
+        "ex:MainDatabase": {
+            "status": "offline",
+            "uptime": 95.5
+        }
+    },
+    "ex:CEOValidationShape": {
+        "ex:CEO": {
+            "executive": "secret"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -318,6 +358,29 @@ Approves: [BudgetRequest] {ex:approves}
 
 ### Regular Employee {=ex:RegularEmployee}
 Authority: [0] {ex:authority ^^xsd:integer}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ManagerValidationShape": {
+        "ex:EngineeringManager": {
+            "level": 2,
+            "teamSize": 15
+        },
+        "ex:SeniorManager": {
+            "level": 4,
+            "teamSize": 8
+        }
+    },
+    "ex:ApproverValidationShape": {
+        "ex:FinanceApprover": {
+            "authority": 1
+        },
+        "ex:ExecutiveApprover": {
+            "authority": 3
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -425,6 +488,31 @@ References: [Expensive product] {+ex:ExpensiveProduct ?ex:references}
 
 ### Order456 {=ex:Order456}
 References: [Affordable product] {+ex:AffordableProduct ?ex:references}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:TeamMemberValidationShape": {
+        "ex:EngineeringTeam": {
+            "workload": 45,
+            "status": "inactive"
+        },
+        "ex:QATeam": {
+            "workload": 35,
+            "status": "active"
+        }
+    },
+    "ex:ReferencedProductValidationShape": {
+        "ex:ExpensiveProduct": {
+            "availability": "false",
+            "price": 1500
+        },
+        "ex:AffordableProduct": {
+            "availability": "true",
+            "price": 299.99
+        }
+    }
+}
 ~~~~~~
 
 ## 📝 MDLD Syntax Patterns
@@ -651,6 +739,20 @@ Only gives us [bob@example.com] {ex:workEmail} — reachable at work, still coun
 Only leaves a phone number [555-0100] {ex:phone} — no email on file at all, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ContactShape": {
+        "ex:Alice": {
+            "email": "alice@example.com"
+        },
+        "ex:Bob": {
+            "email": "bob@example.com"
+        },
+        "ex:Eve": {}
+    }
+}
+~~~~~~
+
 ## Shape Structure
 
 - [Path] {+sh:path ?cat:includes .class:StructuralTerm}
@@ -751,6 +853,19 @@ Our records show [john] {+ex:john ?ex:manager .ex:Person} as the manager — a r
 Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — the placeholder that started all this, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:EmployeeTestShape": {
+        "ex:ValidEmployee": {
+            "manager": "tag:my@example.org,2026:class/john"
+        },
+        "ex:InvalidEmployee": {
+            "manager": "tag:my@example.org,2026:class/robot"
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -815,12 +930,16 @@ Priced at [29.99] {ex:price ^^xsd:string} — same digits, wrong type, fails.
 ~~~~~~
 
 ~~~~~~json {cat:extractedPOJO}
-[
-    {
-        "name": "Valid Product",
-        "price": 29.99
+{
+    "ex:ProductTestShape": {
+        "ex:ValidProduct": {
+            "price": 29.99
+        },
+        "ex:InvalidProduct": {
+            "price": "29.99"
+        }
     }
-]
+}
 ~~~~~~
 
 ---
@@ -887,6 +1006,21 @@ Our copy holds [text] {ex:content} as content and links out to <https://example.
 This filing is backwards: content is <https://example.org> {?ex:content} — a link where text belongs — and reference is [text] {ex:reference} — text where a link belongs.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DocumentTestShape": {
+        "ex:ValidDocument": {
+            "content": "text",
+            "reference": "https://example.org"
+        },
+        "ex:InvalidDocument": {
+            "content": "https://example.org",
+            "reference": "text"
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -950,6 +1084,22 @@ Reachable at [work@example.com] {ex:email}.
 
 ### Invalid Person {=ex:InvalidPerson ?member}
 We hold two addresses for this member — [work@example.com] {ex:email} and [personal@example.com] {ex:email} — which breaks the one-email rule.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:PersonTestShape": {
+        "ex:ValidPerson": {
+            "email": "work@example.com"
+        },
+        "ex:InvalidPerson": {
+            "email": [
+                "work@example.com",
+                "personal@example.com"
+            ]
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -1024,6 +1174,19 @@ A banner at [50] {ex:price ^^xsd:decimal} — comfortably in range.
 A yard sign at [5] {ex:price ^^xsd:decimal} — below our ten-dollar floor, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductTestShape": {
+        "ex:ValidProduct": {
+            "price": 50
+        },
+        "ex:InvalidProduct": {
+            "price": 5
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1089,6 +1252,19 @@ Ordered [2024-06-15] {ex:orderDate ^^xsd:date}, ships [2024-06-20] {ex:shippingD
 Ordered [2024-06-25] {ex:orderDate ^^xsd:date} but supposedly ships [2024-06-20] {ex:shippingDate ^^xsd:date} — shipped before it was ordered, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:OrderTestShape": {
+        "ex:ValidOrder": {
+            "orderDate": "2024-06-15T00:00:00.000Z"
+        },
+        "ex:InvalidOrder": {
+            "orderDate": "2024-06-25T00:00:00.000Z"
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1149,6 +1325,19 @@ Labeled [USA] {ex:prefLabel} officially, [United States] {ex:altLabel} informall
 
 ### Invalid Case {=ex:Germany ?member}
 Labeled [Germany] {ex:prefLabel} and also [Germany] {ex:altLabel} — the same word twice, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DisjointExampleShape": {
+        "ex:USA": {
+            "prefLabel": "USA"
+        },
+        "ex:Germany": {
+            "prefLabel": "Germany"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -1212,6 +1401,19 @@ Still climbing — status [active] {ex:status}, passes.
 Cancelled last month — status [deleted] {ex:status}, matches the forbidden shape, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UserStatusShape": {
+        "ex:ValidActiveUser": {
+            "status": "active"
+        },
+        "ex:InvalidDeletedUser": {
+            "status": "deleted"
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1273,6 +1475,20 @@ Selling jars at [7] {ex:price ^^xsd:integer} dollars from the [preserves] {ex:ca
 
 ### Missing Price Product {=ex:MissingPriceProduct ?member}
 Selling from the [baked goods] {ex:category} stall but never listed a [price] {ex:note} — half an application, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductValidationShape": {
+        "ex:ValidProduct": {
+            "price": 7,
+            "category": "preserves"
+        },
+        "ex:MissingPriceProduct": {
+            "category": "baked goods"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -1340,6 +1556,22 @@ Or text [555-123-4567] {ex:contact} — either channel works.
 
 ### Invalid Contact {=ex:InvalidContact ?member}
 All we have is [invalid] {ex:contact} — no @, no digits, unreachable, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ContactValidationShape": {
+        "ex:ValidEmail": {
+            "contact": "user@example.com"
+        },
+        "ex:ValidPhone": {
+            "contact": "555-123-4567"
+        },
+        "ex:InvalidContact": {
+            "contact": "invalid"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -1411,6 +1643,22 @@ Borrows drills on weekends — role [user] {ex:role}, passes.
 Showing up as [guest] {ex:role} — neither badge type, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:RoleValidationShape": {
+        "ex:ValidAdmin": {
+            "role": "admin"
+        },
+        "ex:ValidUser": {
+            "role": "user"
+        },
+        "ex:NoRole": {
+            "role": "guest"
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1476,6 +1724,19 @@ Badge reads [john_doe] {ex:username} — fits nicely.
 Badge reads [jd] {ex:username} — two letters is not a name, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UserAccountTestShape": {
+        "ex:ValidUser": {
+            "username": "john_doe"
+        },
+        "ex:InvalidUser": {
+            "username": "jd"
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1535,6 +1796,19 @@ Our [email] {+ex:email ?sh:path} must match [example\.com$] {sh:pattern}, case-i
 
 ### Invalid Email {=ex:InvalidEmail ?member}
 [user@example.org] {ex:email} — close, but .org isn't us, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:PatternExampleShape": {
+        "ex:ValidEmail": {
+            "email": "User@example.com"
+        },
+        "ex:InvalidEmail": {
+            "email": "user@example.org"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -1597,6 +1871,19 @@ Greeted with [Hello World] {ex:title @en} at the door.
 
 ### Invalid Document {=ex:GermanDocument ?member}
 Greeted with [Hallo Welt] {ex:title @de} — lovely German, but not one of our two languages, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:MultilingualDocumentShape": {
+        "ex:EnglishDocument": {
+            "title": "Hello World"
+        },
+        "ex:GermanDocument": {
+            "title": "Hallo Welt"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -1662,6 +1949,25 @@ One English title [Hello World] {ex:title @en}, one French [Bonjour Monde] {ex:t
 Two English titles — [Hello World] {ex:title @en} and [Hola Mundo] {ex:title @en} — a duplicate @en tag, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UniqueLangExampleShape": {
+        "ex:ValidNode": {
+            "language": [
+                "Hello World",
+                "Bonjour Monde"
+            ]
+        },
+        "ex:InvalidNode": {
+            "language": [
+                "Hello World",
+                "Hola Mundo"
+            ]
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1720,6 +2026,19 @@ Serving traffic — status [active] {ex:status}, passes.
 
 ### Invalid Server {=ex:BackupServer ?member}
 Warming spares — status [standby] {ex:status}, not active, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:SystemStatusTestShape": {
+        "ex:MainServer": {
+            "status": "active"
+        },
+        "ex:BackupServer": {
+            "status": "standby"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -1783,6 +2102,23 @@ Leased at [Valid Address] {=ex:ValidAddress .ex:Address ?ex:address}, street [Ma
 Leased at [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}, street [St] {ex:street} — two letters is not an address, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:EmployeeValidationShape": {
+        "ex:ValidEmployee": {
+            "address": {
+                "street": "Main Street"
+            }
+        },
+        "ex:InvalidEmployee": {
+            "address": {
+                "street": "St"
+            }
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1840,6 +2176,19 @@ Currently [Active] {+ex:Active ?ex:status} — training three times a week.
 
 ### Invalid Employee {=ex:InvalidStatusEmployee ?member}
 Marked [Pending] {+ex:Pending ?ex:status} — we have no pending membership, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:StatusValidationShape": {
+        "ex:ValidEmployee": {
+            "status": "tag:my@example.org,2026:in/Active"
+        },
+        "ex:InvalidStatusEmployee": {
+            "status": "tag:my@example.org,2026:in/Pending"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -1908,6 +2257,19 @@ Reachable at [john@company.org] {ex:email} — on-domain, passes.
 Only reachable at [bob@gmail.com] {ex:email} — personal mail isn't a work email, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:EmployeeValidationShape": {
+        "ex:ValidEmployee": {
+            "email": "john@company.org"
+        },
+        "ex:NoWorkEmployee": {
+            "email": "bob@gmail.com"
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -1967,6 +2329,21 @@ A clean card — [John Doe] {ex:name ^^xsd:string}, [30] {ex:age ^^xsd:integer},
 
 ### Invalid Person {=ex:InvalidPerson}
 A card with an [email] {ex:email} field we never print — [Jane Smith] {ex:name ^^xsd:string}, [25] {ex:age ^^xsd:integer} — undeclared property, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ClosedExampleShape": {
+        "ex:ValidPerson": {
+            "Name": "John Doe",
+            "Age": 30
+        },
+        "ex:InvalidPerson": {
+            "Name": "Jane Smith",
+            "Age": 25
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -2061,6 +2438,19 @@ Badge [active] {ex:status}, floor tag [active] {ex:status} — passes.
 Badge [inactive] {ex:status}, floor tag [inactive] {ex:status} — fails on status alone; the suspended category rule stays quiet.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DeactivatedExampleShape": {
+        "ex:ValidNode": {
+            "user": "active"
+        },
+        "ex:InvalidNode": {
+            "user": "inactive"
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -2125,6 +2515,23 @@ Contact [email] {+ex:email ?sh:path} must be a [string] {+xsd:string ?sh:datatyp
 
 ### Invalid User {=ex:InvalidUser .ex:User}
 [invalid-email] {ex:email}, [150] {ex:age ^^xsd:integer}, [] {ex:name} — three problems, three severities.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UserValidationShape": {
+        "ex:ValidUser": {
+            "email": "User@example.com",
+            "age": 25,
+            "name": "John Doe"
+        },
+        "ex:InvalidUser": {
+            "email": "invalid-email",
+            "age": 150,
+            "name": ""
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -2207,6 +2614,19 @@ Signed for [50000.00] {ex:contractValue ^^xsd:decimal} — profitable work, pass
 Signed for [-1000.00] {ex:contractValue ^^xsd:decimal} — a contract that pays us to work, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:BusinessRuleValidationShape": {
+        "ex:ValidContract": {
+            "contract": 50000
+        },
+        "ex:InvalidContract": {
+            "contract": -1000
+        }
+    }
+}
+~~~~~~
+
 ---
 
 ## 📝 MDLD Syntax Patterns
@@ -2268,6 +2688,19 @@ Pottery night on [2024-12-25] {ex:eventDate ^^xsd:date} — a real date, passes.
 
 ### Invalid Event {=ex:InvalidEvent ?member}
 "Yoga, [not-a-date] {ex:eventDate}" — someone typed words into the date field, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DateValidationShape": {
+        "ex:ValidEvent": {
+            "date": "2024-12-25T00:00:00.000Z"
+        },
+        "ex:InvalidEvent": {
+            "date": "not-a-date"
+        }
+    }
+}
 ~~~~~~
 
 ---
@@ -2520,6 +2953,40 @@ Priced at [99.99] {ex:price ^^xsd:decimal} in [Clothing] {ex:category} but never
 [Hat] {ex:name} at [25.00] {ex:price ^^xsd:decimal} in [Clothing] {ex:category} described only as [Small] {ex:description} — too brief, fails.
 ~~~~~~
 
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductShape": {
+        "ex:Laptop": {
+            "name": "MacBook Pro",
+            "price": 1299.99,
+            "category": "Electronics",
+            "descripton": "High-performance laptop",
+            "SKU": "PROD-12345"
+        },
+        "ex:InvalidProduct1": {
+            "price": 99.99,
+            "category": "Clothing"
+        },
+        "ex:InvalidProduct2": {
+            "name": "T-Shirt",
+            "price": -10,
+            "category": "Clothing"
+        },
+        "ex:InvalidProduct3": {
+            "name": "Shoes",
+            "price": 50,
+            "category": "Books"
+        },
+        "ex:InvalidProduct4": {
+            "name": "Hat",
+            "price": 25,
+            "category": "Clothing",
+            "descripton": "Small"
+        }
+    }
+}
+~~~~~~
+
 ## Key Takeaways
 
 1. **Start with targeting** - Define which data to validate first
@@ -2750,6 +3217,82 @@ Budget: [20000.00] {ex:budget ^^xsd:decimal}
 ##### Project 6b {=ex:Project6b .ex:Project}
 Status: [completed] {ex:status}
 Budget: [15000.00] {ex:budget ^^xsd:decimal}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:EmployeeValidationShape": {
+        "ex:Employee1": {
+            "department": "Engineering",
+            "status": "active",
+            "projects": [
+                {
+                    "status": "completed",
+                    "budget": 50000
+                },
+                {
+                    "status": "completed",
+                    "budget": 30000
+                }
+            ],
+            "salary": 75000
+        },
+        "ex:Employee2": {
+            "department": "invalid-dept",
+            "status": "active",
+            "projects": [
+                {
+                    "status": "completed",
+                    "budget": 40000
+                },
+                {
+                    "status": "completed",
+                    "budget": 20000
+                }
+            ],
+            "salary": 65000
+        },
+        "ex:Employee3": {
+            "department": "Engineering",
+            "status": "terminated",
+            "projects": [
+                {
+                    "status": "completed",
+                    "budget": 35000
+                },
+                {
+                    "status": "completed",
+                    "budget": 15000
+                }
+            ],
+            "salary": 60000
+        },
+        "ex:Employee4": {
+            "department": "Engineering",
+            "status": "active",
+            "projects": {
+                "status": "completed",
+                "budget": 45000
+            },
+            "salary": 70000
+        },
+        "ex:Employee5": {
+            "department": "Engineering",
+            "status": "active",
+            "projects": [
+                {
+                    "status": "completed",
+                    "budget": 20000
+                },
+                {
+                    "status": "completed",
+                    "budget": 15000
+                }
+            ],
+            "salary": -1000
+        }
+    }
+}
 ~~~~~~
 
 ## Best Practices

@@ -1332,7 +1332,8 @@ function extractSubGraph(input, shapeIRI, options = {}) {
  *
  * @param {Quad[]|{quads?:Quad[], shapes?:Quad[], data?:Quad[]}} input
  * @param {string} [shapeIRI]  NodeShape IRI (defaults to first non-deactivated shape)
- * @param {Object} [options]   { arrays?: boolean (always emit arrays), maxDepth?: number }
+ * @param {Object} [options]   { arrays?: boolean (always emit arrays), maxDepth?: number,
+ *                               byNode?: boolean (return {focusValue: pojo} instead of pojo(s)) }
  */
 function extractPOJO(input, shapeIRI, options = {}) {
   const { shapesDS, dataDS } = resolveDatasets(input)
@@ -1342,6 +1343,11 @@ function extractPOJO(input, shapeIRI, options = {}) {
   const maxDepth = options.maxDepth ?? 32
 
   const pojos = targets.map(t => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, new Set(), maxDepth, options))
+  if (options.byNode) {
+    const out = {}
+    targets.forEach((t, i) => { out[t.value] = pojos[i] })
+    return out
+  }
   return pojos.length === 1 ? pojos[0] : pojos
 }
 

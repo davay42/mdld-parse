@@ -266,6 +266,60 @@ try {
   }
 }
 
+// ── 5b. EXTRACTED POJO: cat:extractedPOJO ↔ extractPOJO ─────────────────────
+// Every demo declares its canonical extraction as ~~~~~~json {cat:extractedPOJO}:
+// { "<shapeShortIRI>": { "<focusShortIRI>": { ...pojo... } } }. Verify it.
+
+function canonJSON(v) {
+  if (v instanceof Date) return JSON.stringify(v)
+  if (Array.isArray(v)) return '[' + v.map(canonJSON).join(',') + ']'
+  if (v && typeof v === 'object') {
+    return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canonJSON(v[k])).join(',') + '}'
+  }
+  return JSON.stringify(v)
+}
+
+{
+  const RDFNS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+  const expectedByDemo = new Map()
+  for (const q of cat) {
+    if (q.predicate.value === CAT + 'extractedPOJO') expectedByDemo.set(q.subject.value, q.object.value)
+  }
+
+  let checked = 0
+  for (const [iri, d] of demos) {
+    if (d.notCovered || !d.source) continue
+    const raw = expectedByDemo.get(iri)
+    if (raw == null) { fail(`extractedPOJO ${iri.split('/').pop()}: missing cat:extractedPOJO block`); continue }
+    try {
+      const expected = JSON.parse(raw)
+      const quads = parse({ text: d.source }).quads
+      const m = d.source.match(/\[ex\]\s*<([^>\s]+)>/)
+      const base = m ? m[1] : null
+      const short = v => (base && typeof v === 'string' && v.startsWith(base)) ? 'ex:' + v.slice(base.length) : v
+      const actual = {}
+      const seen = new Set()
+      for (const q of quads) {
+        if (q.predicate.value !== RDFNS + 'type' || q.object.value !== SH + 'NodeShape' || seen.has(q.subject.value)) continue
+        seen.add(q.subject.value)
+        const s = q.subject.value
+        if (!quads.some(x => x.subject.value === s && x.predicate.value.startsWith(SH + 'target'))) continue
+        const byNode = extractPOJO({ quads }, s, { byNode: true })
+        const shaped = {}
+        for (const [focus, pojo] of Object.entries(byNode)) shaped[short(focus)] = pojo
+        actual[short(s)] = shaped
+      }
+      checked++
+      if (canonJSON(actual) !== canonJSON(expected)) {
+        fail(`extractedPOJO ${iri.split('/').pop()}: catalog expects ${canonJSON(expected).slice(0, 120)}… got ${canonJSON(actual).slice(0, 120)}…`)
+      }
+    } catch (e) {
+      fail(`extractedPOJO ${iri.split('/').pop()}: ${e.message}`)
+    }
+  }
+  console.log(`  ok   extractedPOJO    ${checked} demo(s) verified against cat:extractedPOJO`)
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 
 const cov = {}
