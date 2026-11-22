@@ -266,23 +266,22 @@ const report = validate({ shapes: shapesQuads,  dataQuads })
 ## Testing
 
 ```bash
-# The catalog validates itself: every cat:Demo in catalog.md is parsed,
-# validated, and checked against its cat:expectedViolations count.
-node selftest.js
+node selftest.js   # the whole loop, one command
 ```
 
-`catalog.md` is the test suite. Each demo is a `cat:Demo` node carrying its
-MD-LD source (`cat:demo`) and expected violation count
-(`cat:expectedViolations`); `selftest.js` closes the loop by running every
-demo through this validator. Demos typed `cat:notCovered` (SHACL-JS, SPARQL)
-are skipped. Current status: **30/30 covered demos pass, 1 skipped**.
+`selftest.js` synchronizes all three documents:
 
-```bash
-# Ontology-driven completeness: every sh: property in ontology.md must be
-# accounted for in catalog.md as demo / included / section / notCovered.
-node coverage.js
-# {"demo":28,"included":17,"notCovered":56} — 101 sh: terms, 0 missing
-```
+1. **Coverage** — every `sh:` property in `ontology.md` (the W3C vocabulary)
+   must be accounted for in `catalog.md` as demo / included / section /
+   notCovered.
+2. **Sync** — every term the catalog presents as covered must be implemented
+   in `validator.js` (`SUPPORTED_VOCABULARY`); implemented-but-marked-
+   notCovered terms are reported as warnings.
+3. **Demos** — every `cat:Demo`'s `cat:demo` source is parsed and validated;
+   the violation count must equal `cat:expectedViolations`.
+
+Current status: **30/30 covered demos pass, 1 skipped; 101/101 ontology
+terms accounted for, 0 sync failures**.
 
 ## Roadmap
 

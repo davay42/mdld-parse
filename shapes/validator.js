@@ -235,6 +235,49 @@ function createShapeDetector() {
   }
 }
 
+// ─── Supported vocabulary ─────────────────────────────────────────────────────
+// Exported so selftest.js can verify catalog ↔ validator synchronization.
+
+/** Constraint predicate names implemented by evalConstraint. */
+const CONSTRAINT_PREDICATES = [
+  'class', 'datatype', 'nodeKind',
+  'minCount', 'maxCount',
+  'minExclusive', 'maxExclusive', 'minInclusive', 'maxInclusive',
+  'minLength', 'maxLength', 'pattern', 'flags', 'languageIn', 'uniqueLang',
+  'equals', 'disjoint', 'lessThan', 'lessThanOrEquals',
+  'not', 'and', 'or', 'xone', 'node',
+  'hasValue', 'in', 'closed', 'ignoredProperties',
+  'qualifiedValueShape', 'qualifiedMinCount', 'qualifiedMaxCount',
+]
+
+/** Targeting predicates implemented by resolveTargets. */
+const TARGET_PREDICATES = ['targetClass', 'targetNode', 'targetSubjectsOf', 'targetObjectsOf', 'target']
+
+/** Property-path predicates implemented by resolvePath (sequence paths are plain RDF lists). */
+const PATH_PREDICATES = ['inversePath', 'alternativePath', 'zeroOrMorePath', 'oneOrMorePath', 'zeroOrOnePath']
+
+/** Shape-structure predicates the validator reads directly. */
+const STRUCTURE_PREDICATES = ['property', 'path']
+
+/** Annotation predicates honored on shapes (severity/message/deactivated) or ignored as pure metadata. */
+const ANNOTATION_PREDICATES = ['name', 'order', 'group', 'defaultValue', 'description', 'message', 'severity', 'deactivated']
+
+const SUPPORTED_VOCABULARY = {
+  constraints: new Set(CONSTRAINT_PREDICATES),
+  targets: new Set(TARGET_PREDICATES),
+  paths: new Set(PATH_PREDICATES),
+  structure: new Set(STRUCTURE_PREDICATES),
+  annotation: new Set(ANNOTATION_PREDICATES),
+}
+
+function isSupportedTerm(name) {
+  return SUPPORTED_VOCABULARY.constraints.has(name) ||
+    SUPPORTED_VOCABULARY.targets.has(name) ||
+    SUPPORTED_VOCABULARY.paths.has(name) ||
+    SUPPORTED_VOCABULARY.structure.has(name) ||
+    SUPPORTED_VOCABULARY.annotation.has(name)
+}
+
 // ─── Shape / constraint extraction ─────────────────────────────────────────────
 
 function sh(v) { return nn(SH + v) }
@@ -245,7 +288,7 @@ function findShapes(shapesDS) {
   for (const q of shapesDS.match(null, RDF_TYPE, nn(SH + 'NodeShape'))) shapes.add(termKey(q.subject))
 
   // Also catch any shape that has an explicit target, regardless of type declaration
-  for (const pred of ['targetClass', 'targetNode', 'targetSubjectsOf', 'targetObjectsOf']) {
+  for (const pred of ['targetClass', 'targetNode', 'targetSubjectsOf', 'targetObjectsOf', 'target']) {
     for (const q of shapesDS.match(null, sh(pred), null)) shapes.add(termKey(q.subject))
   }
   return [...shapes]
@@ -261,19 +304,8 @@ function getShapeTerm(shapesDS, key) {
 /** Extract all constraints declared directly on a shape node. */
 function extractConstraints(shapesDS, shapeTerm) {
   const constraints = []
-  const constraintPredicates = [
-    'class', 'datatype', 'nodeKind',
-    'minCount', 'maxCount',
-    'minExclusive', 'maxExclusive', 'minInclusive', 'maxInclusive',
-    'minLength', 'maxLength', 'pattern', 'flags', 'languageIn', 'uniqueLang',
-    'equals', 'disjoint', 'lessThan', 'lessThanOrEquals',
-    'not', 'and', 'or', 'xone', 'node',
-    'hasValue', 'in', 'closed', 'ignoredProperties',
-    'qualifiedValueShape', 'qualifiedMinCount', 'qualifiedMaxCount',
-  ]
-
   const params = {}
-  for (const pred of constraintPredicates) {
+  for (const pred of CONSTRAINT_PREDICATES) {
     const vals = valuesOf(shapesDS, shapeTerm, sh(pred))
     if (vals.length > 0) {
       params[pred] = vals.length === 1 ? vals[0] : vals
@@ -380,6 +412,10 @@ function resolveTargets(dataDS, shapesDS, shapeTerm) {
     targets.push(...instancesOf(dataDS, cls))
   }
   for (const node of valuesOf(shapesDS, shapeTerm, sh('targetNode'))) {
+    targets.push(node)
+  }
+  // sh:target — generic target; values are treated like sh:targetNode
+  for (const node of valuesOf(shapesDS, shapeTerm, sh('target'))) {
     targets.push(node)
   }
   for (const pred of valuesOf(shapesDS, shapeTerm, sh('targetSubjectsOf'))) {
@@ -989,5 +1025,5 @@ class Validator {
   }
 }
 
-export { validate, Validator, createShapeDetector, Store }
+export { validate, Validator, createShapeDetector, Store, SUPPORTED_VOCABULARY, isSupportedTerm }
 export default validate

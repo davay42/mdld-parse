@@ -590,7 +590,7 @@ This catalog includes these constraints:
 
 Some parts are still completely uncovered and don't work even on ttl or pure quads - something might be wrong in the validator or in examples we use in tests, need deeper investigation:
 
-- Ignored Properties {+sh:ignoredProperties ?cat:includes .class:MetadataPredicate .cat:notCovered}
+- Ignored Properties {+sh:ignoredProperties ?cat:includes .class:MetadataPredicate}
 
 ## JavaScript Constraints
 
@@ -612,13 +612,13 @@ Some parts are still completely uncovered and don't work even on ttl or pure qua
 
 Need to check if these are working:
 
-- Qualified Value Shape {+sh:qualifiedValueShape ?cat:includes .class:ShapeConstraint .cat:notCovered}
+- Qualified Value Shape {+sh:qualifiedValueShape ?cat:includes .class:ShapeConstraint}
 - Qualified Value Shapes Disjoint {+sh:qualifiedValueShapesDisjoint ?cat:includes .class:ShapeConstraint .cat:notCovered}
-- Inverse Path {+sh:inversePath ?cat:includes .class:PropertyPath .cat:notCovered}
-- Alternative Path {+sh:alternativePath ?cat:includes .class:PropertyPath .cat:notCovered}
-- Zero or More Path {+sh:zeroOrMorePath ?cat:includes .class:PropertyPath .cat:notCovered}
-- One or More Path {+sh:oneOrMorePath ?cat:includes .class:PropertyPath .cat:notCovered}
-- Zero or One Path {+sh:zeroOrOnePath ?cat:includes .class:PropertyPath .cat:notCovered}
+- Inverse Path {+sh:inversePath ?cat:includes .class:PropertyPath}
+- Alternative Path {+sh:alternativePath ?cat:includes .class:PropertyPath}
+- Zero or More Path {+sh:zeroOrMorePath ?cat:includes .class:PropertyPath}
+- One or More Path {+sh:oneOrMorePath ?cat:includes .class:PropertyPath}
+- Zero or One Path {+sh:zeroOrOnePath ?cat:includes .class:PropertyPath}
 
 ## Shape Structure
 
@@ -2310,7 +2310,7 @@ Value: [-1000.00] {ex:contractValue ^^xsd:decimal}
 
 <a id="constraints-js"></a>
 
-# JavaScript Function {=sh:js .class:Constraint label}
+# JavaScript Function {=sh:js .class:Constraint label .cat:notCovered}
 > Allows custom JavaScript validation functions for complex constraint logic {comment}
 
 The JavaScript constraint allows custom JavaScript validation functions for complex constraint logic. This example validates that event dates must be valid JavaScript dates.
