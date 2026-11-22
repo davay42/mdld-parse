@@ -923,7 +923,7 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 
 // ─── Core validation ───────────────────────────────────────────────────────────
 
-function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parentCtx) {
+function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parentCtx, opts = {}) {
   const key = `${termKey(shapeTerm)}|${termKey(focusNode)}`
   if (parentCtx.visited.has(key)) return []  // cycle → optimistic
   parentCtx.visited.add(key)
@@ -973,8 +973,9 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
       violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, [focusNode], ctx))
     }
 
-    // Process sh:property shapes
-    for (const propShape of shapeInfo.propertyShapes) {
+    // Process sh:property shapes (skipped in nodeLevelOnly mode — used by
+    // extractPOJO to gate whole records on node-level constraints only)
+    for (const propShape of opts.nodeLevelOnly ? [] : shapeInfo.propertyShapes) {
       const propInfo = getShapeInfo(shapesDS, propShape, parentCtx.shapeCache)
       const { constraints: propConstraints, deactivated: propDeactivated, pathTerms: propPathTerms } = propInfo
       if (propDeactivated) continue
@@ -1147,6 +1148,11 @@ function sameValue(a, b) {
   return false
 }
 
+/** A projected object with no keys — carries no validated facts. */
+function isEmptyPOJO(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) && Object.keys(v).length === 0
+}
+
 /** Is this term the head of an rdf:first/rdf:rest chain? */
 function isListHead(ds, term) {
   return isNamedNode(term) || isBlankNode(term)
@@ -1185,6 +1191,11 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
   for (const propShape of collectPropertyShapes(shapesDS, shapeTerm, shapeCache).values()) {
     const pInfo = getShapeInfo(shapesDS, propShape, shapeCache)
     if (pInfo.deactivated) continue
+    // validFields semantics: a property is emitted only if it conforms to
+    // its shape — every key in the POJO is a validated fact. sh:js constraints
+    // don't run here (allowJS: false), so js-guarded fields are kept.
+    const gate = { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false }
+    if (validateNodeAgainstShape(dataDS, shapesDS, propShape, focusNode, gate).length > 0) continue
     const names = valuesOf(shapesDS, propShape, sh('name'))
     const nodeShapes = valuesOf(shapesDS, propShape, sh('node'))
     const qualified = valuesOf(shapesDS, propShape, sh('qualifiedValueShape'))
@@ -1198,12 +1209,14 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
       const bucket = pending.get(key)
       for (const v of values) {
         const projected = projectTerm(dataDS, shapesDS, v, nested, shapeCache, stack, maxDepth, options)
+        if (isEmptyPOJO(projected)) continue
         if (!bucket.some(x => sameValue(x, projected))) bucket.push(projected)
       }
     }
   }
 
   for (const [key, vals] of pending) {
+    if (vals.length === 0) continue
     obj[key] = (options.arrays || vals.length > 1) ? vals : vals[0]
   }
   return obj
@@ -1342,13 +1355,24 @@ function extractPOJO(input, shapeIRI, options = {}) {
   const shapeCache = new Map()
   const maxDepth = options.maxDepth ?? 32
 
-  const pojos = targets.map(t => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, new Set(), maxDepth, options))
+  // Two-tier conformance: node-level constraints (sh:closed, sh:not,
+  // sh:and/or/xone on the node shape, …) gate whole records; property shapes
+  // gate individual fields inside pojoForNode. Focus nodes failing either
+  // tier are omitted — absence means "nothing here validates".
+  const kept = targets.filter(t =>
+    validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t,
+      { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false },
+      { nodeLevelOnly: true }).length === 0)
+
+  const pojos = kept.map(t => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, new Set(), maxDepth, options))
   if (options.byNode) {
     const out = {}
-    targets.forEach((t, i) => { out[t.value] = pojos[i] })
+    kept.forEach((t, i) => { if (!isEmptyPOJO(pojos[i])) out[t.value] = pojos[i] })
     return out
   }
-  return pojos.length === 1 ? pojos[0] : pojos
+  const nonEmpty = pojos.filter(p => !isEmptyPOJO(p))
+  if (targets.length === 1) return nonEmpty[0] ?? {}
+  return nonEmpty
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@
 - **`cat:extractedPOJO` blocks** — every one of the 32 catalog demos now declares its canonical extraction inline as `~~~~~~json {cat:extractedPOJO}` (`{ shapeShortIRI → focusShortIRI → pojo }`, IRIs shortened by the demo's own `[ex]` prefix)
 - **`shapes/gen-extracted.js`** — regenerates all `cat:extractedPOJO` blocks idempotently; `selftest.js` parses each block back and deep-compares it against live `extractPOJO` output, so extraction drift fails the suite
 - **Every catalog demo is now extractable** — all property shapes carry `sh:name`; audited all 35 targeted shapes across 32 demos: 0 empty extractions
+- **Conformance-gated extraction** — `extractPOJO` is now two-tier: node-level constraints (`sh:closed`, `sh:not`, node-level `sh:and`/`or`/`xone`, …) exclude whole records, while each property is emitted only when its values pass the property shape — so every key is a validated fact and every record satisfies the node shape; offending fields are omitted, empty records dropped (`sh:js` guards don't run during projection)
 
 ### Fixed
 - **Catalog latent bugs found by the extraction audit**: `deactivated` demo linked a vacuous undeclared `CategoryProperty` (now links the real `DeactivatedProperty`) and wrote `sh:deactivated` as the literal `"deactivated"` instead of `true` — the rule was never actually off, only unreachable; `product` demo linked typo'd `DescriptioSKURulenRule`, orphaning `SKURule` so its `sh:pattern` never ran; `advanced` demo's `StatusRule` had no `sh:path`; `not` demo's NodeShape had no properties at all

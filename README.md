@@ -828,7 +828,9 @@ const report = validate({ quads });           // auto-classifies shapes vs data
 - **Out of scope by design** — SHACL-SPARQL, SHACL-AF, external JS libraries
 - **Shape-driven extraction (v1.2.1)** — `extractPOJO()` projects quads through
   a shape into typed JS objects (`sh:name` keys, datatype casting, nested
-  `sh:node`/`sh:qualifiedValueShape`, RDF lists → arrays); `extractSubGraph()`
+  `sh:node`/`sh:qualifiedValueShape`, RDF lists → arrays) — emitting only
+  fields that conform, so every key is a validated fact;
+  `extractSubGraph()`
   returns the quad sub-graph a shape permits — the `rdf-lens` idea with zero
   dependencies
 - **Measured** — ~200K quads/sec on a 5-constraint product shape (5,000 products / ~26K quads in ~130ms, Apple Silicon, shape work cached per `Validator`)

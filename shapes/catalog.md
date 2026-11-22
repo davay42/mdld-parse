@@ -140,9 +140,6 @@ Price: [200.00] {ex:price ^^xsd:decimal}
         "ex:Laptop": {
             "name": "MacBook Pro",
             "price": 1299.99
-        },
-        "ex:InvalidProduct": {
-            "price": -50
         }
     }
 }
@@ -246,17 +243,8 @@ Security Clearance: [secret] {ex:securityClearance}
 
 ~~~~~~json {cat:extractedPOJO}
 {
-    "ex:DatabaseValidationShape": {
-        "ex:MainDatabase": {
-            "status": "offline",
-            "uptime": 95.5
-        }
-    },
-    "ex:CEOValidationShape": {
-        "ex:CEO": {
-            "executive": "secret"
-        }
-    }
+    "ex:DatabaseValidationShape": {},
+    "ex:CEOValidationShape": {}
 }
 ~~~~~~
 
@@ -363,19 +351,12 @@ Authority: [0] {ex:authority ^^xsd:integer}
 ~~~~~~json {cat:extractedPOJO}
 {
     "ex:ManagerValidationShape": {
-        "ex:EngineeringManager": {
-            "level": 2,
-            "teamSize": 15
-        },
         "ex:SeniorManager": {
             "level": 4,
             "teamSize": 8
         }
     },
     "ex:ApproverValidationShape": {
-        "ex:FinanceApprover": {
-            "authority": 1
-        },
         "ex:ExecutiveApprover": {
             "authority": 3
         }
@@ -493,20 +474,12 @@ References: [Affordable product] {+ex:AffordableProduct ?ex:references}
 ~~~~~~json {cat:extractedPOJO}
 {
     "ex:TeamMemberValidationShape": {
-        "ex:EngineeringTeam": {
-            "workload": 45,
-            "status": "inactive"
-        },
         "ex:QATeam": {
             "workload": 35,
             "status": "active"
         }
     },
     "ex:ReferencedProductValidationShape": {
-        "ex:ExpensiveProduct": {
-            "availability": "false",
-            "price": 1500
-        },
         "ex:AffordableProduct": {
             "availability": "true",
             "price": 299.99
@@ -747,8 +720,7 @@ Only leaves a phone number [555-0100] {ex:phone} — no email on file at all, fa
         },
         "ex:Bob": {
             "email": "bob@example.com"
-        },
-        "ex:Eve": {}
+        }
     }
 }
 ~~~~~~
@@ -858,9 +830,6 @@ Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — th
     "ex:EmployeeTestShape": {
         "ex:ValidEmployee": {
             "manager": "tag:my@example.org,2026:class/john"
-        },
-        "ex:InvalidEmployee": {
-            "manager": "tag:my@example.org,2026:class/robot"
         }
     }
 }
@@ -934,9 +903,6 @@ Priced at [29.99] {ex:price ^^xsd:string} — same digits, wrong type, fails.
     "ex:ProductTestShape": {
         "ex:ValidProduct": {
             "price": 29.99
-        },
-        "ex:InvalidProduct": {
-            "price": "29.99"
         }
     }
 }
@@ -1012,10 +978,6 @@ This filing is backwards: content is <https://example.org> {?ex:content} — a l
         "ex:ValidDocument": {
             "content": "text",
             "reference": "https://example.org"
-        },
-        "ex:InvalidDocument": {
-            "content": "https://example.org",
-            "reference": "text"
         }
     }
 }
@@ -1091,12 +1053,6 @@ We hold two addresses for this member — [work@example.com] {ex:email} and [per
     "ex:PersonTestShape": {
         "ex:ValidPerson": {
             "email": "work@example.com"
-        },
-        "ex:InvalidPerson": {
-            "email": [
-                "work@example.com",
-                "personal@example.com"
-            ]
         }
     }
 }
@@ -1179,9 +1135,6 @@ A yard sign at [5] {ex:price ^^xsd:decimal} — below our ten-dollar floor, fail
     "ex:ProductTestShape": {
         "ex:ValidProduct": {
             "price": 50
-        },
-        "ex:InvalidProduct": {
-            "price": 5
         }
     }
 }
@@ -1257,9 +1210,6 @@ Ordered [2024-06-25] {ex:orderDate ^^xsd:date} but supposedly ships [2024-06-20]
     "ex:OrderTestShape": {
         "ex:ValidOrder": {
             "orderDate": "2024-06-15T00:00:00.000Z"
-        },
-        "ex:InvalidOrder": {
-            "orderDate": "2024-06-25T00:00:00.000Z"
         }
     }
 }
@@ -1332,9 +1282,6 @@ Labeled [Germany] {ex:prefLabel} and also [Germany] {ex:altLabel} — the same w
     "ex:DisjointExampleShape": {
         "ex:USA": {
             "prefLabel": "USA"
-        },
-        "ex:Germany": {
-            "prefLabel": "Germany"
         }
     }
 }
@@ -1406,9 +1353,6 @@ Cancelled last month — status [deleted] {ex:status}, matches the forbidden sha
     "ex:UserStatusShape": {
         "ex:ValidActiveUser": {
             "status": "active"
-        },
-        "ex:InvalidDeletedUser": {
-            "status": "deleted"
         }
     }
 }
@@ -1483,9 +1427,6 @@ Selling from the [baked goods] {ex:category} stall but never listed a [price] {e
         "ex:ValidProduct": {
             "price": 7,
             "category": "preserves"
-        },
-        "ex:MissingPriceProduct": {
-            "category": "baked goods"
         }
     }
 }
@@ -1566,9 +1507,6 @@ All we have is [invalid] {ex:contact} — no @, no digits, unreachable, fails.
         },
         "ex:ValidPhone": {
             "contact": "555-123-4567"
-        },
-        "ex:InvalidContact": {
-            "contact": "invalid"
         }
     }
 }
@@ -1651,9 +1589,6 @@ Showing up as [guest] {ex:role} — neither badge type, fails.
         },
         "ex:ValidUser": {
             "role": "user"
-        },
-        "ex:NoRole": {
-            "role": "guest"
         }
     }
 }
@@ -1729,9 +1664,6 @@ Badge reads [jd] {ex:username} — two letters is not a name, fails.
     "ex:UserAccountTestShape": {
         "ex:ValidUser": {
             "username": "john_doe"
-        },
-        "ex:InvalidUser": {
-            "username": "jd"
         }
     }
 }
@@ -1803,9 +1735,6 @@ Our [email] {+ex:email ?sh:path} must match [example\.com$] {sh:pattern}, case-i
     "ex:PatternExampleShape": {
         "ex:ValidEmail": {
             "email": "User@example.com"
-        },
-        "ex:InvalidEmail": {
-            "email": "user@example.org"
         }
     }
 }
@@ -1878,9 +1807,6 @@ Greeted with [Hallo Welt] {ex:title @de} — lovely German, but not one of our t
     "ex:MultilingualDocumentShape": {
         "ex:EnglishDocument": {
             "title": "Hello World"
-        },
-        "ex:GermanDocument": {
-            "title": "Hallo Welt"
         }
     }
 }
@@ -1957,12 +1883,6 @@ Two English titles — [Hello World] {ex:title @en} and [Hola Mundo] {ex:title @
                 "Hello World",
                 "Bonjour Monde"
             ]
-        },
-        "ex:InvalidNode": {
-            "language": [
-                "Hello World",
-                "Hola Mundo"
-            ]
         }
     }
 }
@@ -2033,9 +1953,6 @@ Warming spares — status [standby] {ex:status}, not active, fails.
     "ex:SystemStatusTestShape": {
         "ex:MainServer": {
             "status": "active"
-        },
-        "ex:BackupServer": {
-            "status": "standby"
         }
     }
 }
@@ -2109,11 +2026,6 @@ Leased at [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}, street [St
             "address": {
                 "street": "Main Street"
             }
-        },
-        "ex:InvalidEmployee": {
-            "address": {
-                "street": "St"
-            }
         }
     }
 }
@@ -2183,9 +2095,6 @@ Marked [Pending] {+ex:Pending ?ex:status} — we have no pending membership, fai
     "ex:StatusValidationShape": {
         "ex:ValidEmployee": {
             "status": "tag:my@example.org,2026:in/Active"
-        },
-        "ex:InvalidStatusEmployee": {
-            "status": "tag:my@example.org,2026:in/Pending"
         }
     }
 }
@@ -2262,9 +2171,6 @@ Only reachable at [bob@gmail.com] {ex:email} — personal mail isn't a work emai
     "ex:EmployeeValidationShape": {
         "ex:ValidEmployee": {
             "email": "john@company.org"
-        },
-        "ex:NoWorkEmployee": {
-            "email": "bob@gmail.com"
         }
     }
 }
@@ -2337,10 +2243,6 @@ A card with an [email] {ex:email} field we never print — [Jane Smith] {ex:name
         "ex:ValidPerson": {
             "Name": "John Doe",
             "Age": 30
-        },
-        "ex:InvalidPerson": {
-            "Name": "Jane Smith",
-            "Age": 25
         }
     }
 }
@@ -2443,9 +2345,6 @@ Badge [inactive] {ex:status}, floor tag [inactive] {ex:status} — fails on stat
     "ex:DeactivatedExampleShape": {
         "ex:ValidNode": {
             "user": "active"
-        },
-        "ex:InvalidNode": {
-            "user": "inactive"
         }
     }
 }
@@ -2524,11 +2423,6 @@ Contact [email] {+ex:email ?sh:path} must be a [string] {+xsd:string ?sh:datatyp
             "email": "User@example.com",
             "age": 25,
             "name": "John Doe"
-        },
-        "ex:InvalidUser": {
-            "email": "invalid-email",
-            "age": 150,
-            "name": ""
         }
     }
 }
@@ -2619,9 +2513,6 @@ Signed for [-1000.00] {ex:contractValue ^^xsd:decimal} — a contract that pays 
     "ex:BusinessRuleValidationShape": {
         "ex:ValidContract": {
             "contract": 50000
-        },
-        "ex:InvalidContract": {
-            "contract": -1000
         }
     }
 }
@@ -2969,19 +2860,16 @@ Priced at [99.99] {ex:price ^^xsd:decimal} in [Clothing] {ex:category} but never
         },
         "ex:InvalidProduct2": {
             "name": "T-Shirt",
-            "price": -10,
             "category": "Clothing"
         },
         "ex:InvalidProduct3": {
             "name": "Shoes",
-            "price": 50,
-            "category": "Books"
+            "price": 50
         },
         "ex:InvalidProduct4": {
             "name": "Hat",
             "price": 25,
-            "category": "Clothing",
-            "descripton": "Small"
+            "category": "Clothing"
         }
     }
 }
@@ -3238,7 +3126,6 @@ Budget: [15000.00] {ex:budget ^^xsd:decimal}
             "salary": 75000
         },
         "ex:Employee2": {
-            "department": "invalid-dept",
             "status": "active",
             "projects": [
                 {
@@ -3270,10 +3157,6 @@ Budget: [15000.00] {ex:budget ^^xsd:decimal}
         "ex:Employee4": {
             "department": "Engineering",
             "status": "active",
-            "projects": {
-                "status": "completed",
-                "budget": 45000
-            },
             "salary": 70000
         },
         "ex:Employee5": {
@@ -3288,8 +3171,7 @@ Budget: [15000.00] {ex:budget ^^xsd:decimal}
                     "status": "completed",
                     "budget": 15000
                 }
-            ],
-            "salary": -1000
+            ]
         }
     }
 }
