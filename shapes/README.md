@@ -313,7 +313,7 @@ const report = validate({ shapes: shapesQuads,  dataQuads })
 node selftest.js   # the whole loop, one command
 ```
 
-The catalog is not documentation *about* SHACL — it is SHACL. Four closed
+The catalog is not documentation *about* SHACL — it is SHACL. Five closed
 loops keep `ontology.md`, `catalog.md`, and `validator.js` synchronized:
 
 1. **Coverage** (ontology → catalog) — every `sh:` property defined in
@@ -324,19 +324,24 @@ loops keep `ontology.md`, `catalog.md`, and `validator.js` synchronized:
    `validator.js`); implemented-but-marked-`notCovered` terms are reported.
 3. **Demos** (catalog → validator) — every `cat:Demo`'s `cat:demo` source is
    re-parsed and validated; the violation count must equal
-   `cat:expectedViolations`. Each demo also declares its canonical extraction
-   as a `~~~~~~json {cat:extractedPOJO}` block (`{ shape → focus → pojo }`,
-   IRIs shortened by the demo's `[ex]` prefix), verified deep-equal against
-   live `extractPOJO` output — regenerate with `node gen-extracted.js`.
-4. **Self** (catalog → catalog) — the catalog's own SHACL shapes (`cat:self`
+   `cat:expectedViolations`.
+4. **Extraction** (catalog ↔ projection) — every demo declares its canonical
+   extraction as a `~~~~~~json {cat:extractedPOJO}` block
+   (`{ shape → focus → pojo }`, IRIs shortened by the demo's `[ex]` prefix),
+   verified deep-equal against live `extractPOJO` output — regenerate with
+   `node gen-extracted.js`.
+5. **Self** (catalog → catalog) — the catalog's own SHACL shapes (`cat:self`
    section) run against the catalog graph: every demo must carry `cat:demo`
    source and, unless `cat:notCovered`, a `cat:expectedViolations` integer —
    enforced by `sh:or` over `cat:HasExpectedShape` / `cat:IsNotCoveredShape`,
    no procedural code.
 
-A fifth loop guards the document itself: `parse(text) → generate(quads) →
-parse()` must be quad-identical (verified: 521 quads, 0 diffs). The catalog
-is canonical MD-LD — what you read is exactly what the quads say.
+Two further checks guard the machinery itself: a **projection** section
+exercises `extractPOJO`/`extractSubGraph` on hand-built quads (typed casts,
+nested `sh:node`, RDF lists, predicate filtering), and a **document round-trip**
+guard verifies `parse(text) → generate(quads) → parse()` is quad-identical
+(521 quads, 0 diffs). The catalog is canonical MD-LD — what you read is
+exactly what the quads say.
 
 ### Demo conventions
 

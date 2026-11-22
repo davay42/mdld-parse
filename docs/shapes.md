@@ -127,12 +127,15 @@ Expects `4` {cat:expectedViolations ^^xsd:integer} violations (...)
 ~~~~~~
 ```
 
-`selftest.js` closes four loops in one command:
+`selftest.js` closes five loops plus two machinery guards in one command:
 
 1. **Coverage** — every `sh:` property in `ontology.md` (the W3C vocabulary, ground truth) is accounted for in the catalog
 2. **Sync** — every term the catalog presents as covered exists in `SUPPORTED_VOCABULARY`
-3. **Demos** — every `cat:demo` source re-parses, validates to `cat:expectedViolations`, *and* extracts to the `cat:extractedPOJO` block
-4. **Self** — the catalog's own SHACL shapes conform against the catalog graph
+3. **Demos** — every `cat:demo` source re-parses and validates to `cat:expectedViolations`
+4. **Extraction** — every demo's `cat:extractedPOJO` block deep-equals live `extractPOJO` output
+5. **Self** — the catalog's own SHACL shapes conform against the catalog graph
+
+Plus: a procedural **projection** check on hand-built quads, and a **document round-trip** guard (`parse → generate → parse` is quad-identical — the catalog is canonical MD-LD).
 
 ```bash
 node shapes/selftest.js
