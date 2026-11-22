@@ -2,10 +2,11 @@
 
 **Zero-dependency SHACL Core validator for the MD-LD ecosystem.**
 
-A single-file (~1,100 LOC), synchronous SHACL validator that achieves **100% parity with [shacl-engine](https://github.com/rdf-ext/shacl-engine)** on the W3C SHACL 1.2 Core test suite, with no external RDF libraries required.
+A single-file (~1,450 LOC), synchronous SHACL validator that achieves **100% parity with [shacl-engine](https://github.com/rdf-ext/shacl-engine)** on the W3C SHACL 1.2 Core test suite, with no external RDF libraries required — and doubles as a **projection engine**: the same shapes that validate also extract (`extractPOJO` / `extractSubGraph`).
 
 ```
-validator.js  →  1,100 lines  →  0 dependencies  →  301/301 violations match
+validator.js  →  1,450 lines  →  0 dependencies  →  301/301 violations match
+                          →  SHACL shape = schema for extraction, too
 ```
 
 ## Why
@@ -175,7 +176,7 @@ const people = extractPOJO({ quads }, 'tag:ex,PersonShape')
 // → [{ name: 'Alice', age: 30, address: { city: 'Paris' }, tags: ['a','b'] }]
 ```
 
-`input` accepts `{ quads }`, `{ shapes, data }`, or a raw `Quad[]`. Options: `arrays: true` always emits arrays; `maxDepth` (default 32) bounds `sh:node` recursion — cycles degrade to the bare IRI.
+`input` accepts `{ quads }`, `{ shapes, data }`, or a raw `Quad[]`. Options: `arrays: true` always emits arrays; `maxDepth` (default 32) bounds `sh:node` recursion — cycles degrade to the bare IRI; `byNode: true` returns `{ focusValue: pojo }` keyed by each target's value instead of a bare POJO/array — the deterministic per-entity form used by `cat:extractedPOJO`.
 
 ### `extractSubGraph(input, shapeIRI?, options?) → Quad[]`
 
@@ -232,7 +233,7 @@ The `Store` implementation is a thin wrapper over `Set<Quad>` with linear `match
 ## Architecture
 
 ```
-validator.js (~1,100 LOC)
+validator.js (~1,450 LOC)
 ├── Namespaces & constants      (~30 LOC)
 ├── Term helpers                (~50 LOC)  termKey, termEquals, isLiteral
 ├── Store                       (~40 LOC)  Minimal RDF/JS DatasetCore
@@ -243,7 +244,8 @@ validator.js (~1,100 LOC)
 ├── Property paths              (~80 LOC)  All 7 path types
 ├── Constraint evaluation       (~250 LOC) All ~30 components
 ├── Validation engine           (~100 LOC) Node/property validation
-└── Public API                  (~30 LOC)  validate, Validator, createShapeDetector
+├── Projection                  (~330 LOC) extractPOJO / extractSubGraph
+└── Public API                  (~30 LOC)  validate, Validator, createShapeDetector, extract*
 ```
 
 **Key design decisions:**
@@ -304,7 +306,10 @@ loops keep `ontology.md`, `catalog.md`, and `validator.js` synchronized:
    `validator.js`); implemented-but-marked-`notCovered` terms are reported.
 3. **Demos** (catalog → validator) — every `cat:Demo`'s `cat:demo` source is
    re-parsed and validated; the violation count must equal
-   `cat:expectedViolations`.
+   `cat:expectedViolations`. Each demo also declares its canonical extraction
+   as a `~~~~~~json {cat:extractedPOJO}` block (`{ shape → focus → pojo }`,
+   IRIs shortened by the demo's `[ex]` prefix), verified deep-equal against
+   live `extractPOJO` output — regenerate with `node gen-extracted.js`.
 4. **Self** (catalog → catalog) — the catalog's own SHACL shapes (`cat:self`
    section) run against the catalog graph: every demo must carry `cat:demo`
    source and, unless `cat:notCovered`, a `cat:expectedViolations` integer —
@@ -343,7 +348,8 @@ for trusted shapes: `validate({ quads, allowJS: true })` or
 explicitly because the catalog is trusted. Never enable on crawled or
 untrusted documents.
 
-**Current status:** 32/32 demos pass, 0 skipped; catalog conforms to its own
+**Current status:** 32/32 demos pass, 0 skipped; 32/32 `cat:extractedPOJO`
+blocks verified against `extractPOJO`; catalog conforms to its own
 shapes; 101/101 ontology terms accounted for; 0 sync failures.
 
 ## Roadmap
@@ -371,7 +377,7 @@ Same as `mdld-parse`. See the [mdld-parse repository](https://github.com/mdld-js
 
 **Verified against:** shacl-engine 1.1.3 on the `shacl-demo.md` test suite (301 violations, 0 differences)
 
-**Lines of code:** ~930
+**Lines of code:** ~1,450 (validator.js)
 
 **Dependencies:** 0 (excluding mdld-parse)
 
@@ -437,11 +443,11 @@ Malformed RDF lists and missing `sh:script` throw with context. Everything else 
 
 1. **Coverage** — every `sh:` property in `ontology.md` accounted for in `catalog.md`.
 2. **Sync** — covered terms must exist in `SUPPORTED_VOCABULARY`.
-3. **Demos** — every `cat:Demo` re-parsed and validated against `cat:expectedViolations`.
+3. **Demos** — every `cat:Demo` re-parsed and validated against `cat:expectedViolations`, and its `cat:extractedPOJO` block verified against `extractPOJO`.
 4. **Self** — the catalog's own `cat:self` SHACL shapes must conform.
 
 ```bash
-node selftest.js   # 32/32 demos, 0 self-violations, 101/101 terms
+node selftest.js   # 32/32 demos + extractedPOJO, 0 self-violations, 101/101 terms
 ```
 
 ### Compliance

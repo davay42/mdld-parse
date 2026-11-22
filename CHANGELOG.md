@@ -1,5 +1,21 @@
 # MD-LD evolution
 
+## v1.2.1 SHACL projection — shapes as extraction schemas
+
+### Added
+- **`extractPOJO()`** (`mdld-parse/shapes`) — projects quads through a SHACL shape into typed plain JavaScript objects, the `rdf-lens` idea with zero dependencies: `sh:name` (or path local name) becomes the key, literals cast by datatype (`xsd:integer`/`decimal` → `Number`, `xsd:boolean` → `boolean`, `xsd:date`/`dateTime` → `Date`), `sh:node` and `sh:qualifiedValueShape` recurse into nested POJOs, RDF lists become arrays, IRIs project to their IRI string
+  - Accepts `{ quads }`, `{ shapes, data }`, or a raw `Quad[]`; single-target shapes return one object, multiple return an array
+  - `byNode: true` returns `{ focusValue: pojo }` for deterministic per-entity maps; `arrays` and `maxDepth` options included
+- **`extractSubGraph()`** — returns the quad sub-graph permitted by a shape: only predicates declared by `sh:property` paths (plus `rdf:type`), recursing into nested entities via `sh:node`, `sh:qualifiedValueShape`, and `sh:targetClass`, with RDF list chains emitted whole — for sanitizing graphs before agents or caching
+- **Extractable property collection** — PropertyShape members of `sh:and`/`sh:or`/`sh:xone` compositions count as properties (`sh:not` members excluded); a shape's own `sh:path` works when the shape is property-shape-like; `sh:deactivated` property shapes are skipped; duplicate projections deduped
+- **`cat:extractedPOJO` blocks** — every one of the 32 catalog demos now declares its canonical extraction inline as `~~~~~~json {cat:extractedPOJO}` (`{ shapeShortIRI → focusShortIRI → pojo }`, IRIs shortened by the demo's own `[ex]` prefix)
+- **`shapes/gen-extracted.js`** — regenerates all `cat:extractedPOJO` blocks idempotently; `selftest.js` parses each block back and deep-compares it against live `extractPOJO` output, so extraction drift fails the suite
+- **Every catalog demo is now extractable** — all property shapes carry `sh:name`; audited all 35 targeted shapes across 32 demos: 0 empty extractions
+
+### Fixed
+- **Catalog latent bugs found by the extraction audit**: `deactivated` demo linked a vacuous undeclared `CategoryProperty` (now links the real `DeactivatedProperty`) and wrote `sh:deactivated` as the literal `"deactivated"` instead of `true` — the rule was never actually off, only unreachable; `product` demo linked typo'd `DescriptioSKURulenRule`, orphaning `SKURule` so its `sh:pattern` never ran; `advanced` demo's `StatusRule` had no `sh:path`; `not` demo's NodeShape had no properties at all
+- **`sh:name` normalization** — sentence-like names ("order date before shipping date", "preferred label", "work email") replaced with clean keys matching their paths (`orderDate`, `prefLabel`, `email`)
+
 ## v1.2.0 Self-validating SHACL ecosystem
 
 ### Added
