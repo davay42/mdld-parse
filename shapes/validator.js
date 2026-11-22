@@ -679,7 +679,7 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 
   function viol(extra = {}) {
     const v = { focusNode, value, severity, component: nn(SH + component), message: renderMessage(), shape: ctx.shapeTerm, path: ctx.path, ...extra }
-    if (process.env.DEBUG) {
+    if (typeof process !== 'undefined' && process.env?.DEBUG) {
       console.log(`  ⚠️  ${component} violation: focus=${focusNode?.value}, value=${value?.value || 'none'}, shape=${ctx.shapeTerm?.value}`)
     }
     return v
@@ -963,7 +963,7 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
   const { constraints, deactivated, isPropertyShape, pathTerms } = shapeInfo
   if (deactivated) { parentCtx.visited.delete(key); return [] }
 
-  if (process.env.DEBUG) {
+  if (typeof process !== 'undefined' && process.env?.DEBUG) {
     console.log(`\n🔍 Validating: ${focusNode?.value} against ${shapeTerm?.value} (${isPropertyShape ? 'PropertyShape' : 'NodeShape'})`)
     console.log(`   Constraints: ${constraints.map(c => c.component).join(', ')}`)
   }
@@ -1467,7 +1467,7 @@ function validate(options) {
   }
 
   // Debug: log violation summary
-  if (process.env.DEBUG) {
+  if (typeof process !== 'undefined' && process.env?.DEBUG) {
     const byConstraint = {}
     const byShape = {}
     for (const v of allViolations) {

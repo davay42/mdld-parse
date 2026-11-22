@@ -546,11 +546,14 @@
                     if (vOut) vOut.textContent = `No SHACL shapes: ${e.message}`;
                 }
                 try {
-                    const pojos = extractPOJO({ quads: result.quads });
+                    const byNode = extractPOJO({ quads: result.quads }, null, { byNode: true });
+                    // Re-key by shortened IRI for readability
+                    const pojos = {};
+                    for (const [iri, pojo] of Object.entries(byNode)) pojos[shortenIRI(iri, context)] = pojo;
                     const pStats = document.getElementById('pojo-stats');
                     const pOut = document.getElementById('pojo-output');
                     const json = JSON.stringify(pojos, null, 2);
-                    if (pStats) pStats.textContent = Array.isArray(pojos) ? `${pojos.length} objects` : '1 object';
+                    if (pStats) pStats.textContent = `${Object.keys(pojos).length} objects`;
                     if (pOut) pOut.textContent = json.length > 8000 ? json.slice(0, 8000) + '\n…' : json;
                 } catch (e) {
                     const pStats = document.getElementById('pojo-stats');
@@ -1325,7 +1328,7 @@
                     </summary>
                     <div class="m-2 flex flex-col">
                         <pre
-                            class="w-full min-h-24 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
+                            class="w-full p-4 min-h-24 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
                     <code id="shacl-output" class="language-markdown text-xs block">
                         No SHACL shapes in this document.</code>
                 </pre>
@@ -1341,7 +1344,7 @@
                     </summary>
                     <div class="m-2 flex flex-col">
                         <pre
-                            class="w-full min-h-24 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
+                            class="w-full p-4 min-h-24 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
                     <code id="pojo-output" class="language-json text-xs block">
                         No extractable shape in this document.</code>
                 </pre>
