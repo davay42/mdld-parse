@@ -621,6 +621,54 @@ function hasPathStructure(shapesDS, term) {
 	]) if (valuesOf(shapesDS, term, sh(p)).length > 0) return true;
 	return valuesOf(shapesDS, term, RDF_FIRST).length > 0 || valuesOf(shapesDS, term, RDF_REST).length > 0;
 }
+/**
+* All predicate IRIs reachable inside a path term — the plain predicate for
+* simple paths, or every member predicate for path structures
+* (alternativePath lists, inversePath, transitives, sequence lists).
+* Used by sh:closed whitelists and subgraph predicate filtering.
+*/
+function pathPredicates(shapesDS, pathTerm) {
+	const out = /* @__PURE__ */ new Set();
+	const walk = (t) => {
+		if (!t || isLiteral(t)) return;
+		if (isNamedNode(t) && !hasPathStructure(shapesDS, t)) {
+			out.add(termKey(t));
+			return;
+		}
+		const inv = valuesOf(shapesDS, t, sh("inversePath"));
+		if (inv.length > 0) {
+			inv.forEach(walk);
+			return;
+		}
+		const alt = valuesOf(shapesDS, t, sh("alternativePath"));
+		if (alt.length > 0) {
+			try {
+				readList(shapesDS, alt[0]).forEach(walk);
+			} catch {}
+			return;
+		}
+		for (const p of [
+			"zeroOrMorePath",
+			"oneOrMorePath",
+			"zeroOrOnePath"
+		]) {
+			const v = valuesOf(shapesDS, t, sh(p));
+			if (v.length > 0) {
+				v.forEach(walk);
+				return;
+			}
+		}
+		try {
+			const steps = readList(shapesDS, t);
+			if (steps.length > 0) {
+				steps.forEach(walk);
+				return;
+			}
+		} catch {}
+	};
+	walk(pathTerm);
+	return out;
+}
 function transitive(ds, start, pred, includeStart) {
 	const results = includeStart ? [start] : [];
 	const visited = /* @__PURE__ */ new Set();
@@ -912,7 +960,7 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 			const allowedPreds = /* @__PURE__ */ new Set();
 			for (const propShape of valuesOf(shapesDS, ctx.shapeTerm, sh("property"))) {
 				const paths = valuesOf(shapesDS, propShape, sh("path"));
-				for (const p of paths) if (isNamedNode(p)) allowedPreds.add(termKey(p));
+				for (const p of paths) for (const k of pathPredicates(shapesDS, p)) allowedPreds.add(k);
 			}
 			for (const ig of params.ignoredProperties || []) allowedPreds.add(termKey(ig));
 			allowedPreds.add(termKey(RDF_TYPE));
@@ -957,7 +1005,7 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 	}
 	return violations;
 }
-function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parentCtx) {
+function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parentCtx, opts = {}) {
 	const key = `${termKey(shapeTerm)}|${termKey(focusNode)}`;
 	if (parentCtx.visited.has(key)) return [];
 	parentCtx.visited.add(key);
@@ -1013,7 +1061,7 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
 			].includes(c.component)) continue;
 			violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, [focusNode], ctx));
 		}
-		for (const propShape of shapeInfo.propertyShapes) {
+		for (const propShape of opts.nodeLevelOnly ? [] : shapeInfo.propertyShapes) {
 			const { constraints: propConstraints, deactivated: propDeactivated, pathTerms: propPathTerms } = getShapeInfo(shapesDS, propShape, parentCtx.shapeCache);
 			if (propDeactivated) continue;
 			for (const pathTerm of propPathTerms) {
@@ -1043,6 +1091,371 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
 	parentCtx.visited.delete(key);
 	return violations;
 }
+/** Split mixed quads into shape/data datasets, mirroring validate(). */
+function resolveDatasets(input) {
+	const options = Array.isArray(input) ? { quads: input } : input;
+	if (options.quads) {
+		const detector = options.classify ? null : createShapeDetector();
+		const sq = [], dq = [];
+		for (const q of options.quads) ((options.classify ? options.classify(q) : detector.classify(q)) ? sq : dq).push(q);
+		return {
+			shapesDS: new Store(sq),
+			dataDS: new Store(dq)
+		};
+	}
+	return {
+		shapesDS: new Store(options.shapes || []),
+		dataDS: new Store(options.data || [])
+	};
+}
+function findShapeTerm(shapesDS, iri) {
+	const key = `NamedNode:${iri}`;
+	for (const q of shapesDS) if (termKey(q.subject) === key) return q.subject;
+	return null;
+}
+function defaultShapeTerm(shapesDS) {
+	for (const key of findShapes(shapesDS)) {
+		const t = getShapeTerm(shapesDS, key);
+		if (!t) continue;
+		const d = valuesOf(shapesDS, t, sh("deactivated"));
+		if (d.length > 0 && d[0].value === "true") continue;
+		return t;
+	}
+	return null;
+}
+function resolveShapeTerm(shapesDS, shapeIRI) {
+	const term = shapeIRI ? findShapeTerm(shapesDS, shapeIRI) : defaultShapeTerm(shapesDS);
+	if (!term) throw new Error(`extract: no matching NodeShape${shapeIRI ? ` for ${shapeIRI}` : ""}`);
+	return term;
+}
+function localName(iri) {
+	const i = Math.max(iri.lastIndexOf("#"), iri.lastIndexOf("/"), iri.lastIndexOf(":"));
+	return i >= 0 ? iri.slice(i + 1) : iri;
+}
+var NUMERIC_LOCALNAMES = /* @__PURE__ */ new Set([
+	"integer",
+	"int",
+	"long",
+	"short",
+	"byte",
+	"nonNegativeInteger",
+	"nonPositiveInteger",
+	"positiveInteger",
+	"negativeInteger",
+	"unsignedInt",
+	"unsignedLong",
+	"unsignedShort",
+	"unsignedByte",
+	"decimal",
+	"float",
+	"double"
+]);
+var DATE_LOCALNAMES = /* @__PURE__ */ new Set([
+	"date",
+	"dateTime",
+	"dateTimeStamp",
+	"time",
+	"gYear",
+	"gYearMonth",
+	"gMonth",
+	"gMonthDay",
+	"gDay"
+]);
+/** Cast an RDF literal to a native JS value based on its datatype. */
+function castLiteral(term) {
+	const local = term.datatype ? localName(term.datatype.value) : "";
+	if (local === "boolean") return term.value === "true" || term.value === "1";
+	if (NUMERIC_LOCALNAMES.has(local)) {
+		const n = Number(term.value);
+		return isNaN(n) ? term.value : n;
+	}
+	if (DATE_LOCALNAMES.has(local)) {
+		const d = new Date(term.value);
+		return isNaN(d.getTime()) ? term.value : d;
+	}
+	return term.value;
+}
+function termToPOJO(term) {
+	if (!term) return null;
+	if (isLiteral(term)) return castLiteral(term);
+	return term.value;
+}
+function pathKey(pathTerm) {
+	return isNamedNode(pathTerm) ? localName(pathTerm.value) : termKey(pathTerm);
+}
+/**
+* Property shapes extractable from a node shape: direct sh:property links plus
+* PropertyShape members of sh:and/sh:or/sh:xone compositions (sh:not excluded —
+* negated shapes describe what must NOT appear). Node-shape members contribute
+* their own properties recursively.
+* @returns {Map<string, Term>} termKey → shape term
+*/
+function collectPropertyShapes(shapesDS, shapeTerm, shapeCache) {
+	const out = /* @__PURE__ */ new Map();
+	const seen = /* @__PURE__ */ new Set();
+	function visit(term) {
+		const key = termKey(term);
+		if (seen.has(key)) return;
+		seen.add(key);
+		const info = getShapeInfo(shapesDS, term, shapeCache);
+		for (const p of info.propertyShapes) {
+			const k = termKey(p);
+			if (!out.has(k)) out.set(k, p);
+		}
+		if (info.pathTerms.length > 0) {
+			const k = termKey(term);
+			if (!out.has(k)) out.set(k, term);
+		}
+		for (const pred of [
+			"and",
+			"or",
+			"xone"
+		]) for (const head of valuesOf(shapesDS, term, sh(pred))) {
+			let members;
+			try {
+				members = readList(shapesDS, head);
+			} catch {
+				members = [head];
+			}
+			for (const m of members) {
+				if (!m || isLiteral(m)) continue;
+				const minfo = getShapeInfo(shapesDS, m, shapeCache);
+				if (minfo.isPropertyShape || minfo.pathTerms.length > 0) {
+					const k = termKey(m);
+					if (!out.has(k)) out.set(k, m);
+				} else visit(m);
+			}
+		}
+	}
+	visit(shapeTerm);
+	return out;
+}
+function sameValue(a, b) {
+	if (Object.is(a, b)) return true;
+	if (a && b && typeof a === "object" && typeof b === "object") return JSON.stringify(a) === JSON.stringify(b);
+	return false;
+}
+/** A projected object with no keys — carries no validated facts. */
+/**
+* Precomputed extraction plan for a node shape, memoized on its shapeInfo:
+* one entry per extractable property shape with name/nested/paths resolved
+* once instead of per focus node.
+*/
+function projectionPlanFor(shapesDS, shapeTerm, shapeCache) {
+	const info = getShapeInfo(shapesDS, shapeTerm, shapeCache);
+	if (info.projectionPlan) return info.projectionPlan;
+	const plan = [];
+	for (const propShape of collectPropertyShapes(shapesDS, shapeTerm, shapeCache).values()) {
+		const pInfo = getShapeInfo(shapesDS, propShape, shapeCache);
+		if (pInfo.deactivated) continue;
+		const names = valuesOf(shapesDS, propShape, sh("name"));
+		const nodeShapes = valuesOf(shapesDS, propShape, sh("node"));
+		const qualified = valuesOf(shapesDS, propShape, sh("qualifiedValueShape"));
+		plan.push({
+			shape: propShape,
+			name: names[0]?.value || null,
+			nested: nodeShapes[0] || (qualified.length > 0 ? qualified[0] : null),
+			pathTerms: pInfo.pathTerms,
+			gated: pInfo.constraints.length > 0
+		});
+	}
+	info.projectionPlan = plan;
+	return plan;
+}
+function isEmptyPOJO(v) {
+	return v !== null && typeof v === "object" && !Array.isArray(v) && !(v instanceof Date) && Object.keys(v).length === 0;
+}
+/** Is this term the head of an rdf:first/rdf:rest chain? */
+function isListHead(ds, term) {
+	return isNamedNode(term) || isBlankNode(term) ? valuesOf(ds, term, RDF_FIRST).length > 0 && valuesOf(ds, term, RDF_REST).length > 0 : false;
+}
+/**
+* Project a single term: literals are cast, nodes with a declared sh:node
+* shape recurse into nested POJOs, RDF list heads resolve to arrays.
+*/
+function projectTerm(dataDS, shapesDS, term, nodeShape, shapeCache, stack, maxDepth, options) {
+	if (isLiteral(term)) return castLiteral(term);
+	if (nodeShape) {
+		const key = `${termKey(nodeShape)}|${termKey(term)}`;
+		if (stack.has(key) || stack.size >= maxDepth) return term.value;
+		stack.add(key);
+		try {
+			return pojoForNode(dataDS, shapesDS, nodeShape, term, shapeCache, stack, maxDepth, options);
+		} finally {
+			stack.delete(key);
+		}
+	}
+	if (isListHead(dataDS, term)) try {
+		return readList(dataDS, term).map((m) => projectTerm(dataDS, shapesDS, m, null, shapeCache, stack, maxDepth, options));
+	} catch {}
+	return termToPOJO(term);
+}
+function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, maxDepth, options) {
+	const obj = {};
+	const pending = /* @__PURE__ */ new Map();
+	for (const entry of projectionPlanFor(shapesDS, shapeTerm, shapeCache)) {
+		if (entry.gated) {
+			const gate = {
+				visited: /* @__PURE__ */ new Set(),
+				shapeCache,
+				jsCache: /* @__PURE__ */ new Map(),
+				allowJS: false
+			};
+			if (validateNodeAgainstShape(dataDS, shapesDS, entry.shape, focusNode, gate).length > 0) continue;
+		}
+		for (const pathTerm of entry.pathTerms) {
+			const key = entry.name || pathKey(pathTerm);
+			const values = resolvePath(dataDS, shapesDS, focusNode, pathTerm);
+			if (values.length === 0) continue;
+			if (!pending.has(key)) pending.set(key, []);
+			const bucket = pending.get(key);
+			for (const v of values) {
+				const projected = projectTerm(dataDS, shapesDS, v, entry.nested, shapeCache, stack, maxDepth, options);
+				if (isEmptyPOJO(projected)) continue;
+				if (!bucket.some((x) => sameValue(x, projected))) bucket.push(projected);
+			}
+		}
+	}
+	for (const [key, vals] of pending) {
+		if (vals.length === 0) continue;
+		obj[key] = options.arrays || vals.length > 1 ? vals : vals[0];
+	}
+	return obj;
+}
+function quadKey(q) {
+	return `${termKey(q.subject)}|${termKey(q.predicate)}|${termKey(q.object)}|${termKey(q.graph)}`;
+}
+/**
+* Extract the sub-graph of `input` permitted by a shape.
+* For each targeted node, keeps quads whose predicate is declared by a
+* sh:property path (plus rdf:type), then recurses into object nodes via
+* sh:node shapes or shapes targeting the object's rdf:type.
+* RDF list chains hanging off kept quads are included whole.
+*/
+function extractSubGraph(input, shapeIRI, options = {}) {
+	const { shapesDS, dataDS } = resolveDatasets(input);
+	const shapeTerm = resolveShapeTerm(shapesDS, shapeIRI);
+	const shapeCache = /* @__PURE__ */ new Map();
+	const shapeByClass = /* @__PURE__ */ new Map();
+	for (const key of findShapes(shapesDS)) {
+		const t = getShapeTerm(shapesDS, key);
+		if (!t) continue;
+		for (const cls of valuesOf(shapesDS, t, sh("targetClass"))) if (!shapeByClass.has(termKey(cls))) shapeByClass.set(termKey(cls), t);
+	}
+	const out = [];
+	const outKeys = /* @__PURE__ */ new Set();
+	const visited = /* @__PURE__ */ new Set();
+	const queue = resolveTargets(dataDS, shapesDS, shapeTerm).map((node) => ({
+		node,
+		shape: shapeTerm
+	}));
+	function emit(q) {
+		const k = quadKey(q);
+		if (outKeys.has(k)) return;
+		outKeys.add(k);
+		out.push(q);
+	}
+	function emitList(head) {
+		const members = [];
+		const seen = /* @__PURE__ */ new Set();
+		let cur = head;
+		while (cur && !termEquals(cur, RDF_NIL) && !seen.has(termKey(cur))) {
+			seen.add(termKey(cur));
+			for (const q of dataDS.match(cur, null, null)) if (termEquals(q.predicate, RDF_FIRST) || termEquals(q.predicate, RDF_REST)) emit(q);
+			const f = valuesOf(dataDS, cur, RDF_FIRST);
+			const r = valuesOf(dataDS, cur, RDF_REST);
+			if (f.length === 1) members.push(f[0]);
+			cur = r.length === 1 ? r[0] : null;
+		}
+		return members;
+	}
+	function childShape(node, viaShape) {
+		if (viaShape) return viaShape;
+		for (const t of valuesOf(dataDS, node, RDF_TYPE)) {
+			const s = shapeByClass.get(termKey(t));
+			if (s) return s;
+		}
+		return null;
+	}
+	while (queue.length > 0) {
+		const { node, shape } = queue.pop();
+		const vkey = `${termKey(shape)}|${termKey(node)}`;
+		if (visited.has(vkey)) continue;
+		visited.add(vkey);
+		const info = getShapeInfo(shapesDS, shape, shapeCache);
+		const plan = projectionPlanFor(shapesDS, shape, shapeCache);
+		const allowed = plan.length === 0 && info.propertyShapes.length === 0 ? null : /* @__PURE__ */ new Set();
+		const childShapes = /* @__PURE__ */ new Map();
+		for (const entry of plan) for (const pathTerm of entry.pathTerms) {
+			if (allowed) for (const k of pathPredicates(shapesDS, pathTerm)) allowed.add(k);
+			for (const v of resolvePath(dataDS, shapesDS, node, pathTerm)) if (entry.nested && (isNamedNode(v) || isBlankNode(v))) childShapes.set(termKey(v), entry.nested);
+		}
+		for (const q of dataDS.match(node, null, null)) {
+			const isType = termEquals(q.predicate, RDF_TYPE);
+			if (allowed && !isType && !allowed.has(termKey(q.predicate)) && !childShapes.has(termKey(q.object))) continue;
+			emit(q);
+			if (isType || isLiteral(q.object)) continue;
+			const members = isListHead(dataDS, q.object) ? emitList(q.object) : [q.object];
+			for (const m of members) {
+				if (isLiteral(m)) continue;
+				const cs = childShape(m, childShapes.get(termKey(m)));
+				if (cs) queue.push({
+					node: m,
+					shape: cs
+				});
+			}
+		}
+	}
+	return out;
+}
+/**
+* Project `input` through a shape into plain JavaScript objects.
+* Literals are cast by sh:datatype/xsd type, sh:name (or the path's local
+* name) becomes the key, sh:node recurses into nested objects, and RDF
+* lists become arrays. Single-target shapes return one object; multiple
+* targets return an array.
+*
+* @param {Quad[]|{quads?:Quad[], shapes?:Quad[], data?:Quad[]}} input
+* @param {string} [shapeIRI]  NodeShape IRI (defaults to first non-deactivated shape)
+* @param {Object} [options]   { arrays?: boolean (always emit arrays), maxDepth?: number,
+*                               byNode?: boolean (return {focusValue: pojo} instead of pojo(s)) }
+*/
+function extractPOJO(input, shapeIRI, options = {}) {
+	const { shapesDS, dataDS } = resolveDatasets(input);
+	const shapeTerm = resolveShapeTerm(shapesDS, shapeIRI);
+	const targets = resolveTargets(dataDS, shapesDS, shapeTerm);
+	const shapeCache = /* @__PURE__ */ new Map();
+	const maxDepth = options.maxDepth ?? 32;
+	const NODE_LEVEL_SKIP = [
+		"MinCountConstraintComponent",
+		"MaxCountConstraintComponent",
+		"EqualsConstraintComponent",
+		"DisjointConstraintComponent",
+		"LessThanConstraintComponent",
+		"LessThanOrEqualsConstraintComponent",
+		"UniqueLangConstraintComponent",
+		"HasValueConstraintComponent",
+		"QualifiedMinCountConstraintComponent",
+		"QualifiedMaxCountConstraintComponent"
+	];
+	const kept = !getShapeInfo(shapesDS, shapeTerm, shapeCache).constraints.some((c) => !NODE_LEVEL_SKIP.includes(c.component)) ? targets : targets.filter((t) => validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t, {
+		visited: /* @__PURE__ */ new Set(),
+		shapeCache,
+		jsCache: /* @__PURE__ */ new Map(),
+		allowJS: false
+	}, { nodeLevelOnly: true }).length === 0);
+	const pojos = kept.map((t) => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, /* @__PURE__ */ new Set(), maxDepth, options));
+	if (options.byNode) {
+		const out = {};
+		kept.forEach((t, i) => {
+			if (!isEmptyPOJO(pojos[i])) out[t.value] = pojos[i];
+		});
+		return out;
+	}
+	const nonEmpty = pojos.filter((p) => !isEmptyPOJO(p));
+	if (targets.length === 1) return nonEmpty[0] ?? {};
+	return nonEmpty;
+}
 /**
 * Validate data against SHACL shapes.
 *
@@ -1054,21 +1467,7 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
 * @returns {{ conforms: boolean, results: Array }}
 */
 function validate(options) {
-	let shapeQuads, dataQuads;
-	if (options.quads) {
-		options.classify || createShapeDetector().classify;
-		const detector = options.classify ? null : createShapeDetector();
-		const sq = [], dq = [];
-		for (const q of options.quads) if (options.classify ? options.classify(q) : detector.classify(q)) sq.push(q);
-		else dq.push(q);
-		shapeQuads = sq;
-		dataQuads = dq;
-	} else {
-		shapeQuads = options.shapes || [];
-		dataQuads = options.data || [];
-	}
-	const shapesDS = new Store(shapeQuads);
-	const dataDS = new Store(dataQuads);
+	const { shapesDS, dataDS } = resolveDatasets(options);
 	const allViolations = [];
 	const shapeKeys = findShapes(shapesDS);
 	const shapeCache = /* @__PURE__ */ new Map();
@@ -1144,4 +1543,4 @@ var Validator = class {
 		});
 	}
 };
-export { SUPPORTED_VOCABULARY, Store, Validator, createShapeDetector, validate as default, validate, isSupportedTerm };
+export { SUPPORTED_VOCABULARY, Store, Validator, createShapeDetector, validate as default, validate, extractPOJO, extractSubGraph, isSupportedTerm };
