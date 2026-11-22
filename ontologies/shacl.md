@@ -1,10 +1,8 @@
-<a id="index"></a>
-
 [mdld] <https://mdld.js.org/>
 [cat] <mdld:shacl/>
 [class] <cat:class/>
 
-# MDLD SHACL Catalog {=cat:index .Container label}
+# MDLD SHACL Catalog {=mdld:shacl .Container label}
 
 > A comprehensive guide to SHACL validation in MDLD (Markdown Linked Data) - self-validating documentation for semantic authors. {?comment}
 
@@ -19,7 +17,9 @@ This catalog [includes] {+cat:includes .rdf:Property label} all constraints and 
 [Targeting](#targeting-index)
 [Constraints](#constraints-index)
 
-# Getting Started with MDLD SHACL
+<a id="teach-getting-started"></a>
+
+# Getting Started with MDLD SHACL {=cat:start .cat:Reference ?cat:includes label}
 
 > Learn the fundamentals of SHACL validation in MDLD (Markdown Linked Data) {comment}
 
@@ -39,15 +39,31 @@ SHACL (Shapes Constraint Language) is a W3C standard for validating RDF graphs. 
 
 Let's create a simple shape for validating user accounts:
 
-~~~~~~md
+### Initial demo {=cat:demo/start .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation.
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:users/>
 
-**User Validation Shape** {=ex:UserShape .sh:NodeShape label}
-Validates all [User] {+ex:User ?sh:targetClass} instances to have a [name] {+ex:UsernameRule ?sh:property sh:name} and an [email] {+ex:EmailRule ?sh:property sh:name}.
+## Garden Plot Signup {=ex:UserShape .sh:NodeShape label}
+We run the signup sheet for a community garden. Every [User] {+ex:User ?sh:targetClass} who takes a plot must give a [name] {+ex:UsernameRule ?sh:property sh:name} and an [email] {+ex:EmailRule ?sh:property sh:name} — we write to them about watering schedules.
 
-**Username is required** {=ex:UsernameRule .sh:PropertyShape sh:message} requires [username] {+ex:username ?sh:path} to have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
+**Username is required** {=ex:UsernameRule .sh:PropertyShape sh:message}
+Our [username] {+ex:username ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
 
-**Email is required** {=ex:EmailRule .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value.
+**Email is required** {=ex:EmailRule .sh:PropertyShape sh:message}
+Our [email] {+ex:email ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value.
+
+One signup gave a [name] — [Alice] {=ex:Alice .ex:User ex:username} — but never an email address, so the watering notices have nowhere to go.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UserShape": {
+        "ex:Alice": {
+            "name": "Alice"
+        }
+    }
+}
 ~~~~~~
 
 ## Key MDLD Syntax Patterns
@@ -68,16 +84,9 @@ Validates all [User] {+ex:User ?sh:targetClass} instances to have a [name] {+ex:
 4. **Add constraints** - Apply constraint rules (minCount, datatype, pattern, etc.)
 5. **Test with data** - Create test data with valid and invalid examples
 
-## Next Steps
+<a id="targeting-index"></a>
 
-- Learn about [Targeting Mechanisms](#targeting-index) to select your data
-- Explore [Constraints](#constraints-index) to define validation rules
-- See practical examples in the constraint documentation
-
-
-# Catalog {=cat:index}
-
-## Targeting Mechanism {+class:Targeting ?member .Class label}
+## Targeting Mechanism {+class:Targeting .Class label}
 
 These are targeting predicates that determine which nodes get validated (not constraints themselves): 
 
@@ -86,24 +95,20 @@ These are targeting predicates that determine which nodes get validated (not con
 - [Target Subjects](#targeting-targetsubjectsof) {+sh:targetSubjectsOf ?cat:includes .class:TargetingPredicate}
 - [Target Objects](#targeting-targetobjectsof) {+sh:targetObjectsOf ?cat:includes .class:TargetingPredicate}
 
----
-
-[Syntax Reference](#syntax-reference)
+<a id="targeting-targetclass"></a>
 
 # Target Class {=sh:targetClass .class:TargetingMechanism label}
 
 > Targets all nodes that are instances of a specific RDF class (rdf:type) for shape validation. Essential for class-based validation scenarios across entire domains. {comment}
 
-<http://www.w3.org/ns/shacl#targetClass> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The targetClass constraint targets all nodes that are instances of a specific RDF class. This example validates all Product instances for business requirements.
 
-~~~~~~md
-[ex] <mdld:shacl/example/targeting/>
+### Target Class Demo {=cat:demo/targetClass .cat:Demo ?cat:hasDemo}
+Expects `2` {cat:expectedViolations ^^xsd:integer} violations (InvalidProduct fails twice: missing name AND negative price; Service not validated since it's not a Product)
+~~~~~~md {cat:demo}
+[ex] <tag:example.com,2026:targeting/>
 
 ## Product Validation Shape {=ex:ProductValidationShape .sh:NodeShape  label}
 
@@ -129,9 +134,16 @@ Name: [Consulting] {ex:name}
 Price: [200.00] {ex:price ^^xsd:decimal}
 ~~~~~~
 
-**Expected Result:** 2 violations (InvalidProduct fails twice: missing name AND negative price; Service not validated since it's not a Product)
-
----
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductValidationShape": {
+        "ex:Laptop": {
+            "name": "MacBook Pro",
+            "price": 1299.99
+        }
+    }
+}
+~~~~~~
 
 ## 📝 MDLD Syntax Patterns
 
@@ -158,16 +170,6 @@ Target class targets all nodes that are instances of a specific RDF class for sh
 
 ---
 
-## 🎯 Use Cases
-
-- **Domain validation** - Validate all instances of a domain class
-- **Business rules** - Enforce class-specific business requirements
-- **Data quality** - Ensure data consistency across class instances
-- **Schema enforcement** - Apply validation rules to entire class hierarchies
-- **Compliance** - Validate regulatory requirements for specific entity types
-
----
-
 ## 🔧 Implementation Guidelines
 
 **When to use target class:**
@@ -191,32 +193,24 @@ Target class targets all nodes that are instances of a specific RDF class for sh
 - ❌ Not considering performance for large datasets
 - ❌ Overusing target class when target node would be more appropriate
 
-
 <a id="targeting-targetnode"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[ex] <mdld:shacl/example/targeting/>
-
 
 # Target Node {=sh:targetNode .class:TargetingMechanism label}
 
 > Targets specific individual nodes identified by their IRI for precise, node-by-node validation. Perfect for critical infrastructure, testing scenarios, and executive-level validation. {comment}
 
-<http://www.w3.org/ns/shacl#targetNode> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The targetNode constraint targets specific individual nodes for validation. This example demonstrates critical infrastructure and executive validation scenarios.
 
-~~~~~~md
-[ex] <mdld:shacl/example/targeting/>
+### Target Node Demo {=cat:demo/targetNode .cat:Demo ?cat:hasDemo}
+**Expected Result:** [3] {cat:expectedViolations ^^xsd:integer} violations (MainDatabase fails twice: status offline AND uptime < 99.9%; CEO fails: clearance is secret not top-secret; BackupDatabase and CFO not validated as they're not targeted)
+~~~~~~md {cat:demo}
+[ex] <tag:example.com,2026:targeting/>
 
 ## Critical Infrastructure Demo
 
-The **Database Validation Shape** {=ex:DatabaseValidationShape .sh:NodeShape ?cat:hasShape label} targets the [Main Database] {+ex:MainDatabase ?sh:targetNode} for critical infrastructure validation: [status] {+#databaseStatus ?sh:property sh:name} and [uptime] {+#databaseUptime ?sh:property sh:name}.
+The **Database Validation Shape** {=ex:DatabaseValidationShape .sh:NodeShape label} targets the [Main Database] {+ex:MainDatabase ?sh:targetNode} for critical infrastructure validation: [status] {+#databaseStatus ?sh:property sh:name} and [uptime] {+#databaseUptime ?sh:property sh:name}.
 
 **Main database must be online** {=#databaseStatus .sh:PropertyShape sh:message} requires the [status] {+ex:status ?sh:path} property to be exactly [online] {sh:hasValue}.
 
@@ -224,7 +218,7 @@ The **Database Validation Shape** {=ex:DatabaseValidationShape .sh:NodeShape ?ca
 
 ## Executive Validation Demo
 
-**CEO Validation Shape** {=ex:CEOValidationShape .sh:NodeShape ?cat:hasShape label} targets the [CEO] {+ex:CEO ?sh:targetNode} for [executive] {+#executiveClearance ?sh:property sh:name} level clearance.
+**CEO Validation Shape** {=ex:CEOValidationShape .sh:NodeShape label} targets the [CEO] {+ex:CEO ?sh:targetNode} for [executive] {+#executiveClearance ?sh:property sh:name} level clearance.
 
 **CEO must have top-secret security clearance** {=#executiveClearance .sh:PropertyShape sh:message} requires the [securityClearance] {+ex:securityClearance ?sh:path} property to be exactly [top-secret] {sh:hasValue}.
 
@@ -247,7 +241,12 @@ Security Clearance: [secret] {ex:securityClearance}
 Security Clearance: [secret] {ex:securityClearance}
 ~~~~~~
 
-**Expected Result:** 3 violations (MainDatabase fails twice: status offline AND uptime < 99.9%; CEO fails: clearance is secret not top-secret; BackupDatabase and CFO not validated as they're not targeted)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DatabaseValidationShape": {},
+    "ex:CEOValidationShape": {}
+}
+~~~~~~
 
 ---
 
@@ -276,24 +275,7 @@ Target node targets specific individual nodes identified by their IRI for precis
 
 ---
 
-## 🎯 Use Cases
-
-- **Critical infrastructure** - Validate critical systems and infrastructure
-- **Executive validation** - Validate executive-level entities
-- **Testing scenarios** - Test specific nodes in isolation
-- **Compliance** - Validate specific regulatory entities
-- **Quality assurance** - Validate specific production nodes
-
----
-
 ## 🔧 Implementation Guidelines
-
-**When to use target node:**
-- **Critical infrastructure** - When validating specific critical systems
-- **Executive validation** - When validating executive-level entities
-- **Testing** - When testing specific nodes in isolation
-- **Compliance** - When validating specific regulatory entities
-- **Quality assurance** - When validating specific production nodes
 
 **Best practices:**
 - Use descriptive node identifiers for clarity
@@ -309,36 +291,18 @@ Target node targets specific individual nodes identified by their IRI for precis
 - ❌ Confusing target node with target class
 - ❌ Not documenting why specific nodes are targeted
 
-
-
-
-
-
-{=}
-
-
-
 <a id="targeting-targetsubjectsof"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[ex] <mdld:shacl/example/targeting/>
-
 
 # Target Subjects Of {=sh:targetSubjectsOf .class:TargetingMechanism label}
 
 > Targets all subjects (nodes) that have a specific property pointing to any value. Useful for reverse relationship targeting, source validation, and validating entities that initiate relationships. {comment}
 
-<http://www.w3.org/ns/shacl#targetSubjectsOf> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The targetSubjectsOf constraint targets all subjects (nodes) that have a specific property pointing to any value. This example demonstrates management and approval scenarios where we validate entities that initiate relationships.
 
-~~~~~~md
-[ex] <mdld:shacl/example/targeting/>
+### Target Subjects Of Demo {=cat:demo/targetSubjectsOf .cat:Demo ?cat:hasDemo }
+**Expected Result:** `3` {cat:expectedViolations ^^xsd:integer} violations (EngineeringManager fails twice: level < 3 AND teamSize > 10; FinanceApprover fails: authority < 2; JuniorDeveloper and RegularEmployee not validated as they don't initiate the relationships)
+~~~~~~md {cat:demo}
+[ex] <tag:my@example.org,2026:targeting/>
 
 ## Management Validation Demo
 
@@ -384,7 +348,21 @@ Approves: [BudgetRequest] {ex:approves}
 Authority: [0] {ex:authority ^^xsd:integer}
 ~~~~~~
 
-**Expected Result:** 3 violations (EngineeringManager fails twice: level < 3 AND teamSize > 10; FinanceApprover fails: authority < 2; JuniorDeveloper and RegularEmployee not validated as they don't initiate the relationships)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ManagerValidationShape": {
+        "ex:SeniorManager": {
+            "level": 4,
+            "teamSize": 8
+        }
+    },
+    "ex:ApproverValidationShape": {
+        "ex:ExecutiveApprover": {
+            "authority": 3
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -413,24 +391,7 @@ Target subjects of targets all subjects that have a specific property pointing t
 
 ---
 
-## 🎯 Use Cases
-
-- **Management validation** - Validate managers who manage teams
-- **Approval validation** - Validate approvers who approve requests
-- **Source validation** - Validate entities that initiate relationships
-- **Reverse relationship targeting** - Target based on outgoing relationships
-- **Business rules** - Enforce rules on relationship initiators
-
----
-
 ## 🔧 Implementation Guidelines
-
-**When to use target subjects of:**
-- **Management validation** - When validating managers or supervisors
-- **Approval validation** - When validating approvers or authorizers
-- **Source validation** - When validating relationship sources
-- **Reverse targeting** - When targeting based on outgoing relationships
-- **Business rules** - When enforcing rules on relationship initiators
 
 **Best practices:**
 - Use descriptive property names for clarity
@@ -446,36 +407,20 @@ Target subjects of targets all subjects that have a specific property pointing t
 - ❌ Not considering the direction of the relationship
 - ❌ Overusing when target class would be more appropriate
 
-
-
-
-
-
-{=}
-
-
-
 <a id="targeting-targetobjectsof"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[ex] <mdld:shacl/example/targeting/>
-
 
 # Target Objects Of {=sh:targetObjectsOf .class:TargetingMechanism label}
 
 > Targets all objects (values) that are pointed to by a specific property. Ideal for validating referenced entities, relationship targets, and entities that are the destination of relationships. {comment}
 
-<http://www.w3.org/ns/shacl#targetObjectsOf> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The targetObjectsOf constraint targets all objects (nodes) that are referenced by a specific property. This example demonstrates team membership and product reference scenarios where we validate entities that are referenced by others.
 
-~~~~~~md
-[ex] <mdld:shacl/example/targeting/>
+### Target Objects Of Demo {=cat:demo/targetObjectsOf .cat:Demo ?cat:hasDemo label}
+**Expected Result:** `4` {cat:expectedViolations ^^xsd:integer} violations (EngineeringTeam fails twice: workload > 40 AND status inactive; ExpensiveProduct fails twice: price > 1000 AND unavailable; QATeam and AffordableProduct pass; developers and orders not validated as they're subjects, not objects)
+~~~~~~md {cat:demo}
+[ex] <tag:example.com,2026:targeting/>
 
 ## Team Membership Demo
 
@@ -526,9 +471,22 @@ References: [Expensive product] {+ex:ExpensiveProduct ?ex:references}
 References: [Affordable product] {+ex:AffordableProduct ?ex:references}
 ~~~~~~
 
-**Expected Result:** 4 violations (EngineeringTeam fails twice: workload > 40 AND status inactive; ExpensiveProduct fails twice: price > 1000 AND unavailable; QATeam and AffordableProduct pass; developers and orders not validated as they're subjects, not objects)
-
----
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:TeamMemberValidationShape": {
+        "ex:QATeam": {
+            "workload": 35,
+            "status": "active"
+        }
+    },
+    "ex:ReferencedProductValidationShape": {
+        "ex:AffordableProduct": {
+            "availability": "true",
+            "price": 299.99
+        }
+    }
+}
+~~~~~~
 
 ## 📝 MDLD Syntax Patterns
 
@@ -555,16 +513,6 @@ Target objects of targets all objects that are pointed to by a specific property
 
 ---
 
-## 🎯 Use Cases
-
-- **Team membership validation** - Validate team members referenced by teams
-- **Product reference validation** - Validate products referenced by orders
-- **Destination validation** - Validate entities that are relationship targets
-- **Referenced entity validation** - Validate entities referenced by others
-- **Business rules** - Enforce rules on relationship destinations
-
----
-
 ## 🔧 Implementation Guidelines
 
 **When to use target objects of:**
@@ -588,15 +536,6 @@ Target objects of targets all objects that are pointed to by a specific property
 - ❌ Not considering the direction of the relationship
 - ❌ Overusing when target class would be more appropriate
 
-
-
-
-
-
-{=}
-
-
-
 <a id="syntax-reference"></a>
 
 ## 📝 MDLD Syntax Reference
@@ -619,23 +558,10 @@ Target objects of targets all objects that are pointed to by a specific property
 ~~~~~~
 
 **For detailed syntax, see:**
-- MDLD Spec: `/Users/davay/Documents/DeFUCC/MDLD/mdld-parse/spec/Spec.md`
-- Few-shot examples: `/Users/davay/Documents/DeFUCC/MDLD/mdld-parse/examples/few-shot.md`
-
-
-
-
-
-
-{=}
-
-
+- MDLD Spec: `https://mdld.js.org/spec/Spec.md`
+- Few-shot examples: `https://mdld.js.org/examples/few-shot.md`
 
 <a id="constraints-index"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[class] <cat:class/>
 
 ### 📋 Constraint {=class:Constraint ?member .Class label}
 
@@ -654,13 +580,19 @@ We can broadly divide them into these type groups:
 - JavaScript Constraint {+class:JSConstraint !subClassOf label}
 - SPARQL Constraint {+class:SPARQLConstraint !subClassOf label}
 
+### 🧱 Structural Term {=class:StructuralTerm ?member .Class label}
+
+> SHACL shape-structure vocabulary: the predicates that compose shapes themselves (path, property, target). {comment}
+
+### 🏷️ Annotation Term {=class:AnnotationTerm ?member .Class label}
+
+> SHACL shape-annotation vocabulary: naming, ordering and grouping metadata for shapes and constraints. {comment}
+
 ---
 
 [Syntax Reference](#syntax-reference)
 
----
-
-# Catalog {=cat:index}
+# Catalog {=mdld:shapes}
 
 This catalog includes these constraints: 
 
@@ -719,7 +651,7 @@ This catalog includes these constraints:
 
 Some parts are still completely uncovered and don't work even on ttl or pure quads - something might be wrong in the validator or in examples we use in tests, need deeper investigation:
 
-- Ignored Properties {+sh:ignoredProperties ?cat:includes .class:MetadataPredicate .cat:notCovered}
+- Ignored Properties {+sh:ignoredProperties ?cat:includes .class:MetadataPredicate}
 
 ## JavaScript Constraints
 
@@ -735,71 +667,173 @@ Some parts are still completely uncovered and don't work even on ttl or pure qua
 - SPARQL CONSTRUCT Query {+sh:construct ?cat:includes .class:SPARQLConstraint .cat:notCovered}
 - SPARQL UPDATE Query {+sh:update ?cat:includes .class:SPARQLConstraint .cat:notCovered}
 
-
-
 ## Property Path Constraints
 
-Need to check if these are working:
+MD-LD expresses path structures with IRIs instead of blank nodes — `sh:path` points to a node carrying `sh:inversePath` / `sh:alternativePath` / `sh:zeroOrMorePath` / `sh:oneOrMorePath` / `sh:zeroOrOnePath`, or an `rdf:List` for sequence paths.
 
-- Qualified Value Shape {+sh:qualifiedValueShape ?cat:includes .class:ShapeConstraint .cat:notCovered}
+- Qualified Value Shape {+sh:qualifiedValueShape ?cat:includes .class:ShapeConstraint}
 - Qualified Value Shapes Disjoint {+sh:qualifiedValueShapesDisjoint ?cat:includes .class:ShapeConstraint .cat:notCovered}
-- Inverse Path {+sh:inversePath ?cat:includes .class:PropertyPath .cat:notCovered}
-- Alternative Path {+sh:alternativePath ?cat:includes .class:PropertyPath .cat:notCovered}
-- Zero or More Path {+sh:zeroOrMorePath ?cat:includes .class:PropertyPath .cat:notCovered}
-- One or More Path {+sh:oneOrMorePath ?cat:includes .class:PropertyPath .cat:notCovered}
-- Zero or One Path {+sh:zeroOrOnePath ?cat:includes .class:PropertyPath .cat:notCovered}
+- Inverse Path {+sh:inversePath ?cat:includes .class:PropertyPath}
+- Alternative Path {+sh:alternativePath ?cat:includes .class:PropertyPath}
+- Zero or More Path {+sh:zeroOrMorePath ?cat:includes .class:PropertyPath}
+- One or More Path {+sh:oneOrMorePath ?cat:includes .class:PropertyPath}
+- Zero or One Path {+sh:zeroOrOnePath ?cat:includes .class:PropertyPath}
+
+### Property Path Demo {=cat:demo/paths .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Eve fails because she has neither ex:email nor ex:workEmail; the alternativePath structure is an IRI, not a blank node)
+~~~~~~md {cat:demo}
+[ex] <tag:my@example.org,2026:paths/>
+
+## Patient Intake {=ex:ContactShape .sh:NodeShape label}
+
+We register patients at a small clinic. Every [contact] {+ex:Contact ?sh:targetClass} must be reachable at [email] {+ex:EmailRule ?sh:property sh:name} — we accept it at either address on file.
+
+**Email is required via primary or work address** {=ex:EmailRule .sh:PropertyShape sh:message}
+Some [reachable email] {+ex:emailPath ?sh:path} must exist — at least [1] {sh:minCount ^^xsd:integer}.
+
+**Email path alternatives** {=ex:emailPath}
+The path tries the [primary email] first, then the [work email]: [alternative list] {+ex:emailAltList ?sh:alternativePath .rdf:List}
+
+**Path list head** {=ex:emailAltList}
+[primary email] {+ex:email ?rdf:first}
+[rest] {=ex:emailAltRest ?rdf:rest}
+[work email] {+ex:workEmail ?rdf:first}
+[nil] {+rdf:nil ?rdf:rest}
+
+## Test Data {=ex:data .Container}
+
+### Alice {=ex:Alice .ex:Contact}
+Gives us [alice@example.com] {ex:email} — reachable at home.
+
+### Bob {=ex:Bob .ex:Contact}
+Only gives us [bob@example.com] {ex:workEmail} — reachable at work, still counts.
+
+### Eve {=ex:Eve .ex:Contact}
+Only leaves a phone number [555-0100] {ex:phone} — no email on file at all, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ContactShape": {
+        "ex:Alice": {
+            "email": "alice@example.com"
+        },
+        "ex:Bob": {
+            "email": "bob@example.com"
+        }
+    }
+}
+~~~~~~
+
+## Shape Structure
+
+- [Path] {+sh:path ?cat:includes .class:StructuralTerm}
+- [Property] {+sh:property ?cat:includes .class:StructuralTerm}
+- [Target] {+sh:target ?cat:includes .class:TargetingPredicate}
+
+## Shape Annotation
+
+- [Name] {+sh:name ?cat:includes .class:AnnotationTerm}
+- [Order] {+sh:order ?cat:includes .class:AnnotationTerm}
+- [Group] {+sh:group ?cat:includes .class:AnnotationTerm}
+- [Default Value] {+sh:defaultValue ?cat:includes .class:AnnotationTerm}
+- [Description] {+sh:description ?cat:includes .class:AnnotationTerm}
+
+## Validation Result Vocabulary
+
+Result-side terms produced inside validation reports — not shape-authoring constraints, not covered by this catalog:
+
+- Focus Node {+sh:focusNode ?cat:includes .cat:notCovered}
+- Value {+sh:value ?cat:includes .cat:notCovered}
+- Result Path {+sh:resultPath ?cat:includes .cat:notCovered}
+- Result Severity {+sh:resultSeverity ?cat:includes .cat:notCovered}
+- Result Message {+sh:resultMessage ?cat:includes .cat:notCovered}
+- Result Annotation {+sh:resultAnnotation ?cat:includes .cat:notCovered}
+- Source Shape {+sh:sourceShape ?cat:includes .cat:notCovered}
+- Source Constraint {+sh:sourceConstraint ?cat:includes .cat:notCovered}
+- Source Constraint Component {+sh:sourceConstraintComponent ?cat:includes .cat:notCovered}
+- Conforms {+sh:conforms ?cat:includes .cat:notCovered}
+- Detail {+sh:detail ?cat:includes .cat:notCovered}
+- Result {+sh:result ?cat:includes .cat:notCovered}
+- Shapes Graph Well Formed {+sh:shapesGraphWellFormed ?cat:includes .cat:notCovered}
+
+## SHACL Extension Vocabulary
+
+SHACL-AF and SHACL-SPARQL extension terms — not covered by this catalog:
+
+- SPARQL {+sh:sparql ?cat:includes .cat:notCovered .class:SPARQLConstraint}
+- Expression {+sh:expression ?cat:includes .cat:notCovered}
+- Return Type {+sh:returnType ?cat:includes .cat:notCovered}
+- Condition {+sh:condition ?cat:includes .cat:notCovered}
+- Filter Shape {+sh:filterShape ?cat:includes .cat:notCovered}
+- Label Template {+sh:labelTemplate ?cat:includes .cat:notCovered}
+- Annotation Variable Name {+sh:annotationVarName ?cat:includes .cat:notCovered}
+- Declare {+sh:declare ?cat:includes .cat:notCovered}
+- Namespace {+sh:namespace ?cat:includes .cat:notCovered}
+- Prefix {+sh:prefix ?cat:includes .cat:notCovered}
+- Prefixes {+sh:prefixes ?cat:includes .cat:notCovered}
+- Entailment {+sh:entailment ?cat:includes .cat:notCovered}
+- Rule {+sh:rule ?cat:includes .cat:notCovered}
+- Validator {+sh:validator ?cat:includes .cat:notCovered}
+- Node Validator {+sh:nodeValidator ?cat:includes .cat:notCovered}
+- Property Validator {+sh:propertyValidator ?cat:includes .cat:notCovered}
+- Parameter {+sh:parameter ?cat:includes .cat:notCovered}
+- Predicate {+sh:predicate ?cat:includes .cat:notCovered}
+- Object {+sh:object ?cat:includes .cat:notCovered}
+- Subject {+sh:subject ?cat:includes .cat:notCovered}
+- Nodes {+sh:nodes ?cat:includes .cat:notCovered}
+- Optional {+sh:optional ?cat:includes .cat:notCovered}
+- Intersection {+sh:intersection ?cat:includes .cat:notCovered}
+- Union {+sh:union ?cat:includes .cat:notCovered}
+- Annotation Property {+sh:annotationProperty ?cat:includes .cat:notCovered}
+- Annotation Value {+sh:annotationValue ?cat:includes .cat:notCovered}
+- Shapes Graph {+sh:shapesGraph ?cat:includes .cat:notCovered}
+- Suggested Shapes Graph {+sh:suggestedShapesGraph ?cat:includes .cat:notCovered}
 
 ---
 
 ## Some constraints are environment dependent, are not tested to be working and are [Not covered] {=cat:notCovered .Class label} by this calalog.
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-class"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Class {=sh:class .class:Constraint label}
 
 > Expects each value to be an instance of a specific class (RDF type) {comment}
 
-<http://www.w3.org/ns/shacl#class> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The class constraint ensures property values are instances of a specific RDF class. This example validates that employee managers must be Person instances.
 
-~~~~~~md
+### Class Demo {=cat:demo/class .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmployee fails because manager is not a Person)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:class/>
 
-## Employee Test Shape {=ex:EmployeeTestShape .sh:NodeShape  label}
+## Team Directory {=ex:EmployeeTestShape .sh:NodeShape  label}
 
-All [employees] {+member ?sh:targetObjectsOf} must have **manager** {+#managerClass ?sh:property sh:name} class assigned.
+We are the staff directory of a twelve-person bookkeeping firm. Every [employee] {+member ?sh:targetObjectsOf} on file reports to a **manager** {+#managerClass ?sh:property sh:name} — and that manager must be a real person, because somebody once typed "Robot" as a placeholder and it stuck.
 
-**Manager must be a Person instance** {=#managerClass .sh:PropertyShape sh:message} requires the [manager] {+ex:manager ?sh:path} property to be an instance of a [Person] {+ex:Person ?sh:class}.
-
----
+**Manager must be a Person instance, got {$value}.** {=#managerClass .sh:PropertyShape sh:message}
+The [manager] {+ex:manager ?sh:path} property must point at a record typed as a [Person] {+ex:Person ?sh:class}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Employee {=ex:ValidEmployee ?member}
-Manager: [john] {+ex:john ?ex:manager .ex:Person}
+Our records show [john] {+ex:john ?ex:manager .ex:Person} as the manager — a real person, passes.
 
 ### Invalid Employee {=ex:InvalidEmployee ?member}
-Manager: [robot] {+ex:robot ?ex:manager ex:Role}
+Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — the placeholder that started all this, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidEmployee fails because manager is not a Person)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:EmployeeTestShape": {
+        "ex:ValidEmployee": {
+            "manager": "tag:my@example.org,2026:class/john"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -832,54 +866,47 @@ Manager: [robot] {+ex:robot ?ex:manager ex:Role}
 - ❌ Forgetting to define the class
 - ❌ Not combining with minCount for required properties
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-datatype"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[class] <cat:class/>
 
 # Data Type {=sh:datatype .class:Constraint label}
 
 > Expects a literal value to have certain datatype {comment}
 
-<http://www.w3.org/ns/shacl#datatype> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The datatype constraint ensures literal values have the correct datatype. This example validates that product prices must be decimal values.
 
-~~~~~~md
+### Data Type Demo {=cat:demo/datatype .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fails because price is string, not decimal)
+
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:datatype/>
 
-## Product Test Shape {=ex:ProductTestShape .sh:NodeShape sh:name}
+## Product Catalog {=ex:ProductTestShape .sh:NodeShape sh:name}
 
-Validates [Valid Product] {+ex:ValidProduct ?sh:targetNode} and [Invalid Product] {+ex:InvalidProduct ?sh:targetNode} with **price** {+#priceDecimal ?sh:property sh:name}.
+We are the catalog for a small hardware store. Every product we stock — [Valid Product] {+ex:ValidProduct ?sh:targetNode} and the [Invalid Product] {+ex:InvalidProduct ?sh:targetNode} — must carry a **price** {+#priceDecimal ?sh:property sh:name} that is a real number, not a string that merely looks like one.
 
-**Price must be decimal** {=#priceDecimal .sh:PropertyShape sh:message} requires the [price] {+ex:price ?sh:path} property to be a [decimal] {+xsd:decimal ?sh:datatype} value.
-
----
+## Price must be decimal — got {$value} at {$path}. {=#priceDecimal .sh:PropertyShape sh:message}
+Our [price] {+ex:price ?sh:path} must be typed as [decimal] {+xsd:decimal ?sh:datatype}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Product {=ex:ValidProduct ?member}
-Price: [29.99] {ex:price ^^xsd:decimal}
+Priced at [29.99] {ex:price ^^xsd:decimal} — a real decimal, passes.
 
 ### Invalid Product {=ex:InvalidProduct ?member}
-Price: [29.99] {ex:price ^^xsd:string}
+Priced at [29.99] {ex:price ^^xsd:string} — same digits, wrong type, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidProduct fails because price is string, not decimal)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductTestShape": {
+        "ex:ValidProduct": {
+            "price": 29.99
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -911,58 +938,50 @@ Price: [29.99] {ex:price ^^xsd:string}
 - ❌ Forgetting to specify the datatype prefix
 - ❌ Not combining with minCount for required properties
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-nodekind"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[class] <cat:class/>
 
 # Node Kind {=sh:nodeKind .class:Constraint label}
 
 > Expects a node to be of a specific kind (blank node, IRI, or literal) {comment}
 
-<http://www.w3.org/ns/shacl#nodeKind> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The nodeKind constraint expects a node to be of a specific kind (blank node, IRI, or literal). This example validates that content must be literal and references must be IRIs.
 
-~~~~~~md
+### Node Kind Demo {=cat:demo/nodekind .cat:Demo ?cat:hasDemo}
+Expects `2` {cat:expectedViolations ^^xsd:integer} violations (InvalidDocument fails twice: content is IRI not literal, reference is text not IRI)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:nodekind/>
 
-## Document Test Shape {=ex:DocumentTestShape .sh:NodeShape  label}
+## Filing Cabinet {=ex:DocumentTestShape .sh:NodeShape  label}
 
-Validates [Valid Document] {+ex:ValidDocument ?sh:targetNode} and [Invalid Document] {+ex:InvalidDocument ?sh:targetNode} with literal **content** {+#contentLiteral ?sh:property sh:name} and IRI for **reference** {+#referenceIRI ?sh:property sh:name}.
+We keep two documents on file — [Valid Document] {+ex:ValidDocument ?sh:targetNode} and [Invalid Document] {+ex:InvalidDocument ?sh:targetNode} — each carrying literal **content** {+#contentLiteral ?sh:property sh:name} and an IRI **reference** {+#referenceIRI ?sh:property sh:name}.
 
-**Content must be literal** {=#contentLiteral .sh:PropertyShape sh:message} requires [content] {+ex:content ?sh:path} to be a [Literal] {+sh:Literal ?sh:nodeKind}.
+## Content must be literal. {=#contentLiteral .sh:PropertyShape sh:message}
+Our [content] {+ex:content ?sh:path} must be typed as a [Literal] {+sh:Literal ?sh:nodeKind} — text, not a link.
 
-**Reference must be IRI** {=#referenceIRI .sh:PropertyShape sh:message} requires [reference] {+ex:reference ?sh:path} to be an [IRI] {+sh:IRI ?sh:nodeKind}.
-
----
+## Reference must be IRI. {=#referenceIRI .sh:PropertyShape sh:message}
+Our [reference] {+ex:reference ?sh:path} must be an [IRI] {+sh:IRI ?sh:nodeKind} — a link, not a string.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Document {=ex:ValidDocument ?member}
-Content: [text] {ex:content}
-Reference: <https://example.org> {?ex:reference}
+Our copy holds [text] {ex:content} as content and links out to <https://example.org> {?ex:reference}.
 
 ### Invalid Document {=ex:InvalidDocument ?member}
-Content: <https://example.org> {?ex:content}
-Reference: [text] {ex:reference}
+This filing is backwards: content is <https://example.org> {?ex:content} — a link where text belongs — and reference is [text] {ex:reference} — text where a link belongs.
 ~~~~~~
 
-**Expected Result:** 2 violations (InvalidDocument fails twice: content is IRI not literal, reference is text not IRI)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DocumentTestShape": {
+        "ex:ValidDocument": {
+            "content": "text",
+            "reference": "https://example.org"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -994,61 +1013,50 @@ Reference: [text] {ex:reference}
 - ❌ Wrong syntax for IRI vs literal
 - ❌ Confusing with datatype (nodeKind for IRI/Literal, datatype for literal types)
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-count"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-[class] <cat:class/>
 
 # Min Count {=sh:minCount .class:Constraint label}
 
 > Specifies the minimum number of values a property must have {comment}
 
-<http://www.w3.org/ns/shacl#minCount> {?cat:fullIRI}
-
 # Max Count {=sh:maxCount .class:Constraint label}
 
 > Specifies the maximum number of values a property can have {comment}
 
-<http://www.w3.org/ns/shacl#maxCount> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 Count constraints specify the minimum and maximum number of values a property must have. This example validates that email must be exactly one value.
 
-~~~~~~md
+### Count Demo {=cat:demo/count .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidPerson fails because it has two emails instead of one)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:count/>
 
-## Person Test Shape {=ex:PersonTestShape .sh:NodeShape  sh:name}
+## Member Directory {=ex:PersonTestShape .sh:NodeShape  sh:name}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **email** {+#emailExact ?sh:property sh:name}.
+We publish a member directory where every [member] {+member ?sh:targetObjectsOf} lists exactly one **email** {+#emailExact ?sh:property sh:name} — one address per person, no duplicates, no gaps.
 
-**Email must be exactly one** {=#emailExact .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} to have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
-
----
+## Email must be exactly one. {=#emailExact .sh:PropertyShape sh:message}
+Each [email] {+ex:email ?sh:path} must appear exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} time.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Person {=ex:ValidPerson ?member}
-Email: [work@example.com] {ex:email}
+Reachable at [work@example.com] {ex:email}.
 
 ### Invalid Person {=ex:InvalidPerson ?member}
-Email: [work@example.com] {ex:email}
-Email: [personal@example.com] {ex:email}
+We hold two addresses for this member — [work@example.com] {ex:email} and [personal@example.com] {ex:email} — which breaks the one-email rule.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidPerson fails because it has two emails instead of one)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:PersonTestShape": {
+        "ex:ValidPerson": {
+            "email": "work@example.com"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1081,71 +1089,56 @@ Email: [personal@example.com] {ex:email}
 - ❌ Using negative values for counts
 - ❌ Confusing minCount with maxCount
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-range"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
+# Range Constraints
 
-# Minimum Inclusive {=sh:minInclusive .class:Constraint label}
-
+## Minimum Inclusive {=sh:minInclusive .class:Constraint label}
 > Specifies the minimum inclusive value for range constraints {comment}
 
-<http://www.w3.org/ns/shacl#minInclusive> {?cat:fullIRI}
-
-# Maximum Inclusive {=sh:maxInclusive .class:Constraint label}
-
+## Maximum Inclusive {=sh:maxInclusive .class:Constraint label}
 > Specifies the maximum inclusive value for range constraints {comment}
 
-<http://www.w3.org/ns/shacl#maxInclusive> {?cat:fullIRI}
-
-# Minimum Exclusive {=sh:minExclusive .class:Constraint label}
-
+## Minimum Exclusive {=sh:minExclusive .class:Constraint label}
 > Specifies the minimum exclusive value for range constraints {comment}
 
-<http://www.w3.org/ns/shacl#minExclusive> {?cat:fullIRI}
-
-# Maximum Exclusive {=sh:maxExclusive .class:Constraint label}
-
+## Maximum Exclusive {=sh:maxExclusive .class:Constraint label}
 > Specifies the maximum exclusive value for range constraints {comment}
 
-<http://www.w3.org/ns/shacl#maxExclusive> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 Range constraints specify minimum and maximum values for numeric or date properties. This example validates that product prices must be between 10 and 100 inclusive.
 
-~~~~~~md
+### Range Demo {=cat:demo/range .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fails because price is 5, below the minimum of 10)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
-## Product Test Shape {=ex:ProductTestShape .sh:NodeShape label}
+## Print Shop Price List {=ex:ProductTestShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with conforming **price** {+#priceRange ?sh:property}.
+We are the price list for a small print shop. Every [product] {+member ?sh:targetObjectsOf} we sell must carry a **price** {+#priceRange ?sh:property sh:name} that makes business sense — nobody buys a banner for five cents or five thousand dollars.
 
-**Price must be between 10 and 100 inclusive** {=#priceRange .sh:PropertyShape sh:message} requires [price] {+ex:price ?sh:path} to be at least [10] {sh:minInclusive ^^xsd:decimal} and at most [100] {sh:maxInclusive ^^xsd:decimal}.
-
----
+## Price must be between 10 and 100 inclusive. {=#priceRange .sh:PropertyShape sh:message}
+Our [price] {+ex:price ?sh:path} must be at least [10] {sh:minInclusive ^^xsd:decimal} and at most [100] {sh:maxInclusive ^^xsd:decimal}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Product {=ex:ValidProduct ?member}
-Price: [50] {ex:price ^^xsd:decimal}
+A banner at [50] {ex:price ^^xsd:decimal} — comfortably in range.
 
 ### Invalid Product {=ex:InvalidProduct ?member}
-Price: [5] {ex:price ^^xsd:decimal}
+A yard sign at [5] {ex:price ^^xsd:decimal} — below our ten-dollar floor, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidProduct fails because price is 5, below the minimum of 10)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductTestShape": {
+        "ex:ValidProduct": {
+            "price": 50
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1179,57 +1172,48 @@ Price: [5] {ex:price ^^xsd:decimal}
 - ❌ Forgetting to specify the datatype
 - ❌ Confusing inclusive with exclusive bounds
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-comparison"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Comparison Constraints {=sh:lessThan .class:ComparisonConstraint label}
 
 > Validates property values against reference nodes using comparison operators {comment}
 
-<http://www.w3.org/ns/shacl#lessThan> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#lessThanOrEquals> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#equals> {?cat:fullIRI}
+Also provides [Less than or equals] {+sh:lessThanOrEquals .class:ComparisonConstraint label} and [Equals] {+sh:equals .class:ComparisonConstraint label} constraints.
 
 ---
-
-## 📋 Quick Start Pattern
 
 Comparison constraints validate property values against reference nodes using comparison operators. This example validates that order dates must be before shipping dates.
 
-~~~~~~md
+### Comparison Demo {=cat:demo/comparison .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidOrder fails because order date is after shipping date)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:comparison/>
 
-## Order Test Shape {=ex:OrderTestShape .sh:NodeShape  label}
+## Bakery Order Book {=ex:OrderTestShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **order date before shipping date** {+#orderDateRule ?sh:property sh:name}.
+We keep the order book for a neighborhood bakery. Every [order] {+member ?sh:targetObjectsOf} must record its order date before shipping date, kept as [orderDate] {+#orderDateRule ?sh:property sh:name} — you cannot ship a cake before you bake the order.
 
-**Order date must be before shipping date** {=#orderDateRule .sh:PropertyShape sh:message} requires [order date] {+ex:orderDate ?sh:path} to be before [shipping date] {+ex:shippingDate ?sh:lessThan}.
-
----
+## Order date must be before shipping date. {=#orderDateRule .sh:PropertyShape sh:message}
+Our [order date] {+ex:orderDate ?sh:path} must come before the [shipping date] {+ex:shippingDate ?sh:lessThan}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Order {=ex:ValidOrder ?member}
-Order Date: [2024-06-15] {ex:orderDate ^^xsd:date}
-Shipping Date: [2024-06-20] {ex:shippingDate ^^xsd:date}
+Ordered [2024-06-15] {ex:orderDate ^^xsd:date}, ships [2024-06-20] {ex:shippingDate ^^xsd:date} — five days to decorate, passes.
 
 ### Invalid Order {=ex:InvalidOrder ?member}
-Order Date: [2024-06-25] {ex:orderDate ^^xsd:date}
-Shipping Date: [2024-06-20] {ex:shippingDate ^^xsd:date}
+Ordered [2024-06-25] {ex:orderDate ^^xsd:date} but supposedly ships [2024-06-20] {ex:shippingDate ^^xsd:date} — shipped before it was ordered, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidOrder fails because order date is after shipping date)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:OrderTestShape": {
+        "ex:ValidOrder": {
+            "orderDate": "2024-06-15T00:00:00.000Z"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1262,55 +1246,46 @@ Shipping Date: [2024-06-20] {ex:shippingDate ^^xsd:date}
 - ❌ Forgetting both properties must be present
 - ❌ Using wrong comparison operator
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-disjoint"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Disjoint {=sh:disjoint .class:DisjointConstraint label}
 
 > Ensures that values of a property are disjoint with values of another property {comment}
 
-<http://www.w3.org/ns/shacl#disjoint> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The disjoint constraint ensures that values of a property are disjoint with values of another property. This example validates that preferred labels must be different from alternative labels.
 
-~~~~~~md
+### Disjoint Demo {=cat:demo/disjoint .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Germany fails because preferred and alternative labels are the same)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:disjoint/>
 
-## Label Test Shape {=ex:DisjointExampleShape .sh:NodeShape label}
+## Archive Tag Shape {=ex:DisjointExampleShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **disjoint labels** {+#disjointRule ?sh:property sh:name}.
+We catalog exhibits for a small natural-history museum. Every [item] {+member ?sh:targetObjectsOf} gets a preferred label, kept as [prefLabel] {+#disjointRule ?sh:property sh:name}, and any **alternative labels** {+ex:altLabel ?sh:disjoint} it is also known by — but an alternative can't just repeat the preferred one.
 
-**Preferred labels must be different from alternative labels** {=#disjointRule .sh:PropertyShape sh:message} requires [preferred labels] {+ex:prefLabel ?sh:path} to be disjoint with [alternative labels] {+ex:altLabel ?sh:disjoint}.
-
----
+## Preferred labels must be different from alternative labels. {=#disjointRule .sh:PropertyShape sh:message}
+Our [preferred labels] {+ex:prefLabel ?sh:path} must never overlap with the [alternative labels] {+ex:altLabel ?sh:disjoint}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Case {=ex:USA ?member}
-Preferred Label: [USA] {ex:prefLabel}
-Alternative Label: [United States] {ex:altLabel}
+Labeled [USA] {ex:prefLabel} officially, [United States] {ex:altLabel} informally — different words, passes.
 
 ### Invalid Case {=ex:Germany ?member}
-Preferred Label: [Germany] {ex:prefLabel}
-Alternative Label: [Germany] {ex:altLabel}
+Labeled [Germany] {ex:prefLabel} and also [Germany] {ex:altLabel} — the same word twice, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (Germany fails because preferred and alternative labels are the same)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DisjointExampleShape": {
+        "ex:USA": {
+            "prefLabel": "USA"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1341,53 +1316,47 @@ Alternative Label: [Germany] {ex:altLabel}
 - ❌ Using disjoint when properties should be related
 - ❌ Forgetting both properties must be present
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-not"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # NOT Constraint {=sh:not .class:LogicalConstraint label}
 
 > Requires value nodes to NOT conform to a given shape {comment}
 
-<http://www.w3.org/ns/shacl#not> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The NOT constraint requires value nodes to NOT conform to a given shape. This example validates that users cannot have a deleted status.
 
-~~~~~~md
+### NOT Demo {=cat:demo/not .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidDeletedUser fails because status is deleted, which conforms to the forbidden shape)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:not/>
 
-## User Status Shape {=ex:UserStatusShape .sh:NodeShape  label}
+## Gym Roster Shape {=ex:UserStatusShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities to not conform to the forbidden **shape** {+ex:ForbiddenStatusShape ?sh:not}.
+We run the member roster for a climbing gym. Every [member] {+member ?sh:targetObjectsOf} on file must never match the forbidden **shape** {+ex:ForbiddenStatusShape ?sh:not} — a deleted account is gone, full stop. Their [status] {+#statusField ?sh:property sh:name} is still recorded on the roster.
 
-**Forbidden Status Shape** {=ex:ForbiddenStatusShape .sh:NodeShape} requires [status] {+ex:status ?sh:path} to be exactly [deleted] {sh:hasValue}.
+**Status field** {=#statusField .sh:PropertyShape} carries the [status] {+ex:status ?sh:path}.
 
----
+**Forbidden Status Shape** {=ex:ForbiddenStatusShape .sh:NodeShape} marks anyone whose [status] {+ex:status ?sh:path} reads exactly [deleted] {sh:hasValue}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid User {=ex:ValidActiveUser ?member}
-Status: [active] {ex:status}
+Still climbing — status [active] {ex:status}, passes.
 
 ### Invalid User {=ex:InvalidDeletedUser ?member}
-Status: [deleted] {ex:status}
+Cancelled last month — status [deleted] {ex:status}, matches the forbidden shape, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidDeletedUser fails because status is deleted, which conforms to the forbidden shape)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UserStatusShape": {
+        "ex:ValidActiveUser": {
+            "status": "active"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1418,65 +1387,57 @@ Status: [deleted] {ex:status}
 - ❌ Creating circular dependencies
 - ❌ Making forbidden shapes too complex
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-and"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # AND Constraint {=sh:and .class:LogicalConstraint label}
 
 > Requires all constraints in the list to be satisfied {comment}
 
-<http://www.w3.org/ns/shacl#and> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The AND constraint requires all specified constraints to be satisfied. This example validates that products must have both a price and a category.
 
-~~~~~~md
+### AND Demo {=cat:demo/and .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (MissingPriceProduct fails because it lacks price)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:and/>
 
-## Product Validation Shape {=ex:ProductValidationShape .sh:NodeShape label}
+## Vendor Sign-up Shape {=ex:ProductValidationShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **Product must have price and category** {sh:message}.
+We run vendor sign-up for a weekend farmers market. Every [vendor] {+member ?sh:targetObjectsOf} must satisfy **Product must have price and category** {sh:message} — an application without both isn't an application.
 
 **Constraints List** {=ex:and-l1 ?sh:and .rdf:List}: [Price Required] {+ex:priceRequired ?rdf:first}, then [followed] {=ex:and-l2 ?rdf:rest} by [Category Required] {+ex:categoryRequired ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Price Required** {=ex:priceRequired .sh:PropertyShape} ensures [price] {+ex:price ?sh:path} has at least [1] {sh:minCount ^^xsd:integer} value.
+**Price Required** {=ex:priceRequired .sh:PropertyShape} ensures the stall [price] {+ex:price ?sh:path} — filed on the card as [price] {=ex:priceRequired sh:name} — has at least [1] {sh:minCount ^^xsd:integer} value.
 
-**Category Required** {=ex:categoryRequired .sh:PropertyShape} ensures [category] {+ex:category ?sh:path} has at least [1] {sh:minCount ^^xsd:integer} value.
-
----
+**Category Required** {=ex:categoryRequired .sh:PropertyShape} ensures the stall [category] {+ex:category ?sh:path} — filed on the card as [category] {=ex:categoryRequired sh:name} — has at least [1] {sh:minCount ^^xsd:integer} value.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Product {=ex:ValidProduct ?member}
-Price: [999] {ex:price ^^xsd:integer}
-Category: [Electronics] {ex:category}
+Selling jars at [7] {ex:price ^^xsd:integer} dollars from the [preserves] {ex:category} stall — both boxes ticked, passes.
 
-### Invalid Product {=ex:MissingPriceProduct ?member}
-Category: [Electronics] {ex:category}
+### Missing Price Product {=ex:MissingPriceProduct ?member}
+Selling from the [baked goods] {ex:category} stall but never listed a [price] {ex:note} — half an application, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (MissingPriceProduct fails because it lacks price)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductValidationShape": {
+        "ex:ValidProduct": {
+            "price": 7,
+            "category": "preserves"
+        }
+    }
+}
+~~~~~~
 
 ---
 
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Constraints List] {=ex:and-l1 ?sh:and .rdf:List}: [First] {+ex:first ?rdf:first}, then [rest] {=ex:and-l2 ?rdf:rest} by [Second] {+ex:second ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
+[Constraints List] {=ex:and-list ?sh:and .rdf:List}: [First] {=ex:first ?rdf:first}, then [rest] {=ex:and-l2 ?rdf:rest} followed by [Second] {+ex:second ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 ~~~~~~
 
 **Use for:** Multi-property validation, cross-field validation, business rule combinations
@@ -1501,60 +1462,55 @@ Category: [Electronics] {ex:category}
 - ❌ Forgetting subject reset {=} after list
 - ❌ Reusing list identifiers causing collisions
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-or"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # OR Constraint {=sh:or .class:LogicalConstraint label}
 
 > Requires at least one constraint in the list to be satisfied {comment}
 
-<http://www.w3.org/ns/shacl#or> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The OR constraint requires at least one of the specified constraints to be satisfied. This example validates that a contact must be either an email (contains @) or a phone number (contains -).
 
-~~~~~~md
+### OR Demo {=cat:demo/or .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidContact fails because it matches neither email nor phone pattern)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:or/>
 
-## Contact Validation Shape {=ex:ContactValidationShape .sh:NodeShape label}
+## Dog-Walking Contact Card {=ex:ContactValidationShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **Contact must be email or phone** {sh:message}.
+We are the contact card for a dog-walking service. Every [client] {+member ?sh:targetObjectsOf} must leave us **Contact must be email or phone** {sh:message} — an email address or a phone number, whichever they prefer, but at least one way to reach them.
 
 **Options List** {=ex:or-l1 ?sh:or .rdf:List}: [Email Contact] {+ex:emailContact ?rdf:first}, then [followed] {=ex:or-l2 ?rdf:rest} by [Phone Contact] {+ex:phoneContact ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Email Contact** {=ex:emailContact .sh:PropertyShape} ensures [contact] {+ex:contact ?sh:path} contains [@] {sh:pattern}.
+**Email Contact** {=ex:emailContact .sh:PropertyShape} accepts any [contact] {+ex:contact ?sh:path} — filed on the card as [contact] {=ex:emailContact sh:name} — containing [@] {sh:pattern}.
 
-**Phone Contact** {=ex:phoneContact .sh:PropertyShape} ensures [contact] {+ex:contact ?sh:path} contains [-] {sh:pattern}.
-
----
+**Phone Contact** {=ex:phoneContact .sh:PropertyShape} accepts any [contact] {+ex:contact ?sh:path} — also filed as [contact] {=ex:phoneContact sh:name} — containing [-] {sh:pattern}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Email Contact {=ex:ValidEmail ?member}
-Contact: [user@example.com] {ex:contact}
+Reach her at [user@example.com] {ex:contact}.
 
 ### Valid Phone Contact {=ex:ValidPhone ?member}
-Contact: [555-123-4567] {ex:contact}
+Or text [555-123-4567] {ex:contact} — either channel works.
 
 ### Invalid Contact {=ex:InvalidContact ?member}
-Contact: [invalid] {ex:contact}
+All we have is [invalid] {ex:contact} — no @, no digits, unreachable, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidContact fails because it matches neither email nor phone pattern)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ContactValidationShape": {
+        "ex:ValidEmail": {
+            "contact": "user@example.com"
+        },
+        "ex:ValidPhone": {
+            "contact": "555-123-4567"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1588,60 +1544,55 @@ Contact: [invalid] {ex:contact}
 - ❌ Reusing list identifiers causing collisions
 - ❌ Overlapping alternatives causing ambiguity
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-xone"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # XONE Constraint {=sh:xone .class:LogicalConstraint label}
 
 > Requires exactly one constraint in the list to be satisfied (exclusive OR) {comment}
 
-<http://www.w3.org/ns/shacl#xone> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The XONE constraint requires exactly one of the specified constraints to be satisfied. This example validates that a role must be exactly one type (admin or user), not both and not neither.
 
-~~~~~~md
+### XONE Demo {=cat:demo/xone .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (NoRole fails because it matches neither admin nor user)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:xone/>
 
-## Role Validation Shape {=ex:RoleValidationShape .sh:NodeShape label}
+## Tool Library Passes {=ex:RoleValidationShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **Role must be exactly one type** {sh:message}.
+We issue membership passes for a community tool-lending library. Every [member] {+member ?sh:targetObjectsOf} must satisfy **Role must be exactly one type** {sh:message} — admin or regular user, one badge, not two, not none.
 
 **Options List** {=ex:xone-l1 ?sh:xone .rdf:List}: [Admin Role] {+ex:adminRole ?rdf:first}, then [followed] {=ex:xone-l2 ?rdf:rest} by [User Role] {+ex:userRole ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Admin Role** {=ex:adminRole .sh:PropertyShape} ensures [role] {+ex:role ?sh:path} is exactly [admin] {sh:hasValue}.
+**Admin Role** {=ex:adminRole .sh:PropertyShape} recognizes a [role] {+ex:role ?sh:path} — printed on the pass as [role] {=ex:adminRole sh:name} — of exactly [admin] {sh:hasValue}.
 
-**User Role** {=ex:userRole .sh:PropertyShape} ensures [role] {+ex:role ?sh:path} is exactly [user] {sh:hasValue}.
-
----
+**User Role** {=ex:userRole .sh:PropertyShape} recognizes a [role] {+ex:role ?sh:path} — also printed as [role] {=ex:userRole sh:name} — of exactly [user] {sh:hasValue}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Admin {=ex:ValidAdmin ?member}
-Role: [admin] {ex:role}
+Runs the front desk — role [admin] {ex:role}, passes.
 
 ### Valid User {=ex:ValidUser ?member}
-Role: [user] {ex:role}
+Borrows drills on weekends — role [user] {ex:role}, passes.
 
 ### Invalid - No Role {=ex:NoRole ?member}
-Role: [guest] {ex:role}
+Showing up as [guest] {ex:role} — neither badge type, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (NoRole fails because it matches neither admin nor user)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:RoleValidationShape": {
+        "ex:ValidAdmin": {
+            "role": "admin"
+        },
+        "ex:ValidUser": {
+            "role": "user"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1675,59 +1626,48 @@ Role: [guest] {ex:role}
 - ❌ Reusing list identifiers causing collisions
 - ❌ Overlapping alternatives causing ambiguous results
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-length"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
 # Min Length {=sh:minLength .class:Constraint label}
-
 > Specifies the minimum length of string values {comment}
 
-<http://www.w3.org/ns/shacl#minLength> {?cat:fullIRI}
-
 # Max Length {=sh:maxLength .class:Constraint label}
-
 > Specifies the maximum length of string values {comment}
 
-<http://www.w3.org/ns/shacl#maxLength> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 Length constraints specify the minimum and maximum length of string values. This example validates that usernames must be between 3 and 20 characters.
 
-~~~~~~md
+### Length Demo {=cat:demo/length .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidUser fails because username is only 2 characters, below the minimum of 3)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:length/>
 
-## User Account Test Shape {=ex:UserAccountTestShape .sh:NodeShape  label}
+## Makerspace Badges {=ex:UserAccountTestShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with correct length of the **username** {+#usernameLength ?sh:property sh:name}.
+We run a neighborhood makerspace, and every [member] {+member ?sh:targetObjectsOf} gets a door badge. The **username** {+#usernameLength ?sh:property sh:name} printed on it must be 3–20 characters — long enough to be distinct, short enough to fit the badge.
 
-**Username must be 3-20 characters** {=#usernameLength .sh:PropertyShape sh:message} requires [username] {+ex:username ?sh:path} to have at least [3] {sh:minLength ^^xsd:integer} and at most [20] {sh:maxLength ^^xsd:integer} characters.
-
----
+## Username must be 3-20 characters. {=#usernameLength .sh:PropertyShape sh:message}
+Our [username] {+ex:username ?sh:path} must be at least [3] {sh:minLength ^^xsd:integer} and at most [20] {sh:maxLength ^^xsd:integer} characters.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid User {=ex:ValidUser ?member}
-Username: [john_doe] {ex:username}
+Badge reads [john_doe] {ex:username} — fits nicely.
 
 ### Invalid User {=ex:InvalidUser ?member}
-Username: [jd] {ex:username}
+Badge reads [jd] {ex:username} — two letters is not a name, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidUser fails because username is only 2 characters, below the minimum of 3)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UserAccountTestShape": {
+        "ex:ValidUser": {
+            "username": "john_doe"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1758,54 +1698,47 @@ Username: [jd] {ex:username}
 - ❌ Forgetting datatype ^^xsd:integer
 - ❌ Using negative values for lengths
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-pattern"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
 # Pattern {=sh:pattern .class:PatternConstraint label}
-
 > Validates string values against regular expression patterns {comment}
 
-<http://www.w3.org/ns/shacl#pattern> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#flags> {?cat:fullIRI}
+Also may have [Flags] {+sh:flags .class:PatternConstraint label} added.
 
 ---
-
-## 📋 Quick Start Pattern
 
 The pattern constraint validates string values against regular expression patterns. This example validates that emails must end with example.com.
 
-~~~~~~md
+### Pattern Demo {=cat:demo/pattern .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmail fails because it doesn't match the pattern - ends with .org not .com)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:pattern/>
 
-## Email Validation Shape {=ex:PatternExampleShape .sh:NodeShape label}
+## Company Signup Sheet {=ex:PatternExampleShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with corporate **email** {+ex:EmailPatternConstraint ?sh:property sh:name}.
+We process sign-ups for a company whose email domain is strictly corporate. Every [employee] {+member ?sh:targetObjectsOf} must give a corporate **email** {+ex:EmailPatternConstraint ?sh:property sh:name} — anything outside our domain doesn't belong in the directory.
 
-**Email must end with example.com** {=ex:EmailPatternConstraint .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} to match [example\.com$] {sh:pattern} with [i] {sh:flags}.
-
----
+**Email must end with example.com, got {$value}** {=ex:EmailPatternConstraint .sh:PropertyShape sh:message}
+Our [email] {+ex:email ?sh:path} must match [example\.com$] {sh:pattern}, case-insensitively via [i] {sh:flags}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Email {=ex:ValidEmail ?member}
-Email: [user@example.com] {ex:email}
+[User@example.com] {ex:email} — on-domain, passes.
 
 ### Invalid Email {=ex:InvalidEmail ?member}
-Email: [user@example.org] {ex:email}
+[user@example.org] {ex:email} — close, but .org isn't us, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidEmail fails because it doesn't match the pattern - ends with .org not .com)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:PatternExampleShape": {
+        "ex:ValidEmail": {
+            "email": "User@example.com"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1838,53 +1771,46 @@ Email: [user@example.org] {ex:email}
 - ❌ Using overly complex regex
 - ❌ Forgetting pattern only works with strings
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-language"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Language In {=sh:languageIn .class:StringConstraint label}
 
 > Constrains string literals to have language tags from a specified list {comment}
 
-<http://www.w3.org/ns/shacl#languageIn> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The languageIn constraint constrains string literals to have language tags from a specified list. This example validates that document titles must be in English or French.
 
-~~~~~~md
+### Language Demo {=cat:demo/language .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (GermanDocument fails because title language is de, not in the allowed list)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:language/>
 
-## Multilingual Document Shape {=ex:MultilingualDocumentShape .sh:NodeShape  label}
+## Welcome Pack Shape {=ex:MultilingualDocumentShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with english or french **title** {+#titleLanguage ?sh:property sh:name}.
+We print the welcome pack for a bed-and-breakfast on the Quebec border. Every [document] {+member ?sh:targetObjectsOf} we hand to guests carries a **title** {+#titleLanguage ?sh:property sh:name} in english or french — our two working languages, nothing else.
 
-**Title language must be en or fr** {=#titleLanguage .sh:PropertyShape sh:message} requires [title] {+ex:title ?sh:path} language tags to be in the **Allowed Languages List** {=ex:lang-l1 ?sh:languageIn .rdf:List}: **en** {rdf:first},  [or] {=ex:lang-l2 ?rdf:rest} **fr** {rdf:first} - [only these 2 languages are allowed] {+rdf:nil ?rdf:rest}. {=}
-
----
+## Title language must be en or fr. {=#titleLanguage .sh:PropertyShape sh:message}
+The [title] {+ex:title ?sh:path} language tag must appear in the **Allowed Languages List** {=ex:lang-l1 ?sh:languageIn .rdf:List}: **en** {rdf:first},  [or] {=ex:lang-l2 ?rdf:rest} **fr** {rdf:first} - [only these 2 languages are allowed] {+rdf:nil ?rdf:rest}. {=}
 
 ## Test Data {=ex:data .Container}
 
 ### English Document {=ex:EnglishDocument ?member}
-Title: [Hello World] {ex:title @en}
+Greeted with [Hello World] {ex:title @en} at the door.
 
 ### Invalid Document {=ex:GermanDocument ?member}
-Title: [Hallo Welt] {ex:title @de}
+Greeted with [Hallo Welt] {ex:title @de} — lovely German, but not one of our two languages, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (GermanDocument fails because title language is de, not in the allowed list)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:MultilingualDocumentShape": {
+        "ex:EnglishDocument": {
+            "title": "Hello World"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1918,55 +1844,49 @@ Title: [Hallo Welt] {ex:title @de}
 - ❌ Forgetting subject reset {=} after list
 - ❌ Reusing list identifiers causing collisions
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-uniquelang"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Unique Languages {=sh:uniqueLang .class:UniqueLanguageConstraint label}
 
 > Ensures that language tags of string literals are unique within a property {comment}
 
-<http://www.w3.org/ns/shacl#uniqueLang> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The uniqueLang constraint ensures that language tags of string literals are unique within a property. This example validates that document titles cannot have duplicate language tags.
 
-~~~~~~md
+### UniqueLang Demo {=cat:demo/uniqueLang .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidDocument fails because it has duplicate @en language tags)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:uniqueLang/>
 
-## Unique Language Example Shape {=ex:UniqueLangExampleShape .sh:NodeShape label}
+## Translation Memory {=ex:UniqueLangExampleShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with unique **language** {+ex:TitleProperty ?sh:property sh:name}.
+We maintain the translation memory for a small publisher. Every [document] {+member ?sh:targetObjectsOf} carries a **language** {+ex:TitleProperty ?sh:property sh:name} tag on its title — and each tag may appear only once per document, or our counts double-count.
 
-**Each language tag must appear only once** {=ex:TitleProperty .sh:PropertyShape sh:message} requires [title] {+ex:title ?sh:path} values to have [true] {sh:uniqueLang ^^xsd:boolean}.
-
----
+## Each language tag must appear only once. {=ex:TitleProperty .sh:PropertyShape sh:message}
+Our [title] {+ex:title ?sh:path} values must respect [true] {sh:uniqueLang ^^xsd:boolean} uniqueness.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Document {=ex:ValidNode ?member}
-Title: [Hello World] {ex:title @en}
-Title: [Bonjour Monde] {ex:title @fr}
+One English title [Hello World] {ex:title @en}, one French [Bonjour Monde] {ex:title @fr} — distinct tags, passes.
 
 ### Invalid Document {=ex:InvalidNode ?member}
-Title: [Hello World] {ex:title @en}
-Title: [Hola Mundo] {ex:title @en}
+Two English titles — [Hello World] {ex:title @en} and [Hola Mundo] {ex:title @en} — a duplicate @en tag, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidDocument fails because it has duplicate @en language tags)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UniqueLangExampleShape": {
+        "ex:ValidNode": {
+            "language": [
+                "Hello World",
+                "Bonjour Monde"
+            ]
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -1997,53 +1917,46 @@ Title: [Hola Mundo] {ex:title @en}
 - ❌ Using uniqueLang on non-language-tagged literals
 - ❌ Forgetting to use @lang syntax
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-hasvalue"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Has Value {=sh:hasValue .class:Constraint label}
 
 > Requires a property to have exactly this specific value {comment}
 
-<http://www.w3.org/ns/shacl#hasValue> {?cat:fullIRI}
-
 ---
-
-## 📋 Quick Start Pattern
 
 The hasValue constraint requires a property to have exactly a specific value. This example validates that server status must be exactly "active".
 
-~~~~~~md
+### Has Value Demo {=cat:demo/hasvalue .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (BackupServer fails because status is standby, not active)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:hasvalue/>
 
-## System Status Test Shape {=ex:SystemStatusTestShape .sh:NodeShape label}
+## Server Room Board {=ex:SystemStatusTestShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with active **status** {+#statusRequired ?sh:property sh:name}.
+We keep the status board in the server room of a small hosting outfit. Every [machine] {+member ?sh:targetObjectsOf} must report an **status** {+#statusRequired ?sh:property sh:name} of exactly one thing: [active] {sh:hasValue ^^xsd:string}. Standby is not active.
 
-**Status must be active** {=#statusRequired .sh:PropertyShape sh:message} requires [status] {+ex:status ?sh:path} to be exactly [active] {sh:hasValue ^^xsd:string}.
-
----
+## Status must be active. {=#statusRequired .sh:PropertyShape sh:message}
+Our [status] {+ex:status ?sh:path} must read exactly [active] {sh:hasValue ^^xsd:string}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Server {=ex:MainServer ?member}
-Status: [active] {ex:status}
+Serving traffic — status [active] {ex:status}, passes.
 
 ### Invalid Server {=ex:BackupServer ?member}
-Status: [standby] {ex:status}
+Warming spares — status [standby] {ex:status}, not active, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (BackupServer fails because status is standby, not active)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:SystemStatusTestShape": {
+        "ex:MainServer": {
+            "status": "active"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -2076,57 +1989,47 @@ Status: [standby] {ex:status}
 - ❌ Forgetting hasValue requires exact match
 - ❌ Not combining with minCount for required properties
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-node"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
 # Node {=sh:node .class:NodeConstraint label}
-
 > Requires property values to conform to a specific node shape {comment}
-
-<http://www.w3.org/ns/shacl#node> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
 
 The node constraint requires property values to conform to a specific node shape. This example validates that employee addresses must conform to an AddressShape with minimum street length.
 
-~~~~~~md
+### Node Demo {=cat:demo/node .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmployee fails because address doesn't conform to AddressShape - street is too short)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:node/>
 
-## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape  label}
+## Property Management Ledger {=ex:EmployeeValidationShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities to have correct **address** {+#addressRule ?sh:property sh:name}.
+We manage rental units for a small landlord. Every [lease] {+member ?sh:targetObjectsOf} must carry a **address** {+#addressRule ?sh:property sh:name} that is itself a proper address record — not a stub, not a placeholder.
 
-**Employee must have valid address** {=#addressRule .sh:PropertyShape sh:message} requires [address] {+ex:address ?sh:path} to conform to [Address Shape] {+ex:AddressShape ?sh:node}.
+**Employee must have valid address** {=#addressRule .sh:PropertyShape sh:message}
+Our [address] {+ex:address ?sh:path} must conform to the [Address Shape] {+ex:AddressShape ?sh:node}.
 
-**Address Shape** {=ex:AddressShape .sh:NodeShape} requires [street] {+ex:street ?sh:path} to have at least [5] {sh:minLength ^^xsd:integer} characters.
-
----
+**Address Shape** {=ex:AddressShape .sh:NodeShape} requires the [street] {+ex:street ?sh:path} to have at least [5] {sh:minLength ^^xsd:integer} characters — "St" is not a street.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Employee {=ex:ValidEmployee ?member}
-Address: [Valid Address] {=ex:ValidAddress .ex:Address ?ex:address}
-Street: [Main Street] {ex:street}
+Leased at [Valid Address] {=ex:ValidAddress .ex:Address ?ex:address}, street [Main Street] {ex:street} — a real address, passes.
 
 ### Invalid Employee {=ex:InvalidEmployee ?member}
-Address: [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}
-Street: [St] {ex:street}
+Leased at [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}, street [St] {ex:street} — two letters is not an address, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidEmployee fails because address doesn't conform to AddressShape - street is too short)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:EmployeeValidationShape": {
+        "ex:ValidEmployee": {
+            "address": {
+                "street": "Main Street"
+            }
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -2158,55 +2061,44 @@ Street: [St] {ex:street}
 - ❌ Not defining the referenced shape
 - ❌ Confusing node with class constraint (node for structure, class for type)
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-in"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Value Enumeration {=sh:in .class:PresenceConstraint label}
 
 > Constrains property values to be within a specified list of allowed values {comment}
 
-<http://www.w3.org/ns/shacl#in> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The in constraint constrains property values to be within a specified list of allowed values. This example validates that status must be either "Active" or "Inactive".
 
-~~~~~~md
+### In Demo {=cat:demo/in .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidStatusEmployee fails because status is Pending, not in the allowed list)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:in/>
 
-## Status Validation Shape {=ex:StatusValidationShape .sh:NodeShape  label}
+## Membership Roster {=ex:StatusValidationShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with correct **status** {+#allowedStatus ?sh:property sh:name}.
+We keep the membership roster for a small gym. Every [member] {+member ?sh:targetObjectsOf} must report a **status** {+#allowedStatus ?sh:property sh:name} drawn from exactly two values — nothing in between.
 
-**Status must be Active or Inactive** {=#allowedStatus .sh:PropertyShape sh:message} requires [status] {+ex:status ?sh:path} to be in allowed list.
-
-**Allowed Values List** {=ex:in-l1 ?sh:in .rdf:List}: **Active** {+ex:Active ?rdf:first} [or] {=ex:in-l2 ?rdf:rest} **Inactive** {+ex:Inactive ?rdf:first} - [only] {+rdf:nil ?rdf:rest} these 2 values are allowed.
-
----
+## Status must be Active or Inactive. {=#allowedStatus .sh:PropertyShape sh:message}
+Our [status] {+ex:status ?sh:path} must be one of the values in the **Allowed Values List** {=ex:in-l1 ?sh:in .rdf:List}: **Active** {+ex:Active ?rdf:first} [or] {=ex:in-l2 ?rdf:rest} **Inactive** {+ex:Inactive ?rdf:first} - [only] {+rdf:nil ?rdf:rest} these 2 values are allowed.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Employee {=ex:ValidEmployee ?member}
-Status: [Active] {+ex:Active ?ex:status}
+Currently [Active] {+ex:Active ?ex:status} — training three times a week.
 
 ### Invalid Employee {=ex:InvalidStatusEmployee ?member}
-Status: [Pending] {+ex:Pending ?ex:status}
+Marked [Pending] {+ex:Pending ?ex:status} — we have no pending membership, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidStatusEmployee fails because status is Pending, not in the allowed list)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:StatusValidationShape": {
+        "ex:ValidEmployee": {
+            "status": "tag:my@example.org,2026:in/Active"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -2241,63 +2133,55 @@ Status: [Pending] {+ex:Pending ?ex:status}
 - ❌ Reusing list identifiers causing collisions
 - ❌ Not combining with minCount for required properties
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-qualifiedcount"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
-# Qualified Count {=sh:qualifiedMinCount .class:QualifiedConstraint label}
+# Minimum Qualified Count {=sh:qualifiedMinCount .class:QualifiedConstraint label}
 
 > Applies count constraints only to values that meet additional shape criteria {comment}
 
-<http://www.w3.org/ns/shacl#qualifiedMinCount> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#qualifiedMaxCount> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
+And it's opposite boundary - [Maximum Qualified Count] {=sh:qualifiedMaxCount .class:QualifiedConstraint label}
 
 Qualified count constraints apply count constraints only to values that meet additional shape criteria. This example validates that employees must have exactly one work email (matching the WorkEmailShape pattern).
 
-~~~~~~md
+### Qualified Demo {=cat:demo/qualified .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (NoWorkEmployee fails because it has 0 work emails - the email doesn't match the WorkEmailShape pattern)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:qualified/>
 
-## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape  label}
+## Staff Directory {=ex:EmployeeValidationShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with one work **email** {+#workEmailRule ?sh:property sh:name}.
+We keep the staff directory for a small company. Every [employee] {+member ?sh:targetObjectsOf} must list exactly one work email, kept as [email] {+#workEmailRule ?sh:property sh:name} — and "work" means it ends in our company domain.
 
-**Employee must have exactly one work email** {=#workEmailRule .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} to have exactly [1] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} work email matching **Work Email Shape** {=ex:WorkEmailShape .sh:NodeShape ?sh:qualifiedValueShape}.
+**Employee must have exactly one work email** {=#workEmailRule .sh:PropertyShape sh:message}
+Our [email] {+ex:email ?sh:path} must number exactly [1] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} work address matching the **Work Email Shape** {=ex:WorkEmailShape .sh:NodeShape ?sh:qualifiedValueShape}.
 
-**Work Email Shape** {=ex:WorkEmailShape .sh:NodeShape} must be a [literal] {+sh:Literal ?sh:nodeKind} with pattern [company.org] {sh:pattern}.
-
----
+**Work Email Shape** {=ex:WorkEmailShape .sh:NodeShape} requires a [literal] {+sh:Literal ?sh:nodeKind} ending in [company.org] {sh:pattern}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Employee {=ex:ValidEmployee ?member}
-Email: [john@company.org] {ex:email}
+Reachable at [john@company.org] {ex:email} — on-domain, passes.
 
 ### Invalid Employee {=ex:NoWorkEmployee ?member}
-Email: [bob@gmail.com] {ex:email}
+Only reachable at [bob@gmail.com] {ex:email} — personal mail isn't a work email, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (NoWorkEmployee fails because it has 0 work emails - the email doesn't match the WorkEmailShape pattern)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:EmployeeValidationShape": {
+        "ex:ValidEmployee": {
+            "email": "john@company.org"
+        }
+    }
+}
+~~~~~~
 
 ---
 
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must have exactly [count] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} values that conform to [Shape] {=ex:ShapeName ?sh:qualifiedValueShape}.
+[Property] {+ex:propertyName ?sh:path} must have exactly [count] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} values that conform to [Shape] {+ex:ShapeName ?sh:qualifiedValueShape}.
 ~~~~~~
 
 **Use for:** Work email validation, primary contact validation, conditional counting
@@ -2321,67 +2205,48 @@ Email: [bob@gmail.com] {ex:email}
 - ❌ Forgetting to define the qualified shape
 - ❌ Confusing qualified count with regular count
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-closed"></a>
-
-[mdld] <https://mdld.js.org/vocab/>
-[cat] <https://mdld.js.org/shacl/catalog/>
-[schema] <http://schema.org/>
-
 
 # Closed World Constraint {=sh:closed .class:ClosedWorldConstraint label}
 
 > Enables closed world validation where only explicitly declared properties are allowed. Essential for strict data modeling, schema enforcement, and preventing property proliferation in RDF graphs. {comment}
 
-<http://www.w3.org/ns/shacl#closed> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The closed constraint enables closed world validation where only explicitly declared properties are allowed. This example validates that person data can only have declared properties (name, age).
 
-~~~~~~md
+### Closed Demo {=cat:demo/closed .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidPerson fails because it has undeclared email property)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:closed/>
-[schema] <http://schema.org/>
 
-## Person Data Demo
+## Member Card Registry {=ex:ClosedExampleShape .sh:NodeShape label}
 
-**Only declared properties allowed** {=ex:ClosedExampleShape .sh:NodeShape label} targets [ValidPerson] {+ex:ValidPerson ?sh:targetNode} and [InvalidPerson] {+ex:InvalidPerson ?sh:targetNode} with **no additional properties** {sh:closed} constraint except [Name] {+ex:NameProperty ?sh:property sh:name} and [Age] {+ex:AgeProperty ?sh:property sh:name}.
+We print membership cards for a small gym. Our registry is deliberately **closed** — it covers [ValidPerson] {+ex:ValidPerson ?sh:targetNode} and [InvalidPerson] {+ex:InvalidPerson ?sh:targetNode}, and every card carries **no additional properties** {sh:closed} beyond what we print: a [Name] {+ex:NameProperty ?sh:property sh:name} and an [Age] {+ex:AgeProperty ?sh:property sh:name}. Anything else on a card is an error.
 
-**Person must have a name** {=ex:NameProperty .sh:PropertyShape sh:message} ensures [name] {+schema:name ?sh:path} is [string] {+xsd:string ?sh:datatype} and [1] {sh:minCount ^^xsd:integer}.
+**Person must have a name** {=ex:NameProperty .sh:PropertyShape sh:message}
+Every card's [name] {+ex:name ?sh:path} must be a [string] {+xsd:string ?sh:datatype} appearing at least [1] {sh:minCount ^^xsd:integer} time.
 
-**Person must have exactly one age** {=ex:AgeProperty .sh:PropertyShape sh:message} ensures [age] {+ex:age ?sh:path} is [integer] {+xsd:integer ?sh:datatype} and exactly [1] {sh:minCount sh:maxCount ^^xsd:integer}.
-
----
+**Person must have exactly one age** {=ex:AgeProperty .sh:PropertyShape sh:message}
+Every card's [age] {+ex:age ?sh:path} must be an [integer] {+xsd:integer ?sh:datatype} appearing exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} time.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Person {=ex:ValidPerson}
-
-Person with only declared properties.
-
-Name: [John Doe] {schema:name ^^xsd:string}
-Age: [30] {ex:age ^^xsd:integer}
+A clean card — [John Doe] {ex:name ^^xsd:string}, [30] {ex:age ^^xsd:integer}, nothing extra.
 
 ### Invalid Person {=ex:InvalidPerson}
-
-Person with undeclared property (violates closed world constraint).
-
-Name: [Jane Smith] {schema:name ^^xsd:string}
-Age: [25] {ex:age ^^xsd:integer}
-Email: [<jane@example.com>] {ex:email}
+A card with an [email] {ex:email} field we never print — [Jane Smith] {ex:name ^^xsd:string}, [25] {ex:age ^^xsd:integer} — undeclared property, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidPerson fails because it has undeclared email property)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ClosedExampleShape": {
+        "ex:ValidPerson": {
+            "Name": "John Doe",
+            "Age": 30
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -2443,57 +2308,47 @@ The closed constraint enables closed world validation where only explicitly decl
 - ❌ Overusing closed world validation
 - ❌ Not documenting the closed world assumption
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-deactivated"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Deactivated {=sh:deactivated .class:DeactivatedConstraint label}
 
 > Temporarily disables specific constraints during validation {comment}
 
-<http://www.w3.org/ns/shacl#deactivated> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The deactivated constraint temporarily disables specific constraints during validation. This example shows a deactivated category rule while the status rule remains active.
 
-~~~~~~md
+### Deactivated Demo {=cat:demo/deactivated .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidAccount fails because status is inactive; category rule is deactivated so it doesn't cause a violation)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:deactivated/>
 
-## Deactivated Example Shape {=ex:DeactivatedExampleShape .sh:NodeShape label}
+## Building Access Rules {=ex:DeactivatedExampleShape .sh:NodeShape label}
 
-Validates all **member** {+member ?sh:targetObjectsOf} entities to be an active *user* {+ex:ActiveProperty ?sh:property sh:name} and have an active *category* {+ex:CategoryProperty ?sh:property sh:name}.
+We manage badge access for a small office building. Every **member** {+member ?sh:targetObjectsOf} must be an active *user* {+ex:ActiveProperty ?sh:property sh:name} — and, when the category rule is switched back on, an active *category* {+ex:DeactivatedProperty ?sh:property sh:name} too.
 
-**User status must be active** {=ex:ActiveProperty .sh:PropertyShape sh:message} requires [status] {+ex:status ?sh:path} to be [active] {sh:hasValue}.
+**User status must be active** {=ex:ActiveProperty .sh:PropertyShape sh:message}
+Our [status] {+ex:status ?sh:path} must read [active] {sh:hasValue}.
 
-**Category rule** {=ex:DeactivatedProperty .sh:PropertyShape sh:message} requires [category] {+ex:category ?sh:path} to be [active] {sh:hasValue}. This rule is temporarily [deactivated] {sh:deactivated}.
-
----
+**Category rule** {=ex:DeactivatedProperty .sh:PropertyShape sh:message}
+Our [category] {+ex:category ?sh:path} must read [active] {sh:hasValue}. This rule is deactivated — [true] {sh:deactivated ^^xsd:boolean} — while we re-tag the floors.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Account {=ex:ValidNode ?member}
-Status: [active] {ex:status}
-Category: [active] {ex:status}
+Badge [active] {ex:status}, floor tag [active] {ex:status} — passes.
 
 ### Invalid Account {=ex:InvalidNode ?member}
-Status: [inactive] {ex:status}
-Category: [inactive] {ex:status}
+Badge [inactive] {ex:status}, floor tag [inactive] {ex:status} — fails on status alone; the suspended category rule stays quiet.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidAccount fails because status is inactive; category rule is deactivated so it doesn't cause a violation)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DeactivatedExampleShape": {
+        "ex:ValidNode": {
+            "user": "active"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -2524,63 +2379,54 @@ Category: [inactive] {ex:status}
 - ❌ Forgetting to reactivate deactivated constraints
 - ❌ Using deactivated instead of removing obsolete constraints
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-severity"></a>
-
-[mdld] <https://mdld.js.org/vocab/>
-[cat] <https://mdld.js.org/shacl/catalog/>
-[ex] <http://example.org/>
 
 # Severity Levels {=sh:severity .class:SeverityConstraint label}
 
 > Defines the severity level of validation violations (Info, Warning, Violation). Essential for prioritizing validation results and managing different types of constraint failures. {comment}
 
-<http://www.w3.org/ns/shacl#severity> {?cat:fullIRI}
-<http://www.w3.org/ns/shacl#message> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
+Paired with the text [message] {+sh:message ?seeAlso}
 
 The severity constraint defines the severity level of validation violations (Info, Warning, Violation). This example demonstrates user account validation with different severity levels for different constraints.
 
-~~~~~~md
+### Severity Demo {=cat:demo/severity .cat:Demo ?cat:hasDemo}
+Expects `3` {cat:expectedViolations ^^xsd:integer} violations (InvalidUser fails three times: Critical for invalid email, Warning for age > 120, Info for missing name)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
-## User Validation Shape {=ex:UserValidationShape .sh:NodeShape label}
+## Clinic Intake Triage {=ex:UserValidationShape .sh:NodeShape label}
 
-Targets all [users] {+ex:User ?sh:targetClass} to validate account requirements with different severity levels: critical **email** {+ex:CriticalRule ?sh:property sh:name}, warning **age** {+ex:WarningRule ?sh:property sh:name} and info **name** {+ex:InfoNameRule ?sh:property sh:name}.
+We triage intake forms at a small vet clinic, and every problem gets graded by urgency. All [users] {+ex:User ?sh:targetClass} — pets and owners alike — face three checks at different severity levels: critical **email** {+ex:CriticalRule ?sh:property sh:name}, warning **age** {+ex:WarningRule ?sh:property sh:name}, info **name** {+ex:InfoNameRule ?sh:property sh:name}.
 
-**Email address is required and must be valid** {=ex:CriticalRule .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} to be [string] {+xsd:string ?sh:datatype} and at least [1] {sh:minCount ^^xsd:integer} corporate email [example.com] {sh:pattern} with [Violation severity] {+sh:Violation ?sh:severity}.
+**Email address is required and must be valid** {=ex:CriticalRule .sh:PropertyShape sh:message}
+Contact [email] {+ex:email ?sh:path} must be a [string] {+xsd:string ?sh:datatype}, at least [1] {sh:minCount ^^xsd:integer} of them, matching corporate [example.com] {sh:pattern} — graded [Violation severity] {+sh:Violation ?sh:severity}.
 
-**Age should be between 18 and 120** {=ex:WarningRule .sh:PropertyShape sh:message} requires [age] {+ex:age ?sh:path} to be [integer] {+xsd:integer ?sh:datatype}, more than [18] {sh:minInclusive ^^xsd:integer} and less than [120] {sh:maxInclusive ^^xsd:integer} with [Warning severity] {+sh:Warning ?sh:severity}.
+**Age should be between 18 and 120** {=ex:WarningRule .sh:PropertyShape sh:message}
+[Age] {+ex:age ?sh:path} must be [integer] {+xsd:integer ?sh:datatype}, more than [18] {sh:minInclusive ^^xsd:integer}, less than [120] {sh:maxInclusive ^^xsd:integer} — graded [Warning severity] {+sh:Warning ?sh:severity}.
 
-**Name should be a string of 2+ letters** {=ex:InfoNameRule .sh:PropertyShape sh:message} requires [name] {+ex:name ?sh:path} to be [string] {+xsd:string ?sh:datatype} at least [1] {sh:minCount} and longer than [3] {sh:minInclusive} with [Info severity] {+sh:Info ?sh:severity}.
-
----
+**Name should be a string of 2+ letters** {=ex:InfoNameRule .sh:PropertyShape sh:message}
+[name] {+ex:name ?sh:path} must be [string] {+xsd:string ?sh:datatype}, at least [1] {sh:minCount}, longer than [3] {sh:minInclusive} — graded [Info severity] {+sh:Info ?sh:severity}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid User {=ex:ValidUser .ex:User}
-Email: [user@example.com] {ex:email}
-Age: [25] {ex:age ^^xsd:integer}
-Name: [John Doe] {ex:name}
+[User@example.com] {ex:email}, [25] {ex:age ^^xsd:integer}, [John Doe] {ex:name} — clean intake.
 
 ### Invalid User {=ex:InvalidUser .ex:User}
-Email: [invalid-email] {ex:email}
-Age: [150] {ex:age ^^xsd:integer}
-Name: [] {ex:name}
+[invalid-email] {ex:email}, [150] {ex:age ^^xsd:integer}, [] {ex:name} — three problems, three severities.
 ~~~~~~
 
-**Expected Result:** 3 violations (InvalidUser fails three times: Critical for invalid email, Warning for age > 120, Info for missing name)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:UserValidationShape": {
+        "ex:ValidUser": {
+            "email": "User@example.com",
+            "age": 25,
+            "name": "John Doe"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -2610,16 +2456,6 @@ The severity constraint defines the severity level of validation violations.
 
 ---
 
-## 🎯 Use Cases
-
-- **Prioritization** - Prioritize critical vs non-critical issues
-- **User feedback** - Provide different feedback based on severity
-- **Compliance** - Distinguish between critical compliance issues and recommendations
-- **Data quality** - Manage different types of data quality issues
-- **Workflow management** - Route issues based on severity
-
----
-
 ## 🔧 Implementation Guidelines
 
 **When to use severity:**
@@ -2643,53 +2479,44 @@ The severity constraint defines the severity level of validation violations.
 - ❌ Not combining severity with message
 - ❌ Forgetting to assign severity to constraints
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-message"></a>
-
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
 
 # Violation Message {=sh:message .class:MessageConstraint label}
 
 > Provides human-readable error messages for constraint violations {comment}
 
-<http://www.w3.org/ns/shacl#message> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
-
 The message constraint provides human-readable error messages for constraint violations. This example shows a custom violation message for contract value validation.
 
-~~~~~~md
+### Message Demo {=cat:demo/message .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidContract fails with message "Contract value must be positive")
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:message/>
 
-## Business Rule Validation Shape {=ex:BusinessRuleValidationShape .sh:NodeShape  label}
+## Contract Ledger {=ex:BusinessRuleValidationShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with positive **contract** {+ex:ContractValueRule ?sh:property sh:name}.
+We keep the contract ledger for a freelance designer. Every [client] {+member ?sh:targetObjectsOf} must carry a positive **contract** {+ex:ContractValueRule ?sh:property sh:name} value — nobody signs a contract to lose money.
 
-**Contract value must be positive** {=ex:ContractValueRule .sh:PropertyShape sh:message} ensures [contract value] {+ex:contractValue ?sh:path} is greater than [0] {sh:minInclusive ^^xsd:decimal}.
-
----
+**Contract value must be positive** {=ex:ContractValueRule .sh:PropertyShape sh:message}
+Our [contract value] {+ex:contractValue ?sh:path} must be greater than [0] {sh:minInclusive ^^xsd:decimal}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Contract {=ex:ValidContract ?member}
-Value: [50000.00] {ex:contractValue ^^xsd:decimal}
+Signed for [50000.00] {ex:contractValue ^^xsd:decimal} — profitable work, passes.
 
 ### Invalid Contract {=ex:InvalidContract ?member}
-Value: [-1000.00] {ex:contractValue ^^xsd:decimal}
+Signed for [-1000.00] {ex:contractValue ^^xsd:decimal} — a contract that pays us to work, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidContract fails with message "Contract value must be positive")
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:BusinessRuleValidationShape": {
+        "ex:ValidContract": {
+            "contract": 50000
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -2721,58 +2548,51 @@ Value: [-1000.00] {ex:contractValue ^^xsd:decimal}
 - ❌ Using technical jargon instead of business language
 - ❌ Writing vague or unclear messages
 
-
-
-
-
-
-{=}
-
-
-
 <a id="constraints-js"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
 # JavaScript Function {=sh:js .class:Constraint label}
-
 > Allows custom JavaScript validation functions for complex constraint logic {comment}
-
-<http://www.w3.org/ns/shacl#js> {?cat:fullIRI}
-
----
-
-## 📋 Quick Start Pattern
 
 The JavaScript constraint allows custom JavaScript validation functions for complex constraint logic. This example validates that event dates must be valid JavaScript dates.
 
-~~~~~~md
+### JS Demo {=cat:demo/js .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEvent fails because "not-a-date" is not a valid JavaScript date)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:js/>
 
-## Date Validation Shape {=ex:DateValidationShape .sh:NodeShape  label}
+## Community Events Calendar {=ex:DateValidationShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with valid **date** {+ex:DatePropertyShape ?sh:property sh:name}.
+We run the events calendar for a community center. Every [event] {+member ?sh:targetObjectsOf} we post needs a valid **date** {+ex:DatePropertyShape ?sh:property sh:name} — "sometime in June" is not a date.
 
-**Event date must be valid** {=ex:DatePropertyShape .sh:PropertyShape sh:message} requires [eventDate] {+ex:eventDate ?sh:path} to be a valid JS date:
+**Event date must be valid** {=ex:DatePropertyShape .sh:PropertyShape sh:message}
+Our [eventDate] {+ex:eventDate ?sh:path} must parse as a real JS date, checked by [js check] {+ex:DateJSConstraint ?sh:js}.
 
-~~~~~~js {=ex:DateJSConstraint ?sh:JSConstraint sh:js}
+```js {=ex:DateJSConstraint .sh:JSConstraint sh:script}
 const date = new Date(value);
 return !isNaN(date.getTime());
-~~~~~~
-
----
+```
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Event {=ex:ValidEvent ?member}
-Event Date: [2024-12-25] {ex:eventDate ^^xsd:date}
+Pottery night on [2024-12-25] {ex:eventDate ^^xsd:date} — a real date, passes.
 
 ### Invalid Event {=ex:InvalidEvent ?member}
-Event Date: [not-a-date] {ex:eventDate}
+"Yoga, [not-a-date] {ex:eventDate}" — someone typed words into the date field, fails.
 ~~~~~~
 
-**Expected Result:** 1 violation (InvalidEvent fails because "not-a-date" is not a valid JavaScript date)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DateValidationShape": {
+        "ex:ValidEvent": {
+            "date": "2024-12-25T00:00:00.000Z"
+        },
+        "ex:InvalidEvent": {
+            "date": "not-a-date"
+        }
+    }
+}
+~~~~~~
 
 ---
 
@@ -2781,11 +2601,11 @@ Event Date: [not-a-date] {ex:eventDate}
 ~~~~~~md
 [Property] {+ex:propertyName ?sh:path} must pass custom validation.
 
-~~~~~~js {=ex:JSConstraintName ?sh:JSConstraint sh:js}
+~~~js {=ex:JSConstraintName ?sh:JSConstraint sh:js}
 // Custom validation logic
 const result = validate(value);
 return result;
-~~~~~~
+~~~
 ~~~~~~
 
 **Use for:** Custom validation, complex logic, cross-property validation
@@ -2810,21 +2630,9 @@ return result;
 - ❌ Writing overly complex JavaScript functions
 - ❌ Not testing JavaScript functions thoroughly
 
-
-
-
-
-
-{=}
-
-
-
 <a id="teach-choosing-constraints"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
-# Choosing the Right Constraint
+# Choosing the Right Constraint {=cat:teach/choosing .cat:Teach label}
 
 > A decision guide for selecting appropriate SHACL constraints for your validation needs {comment}
 
@@ -2913,21 +2721,9 @@ return result;
 
 See [Constraints](#constraints-index) for detailed documentation on each constraint.
 
-
-
-
-
-
-{=}
-
-
-
 <a id="teach-practical-workflow"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
-# Practical Workflow: Designing a Complete Shape
+# Practical Workflow: Designing a Complete Shape {=cat:teach/workflow .cat:Teach label}
 
 > Step-by-step example of designing a multi-constraint shape for a real-world use case {comment}
 
@@ -2947,8 +2743,6 @@ We need to validate product data with these requirements:
 
 # Product Validation Shape {=ex:ProductShape .sh:NodeShape  label}
 Validates all [Product] {+ex:Product ?sh:targetClass} instances to have mandatory [name] {+ex:NameRule ?sh:property sh:name}, [price] {+ex:PriceRule ?sh:property sh:name} and [category] {+ex:CategoryRule ?sh:property sh:name} assigned.
-
-
 ~~~~~~
 
 ## Step 2: Add Required Properties
@@ -3000,68 +2794,85 @@ Validates all [Product] {+ex:Product ?sh:targetClass} instances to have mandator
 ~~~~~~md
 [ex] <tag:my@example.org,2026:product/>
 
-**Product** {=ex:ProductShape} must have an [SKU] {+ex:DescriptioSKURulenRule ?sh:property sh:name}.
+**Product** {=ex:ProductShape} must have an [SKU] {+ex:SKURule ?sh:property sh:name}.
 
 **Product SKU must match pattern** {=ex:SKURule .sh:PropertyShape sh:message}: [sku] {+ex:sku ?sh:path} must match [PROD-\d{5}] {sh:pattern}.
 ~~~~~~
 
 ## Complete Shape
 
-~~~~~~md
+### Product Demo {=cat:demo/product .cat:Demo ?cat:hasDemo}
+Expects `4` {cat:expectedViolations ^^xsd:integer} violations (InvalidProduct1-4 each fail once: missing name, negative price, invalid category, too-short description)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:product/>
 
-**Product Validation Shape** {=ex:ProductShape .sh:NodeShape  label}
-Validates all [Product] {+ex:Product ?sh:targetClass} instances to have mandatory [name] {+ex:NameRule ?sh:property sh:name}, [price] {+ex:PriceRule ?sh:property sh:name} and [category] {+ex:CategoryRule ?sh:property sh:name} assigned, must have a positive [price] {+ex:PriceRule ?sh:property sh:name}, must have an allowed [category] {+ex:CategoryRule ?sh:property sh:name}, an optional [descripton] {+ex:DescriptionRule ?sh:property sh:name} and a correct [SKU] {+ex:DescriptioSKURulenRule ?sh:property sh:name}.
+**Product Catalog** {=ex:ProductShape .sh:NodeShape  label}
+We are the catalog for an online shop. Every [Product] {+ex:Product ?sh:targetClass} we list must carry a mandatory [name] {+ex:NameRule ?sh:property sh:name}, [price] {+ex:PriceRule ?sh:property sh:name} and [category] {+ex:CategoryRule ?sh:property sh:name} — plus a positive price, an allowed category, an optional [descripton] {+ex:DescriptionRule ?sh:property sh:name}, and a correct [SKU] {+ex:SKURule ?sh:property sh:name}.
 
 **Product name is required** {=ex:NameRule .sh:PropertyShape}
-[name] {+ex:name ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
+Every listing's [name] {+ex:name ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
 
 **Product price is required and positive** {=ex:PriceRule .sh:PropertyShape}
-[price] {+ex:price ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value and be at least [0.01] {sh:minInclusive ^^xsd:decimal}.
+Every listing's [price] {+ex:price ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value and be at least [0.01] {sh:minInclusive ^^xsd:decimal}.
 
 **Product category is required and from allowed list** {=ex:CategoryRule .sh:PropertyShape}
-[category] {+ex:category ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value and be in allowed list.
-
-**Allowed Categories List** {=ex:cat-l1 ?sh:in .rdf:List}: [Electronics] {rdf:first}, then [rest] {=ex:cat-l2 ?rdf:rest} by [Clothing] {rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
+Every listing's [category] {+ex:category ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value and come from our **Allowed Categories List** {=ex:cat-l1 ?sh:in .rdf:List}: [Electronics] {rdf:first}, then [rest] {=ex:cat-l2 ?rdf:rest} by [Clothing] {rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
 **Product description is optional but must be 10+ characters** {=ex:DescriptionRule .sh:PropertyShape}
-[description] {+ex:description ?sh:path} must have at least [10] {sh:minLength ^^xsd:integer} characters.
+If a listing has a [description] {+ex:description ?sh:path}, it must run at least [10] {sh:minLength ^^xsd:integer} characters.
 
 **Product SKU must match pattern** {=ex:SKURule .sh:PropertyShape}
-[sku] {+ex:sku ?sh:path} must match [PROD-\d{5}] {sh:pattern}.
-~~~~~~
+Every [sku] {+ex:sku ?sh:path} must look like [PROD-\d{5}] {sh:pattern}.
 
-## Test Data
+======
 
-~~~~~~md
-### Test Data {=ex:data .Container}
+## Test Data {=ex:data .Container}
 
 #### Valid Product {=ex:Laptop .ex:Product ?member}
-Name: [MacBook Pro] {ex:name}
-Price: [1299.99] {ex:price ^^xsd:decimal}
-Category: [Electronics] {ex:category}
-Description: [High-performance laptop] {ex:description}
-SKU: [PROD-12345] {ex:sku}
+[MacBook Pro] {ex:name} at [1299.99] {ex:price ^^xsd:decimal}, [Electronics] {ex:category}, described as [High-performance laptop] {ex:description}, SKU [PROD-12345] {ex:sku} — a complete listing, passes.
 
 #### Invalid Product - Missing Name {=ex:InvalidProduct1 .ex:Product ?member}
-Price: [99.99] {ex:price ^^xsd:decimal}
-Category: [Clothing] {ex:category}
+Priced at [99.99] {ex:price ^^xsd:decimal} in [Clothing] {ex:category} but never named — fails.
 
 #### Invalid Product - Negative Price {=ex:InvalidProduct2 .ex:Product ?member}
-Name: [T-Shirt] {ex:name}
-Price: [-10.00] {ex:price ^^xsd:decimal}
-Category: [Clothing] {ex:category}
+[T-Shirt] {ex:name} at [-10.00] {ex:price ^^xsd:decimal} in [Clothing] {ex:category} — we don't pay customers to take products, fails.
 
 #### Invalid Product - Invalid Category {=ex:InvalidProduct3 .ex:Product ?member}
-Name: [Shoes] {ex:name}
-Price: [50.00] {ex:price ^^xsd:decimal}
-Category: [Books] {ex:category}
+[Shoes] {ex:name} at [50.00] {ex:price ^^xsd:decimal} filed under [Books] {ex:category} — not on our list, fails.
 
 #### Invalid Product - Short Description {=ex:InvalidProduct4 .ex:Product ?member}
-Name: [Hat] {ex:name}
-Price: [25.00] {ex:price ^^xsd:decimal}
-Category: [Clothing] {ex:category}
-Description: [Small] {ex:description}
+[Hat] {ex:name} at [25.00] {ex:price ^^xsd:decimal} in [Clothing] {ex:category} described only as [Small] {ex:description} — too brief, fails.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ProductShape": {
+        "ex:Laptop": {
+            "name": "MacBook Pro",
+            "price": 1299.99,
+            "category": "Electronics",
+            "descripton": "High-performance laptop",
+            "SKU": "PROD-12345"
+        },
+        "ex:InvalidProduct1": {
+            "price": 99.99,
+            "category": "Clothing"
+        },
+        "ex:InvalidProduct2": {
+            "name": "T-Shirt",
+            "category": "Clothing"
+        },
+        "ex:InvalidProduct3": {
+            "name": "Shoes",
+            "price": 50
+        },
+        "ex:InvalidProduct4": {
+            "name": "Hat",
+            "price": 25,
+            "category": "Clothing"
+        }
+    }
+}
 ~~~~~~
 
 ## Key Takeaways
@@ -3079,21 +2890,9 @@ Description: [Small] {ex:description}
 - Explore [Targeting Mechanisms](#targeting-index) for more targeting options
 - Learn about specific [Constraints](#constraints-index) for detailed constraint patterns
 
-
-
-
-
-
-{=}
-
-
-
 <a id="teach-advanced"></a>
 
-[mdld] <https://mdld.js.org/>
-[cat] <mdld:shacl/>
-
-# Advanced Shape Composition Techniques
+# Advanced Shape Composition Techniques {=cat:teach/advanced .cat:Teach label}
 
 > Learn advanced SHACL techniques for complex validation scenarios in MDLD {comment}
 
@@ -3137,10 +2936,10 @@ The NOT constraint prevents data from conforming to a specific shape pattern.
 - Business rule enforcement
 
 **Example:**
-```md
+~~~md
 **Employee status cannot be terminated** {=ex:StatusRule .sh:PropertyShape ?sh:property}
 Employee status must not conform to [Terminated Status Shape] {+ex:TerminatedStatusShape ?sh:not}.
-```
+~~~
 
 ### 3. Qualified Count Constraints
 
@@ -3157,10 +2956,10 @@ Qualified count constraints allow you to count only values that conform to a spe
 - Business rules with exceptions
 
 **Example:**
-```md
+~~~md
 **Employee must have at least 2 completed projects** {=ex:ProjectsRule .sh:PropertyShape ?sh:property}
 [projects] {+ex:projects ?sh:path} must have at least [2] {sh:qualifiedMinCount ^^xsd:integer} values that conform to [Completed Project Shape] {=ex:CompletedProjectShape .sh:NodeShape ?sh:qualifiedValueShape}.
-```
+~~~
 
 ### 4. Multiple Constraints on Same Property
 
@@ -3192,28 +2991,30 @@ Status: [active] {ex:status}
 ~~~~~~
 
 **Key pattern:**
-```
+~~~
 - Use `[literal] {+ex:Identifier ?property}` to link to nested objects
 - Use `#####` headings to define nested objects with `{=ex:Identifier .ex:Class}`
 - Use `and` to chain multiple values
-```
+~~~
 
 ## Complete Example
 
 The following example demonstrates multiple advanced techniques in a single validation scenario:
 
-~~~~~~md
+### Advanced Demo {=cat:demo/advanced .cat:Demo ?cat:hasDemo}
+Expects `3` {cat:expectedViolations ^^xsd:integer} violations (Employee2 fails: invalid department; Employee4 fails: only 1 completed project, needs 2; Employee5 fails: negative salary; Employee1 and Employee3 pass — the sh:not on the literal status value cannot conform to TerminatedStatusShape)
+~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:advanced/>
 
-## Employee Validation Shape {=ex:EmployeeValidationShape .sh:NodeShape label}
+## HR Records Shape {=ex:EmployeeValidationShape .sh:NodeShape label}
 
-Validates all [Employee] {+ex:Employee ?sh:targetClass} instances with comprehensive business rules: [department] {+ex:DepartmentRule ?sh:property sh:name}, [status] {+ex:StatusRule ?sh:property sh:name}, [projects] {+ex:ProjectsRule ?sh:property sh:name}, [salary] {+ex:SalaryRule ?sh:property sh:name}.
+We keep the personnel file for a small company. Every [Employee] {+ex:Employee ?sh:targetClass} on file must satisfy our full rulebook at once: a valid [department] {+ex:DepartmentRule ?sh:property sh:name}, a permissible [status] {+ex:StatusRule ?sh:property sh:name}, enough finished [projects] {+ex:ProjectsRule ?sh:property sh:name}, and a positive [salary] {+ex:SalaryRule ?sh:property sh:name}.
 
 ### Property Rules
 
 **Employee must have valid department** {=ex:DepartmentRule .sh:PropertyShape} requires [department] {+ex:department ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value and must be in **Allowed Departments List** {=ex:dept-l1 ?sh:in .rdf:List}: [Engineering] {rdf:first}, then [rest] {=ex:dept-l2 ?rdf:rest} by [Sales] {rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Employee status cannot be terminated** {=ex:StatusRule .sh:PropertyShape sh:message}: Employee status must not conform to [Terminated Status Shape] {+ex:TerminatedStatusShape ?sh:not}.
+**Employee status cannot be terminated** {=ex:StatusRule .sh:PropertyShape sh:message}: Employee [status] {+ex:status ?sh:path} must not conform to [Terminated Status Shape] {+ex:TerminatedStatusShape ?sh:not}.
 
 **Employee must have at least 2 completed projects** {=ex:ProjectsRule .sh:PropertyShape sh:message}: [projects] {+ex:projects ?sh:path} must have at least [2] {sh:qualifiedMinCount ^^xsd:integer} values that conform to [Completed Project Shape] {=ex:CompletedProjectShape .sh:NodeShape ?sh:qualifiedValueShape}.
 
@@ -3221,16 +3022,15 @@ Validates all [Employee] {+ex:Employee ?sh:targetClass} instances with comprehen
 
 ---
 
-## Terminated Status Shape {=ex:TerminatedStatusShape .sh:NodeShape  label}
-Defines the forbidden terminated [status] {+ex:TerminatedStatusRule ?sh:property sh:name} pattern.
+## The Forbidden Roster {=ex:TerminatedStatusShape .sh:NodeShape  label}
+Our forbidden-status list names anyone whose [status] {+ex:TerminatedStatusRule ?sh:property sh:name} reads "terminated" — such people must never conform.
 
 **Status must be terminated** {=ex:TerminatedStatusRule .sh:PropertyShape sh:message}: [status] {+ex:status ?sh:path} must be exactly [terminated] {sh:hasValue}.
 
 ---
 
-## Completed Project Shape {=ex:CompletedProjectShape .sh:NodeShape  label}
-
-Validates completed projects to have completed [status] {+ex:ProjectStatusRule ?sh:property sh:name} and positive [budget] {+ex:ProjectBudgetRule ?sh:property sh:name}.
+## Completed Project Standard {=ex:CompletedProjectShape .sh:NodeShape  label}
+A project only counts toward the two-project rule if it is genuinely finished: completed [status] {+ex:ProjectStatusRule ?sh:property sh:name} and a positive [budget] {+ex:ProjectBudgetRule ?sh:property sh:name}.
 
 **Project must be completed** {=ex:ProjectStatusRule .sh:PropertyShape sh:message}: [status] {+ex:status ?sh:path} must be exactly [completed] {sh:hasValue}.
 
@@ -3307,7 +3107,75 @@ Status: [completed] {ex:status}
 Budget: [15000.00] {ex:budget ^^xsd:decimal}
 ~~~~~~
 
-**Expected Result:** 4 violations (Employee2 fails: invalid department; Employee3 fails: terminated status (NOT constraint); Employee4 fails: only 1 completed project, needs 2; Employee5 fails: negative salary; Employee1 passes)
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:EmployeeValidationShape": {
+        "ex:Employee1": {
+            "department": "Engineering",
+            "status": "active",
+            "projects": [
+                {
+                    "status": "completed",
+                    "budget": 50000
+                },
+                {
+                    "status": "completed",
+                    "budget": 30000
+                }
+            ],
+            "salary": 75000
+        },
+        "ex:Employee2": {
+            "status": "active",
+            "projects": [
+                {
+                    "status": "completed",
+                    "budget": 40000
+                },
+                {
+                    "status": "completed",
+                    "budget": 20000
+                }
+            ],
+            "salary": 65000
+        },
+        "ex:Employee3": {
+            "department": "Engineering",
+            "status": "terminated",
+            "projects": [
+                {
+                    "status": "completed",
+                    "budget": 35000
+                },
+                {
+                    "status": "completed",
+                    "budget": 15000
+                }
+            ],
+            "salary": 60000
+        },
+        "ex:Employee4": {
+            "department": "Engineering",
+            "status": "active",
+            "salary": 70000
+        },
+        "ex:Employee5": {
+            "department": "Engineering",
+            "status": "active",
+            "projects": [
+                {
+                    "status": "completed",
+                    "budget": 20000
+                },
+                {
+                    "status": "completed",
+                    "budget": 15000
+                }
+            ]
+        }
+    }
+}
+~~~~~~
 
 ## Best Practices
 
@@ -3340,8 +3208,31 @@ Budget: [15000.00] {ex:budget ^^xsd:decimal}
 - **Incomplete test coverage** - Test all constraint combinations
 - **Incorrect subject chaining** - Use proper syntax for nested objects
 
-## Next Steps
+<a id="self-validation"></a>
 
+# Self-Validation {=cat:self .cat:ShapeGraph label}
 
-- Explore [Constraints](#constraints-index) for detailed constraint patterns
-- Learn about [Targeting Mechanisms](#targeting-index) for data selection
+> The catalog defines SHACL shapes that validate the catalog itself — every demo must carry its source and its expected outcome. {comment}
+
+These shapes are data like any other: they are quads in this document, evaluated by the same validator they describe.
+
+**Demo source is required** {=cat:SourceRule .sh:PropertyShape sh:message}
+[demo] {+cat:demo ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value.
+
+**Expected violations are required for covered demos** {=cat:ExpectationRule .sh:PropertyShape sh:message}
+[expectedViolations] {+cat:expectedViolations ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value of type [integer] {+xsd:integer ?sh:datatype}.
+
+**Every demo carries source and expectation** {=cat:DemoShape .sh:NodeShape}
+[demos] {+cat:Demo ?sh:targetClass} must have [source] {+cat:SourceRule ?sh:property sh:name} and satisfy one of [expectation alternatives] {+cat:orHead ?sh:or .rdf:List}.
+
+**Expectation alternatives** {=cat:orHead}
+[Has expected count] {+cat:HasExpectedShape ?rdf:first}
+[rest] {=cat:orRest ?rdf:rest}
+[Is not covered] {+cat:IsNotCoveredShape ?rdf:first}
+[nil] {+rdf:nil ?rdf:rest}
+
+**Has expected count** {=cat:HasExpectedShape .sh:NodeShape}
+[covered demos] {+cat:ExpectationRule ?sh:property sh:name}
+
+**Is not covered** {=cat:IsNotCoveredShape .sh:NodeShape}
+Demos marked [not covered] {+cat:notCovered ?sh:class} are exempt from the expectation requirement.
