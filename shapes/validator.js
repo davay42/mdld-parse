@@ -1194,8 +1194,11 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
     // validFields semantics: a property is emitted only if it conforms to
     // its shape — every key in the POJO is a validated fact. sh:js constraints
     // don't run here (allowJS: false), so js-guarded fields are kept.
-    const gate = { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false }
-    if (validateNodeAgainstShape(dataDS, shapesDS, propShape, focusNode, gate).length > 0) continue
+    // Constraint-free property shapes skip the gate entirely.
+    if (pInfo.constraints.length > 0) {
+      const gate = { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false }
+      if (validateNodeAgainstShape(dataDS, shapesDS, propShape, focusNode, gate).length > 0) continue
+    }
     const names = valuesOf(shapesDS, propShape, sh('name'))
     const nodeShapes = valuesOf(shapesDS, propShape, sh('node'))
     const qualified = valuesOf(shapesDS, propShape, sh('qualifiedValueShape'))
@@ -1359,7 +1362,15 @@ function extractPOJO(input, shapeIRI, options = {}) {
   // sh:and/or/xone on the node shape, …) gate whole records; property shapes
   // gate individual fields inside pojoForNode. Focus nodes failing either
   // tier are omitted — absence means "nothing here validates".
-  const kept = targets.filter(t =>
+  // Shapes with no node-level constraints skip the record gate entirely.
+  const NODE_LEVEL_SKIP = ['MinCountConstraintComponent', 'MaxCountConstraintComponent',
+    'EqualsConstraintComponent', 'DisjointConstraintComponent', 'LessThanConstraintComponent',
+    'LessThanOrEqualsConstraintComponent', 'UniqueLangConstraintComponent',
+    'HasValueConstraintComponent', 'QualifiedMinCountConstraintComponent',
+    'QualifiedMaxCountConstraintComponent']
+  const nodeInfo = getShapeInfo(shapesDS, shapeTerm, shapeCache)
+  const hasNodeConstraints = nodeInfo.constraints.some(c => !NODE_LEVEL_SKIP.includes(c.component))
+  const kept = !hasNodeConstraints ? targets : targets.filter(t =>
     validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t,
       { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false },
       { nodeLevelOnly: true }).length === 0)

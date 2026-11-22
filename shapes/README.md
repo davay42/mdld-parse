@@ -230,6 +230,24 @@ Measured on Apple Silicon (reused `Validator` — shape work is cached):
 
 The `Store` implementation is a thin wrapper over `Set<Quad>` with linear `match()`. For very large datasets, an indexed store would be faster — but MD-LD's use case is small-to-medium shapes.
 
+### Projection performance
+
+`extractPOJO`/`extractSubGraph` cost ≈1.5–1.8× `validate()` on the same graph
+(conformance gating reuses the validator; constraint-free shapes skip the gate
+entirely). Measured on Apple Silicon, 4-property Person shape with nested
+`sh:node` + RDF list:
+
+| Entities | Data quads | validate | extractPOJO | extractSubGraph |
+|----------|-----------|----------|-------------|-----------------|
+| 100 | 1,100 | 9ms | 16ms | 13ms |
+| 1,000 | 11,000 | 50ms | 76ms | 79ms |
+| 10,000 | 110,000 | 419ms | 759ms | 832ms |
+| 25,000 | 275,000 | 1,113ms | 1,981ms | 2,228ms |
+
+Perfectly linear (~12.6K entities/sec extraction). Comfortable to ~25K
+entities / ~300K quads per call; beyond that, shard by target or wait for the
+indexed store.
+
 ## Architecture
 
 ```
