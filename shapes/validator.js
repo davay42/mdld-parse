@@ -440,11 +440,14 @@ function resolveTargets(dataDS, shapesDS, shapeTerm) {
 function resolvePath(dataDS, shapesDS, focusNode, pathTerm) {
   if (!pathTerm) return []
   // Simple predicate path
-  if (isNamedNode(pathTerm)) {
+  // Predicate path: a named node that carries no path-structure description.
+  // MD-LD expresses complex paths with IRIs instead of blank nodes, so an IRI
+  // with sh:*Path predicates (or rdf:first/rest) is a structure, not a predicate.
+  if (isNamedNode(pathTerm) && !hasPathStructure(shapesDS, pathTerm)) {
     return valuesOf(dataDS, focusNode, pathTerm)
   }
-  // Complex path (blank node with sh:inversePath, sh:alternativePath, etc.)
-  if (isBlankNode(pathTerm)) {
+  // Complex path (blank node or IRI structure with sh:inversePath, etc.)
+  if (isBlankNode(pathTerm) || isNamedNode(pathTerm)) {
     const [inverse] = valuesOf(shapesDS, pathTerm, sh('inversePath'))
     if (inverse) {
       const pred = isBlankNode(inverse) ? null : inverse
@@ -467,7 +470,7 @@ function resolvePath(dataDS, shapesDS, focusNode, pathTerm) {
     if (oneOrMore) return transitive(dataDS, focusNode, oneOrMore, false)
     const [zeroOrOne] = valuesOf(shapesDS, pathTerm, sh('zeroOrOnePath'))
     if (zeroOrOne) return [focusNode, ...valuesOf(dataDS, focusNode, zeroOrOne)]
-    // Sequence path: the blank node itself is an rdf:List of predicates
+    // Sequence path: the term itself is an rdf:List of predicates
     try {
       const steps = readList(shapesDS, pathTerm)
       if (steps.length > 0) {
@@ -480,6 +483,15 @@ function resolvePath(dataDS, shapesDS, focusNode, pathTerm) {
     } catch { /* not a list, fall through */ }
   }
   return []
+}
+
+/** Does this term describe a complex path structure in the shapes graph? */
+function hasPathStructure(shapesDS, term) {
+  for (const p of ['inversePath', 'alternativePath', 'zeroOrMorePath', 'oneOrMorePath', 'zeroOrOnePath']) {
+    if (valuesOf(shapesDS, term, sh(p)).length > 0) return true
+  }
+  return valuesOf(shapesDS, term, RDF_FIRST).length > 0 ||
+    valuesOf(shapesDS, term, RDF_REST).length > 0
 }
 
 function transitive(ds, start, pred, includeStart) {

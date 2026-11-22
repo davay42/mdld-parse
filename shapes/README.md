@@ -279,9 +279,13 @@ node selftest.js   # the whole loop, one command
    notCovered terms are reported as warnings.
 3. **Demos** — every `cat:Demo`'s `cat:demo` source is parsed and validated;
    the violation count must equal `cat:expectedViolations`.
+4. **Self** — the catalog's own SHACL shapes (`cat:self` section) are run
+   against the catalog graph: every demo must carry `cat:demo` source and,
+   unless marked `cat:notCovered`, a `cat:expectedViolations` integer
+   (enforced via `sh:or` over `cat:HasExpectedShape` / `cat:IsNotCoveredShape`).
 
-Current status: **30/30 covered demos pass, 1 skipped; 101/101 ontology
-terms accounted for, 0 sync failures**.
+Current status: **30/30 covered demos pass, 1 skipped; catalog conforms to
+its own shapes; 101/101 ontology terms accounted for, 0 sync failures**.
 
 ## Roadmap
 

@@ -14,6 +14,8 @@
  *                 Implemented-but-marked-notCovered terms are reported.
  * 3. DEMOS      — every cat:Demo's cat:demo source is parsed and validated;
  *                 the violation count must equal cat:expectedViolations.
+ * 4. SELF       — the catalog's own SHACL shapes (cat:self section) must
+ *                 conform against the catalog graph itself.
  *
  * Usage:  node selftest.js [catalog.md] [ontology.md]
  * Exit:   0 = all checks pass, 1 = any failure
@@ -148,6 +150,22 @@ for (const d of demos.values()) {
   }
 }
 
+// ── 4. SELF: the catalog validates itself with its own shapes ─────────────────
+
+let selfViolations = 0
+try {
+  const report = validate({ quads: cat })
+  selfViolations = report.results.length
+  if (selfViolations > 0) {
+    fail(`self: catalog violates its own shapes — ${selfViolations} violation(s)`)
+    for (const v of report.results.slice(0, 10)) {
+      problems.push(`self: ${v.component?.value?.split('#').pop()} on ${v.focusNode?.value?.split('/').pop()} (shape ${v.shape?.value?.split('/').pop()})`)
+    }
+  }
+} catch (e) {
+  fail(`self: ${e.message}`)
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 
 const cov = {}
@@ -160,6 +178,7 @@ for (const r of rows) {
 }
 
 console.log(`\ndemos:     ${pass} passed, ${failures} failed, ${skip} skipped — ${demos.size} cat:Demo nodes`)
+console.log(`self:      ${selfViolations} violation(s) against the catalog's own shapes`)
 console.log(`coverage:  ${JSON.stringify(cov)} — ${termStatus.size} sh: properties in ontology`)
 for (const p of problems.filter(p => p.startsWith('warn:'))) console.log(`  ${p}`)
 for (const p of problems.filter(p => !p.startsWith('warn:'))) console.log(`  ${p}`)

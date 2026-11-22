@@ -610,7 +610,7 @@ Some parts are still completely uncovered and don't work even on ttl or pure qua
 
 ## Property Path Constraints
 
-Need to check if these are working:
+MD-LD expresses path structures with IRIs instead of blank nodes — `sh:path` points to a node carrying `sh:inversePath` / `sh:alternativePath` / `sh:zeroOrMorePath` / `sh:oneOrMorePath` / `sh:zeroOrOnePath`, or an `rdf:List` for sequence paths.
 
 - Qualified Value Shape {+sh:qualifiedValueShape ?cat:includes .class:ShapeConstraint}
 - Qualified Value Shapes Disjoint {+sh:qualifiedValueShapesDisjoint ?cat:includes .class:ShapeConstraint .cat:notCovered}
@@ -619,6 +619,41 @@ Need to check if these are working:
 - Zero or More Path {+sh:zeroOrMorePath ?cat:includes .class:PropertyPath}
 - One or More Path {+sh:oneOrMorePath ?cat:includes .class:PropertyPath}
 - Zero or One Path {+sh:zeroOrOnePath ?cat:includes .class:PropertyPath}
+
+### Property Path Demo {=cat:demo/paths .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Eve fails because she has neither ex:email nor ex:workEmail; the alternativePath structure is an IRI, not a blank node)
+~~~~~~md {cat:demo}
+[ex] <tag:my@example.org,2026:paths/>
+
+## Contact Shape {=ex:ContactShape .sh:NodeShape label}
+
+All [contacts] {+ex:Contact ?sh:targetClass} must have reachable [email] {+ex:EmailRule ?sh:property sh:name} through either address property.
+
+**Email is required via primary or work address** {=ex:EmailRule .sh:PropertyShape sh:message}
+[reachable email] {+ex:emailPath ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value.
+
+**Email path alternatives** {=ex:emailPath}
+[alternative list] {+ex:emailAltList ?sh:alternativePath .rdf:List}
+
+**Path list head** {=ex:emailAltList}
+[primary email] {+ex:email ?rdf:first}
+[rest] {=ex:emailAltRest ?rdf:rest}
+[work email] {+ex:workEmail ?rdf:first}
+[nil] {+rdf:nil ?rdf:rest}
+
+---
+
+## Test Data {=ex:data .Container}
+
+### Alice {=ex:Alice .ex:Contact}
+Email: [alice@example.com] {ex:email}
+
+### Bob {=ex:Bob .ex:Contact}
+Work email: [bob@example.com] {ex:workEmail}
+
+### Eve {=ex:Eve .ex:Contact}
+Phone: [555-0100] {ex:phone}
+~~~~~~
 
 ## Shape Structure
 
@@ -2871,3 +2906,32 @@ Budget: [15000.00] {ex:budget ^^xsd:decimal}
 - **Ambiguous constraints** - Ensure constraints are clear and specific
 - **Incomplete test coverage** - Test all constraint combinations
 - **Incorrect subject chaining** - Use proper syntax for nested objects
+
+<a id="self-validation"></a>
+
+# Self-Validation {=cat:self .cat:ShapeGraph label}
+
+> The catalog defines SHACL shapes that validate the catalog itself — every demo must carry its source and its expected outcome. {comment}
+
+These shapes are data like any other: they are quads in this document, evaluated by the same validator they describe.
+
+**Demo source is required** {=cat:SourceRule .sh:PropertyShape sh:message}
+[demo] {+cat:demo ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value.
+
+**Expected violations are required for covered demos** {=cat:ExpectationRule .sh:PropertyShape sh:message}
+[expectedViolations] {+cat:expectedViolations ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value of type [integer] {+xsd:integer ?sh:datatype}.
+
+**Every demo carries source and expectation** {=cat:DemoShape .sh:NodeShape}
+[demos] {+cat:Demo ?sh:targetClass} must have [source] {+cat:SourceRule ?sh:property sh:name} and satisfy one of [expectation alternatives] {+cat:orHead ?sh:or .rdf:List}.
+
+**Expectation alternatives** {=cat:orHead}
+[Has expected count] {+cat:HasExpectedShape ?rdf:first}
+[rest] {=cat:orRest ?rdf:rest}
+[Is not covered] {+cat:IsNotCoveredShape ?rdf:first}
+[nil] {+rdf:nil ?rdf:rest}
+
+**Has expected count** {=cat:HasExpectedShape .sh:NodeShape}
+[covered demos] {+cat:ExpectationRule ?sh:property sh:name}
+
+**Is not covered** {=cat:IsNotCoveredShape .sh:NodeShape}
+Demos marked [not covered] {+cat:notCovered ?sh:class} are exempt from the expectation requirement.
