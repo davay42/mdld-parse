@@ -151,6 +151,30 @@ function subjectsOf(ds, predicate, object) {
   return out
 }
 
+const RDFS_SUB_PROPERTY_OF = nn(RDFS + 'subPropertyOf')
+
+/** Values of predicate p on subject s, including rdfs:subPropertyOf descendants (data-side entailment). */
+function valuesOfWithSubProps(ds, subject, predicate) {
+  const out = valuesOf(ds, subject, predicate)
+  // collect all predicates that are sub-properties of `predicate` (transitive)
+  const supers = new Set([termKey(predicate)])
+  const queue = [predicate]
+  for (let i = 0; i < queue.length; i++) {
+    for (const q of ds.match(null, RDFS_SUB_PROPERTY_OF, queue[i])) {
+      const k = termKey(q.subject)
+      if (!supers.has(k)) { supers.add(k); queue.push(q.subject) }
+    }
+  }
+  if (supers.size > 1) {
+    for (const q of ds.match(subject, null, null)) {
+      if (supers.has(termKey(q.predicate)) && !out.some(v => termEquals(v, q.object))) {
+        out.push(q.object)
+      }
+    }
+  }
+  return out
+}
+
 /** Read an RDF list (rdf:first / rdf:rest chain) into a plain array of terms. */
 function readList(ds, head) {
   const items = []
@@ -248,6 +272,7 @@ const CONSTRAINT_PREDICATES = [
   'not', 'and', 'or', 'xone', 'node',
   'hasValue', 'in', 'closed', 'ignoredProperties',
   'qualifiedValueShape', 'qualifiedMinCount', 'qualifiedMaxCount',
+  'js',
 ]
 
 /** Targeting predicates implemented by resolveTargets. */
@@ -363,6 +388,12 @@ function extractConstraints(shapesDS, shapeTerm) {
       ignoredProperties: params.ignoredProperties ? (Array.isArray(params.ignoredProperties) ? readList(shapesDS, params.ignoredProperties[0]) : readList(shapesDS, params.ignoredProperties)) : []
     }, messages, severities
   })
+  if (params.js) {
+    const jsTerms = Array.isArray(params.js) ? params.js : [params.js]
+    for (const jsTerm of jsTerms) {
+      constraints.push({ component: 'JSConstraintComponent', params: { js: jsTerm }, messages, severities })
+    }
+  }
   // Qualified - split into separate components per SHACL spec
   if (params.qualifiedValueShape) {
     if (params.qualifiedMinCount != null) {
@@ -563,6 +594,37 @@ function checkNodeKind(value, nodeKindIRI) {
   }
 }
 
+// ─── SHACL-JS ─────────────────────────────────────────────────────────────────
+
+/** Lexical form passed to sh:js scripts as `value` (literal lexical / IRI / blank label). */
+function jsValue(t) {
+  return t ? t.value : null
+}
+
+/**
+ * Compile a sh:script body into a callable function.
+ * Same realm, no sandbox: the script runs with validator helpers in scope —
+ * value, term, focusNode, values, graph, termEquals, valuesOf.
+ */
+function compileJs(src, shapeTerm) {
+  try {
+    return new Function('value', 'term', 'focusNode', 'values', 'graph', 'termEquals', 'valuesOf', src)
+  } catch (e) {
+    throw new Error(`sh:js compile error in shape ${shapeTerm?.value}: ${e.message}`)
+  }
+}
+
+/** Resolve the JS source for a sh:js parameter (JSConstraint node or inline literal). */
+function jsSource(shapesDS, jsTerm) {
+  if (isLiteral(jsTerm)) return jsTerm.value
+  const scripts = valuesOf(shapesDS, jsTerm, sh('script'))
+  if (scripts.length > 0) return scripts[0].value
+  // Fallback: code carried directly on sh:js of the constraint node
+  const alt = valuesOf(shapesDS, jsTerm, sh('js'))
+  if (alt.length > 0 && isLiteral(alt[0])) return alt[0].value
+  throw new Error(`sh:js constraint ${jsTerm?.value} has no sh:script`)
+}
+
 // ─── Constraint evaluation ─────────────────────────────────────────────────────
 
 /**
@@ -573,10 +635,19 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
   const { component, params } = constraint
   const violations = []
   const severity = constraint.severities?.[0] || nn(SH + 'Violation')
-  const message = constraint.messages?.[0]?.value || null
+  const rawMessage = constraint.messages?.[0]?.value || null
+
+  // sh:message template substitution: {$value}, {$path}, {$focusNode}
+  function renderMessage() {
+    if (!rawMessage) return null
+    return rawMessage
+      .replaceAll('{$value}', jsValue(value) ?? '')
+      .replaceAll('{$path}', ctx.path?.value ?? '')
+      .replaceAll('{$focusNode}', focusNode?.value ?? '')
+  }
 
   function viol(extra = {}) {
-    const v = { focusNode, value, severity, component: nn(SH + component), message, shape: ctx.shapeTerm, path: ctx.path, ...extra }
+    const v = { focusNode, value, severity, component: nn(SH + component), message: renderMessage(), shape: ctx.shapeTerm, path: ctx.path, ...extra }
     if (process.env.DEBUG) {
       console.log(`  ⚠️  ${component} violation: focus=${focusNode?.value}, value=${value?.value || 'none'}, shape=${ctx.shapeTerm?.value}`)
     }
@@ -692,20 +763,20 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
       break
     }
     case 'EqualsConstraintComponent': {
-      const otherVals = valuesOf(dataDS, focusNode, params.equals)
+      const otherVals = valuesOfWithSubProps(dataDS, focusNode, params.equals)
       const thisSet = new Set(values.map(termKey))
       const otherSet = new Set(otherVals.map(termKey))
       if (thisSet.size !== otherSet.size || ![...thisSet].every(k => otherSet.has(k))) violations.push(viol())
       break
     }
     case 'DisjointConstraintComponent': {
-      const otherVals = valuesOf(dataDS, focusNode, params.disjoint)
+      const otherVals = valuesOfWithSubProps(dataDS, focusNode, params.disjoint)
       const overlap = values.some(v => otherVals.some(o => termEquals(v, o)))
       if (overlap) violations.push(viol())
       break
     }
     case 'LessThanConstraintComponent': {
-      const otherVals = valuesOf(dataDS, focusNode, params.lessThan)
+      const otherVals = valuesOfWithSubProps(dataDS, focusNode, params.lessThan)
       for (const v of values) {
         if (!isLiteral(v)) continue  // Only applies to literals
         for (const o of otherVals) {
@@ -716,7 +787,7 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
       break
     }
     case 'LessThanOrEqualsConstraintComponent': {
-      const otherVals = valuesOf(dataDS, focusNode, params.lessThanOrEquals)
+      const otherVals = valuesOfWithSubProps(dataDS, focusNode, params.lessThanOrEquals)
       for (const v of values) {
         if (!isLiteral(v)) continue  // Only applies to literals
         for (const o of otherVals) {
@@ -805,6 +876,22 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
           violations.push(viol({ path: q.predicate, value: q.object }))
         }
       }
+      break
+    }
+    case 'JSConstraintComponent': {
+      // sh:js executes arbitrary code — opt-in only (untrusted shapes must not reach this)
+      if (!ctx.allowJS) break
+      const src = jsSource(shapesDS, params.js)
+      ctx.jsCache ??= new Map()
+      const key = termKey(params.js)
+      let fn = ctx.jsCache.get(key)
+      if (!fn) {
+        fn = compileJs(src, ctx.shapeTerm)
+        ctx.jsCache.set(key, fn)
+      }
+      const boundValuesOf = (s, p) => valuesOf(dataDS, s, p)
+      const ok = fn(jsValue(value), value, focusNode, values, dataDS, termEquals, boundValuesOf)
+      if (!ok) violations.push(viol())
       break
     }
     case 'QualifiedMinCountConstraintComponent': {
@@ -967,7 +1054,7 @@ function validate(options) {
     if (deactivated.length > 0 && (deactivated[0].value === 'true' || deactivated[0] === true)) continue
 
     const targets = resolveTargets(dataDS, shapesDS, shapeTerm)
-    const ctx = { visited: new Set(), shapeTerm, shapeCache }
+    const ctx = { visited: new Set(), shapeTerm, shapeCache, jsCache: new Map(), allowJS: options.allowJS === true }
 
     for (const focusNode of targets) {
       allViolations.push(...validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, ctx))
@@ -1027,13 +1114,15 @@ function validate(options) {
  */
 class Validator {
   #shapeQuads
+  #options
 
   constructor(shapeQuads, options = {}) {
     this.#shapeQuads = shapeQuads
+    this.#options = options
   }
 
   validate(dataQuads) {
-    return validate({ shapes: this.#shapeQuads, data: dataQuads })
+    return validate({ shapes: this.#shapeQuads, data: dataQuads, allowJS: this.#options.allowJS })
   }
 }
 

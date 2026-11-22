@@ -172,7 +172,7 @@ This validator is intentionally scoped. Here's what it **doesn't** do, and why:
 | Feature | Status | Reason |
 |---------|--------|--------|
 | **SHACL-SPARQL** (`sh:sparql`, `sh:targetWhere`) | ❌ Not supported | Requires a SPARQL engine — out of scope for a zero-dep validator |
-| **SHACL-JS** (`sh:js`) | ❌ Not supported | Security-sensitive; MD-LD uses declarative shapes only |
+| **SHACL-JS** (`sh:js` + `sh:script`) | ⚠️ Opt-in | Executes arbitrary JS — enable only for trusted shapes via `allowJS: true` |
 | **SHACL-AF** (rules, inference, functions) | ❌ Not supported | Different use case; can be added as a separate package |
 | **SHACL-UI** | ❌ Not supported | Orthogonal concern |
 | **Full RDFS entailment** | ⚠️ Partial | Only `rdfs:subClassOf` for `sh:class`; no `rdfs:subPropertyOf`, no domain/range inference |
@@ -239,7 +239,7 @@ mdld-shapes.js (~930 LOC)
 | API | Async | Sync |
 | SHACL Core | ✅ Full | ✅ Full |
 | SHACL-SPARQL | ✅ Supported | ❌ Out of scope |
-| SHACL-JS | ❌ Not supported | ❌ Out of scope |
+| SHACL-JS | ❌ Not supported | ⚠️ Opt-in (`allowJS`) |
 | SHACL-AF | Partial | ❌ Out of scope |
 | Custom stores | Requires grapoi compat | Works with any DatasetCore |
 | Factory flexibility | Any RDF/JS factory | Specialized to mdld-parse |
@@ -260,7 +260,7 @@ const report = validate({ shapes: shapesQuads,  dataQuads })
 
 **Breaking changes:**
 - Sync API (no `await`)
-- No SPARQL/JS/AF support
+- No SPARQL/AF support; SHACL-JS only with explicit `allowJS: true`
 - Different error shapes on malformed input
 
 ## Testing
@@ -314,3 +314,76 @@ Same as `mdld-parse`. See the [mdld-parse repository](https://github.com/mdld-js
 **Lines of code:** ~930
 
 **Dependencies:** 0 (excluding mdld-parse)
+
+---
+
+## Specification
+
+*Merged from the former `spec.md` — this README is now the single metadocument for the catalog and its validation loop.*
+
+### Philosophy
+
+mdld-shapes validates RDF data against SHACL shapes on mdld-parse's own principles: zero dependencies, compact (~1,000 LOC), readable in one sitting, deterministic, synchronous. It does one thing — quads in, validation report out — by walking the graph with `match()` calls.
+
+### Scope
+
+**In scope — SHACL Core** (W3C REC-shacl + 1.2 Core WD): all constraint components, all target types, all property path types, logical constraints (`not`/`and`/`or`/`xone`), qualified counts, closed shapes, severity/message/deactivated, and `sh:js` (opt-in via `allowJS`).
+
+**Out of scope:** SHACL-SPARQL (`sh:sparql`, `sh:targetWhere`, `sh:ask`/`select`/`construct`/`update`), SHACL-AF (rules, functions, entailment regimes), SHACL-UI, `sh:jsLibrary*`/`jsFunctionName` (external libraries are never fetched), full RDFS entailment (only `rdfs:subClassOf` for `sh:class` and `rdfs:subPropertyOf` for property-pair constraints), `qualifiedValueShapesDisjoint`.
+
+### Integration with mdld-parse
+
+- Uses mdld-parse's `DataFactory` — no factory-mismatch bugs.
+- Accepts `{ quads }` (auto-classified), `{ shapes, data }`, or a stateful `Validator`.
+- `createShapeDetector()` exported for custom classification.
+
+### Internal data model
+
+- **`Store`** — `Set<Quad>` with subject/predicate indexes; `match(s,p,o,g)` returns a sub-store.
+- **Graph helpers** — `valuesOf`, `subjectsOf`, `valuesOfWithSubProps` (rdfs:subPropertyOf entailment), `readList` (rdf:first/rest → `Term[]`, throws on cycles/malformed lists), `instancesOf` (rdf:type + rdfs:subClassOf closure).
+- **Shape detector** — two-pass quad classification: `rdf:type sh:NodeShape|PropertyShape`, any `sh:*` predicate, known shape subjects, and shape-related rdf:List chains.
+
+### Target resolution
+
+`sh:targetClass` (with subClassOf traversal), `sh:targetNode`, `sh:target` (generic, treated as targetNode), `sh:targetSubjectsOf`, `sh:targetObjectsOf`. Focus nodes are deduplicated per shape.
+
+### Constraint dispatch
+
+All ~30 components are evaluated in `evalConstraint` by name (`ClassConstraintComponent`, `MinCountConstraintComponent`, …). Unknown components are skipped silently (forward compatibility). Property-level components (counts, equals, disjoint, lessThan*, uniqueLang, hasValue, qualified counts, closed) evaluate once per path; all others evaluate per value node.
+
+### Property paths
+
+All path types resolve through `resolvePath`: predicate IRIs, and complex structures on **any term type** — `hasPathStructure()` detects `sh:inversePath`/`alternativePath`/`zeroOrMorePath`/`oneOrMorePath`/`zeroOrOnePath` or `rdf:first`/`rdf:rest` list heads. MD-LD expresses these with IRIs instead of blank nodes. Sequence paths are RDF lists of steps.
+
+### Recursion & cycle detection
+
+`(shapeTerm, focusNode)` pairs are tracked in `ctx.visited`; revisiting returns `conforms: true` (optimistic cycle-breaking), then the key is removed so sibling branches can re-validate.
+
+### SHACL-JS
+
+`sh:js` → `sh:JSConstraint` → `sh:script` literal. Compiled once per constraint (`ctx.jsCache`) via `new Function('value','term','focusNode','values','graph','termEquals','valuesOf', src)` — same realm, validator helpers in scope, `value` bound to the lexical form. **Disabled by default**; requires `allowJS: true`. Missing `sh:script` or compile errors throw.
+
+### sh:message templating
+
+`{$value}`, `{$path}`, `{$focusNode}` placeholders are substituted per violation.
+
+### Error handling
+
+Malformed RDF lists and missing `sh:script` throw with context. Everything else degrades to violations, never crashes.
+
+### Testing strategy
+
+`selftest.js` is the canonical suite — the catalog is its own test suite:
+
+1. **Coverage** — every `sh:` property in `ontology.md` accounted for in `catalog.md`.
+2. **Sync** — covered terms must exist in `SUPPORTED_VOCABULARY`.
+3. **Demos** — every `cat:Demo` re-parsed and validated against `cat:expectedViolations`.
+4. **Self** — the catalog's own `cat:self` SHACL shapes must conform.
+
+```bash
+node selftest.js   # 32/32 demos, 0 self-violations, 101/101 terms
+```
+
+### Compliance
+
+SHACL Core constraint/target/path surface is implemented and demo-verified. Non-goals and known partial behaviors are listed under "Honest Limitations" above. `qualifiedValueShapesDisjoint`, message-template edge cases beyond `{$value}`/`{$path}`/`{$focusNode}`, and deep RDFS entailment remain the honest remainder.

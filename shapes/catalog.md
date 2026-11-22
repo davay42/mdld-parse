@@ -2345,13 +2345,13 @@ Value: [-1000.00] {ex:contractValue ^^xsd:decimal}
 
 <a id="constraints-js"></a>
 
-# JavaScript Function {=sh:js .class:Constraint label .cat:notCovered}
+# JavaScript Function {=sh:js .class:Constraint label}
 > Allows custom JavaScript validation functions for complex constraint logic {comment}
 
 The JavaScript constraint allows custom JavaScript validation functions for complex constraint logic. This example validates that event dates must be valid JavaScript dates.
 
-### JS Demo {=cat:demo/js .cat:Demo ?cat:hasDemo .cat:notCovered}
-Requires SHACL-JS evaluation — not covered by the core validator.
+### JS Demo {=cat:demo/js .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEvent fails because "not-a-date" is not a valid JavaScript date)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:js/>
 
@@ -2359,12 +2359,10 @@ Requires SHACL-JS evaluation — not covered by the core validator.
 
 Validates all [member] {+member ?sh:targetObjectsOf} entities with valid **date** {+ex:DatePropertyShape ?sh:property sh:name}.
 
-**Event date must be valid** {=ex:DatePropertyShape .sh:PropertyShape sh:message} requires [eventDate] {+ex:eventDate ?sh:path} to be a valid JS date:
+**Event date must be valid** {=ex:DatePropertyShape .sh:PropertyShape sh:message} requires [eventDate] {+ex:eventDate ?sh:path} to be a valid JS date and satisfy [js check] {+ex:DateJSConstraint ?sh:js .sh:JSConstraint}.
 
-~~~js {=ex:DateJSConstraint ?sh:JSConstraint sh:js}
-const date = new Date(value);
-return !isNaN(date.getTime());
-~~~
+**JS constraint script** {=ex:DateJSConstraint}
+[const date = new Date(value); return !isNaN(date.getTime());] {sh:script}
 
 ---
 

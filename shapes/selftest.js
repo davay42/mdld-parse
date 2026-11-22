@@ -136,7 +136,8 @@ for (const d of demos.values()) {
   }
   try {
     const { quads: demoQuads } = parse({ text: d.source })
-    const actual = validate({ quads: demoQuads }).results.length
+    // catalog demos are trusted shapes — sh:js enabled explicitly
+    const actual = validate({ quads: demoQuads, allowJS: true }).results.length
     if (actual === d.expected) {
       pass++
       rows.push({ name: d.name, status: 'ok', detail: `${actual} violation(s)` })
