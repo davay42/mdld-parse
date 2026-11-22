@@ -163,6 +163,29 @@ const detector = createShapeDetector()
 const isShape = detector.classify(quad)
 ```
 
+### `extractPOJO(input, shapeIRI?, options?) → Object | Object[]`
+
+Projects data through a shape into plain JavaScript objects — the SHACL shape acts as the extraction schema (the `rdf-lens` idea, zero dependencies). For each extractable property it resolves `sh:path` values, uses `sh:name` (falling back to the path's local name) as the key, and casts literals by datatype: `xsd:integer`/`decimal`/etc. → `Number`, `xsd:boolean` → `boolean`, `xsd:date`/`dateTime` → `Date`, everything else → `string`.
+
+"Extractable properties" means `sh:property` links **plus** PropertyShape members of `sh:and`/`sh:or`/`sh:xone` compositions (`sh:not` members are excluded — they describe what must *not* appear), and a shape's own `sh:path` when the shape is property-shape-like. `sh:deactivated` property shapes are skipped. `sh:node` and `sh:qualifiedValueShape` both recurse into nested POJOs; RDF lists (`rdf:first`/`rdf:rest`) become arrays; IRIs without a shape project to their IRI string.
+
+```javascript
+const pojo = extractPOJO({ quads })                     // first non-deactivated shape
+const people = extractPOJO({ quads }, 'tag:ex,PersonShape')
+// → [{ name: 'Alice', age: 30, address: { city: 'Paris' }, tags: ['a','b'] }]
+```
+
+`input` accepts `{ quads }`, `{ shapes, data }`, or a raw `Quad[]`. Options: `arrays: true` always emits arrays; `maxDepth` (default 32) bounds `sh:node` recursion — cycles degrade to the bare IRI.
+
+### `extractSubGraph(input, shapeIRI?, options?) → Quad[]`
+
+Returns the sub-graph permitted by a shape: for each targeted node it keeps quads whose predicate is declared by a `sh:property` path (plus `rdf:type`), follows `sh:node` and `sh:targetClass` into nested entities, and includes RDF list chains whole. Useful for sanitizing graphs before handing them to agents or caching.
+
+```javascript
+const sub = extractSubGraph({ quads }, 'tag:ex,PersonShape')
+// → only Person/Address quads the shapes declare — no undeclared predicates
+```
+
 ## Honest Limitations
 
 This validator is intentionally scoped. Here's what it **doesn't** do, and why:

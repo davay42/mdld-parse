@@ -1026,7 +1026,7 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fai
 
 ## Print Shop Price List {=ex:ProductTestShape .sh:NodeShape label}
 
-We are the price list for a small print shop. Every [product] {+member ?sh:targetObjectsOf} we sell must carry a **price** {+#priceRange ?sh:property} that makes business sense — nobody buys a banner for five cents or five thousand dollars.
+We are the price list for a small print shop. Every [product] {+member ?sh:targetObjectsOf} we sell must carry a **price** {+#priceRange ?sh:property sh:name} that makes business sense — nobody buys a banner for five cents or five thousand dollars.
 
 ## Price must be between 10 and 100 inclusive. {=#priceRange .sh:PropertyShape sh:message}
 Our [price] {+ex:price ?sh:path} must be at least [10] {sh:minInclusive ^^xsd:decimal} and at most [100] {sh:maxInclusive ^^xsd:decimal}.
@@ -1094,7 +1094,7 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidOrder fails
 
 ## Bakery Order Book {=ex:OrderTestShape .sh:NodeShape  label}
 
-We keep the order book for a neighborhood bakery. Every [order] {+member ?sh:targetObjectsOf} must record its **order date before shipping date** {+#orderDateRule ?sh:property sh:name} — you cannot ship a cake before you bake the order.
+We keep the order book for a neighborhood bakery. Every [order] {+member ?sh:targetObjectsOf} must record its order date before shipping date, kept as [orderDate] {+#orderDateRule ?sh:property sh:name} — you cannot ship a cake before you bake the order.
 
 ## Order date must be before shipping date. {=#orderDateRule .sh:PropertyShape sh:message}
 Our [order date] {+ex:orderDate ?sh:path} must come before the [shipping date] {+ex:shippingDate ?sh:lessThan}.
@@ -1159,7 +1159,7 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Germany fails beca
 
 ## Archive Tag Shape {=ex:DisjointExampleShape .sh:NodeShape label}
 
-We catalog exhibits for a small natural-history museum. Every [item] {+member ?sh:targetObjectsOf} gets a **preferred label** {+#disjointRule ?sh:property sh:name} and any **alternative labels** {+ex:altLabel ?sh:disjoint} it is also known by — but an alternative can't just repeat the preferred one.
+We catalog exhibits for a small natural-history museum. Every [item] {+member ?sh:targetObjectsOf} gets a preferred label, kept as [prefLabel] {+#disjointRule ?sh:property sh:name}, and any **alternative labels** {+ex:altLabel ?sh:disjoint} it is also known by — but an alternative can't just repeat the preferred one.
 
 ## Preferred labels must be different from alternative labels. {=#disjointRule .sh:PropertyShape sh:message}
 Our [preferred labels] {+ex:prefLabel ?sh:path} must never overlap with the [alternative labels] {+ex:altLabel ?sh:disjoint}.
@@ -1222,7 +1222,9 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidDeletedUser
 
 ## Gym Roster Shape {=ex:UserStatusShape .sh:NodeShape  label}
 
-We run the member roster for a climbing gym. Every [member] {+member ?sh:targetObjectsOf} on file must never match the forbidden **shape** {+ex:ForbiddenStatusShape ?sh:not} — a deleted account is gone, full stop.
+We run the member roster for a climbing gym. Every [member] {+member ?sh:targetObjectsOf} on file must never match the forbidden **shape** {+ex:ForbiddenStatusShape ?sh:not} — a deleted account is gone, full stop. Their [status] {+#statusField ?sh:property sh:name} is still recorded on the roster.
+
+**Status field** {=#statusField .sh:PropertyShape} carries the [status] {+ex:status ?sh:path}.
 
 **Forbidden Status Shape** {=ex:ForbiddenStatusShape .sh:NodeShape} marks anyone whose [status] {+ex:status ?sh:path} reads exactly [deleted] {sh:hasValue}.
 
@@ -1288,9 +1290,9 @@ We run vendor sign-up for a weekend farmers market. Every [vendor] {+member ?sh:
 
 **Constraints List** {=ex:and-l1 ?sh:and .rdf:List}: [Price Required] {+ex:priceRequired ?rdf:first}, then [followed] {=ex:and-l2 ?rdf:rest} by [Category Required] {+ex:categoryRequired ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Price Required** {=ex:priceRequired .sh:PropertyShape} ensures the stall [price] {+ex:price ?sh:path} has at least [1] {sh:minCount ^^xsd:integer} value.
+**Price Required** {=ex:priceRequired .sh:PropertyShape} ensures the stall [price] {+ex:price ?sh:path} — filed on the card as [price] {=ex:priceRequired sh:name} — has at least [1] {sh:minCount ^^xsd:integer} value.
 
-**Category Required** {=ex:categoryRequired .sh:PropertyShape} ensures the stall [category] {+ex:category ?sh:path} has at least [1] {sh:minCount ^^xsd:integer} value.
+**Category Required** {=ex:categoryRequired .sh:PropertyShape} ensures the stall [category] {+ex:category ?sh:path} — filed on the card as [category] {=ex:categoryRequired sh:name} — has at least [1] {sh:minCount ^^xsd:integer} value.
 
 ## Test Data {=ex:data .Container}
 
@@ -1355,9 +1357,9 @@ We are the contact card for a dog-walking service. Every [client] {+member ?sh:t
 
 **Options List** {=ex:or-l1 ?sh:or .rdf:List}: [Email Contact] {+ex:emailContact ?rdf:first}, then [followed] {=ex:or-l2 ?rdf:rest} by [Phone Contact] {+ex:phoneContact ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Email Contact** {=ex:emailContact .sh:PropertyShape} accepts any [contact] {+ex:contact ?sh:path} containing [@] {sh:pattern}.
+**Email Contact** {=ex:emailContact .sh:PropertyShape} accepts any [contact] {+ex:contact ?sh:path} — filed on the card as [contact] {=ex:emailContact sh:name} — containing [@] {sh:pattern}.
 
-**Phone Contact** {=ex:phoneContact .sh:PropertyShape} accepts any [contact] {+ex:contact ?sh:path} containing [-] {sh:pattern}.
+**Phone Contact** {=ex:phoneContact .sh:PropertyShape} accepts any [contact] {+ex:contact ?sh:path} — also filed as [contact] {=ex:phoneContact sh:name} — containing [-] {sh:pattern}.
 
 ## Test Data {=ex:data .Container}
 
@@ -1427,9 +1429,9 @@ We issue membership passes for a community tool-lending library. Every [member] 
 
 **Options List** {=ex:xone-l1 ?sh:xone .rdf:List}: [Admin Role] {+ex:adminRole ?rdf:first}, then [followed] {=ex:xone-l2 ?rdf:rest} by [User Role] {+ex:userRole ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Admin Role** {=ex:adminRole .sh:PropertyShape} recognizes a [role] {+ex:role ?sh:path} of exactly [admin] {sh:hasValue}.
+**Admin Role** {=ex:adminRole .sh:PropertyShape} recognizes a [role] {+ex:role ?sh:path} — printed on the pass as [role] {=ex:adminRole sh:name} — of exactly [admin] {sh:hasValue}.
 
-**User Role** {=ex:userRole .sh:PropertyShape} recognizes a [role] {+ex:role ?sh:path} of exactly [user] {sh:hasValue}.
+**User Role** {=ex:userRole .sh:PropertyShape} recognizes a [role] {+ex:role ?sh:path} — also printed as [role] {=ex:userRole sh:name} — of exactly [user] {sh:hasValue}.
 
 ## Test Data {=ex:data .Container}
 
@@ -1942,7 +1944,7 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (NoWorkEmployee fai
 
 ## Staff Directory {=ex:EmployeeValidationShape .sh:NodeShape  label}
 
-We keep the staff directory for a small company. Every [employee] {+member ?sh:targetObjectsOf} must list exactly one **work email** {+#workEmailRule ?sh:property sh:name} — and "work" means it ends in our company domain.
+We keep the staff directory for a small company. Every [employee] {+member ?sh:targetObjectsOf} must list exactly one work email, kept as [email] {+#workEmailRule ?sh:property sh:name} — and "work" means it ends in our company domain.
 
 **Employee must have exactly one work email** {=#workEmailRule .sh:PropertyShape sh:message}
 Our [email] {+ex:email ?sh:path} must number exactly [1] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} work address matching the **Work Email Shape** {=ex:WorkEmailShape .sh:NodeShape ?sh:qualifiedValueShape}.
@@ -2096,13 +2098,13 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidAccount fai
 
 ## Building Access Rules {=ex:DeactivatedExampleShape .sh:NodeShape label}
 
-We manage badge access for a small office building. Every **member** {+member ?sh:targetObjectsOf} must be an active *user* {+ex:ActiveProperty ?sh:property sh:name} — and, when the category rule is switched back on, an active *category* {+ex:CategoryProperty ?sh:property sh:name} too.
+We manage badge access for a small office building. Every **member** {+member ?sh:targetObjectsOf} must be an active *user* {+ex:ActiveProperty ?sh:property sh:name} — and, when the category rule is switched back on, an active *category* {+ex:DeactivatedProperty ?sh:property sh:name} too.
 
 **User status must be active** {=ex:ActiveProperty .sh:PropertyShape sh:message}
 Our [status] {+ex:status ?sh:path} must read [active] {sh:hasValue}.
 
 **Category rule** {=ex:DeactivatedProperty .sh:PropertyShape sh:message}
-Our [category] {+ex:category ?sh:path} must read [active] {sh:hasValue}. This rule is temporarily [deactivated] {sh:deactivated} while we re-tag the floors.
+Our [category] {+ex:category ?sh:path} must read [active] {sh:hasValue}. This rule is deactivated — [true] {sh:deactivated ^^xsd:boolean} — while we re-tag the floors.
 
 ## Test Data {=ex:data .Container}
 
@@ -2526,7 +2528,7 @@ Validates all [Product] {+ex:Product ?sh:targetClass} instances to have mandator
 ~~~~~~md
 [ex] <tag:my@example.org,2026:product/>
 
-**Product** {=ex:ProductShape} must have an [SKU] {+ex:DescriptioSKURulenRule ?sh:property sh:name}.
+**Product** {=ex:ProductShape} must have an [SKU] {+ex:SKURule ?sh:property sh:name}.
 
 **Product SKU must match pattern** {=ex:SKURule .sh:PropertyShape sh:message}: [sku] {+ex:sku ?sh:path} must match [PROD-\d{5}] {sh:pattern}.
 ~~~~~~
@@ -2539,7 +2541,7 @@ Expects `4` {cat:expectedViolations ^^xsd:integer} violations (InvalidProduct1-4
 [ex] <tag:my@example.org,2026:product/>
 
 **Product Catalog** {=ex:ProductShape .sh:NodeShape  label}
-We are the catalog for an online shop. Every [Product] {+ex:Product ?sh:targetClass} we list must carry a mandatory [name] {+ex:NameRule ?sh:property sh:name}, [price] {+ex:PriceRule ?sh:property sh:name} and [category] {+ex:CategoryRule ?sh:property sh:name} — plus a positive price, an allowed category, an optional [descripton] {+ex:DescriptionRule ?sh:property sh:name}, and a correct [SKU] {+ex:DescriptioSKURulenRule ?sh:property sh:name}.
+We are the catalog for an online shop. Every [Product] {+ex:Product ?sh:targetClass} we list must carry a mandatory [name] {+ex:NameRule ?sh:property sh:name}, [price] {+ex:PriceRule ?sh:property sh:name} and [category] {+ex:CategoryRule ?sh:property sh:name} — plus a positive price, an allowed category, an optional [descripton] {+ex:DescriptionRule ?sh:property sh:name}, and a correct [SKU] {+ex:SKURule ?sh:property sh:name}.
 
 **Product name is required** {=ex:NameRule .sh:PropertyShape}
 Every listing's [name] {+ex:name ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
@@ -2715,7 +2717,7 @@ We keep the personnel file for a small company. Every [Employee] {+ex:Employee ?
 
 **Employee must have valid department** {=ex:DepartmentRule .sh:PropertyShape} requires [department] {+ex:department ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value and must be in **Allowed Departments List** {=ex:dept-l1 ?sh:in .rdf:List}: [Engineering] {rdf:first}, then [rest] {=ex:dept-l2 ?rdf:rest} by [Sales] {rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Employee status cannot be terminated** {=ex:StatusRule .sh:PropertyShape sh:message}: Employee status must not conform to [Terminated Status Shape] {+ex:TerminatedStatusShape ?sh:not}.
+**Employee status cannot be terminated** {=ex:StatusRule .sh:PropertyShape sh:message}: Employee [status] {+ex:status ?sh:path} must not conform to [Terminated Status Shape] {+ex:TerminatedStatusShape ?sh:not}.
 
 **Employee must have at least 2 completed projects** {=ex:ProjectsRule .sh:PropertyShape sh:message}: [projects] {+ex:projects ?sh:path} must have at least [2] {sh:qualifiedMinCount ^^xsd:integer} values that conform to [Completed Project Shape] {=ex:CompletedProjectShape .sh:NodeShape ?sh:qualifiedValueShape}.
 

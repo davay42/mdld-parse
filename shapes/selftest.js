@@ -23,8 +23,8 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { parse } from '../src/index.js'
-import { validate, isSupportedTerm } from './validator.js'
+import { parse, DataFactory } from '../src/index.js'
+import { validate, isSupportedTerm, extractPOJO, extractSubGraph } from './validator.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const catalogPath = process.argv[2] || join(here, 'catalog.md')
@@ -165,6 +165,105 @@ try {
   }
 } catch (e) {
   fail(`self: ${e.message}`)
+}
+
+// ── 5. PROJECTION: extractPOJO / extractSubGraph ─────────────────────────────
+// The shape is the extraction schema: same quads, same shapes, two projections.
+
+{
+  const df = DataFactory
+  const nn = v => df.namedNode(v)
+  const lit = (v, dt) => df.literal(v, dt ? nn(dt) : undefined)
+  const T = n => 'tag:proj-test,2026/' + n
+  const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+  const XSD = 'http://www.w3.org/2001/XMLSchema#'
+  const P = p => p.includes('://') ? p : T(p)
+  const q = (s, p, o) => df.quad(nn(T(s)), nn(P(p)), o)
+
+  const pShapes = [
+    q('PersonShape', RDF + 'type', nn(SH + 'NodeShape')),
+    q('PersonShape', SH + 'targetClass', nn(T('Person'))),
+    q('PersonShape', SH + 'property', nn(T('NameProp'))),
+    q('PersonShape', SH + 'property', nn(T('AgeProp'))),
+    q('PersonShape', SH + 'property', nn(T('AddrProp'))),
+    q('PersonShape', SH + 'property', nn(T('TagsProp'))),
+    q('NameProp', RDF + 'type', nn(SH + 'PropertyShape')),
+    q('NameProp', SH + 'name', lit('name')),
+    q('NameProp', SH + 'path', nn(T('name'))),
+    q('NameProp', SH + 'datatype', nn(XSD + 'string')),
+    q('AgeProp', RDF + 'type', nn(SH + 'PropertyShape')),
+    q('AgeProp', SH + 'name', lit('age')),
+    q('AgeProp', SH + 'path', nn(T('age'))),
+    q('AgeProp', SH + 'datatype', nn(XSD + 'integer')),
+    q('AddrProp', RDF + 'type', nn(SH + 'PropertyShape')),
+    q('AddrProp', SH + 'name', lit('address')),
+    q('AddrProp', SH + 'path', nn(T('address'))),
+    q('AddrProp', SH + 'node', nn(T('AddrShape'))),
+    q('TagsProp', RDF + 'type', nn(SH + 'PropertyShape')),
+    q('TagsProp', SH + 'name', lit('tags')),
+    q('TagsProp', SH + 'path', nn(T('tags'))),
+    q('AddrShape', RDF + 'type', nn(SH + 'NodeShape')),
+    q('AddrShape', SH + 'targetClass', nn(T('Address'))),
+    q('AddrShape', SH + 'property', nn(T('CityProp'))),
+    q('CityProp', RDF + 'type', nn(SH + 'PropertyShape')),
+    q('CityProp', SH + 'name', lit('city')),
+    q('CityProp', SH + 'path', nn(T('city'))),
+    q('CityProp', SH + 'datatype', nn(XSD + 'string')),
+  ]
+  const pData = [
+    q('Alice', RDF + 'type', nn(T('Person'))),
+    q('Alice', 'name', lit('Alice')),
+    q('Alice', 'age', lit('30', XSD + 'integer')),
+    q('Alice', 'address', nn(T('Addr1'))),
+    q('Alice', 'tags', nn(T('L1'))),
+    q('Alice', 'nickname', lit('Al')),
+    q('L1', RDF + 'first', lit('a')),
+    q('L1', RDF + 'rest', nn(T('L2'))),
+    q('L2', RDF + 'first', lit('b')),
+    q('L2', RDF + 'rest', nn(RDF + 'nil')),
+    q('Addr1', RDF + 'type', nn(T('Address'))),
+    q('Addr1', 'city', lit('Paris')),
+    q('Addr1', 'secret', lit('hidden')),
+    q('Bob', RDF + 'type', nn(T('Person'))),
+    q('Bob', 'name', lit('Bob')),
+    q('Bob', 'age', lit('41', XSD + 'integer')),
+  ]
+  const projQuads = [...pShapes, ...pData]
+
+  try {
+    const pojos = extractPOJO({ quads: projQuads }, T('PersonShape'))
+    const [alice, bob] = pojos
+    const ok =
+      pojos.length === 2 &&
+      alice.name === 'Alice' && alice.age === 30 && typeof alice.age === 'number' &&
+      alice.address?.city === 'Paris' &&
+      Array.isArray(alice.tags) && alice.tags.join(',') === 'a,b' &&
+      !('nickname' in alice) &&
+      bob.name === 'Bob' && bob.age === 41 && !('address' in bob)
+    if (ok) {
+      console.log('  ok   projection        POJO: typed casts, sh:name keys, nested sh:node, RDF list')
+    } else {
+      fail(`projection: unexpected POJO ${JSON.stringify(pojos)}`)
+    }
+
+    const single = extractPOJO({ quads: projQuads.filter(q => q.subject.value !== T('Bob')) }, T('PersonShape'))
+    if (!single || single.name !== 'Alice') fail('projection: single-target extractPOJO should return one object')
+
+    const sub = extractSubGraph({ quads: projQuads }, T('PersonShape'))
+    const subKeys = new Set(sub.map(q => `${q.subject.value}|${q.predicate.value}|${q.object.value}`))
+    const has = (s, p) => [...subKeys].some(k => k.startsWith(`${T(s)}|${T(p)}|`))
+    const keepsList = sub.some(q => q.predicate.value === RDF + 'first') &&
+      sub.some(q => q.predicate.value === RDF + 'rest')
+    const dropsSecrets = !has('Alice', 'nickname') && !has('Addr1', 'secret')
+    const keepsNested = has('Addr1', 'city') && sub.some(q => q.subject.value === T('Addr1') && q.predicate.value === RDF + 'type')
+    if (keepsList && dropsSecrets && keepsNested) {
+      console.log(`  ok   projection        subgraph: ${sub.length} quads, predicates filtered, list+nested kept`)
+    } else {
+      fail(`projection: subgraph keepsList=${keepsList} dropsSecrets=${dropsSecrets} keepsNested=${keepsNested} (${sub.length} quads)`)
+    }
+  } catch (e) {
+    fail(`projection: ${e.message}`)
+  }
 }
 
 // ── Report ────────────────────────────────────────────────────────────────────
