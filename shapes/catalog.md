@@ -519,6 +519,14 @@ We can broadly divide them into these type groups:
 - JavaScript Constraint {+class:JSConstraint !subClassOf label}
 - SPARQL Constraint {+class:SPARQLConstraint !subClassOf label}
 
+### 🧱 Structural Term {=class:StructuralTerm ?member .Class label}
+
+> SHACL shape-structure vocabulary: the predicates that compose shapes themselves (path, property, target). {comment}
+
+### 🏷️ Annotation Term {=class:AnnotationTerm ?member .Class label}
+
+> SHACL shape-annotation vocabulary: naming, ordering and grouping metadata for shapes and constraints. {comment}
+
 ---
 
 [Syntax Reference](#syntax-reference)
@@ -611,6 +619,71 @@ Need to check if these are working:
 - Zero or More Path {+sh:zeroOrMorePath ?cat:includes .class:PropertyPath .cat:notCovered}
 - One or More Path {+sh:oneOrMorePath ?cat:includes .class:PropertyPath .cat:notCovered}
 - Zero or One Path {+sh:zeroOrOnePath ?cat:includes .class:PropertyPath .cat:notCovered}
+
+## Shape Structure
+
+- [Path] {+sh:path ?cat:includes .class:StructuralTerm}
+- [Property] {+sh:property ?cat:includes .class:StructuralTerm}
+- [Target] {+sh:target ?cat:includes .class:TargetingPredicate}
+
+## Shape Annotation
+
+- [Name] {+sh:name ?cat:includes .class:AnnotationTerm}
+- [Order] {+sh:order ?cat:includes .class:AnnotationTerm}
+- [Group] {+sh:group ?cat:includes .class:AnnotationTerm}
+- [Default Value] {+sh:defaultValue ?cat:includes .class:AnnotationTerm}
+- [Description] {+sh:description ?cat:includes .class:AnnotationTerm}
+
+## Validation Result Vocabulary
+
+Result-side terms produced inside validation reports — not shape-authoring constraints, not covered by this catalog:
+
+- Focus Node {+sh:focusNode ?cat:includes .cat:notCovered}
+- Value {+sh:value ?cat:includes .cat:notCovered}
+- Result Path {+sh:resultPath ?cat:includes .cat:notCovered}
+- Result Severity {+sh:resultSeverity ?cat:includes .cat:notCovered}
+- Result Message {+sh:resultMessage ?cat:includes .cat:notCovered}
+- Result Annotation {+sh:resultAnnotation ?cat:includes .cat:notCovered}
+- Source Shape {+sh:sourceShape ?cat:includes .cat:notCovered}
+- Source Constraint {+sh:sourceConstraint ?cat:includes .cat:notCovered}
+- Source Constraint Component {+sh:sourceConstraintComponent ?cat:includes .cat:notCovered}
+- Conforms {+sh:conforms ?cat:includes .cat:notCovered}
+- Detail {+sh:detail ?cat:includes .cat:notCovered}
+- Result {+sh:result ?cat:includes .cat:notCovered}
+- Shapes Graph Well Formed {+sh:shapesGraphWellFormed ?cat:includes .cat:notCovered}
+
+## SHACL Extension Vocabulary
+
+SHACL-AF and SHACL-SPARQL extension terms — not covered by this catalog:
+
+- SPARQL {+sh:sparql ?cat:includes .cat:notCovered .class:SPARQLConstraint}
+- Expression {+sh:expression ?cat:includes .cat:notCovered}
+- Return Type {+sh:returnType ?cat:includes .cat:notCovered}
+- Condition {+sh:condition ?cat:includes .cat:notCovered}
+- Filter Shape {+sh:filterShape ?cat:includes .cat:notCovered}
+- Label Template {+sh:labelTemplate ?cat:includes .cat:notCovered}
+- Annotation Variable Name {+sh:annotationVarName ?cat:includes .cat:notCovered}
+- Declare {+sh:declare ?cat:includes .cat:notCovered}
+- Namespace {+sh:namespace ?cat:includes .cat:notCovered}
+- Prefix {+sh:prefix ?cat:includes .cat:notCovered}
+- Prefixes {+sh:prefixes ?cat:includes .cat:notCovered}
+- Entailment {+sh:entailment ?cat:includes .cat:notCovered}
+- Rule {+sh:rule ?cat:includes .cat:notCovered}
+- Validator {+sh:validator ?cat:includes .cat:notCovered}
+- Node Validator {+sh:nodeValidator ?cat:includes .cat:notCovered}
+- Property Validator {+sh:propertyValidator ?cat:includes .cat:notCovered}
+- Parameter {+sh:parameter ?cat:includes .cat:notCovered}
+- Predicate {+sh:predicate ?cat:includes .cat:notCovered}
+- Object {+sh:object ?cat:includes .cat:notCovered}
+- Subject {+sh:subject ?cat:includes .cat:notCovered}
+- Nodes {+sh:nodes ?cat:includes .cat:notCovered}
+- Optional {+sh:optional ?cat:includes .cat:notCovered}
+- Intersection {+sh:intersection ?cat:includes .cat:notCovered}
+- Union {+sh:union ?cat:includes .cat:notCovered}
+- Annotation Property {+sh:annotationProperty ?cat:includes .cat:notCovered}
+- Annotation Value {+sh:annotationValue ?cat:includes .cat:notCovered}
+- Shapes Graph {+sh:shapesGraph ?cat:includes .cat:notCovered}
+- Suggested Shapes Graph {+sh:suggestedShapesGraph ?cat:includes .cat:notCovered}
 
 ---
 

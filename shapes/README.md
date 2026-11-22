@@ -277,6 +277,13 @@ MD-LD source (`cat:demo`) and expected violation count
 demo through this validator. Demos typed `cat:notCovered` (SHACL-JS, SPARQL)
 are skipped. Current status: **30/30 covered demos pass, 1 skipped**.
 
+```bash
+# Ontology-driven completeness: every sh: property in ontology.md must be
+# accounted for in catalog.md as demo / included / section / notCovered.
+node coverage.js
+# {"demo":28,"included":17,"notCovered":56} — 101 sh: terms, 0 missing
+```
+
 ## Roadmap
 
 - [ ] Run the full [W3C SHACL 1.2 test suite](https://github.com/w3c/data-shapes/tree/gh-pages/shacl12-test-suite) and report coverage
