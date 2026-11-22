@@ -525,6 +525,37 @@ function hasPathStructure(shapesDS, term) {
     valuesOf(shapesDS, term, RDF_REST).length > 0
 }
 
+/**
+ * All predicate IRIs reachable inside a path term — the plain predicate for
+ * simple paths, or every member predicate for path structures
+ * (alternativePath lists, inversePath, transitives, sequence lists).
+ * Used by sh:closed whitelists and subgraph predicate filtering.
+ */
+function pathPredicates(shapesDS, pathTerm) {
+  const out = new Set()
+  const walk = (t) => {
+    if (!t || isLiteral(t)) return
+    if (isNamedNode(t) && !hasPathStructure(shapesDS, t)) { out.add(termKey(t)); return }
+    const inv = valuesOf(shapesDS, t, sh('inversePath'))
+    if (inv.length > 0) { inv.forEach(walk); return }
+    const alt = valuesOf(shapesDS, t, sh('alternativePath'))
+    if (alt.length > 0) {
+      try { readList(shapesDS, alt[0]).forEach(walk) } catch { /* not a list */ }
+      return
+    }
+    for (const p of ['zeroOrMorePath', 'oneOrMorePath', 'zeroOrOnePath']) {
+      const v = valuesOf(shapesDS, t, sh(p))
+      if (v.length > 0) { v.forEach(walk); return }
+    }
+    try {
+      const steps = readList(shapesDS, t)
+      if (steps.length > 0) { steps.forEach(walk); return }
+    } catch { /* not a list */ }
+  }
+  walk(pathTerm)
+  return out
+}
+
 function transitive(ds, start, pred, includeStart) {
   const results = includeStart ? [start] : []
   const visited = new Set()
@@ -860,7 +891,7 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
       for (const propShape of valuesOf(shapesDS, ctx.shapeTerm, sh('property'))) {
         const paths = valuesOf(shapesDS, propShape, sh('path'))
         for (const p of paths) {
-          if (isNamedNode(p)) allowedPreds.add(termKey(p))
+          for (const k of pathPredicates(shapesDS, p)) allowedPreds.add(k)
         }
       }
       // Add ignored properties
@@ -1327,8 +1358,7 @@ function extractSubGraph(input, shapeIRI, options = {}) {
 
     for (const entry of plan) {
       for (const pathTerm of entry.pathTerms) {
-        const plain = isNamedNode(pathTerm) && !hasPathStructure(shapesDS, pathTerm)
-        if (plain && allowed) allowed.add(termKey(pathTerm))
+        if (allowed) for (const k of pathPredicates(shapesDS, pathTerm)) allowed.add(k)
         for (const v of resolvePath(dataDS, shapesDS, node, pathTerm)) {
           if (entry.nested && (isNamedNode(v) || isBlankNode(v))) childShapes.set(termKey(v), entry.nested)
         }

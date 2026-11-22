@@ -12,10 +12,16 @@
 - **`shapes/gen-extracted.js`** — regenerates all `cat:extractedPOJO` blocks idempotently; `selftest.js` parses each block back and deep-compares it against live `extractPOJO` output, so extraction drift fails the suite
 - **Every catalog demo is now extractable** — all property shapes carry `sh:name`; audited all 35 targeted shapes across 32 demos: 0 empty extractions
 - **Conformance-gated extraction** — `extractPOJO` is now two-tier: node-level constraints (`sh:closed`, `sh:not`, node-level `sh:and`/`or`/`xone`, …) exclude whole records, while each property is emitted only when its values pass the property shape — so every key is a validated fact and every record satisfies the node shape; offending fields are omitted, empty records dropped (`sh:js` guards don't run during projection)
+- **`pathPredicates()`** — collects every predicate IRI reachable inside complex property paths (`sh:alternativePath` lists, `sh:inversePath`, transitives, sequence lists); `sh:closed` whitelists and `extractSubGraph` filtering now honor them
+- **Projection performance** — per-shape metadata compiles once into a cached projection plan shared by `extractPOJO`/`extractSubGraph`; constraint-free shapes skip conformance gates entirely (~1.3–1.4× `validate()` cost, ~15K entities/sec, linear to ~25K entities / ~300K quads)
+- **`shapes/kitchen-sink.mjs`** — end-to-end stress document (HR domain: closed shapes, `sh:in` lists, `lessThanOrEquals`, `alternativePath`, `sh:node`, `qualifiedValueShape`, RDF lists, deactivated rules) assembled as quads → `generate()` → re-parse → validate → extract; caught and fixed the path-structure whitelist bug
+- **Selftest epistemology** — five explicit catalog loops (coverage, sync, demos, extraction fixtures, self) plus two machinery guards (procedural projection, document round-trip); `cat:extractedPOJO` is now a first-class numbered loop
+- **`docs/shapes.md`** — user-facing documentation for validation and extraction
 
 ### Fixed
 - **Catalog latent bugs found by the extraction audit**: `deactivated` demo linked a vacuous undeclared `CategoryProperty` (now links the real `DeactivatedProperty`) and wrote `sh:deactivated` as the literal `"deactivated"` instead of `true` — the rule was never actually off, only unreachable; `product` demo linked typo'd `DescriptioSKURulenRule`, orphaning `SKURule` so its `sh:pattern` never ran; `advanced` demo's `StatusRule` had no `sh:path`; `not` demo's NodeShape had no properties at all
 - **`sh:name` normalization** — sentence-like names ("order date before shipping date", "preferred label", "work email") replaced with clean keys matching their paths (`orderDate`, `prefLabel`, `email`)
+- **`sh:closed` + complex paths** — predicates inside `sh:alternativePath`/`sh:inversePath`/transitive/sequence structures were treated as undeclared, producing false `ClosedConstraintComponent` violations and wrongly filtered subgraph quads
 
 ## v1.2.0 Self-validating SHACL ecosystem
 
