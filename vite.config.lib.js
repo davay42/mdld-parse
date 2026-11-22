@@ -4,7 +4,7 @@ import pack from './package.json' with { type: 'json' }
 export default {
     build: {
         lib: {
-            entry: { 'mdld-parse': 'src/index.js', crawl: 'src/crawl.js', 'quad-graph': 'src/graph.js' },
+            entry: { 'mdld-parse': 'src/index.js', crawl: 'src/crawl.js', 'quad-graph': 'src/graph.js', 'shapes': 'shapes/validator.js' },
             name: 'parse',
             formats: ['es']
         },

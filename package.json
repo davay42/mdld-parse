@@ -28,12 +28,14 @@
 	"exports": {
 		".": "./dist/mdld-parse.js",
 		"./graph": "./dist/quad-graph.js",
-		"./crawl": "./dist/crawl.js"
+		"./crawl": "./dist/crawl.js",
+		"./shapes": "./dist/shapes.js"
 	},
 	"files": [
 		"dist/mdld-parse.js",
 		"dist/quad-graph.js",
-		"dist/crawl.js"
+		"dist/crawl.js",
+		"dist/shapes.js"
 	],
 	"scripts": {
 		"test": "node tests/index.js",

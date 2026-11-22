@@ -742,21 +742,20 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmployee fa
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:class/>
 
-## Employee Test Shape {=ex:EmployeeTestShape .sh:NodeShape  label}
+## Team Directory {=ex:EmployeeTestShape .sh:NodeShape  label}
 
-All [employees] {+member ?sh:targetObjectsOf} must have **manager** {+#managerClass ?sh:property sh:name} class assigned.
+We are the staff directory of a twelve-person bookkeeping firm. Every [employee] {+member ?sh:targetObjectsOf} on file reports to a **manager** {+#managerClass ?sh:property sh:name} — and that manager must be a real person, because somebody once typed "Robot" as a placeholder and it stuck.
 
-**Manager must be a Person instance** {=#managerClass .sh:PropertyShape sh:message} requires the [manager] {+ex:manager ?sh:path} property to be an instance of a [Person] {+ex:Person ?sh:class}.
-
----
+**Manager must be a Person instance, got {$value}.** {=#managerClass .sh:PropertyShape sh:message}
+The [manager] {+ex:manager ?sh:path} property must point at a record typed as a [Person] {+ex:Person ?sh:class}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Employee {=ex:ValidEmployee ?member}
-Manager: [john] {+ex:john ?ex:manager .ex:Person}
+Our records show [john] {+ex:john ?ex:manager .ex:Person} as the manager — a real person, passes.
 
 ### Invalid Employee {=ex:InvalidEmployee ?member}
-Manager: [robot] {+ex:robot ?ex:manager ex:Role}
+Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — the placeholder that started all this, fails.
 ~~~~~~
 
 
@@ -815,21 +814,20 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fai
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:datatype/>
 
-## Product Test Shape {=ex:ProductTestShape .sh:NodeShape sh:name}
+## Product Catalog {=ex:ProductTestShape .sh:NodeShape sh:name}
 
-Validates [Valid Product] {+ex:ValidProduct ?sh:targetNode} and [Invalid Product] {+ex:InvalidProduct ?sh:targetNode} with **price** {+#priceDecimal ?sh:property sh:name}.
+We are the catalog for a small hardware store. Every product we stock — [Valid Product] {+ex:ValidProduct ?sh:targetNode} and the [Invalid Product] {+ex:InvalidProduct ?sh:targetNode} — must carry a **price** {+#priceDecimal ?sh:property sh:name} that is a real number, not a string that merely looks like one.
 
-**Price must be decimal** {=#priceDecimal .sh:PropertyShape sh:message} requires the [price] {+ex:price ?sh:path} property to be a [decimal] {+xsd:decimal ?sh:datatype} value.
-
----
+## Price must be decimal — got {$value} at {$path}. {=#priceDecimal .sh:PropertyShape sh:message}
+Our [price] {+ex:price ?sh:path} must be typed as [decimal] {+xsd:decimal ?sh:datatype}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Product {=ex:ValidProduct ?member}
-Price: [29.99] {ex:price ^^xsd:decimal}
+Priced at [29.99] {ex:price ^^xsd:decimal} — a real decimal, passes.
 
 ### Invalid Product {=ex:InvalidProduct ?member}
-Price: [29.99] {ex:price ^^xsd:string}
+Priced at [29.99] {ex:price ^^xsd:string} — same digits, wrong type, fails.
 ~~~~~~
 
 
@@ -880,25 +878,23 @@ Expects `2` {cat:expectedViolations ^^xsd:integer} violations (InvalidDocument f
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:nodekind/>
 
-## Document Test Shape {=ex:DocumentTestShape .sh:NodeShape  label}
+## Filing Cabinet {=ex:DocumentTestShape .sh:NodeShape  label}
 
-Validates [Valid Document] {+ex:ValidDocument ?sh:targetNode} and [Invalid Document] {+ex:InvalidDocument ?sh:targetNode} with literal **content** {+#contentLiteral ?sh:property sh:name} and IRI for **reference** {+#referenceIRI ?sh:property sh:name}.
+We keep two documents on file — [Valid Document] {+ex:ValidDocument ?sh:targetNode} and [Invalid Document] {+ex:InvalidDocument ?sh:targetNode} — each carrying literal **content** {+#contentLiteral ?sh:property sh:name} and an IRI **reference** {+#referenceIRI ?sh:property sh:name}.
 
-**Content must be literal** {=#contentLiteral .sh:PropertyShape sh:message} requires [content] {+ex:content ?sh:path} to be a [Literal] {+sh:Literal ?sh:nodeKind}.
+## Content must be literal. {=#contentLiteral .sh:PropertyShape sh:message}
+Our [content] {+ex:content ?sh:path} must be typed as a [Literal] {+sh:Literal ?sh:nodeKind} — text, not a link.
 
-**Reference must be IRI** {=#referenceIRI .sh:PropertyShape sh:message} requires [reference] {+ex:reference ?sh:path} to be an [IRI] {+sh:IRI ?sh:nodeKind}.
-
----
+## Reference must be IRI. {=#referenceIRI .sh:PropertyShape sh:message}
+Our [reference] {+ex:reference ?sh:path} must be an [IRI] {+sh:IRI ?sh:nodeKind} — a link, not a string.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Document {=ex:ValidDocument ?member}
-Content: [text] {ex:content}
-Reference: <https://example.org> {?ex:reference}
+Our copy holds [text] {ex:content} as content and links out to <https://example.org> {?ex:reference}.
 
 ### Invalid Document {=ex:InvalidDocument ?member}
-Content: <https://example.org> {?ex:content}
-Reference: [text] {ex:reference}
+This filing is backwards: content is <https://example.org> {?ex:content} — a link where text belongs — and reference is [text] {ex:reference} — text where a link belongs.
 ~~~~~~
 
 
@@ -953,22 +949,20 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidPerson fail
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:count/>
 
-## Person Test Shape {=ex:PersonTestShape .sh:NodeShape  sh:name}
+## Member Directory {=ex:PersonTestShape .sh:NodeShape  sh:name}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **email** {+#emailExact ?sh:property sh:name}.
+We publish a member directory where every [member] {+member ?sh:targetObjectsOf} lists exactly one **email** {+#emailExact ?sh:property sh:name} — one address per person, no duplicates, no gaps.
 
-**Email must be exactly one** {=#emailExact .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} to have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value.
-
----
+## Email must be exactly one. {=#emailExact .sh:PropertyShape sh:message}
+Each [email] {+ex:email ?sh:path} must appear exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} time.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Person {=ex:ValidPerson ?member}
-Email: [work@example.com] {ex:email}
+Reachable at [work@example.com] {ex:email}.
 
 ### Invalid Person {=ex:InvalidPerson ?member}
-Email: [work@example.com] {ex:email}
-Email: [personal@example.com] {ex:email}
+We hold two addresses for this member — [work@example.com] {ex:email} and [personal@example.com] {ex:email} — which breaks the one-email rule.
 ~~~~~~
 
 
@@ -1030,21 +1024,20 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fai
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
-## Product Test Shape {=ex:ProductTestShape .sh:NodeShape label}
+## Print Shop Price List {=ex:ProductTestShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with conforming **price** {+#priceRange ?sh:property}.
+We are the price list for a small print shop. Every [product] {+member ?sh:targetObjectsOf} we sell must carry a **price** {+#priceRange ?sh:property} that makes business sense — nobody buys a banner for five cents or five thousand dollars.
 
-**Price must be between 10 and 100 inclusive** {=#priceRange .sh:PropertyShape sh:message} requires [price] {+ex:price ?sh:path} to be at least [10] {sh:minInclusive ^^xsd:decimal} and at most [100] {sh:maxInclusive ^^xsd:decimal}.
-
----
+## Price must be between 10 and 100 inclusive. {=#priceRange .sh:PropertyShape sh:message}
+Our [price] {+ex:price ?sh:path} must be at least [10] {sh:minInclusive ^^xsd:decimal} and at most [100] {sh:maxInclusive ^^xsd:decimal}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Product {=ex:ValidProduct ?member}
-Price: [50] {ex:price ^^xsd:decimal}
+A banner at [50] {ex:price ^^xsd:decimal} — comfortably in range.
 
 ### Invalid Product {=ex:InvalidProduct ?member}
-Price: [5] {ex:price ^^xsd:decimal}
+A yard sign at [5] {ex:price ^^xsd:decimal} — below our ten-dollar floor, fails.
 ~~~~~~
 
 
@@ -1099,23 +1092,20 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidOrder fails
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:comparison/>
 
-## Order Test Shape {=ex:OrderTestShape .sh:NodeShape  label}
+## Bakery Order Book {=ex:OrderTestShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **order date before shipping date** {+#orderDateRule ?sh:property sh:name}.
+We keep the order book for a neighborhood bakery. Every [order] {+member ?sh:targetObjectsOf} must record its **order date before shipping date** {+#orderDateRule ?sh:property sh:name} — you cannot ship a cake before you bake the order.
 
-**Order date must be before shipping date** {=#orderDateRule .sh:PropertyShape sh:message} requires [order date] {+ex:orderDate ?sh:path} to be before [shipping date] {+ex:shippingDate ?sh:lessThan}.
-
----
+## Order date must be before shipping date. {=#orderDateRule .sh:PropertyShape sh:message}
+Our [order date] {+ex:orderDate ?sh:path} must come before the [shipping date] {+ex:shippingDate ?sh:lessThan}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Order {=ex:ValidOrder ?member}
-Order Date: [2024-06-15] {ex:orderDate ^^xsd:date}
-Shipping Date: [2024-06-20] {ex:shippingDate ^^xsd:date}
+Ordered [2024-06-15] {ex:orderDate ^^xsd:date}, ships [2024-06-20] {ex:shippingDate ^^xsd:date} — five days to decorate, passes.
 
 ### Invalid Order {=ex:InvalidOrder ?member}
-Order Date: [2024-06-25] {ex:orderDate ^^xsd:date}
-Shipping Date: [2024-06-20] {ex:shippingDate ^^xsd:date}
+Ordered [2024-06-25] {ex:orderDate ^^xsd:date} but supposedly ships [2024-06-20] {ex:shippingDate ^^xsd:date} — shipped before it was ordered, fails.
 ~~~~~~
 
 
@@ -1167,23 +1157,20 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Germany fails beca
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:disjoint/>
 
-## Label Test Shape {=ex:DisjointExampleShape .sh:NodeShape label}
+## Archive Tag Shape {=ex:DisjointExampleShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **disjoint labels** {+#disjointRule ?sh:property sh:name}.
+We catalog exhibits for a small natural-history museum. Every [item] {+member ?sh:targetObjectsOf} gets a **preferred label** {+#disjointRule ?sh:property sh:name} and any **alternative labels** {+ex:altLabel ?sh:disjoint} it is also known by — but an alternative can't just repeat the preferred one.
 
-**Preferred labels must be different from alternative labels** {=#disjointRule .sh:PropertyShape sh:message} requires [preferred labels] {+ex:prefLabel ?sh:path} to be disjoint with [alternative labels] {+ex:altLabel ?sh:disjoint}.
-
----
+## Preferred labels must be different from alternative labels. {=#disjointRule .sh:PropertyShape sh:message}
+Our [preferred labels] {+ex:prefLabel ?sh:path} must never overlap with the [alternative labels] {+ex:altLabel ?sh:disjoint}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Case {=ex:USA ?member}
-Preferred Label: [USA] {ex:prefLabel}
-Alternative Label: [United States] {ex:altLabel}
+Labeled [USA] {ex:prefLabel} officially, [United States] {ex:altLabel} informally — different words, passes.
 
 ### Invalid Case {=ex:Germany ?member}
-Preferred Label: [Germany] {ex:prefLabel}
-Alternative Label: [Germany] {ex:altLabel}
+Labeled [Germany] {ex:prefLabel} and also [Germany] {ex:altLabel} — the same word twice, fails.
 ~~~~~~
 
 
@@ -1233,21 +1220,19 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidDeletedUser
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:not/>
 
-## User Status Shape {=ex:UserStatusShape .sh:NodeShape  label}
+## Gym Roster Shape {=ex:UserStatusShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities to not conform to the forbidden **shape** {+ex:ForbiddenStatusShape ?sh:not}.
+We run the member roster for a climbing gym. Every [member] {+member ?sh:targetObjectsOf} on file must never match the forbidden **shape** {+ex:ForbiddenStatusShape ?sh:not} — a deleted account is gone, full stop.
 
-**Forbidden Status Shape** {=ex:ForbiddenStatusShape .sh:NodeShape} requires [status] {+ex:status ?sh:path} to be exactly [deleted] {sh:hasValue}.
-
----
+**Forbidden Status Shape** {=ex:ForbiddenStatusShape .sh:NodeShape} marks anyone whose [status] {+ex:status ?sh:path} reads exactly [deleted] {sh:hasValue}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid User {=ex:ValidActiveUser ?member}
-Status: [active] {ex:status}
+Still climbing — status [active] {ex:status}, passes.
 
 ### Invalid User {=ex:InvalidDeletedUser ?member}
-Status: [deleted] {ex:status}
+Cancelled last month — status [deleted] {ex:status}, matches the forbidden shape, fails.
 ~~~~~~
 
 
@@ -1297,26 +1282,23 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (MissingPriceProduc
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:and/>
 
-## Product Validation Shape {=ex:ProductValidationShape .sh:NodeShape label}
+## Vendor Sign-up Shape {=ex:ProductValidationShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **Product must have price and category** {sh:message}.
+We run vendor sign-up for a weekend farmers market. Every [vendor] {+member ?sh:targetObjectsOf} must satisfy **Product must have price and category** {sh:message} — an application without both isn't an application.
 
 **Constraints List** {=ex:and-l1 ?sh:and .rdf:List}: [Price Required] {+ex:priceRequired ?rdf:first}, then [followed] {=ex:and-l2 ?rdf:rest} by [Category Required] {+ex:categoryRequired ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Price Required** {=ex:priceRequired .sh:PropertyShape} ensures [price] {+ex:price ?sh:path} has at least [1] {sh:minCount ^^xsd:integer} value.
+**Price Required** {=ex:priceRequired .sh:PropertyShape} ensures the stall [price] {+ex:price ?sh:path} has at least [1] {sh:minCount ^^xsd:integer} value.
 
-**Category Required** {=ex:categoryRequired .sh:PropertyShape} ensures [category] {+ex:category ?sh:path} has at least [1] {sh:minCount ^^xsd:integer} value.
-
----
+**Category Required** {=ex:categoryRequired .sh:PropertyShape} ensures the stall [category] {+ex:category ?sh:path} has at least [1] {sh:minCount ^^xsd:integer} value.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Product {=ex:ValidProduct ?member}
-Price: [999] {ex:price ^^xsd:integer}
-Category: [Electronics] {ex:category}
+Selling jars at [7] {ex:price ^^xsd:integer} dollars from the [preserves] {ex:category} stall — both boxes ticked, passes.
 
-### Invalid Product {=ex:MissingPriceProduct ?member}
-Category: [Electronics] {ex:category}
+### Missing Price Product {=ex:MissingPriceProduct ?member}
+Selling from the [baked goods] {ex:category} stall but never listed a [price] {ex:note} — half an application, fails.
 ~~~~~~
 
 
@@ -1367,28 +1349,26 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidContact fai
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:or/>
 
-## Contact Validation Shape {=ex:ContactValidationShape .sh:NodeShape label}
+## Dog-Walking Contact Card {=ex:ContactValidationShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **Contact must be email or phone** {sh:message}.
+We are the contact card for a dog-walking service. Every [client] {+member ?sh:targetObjectsOf} must leave us **Contact must be email or phone** {sh:message} — an email address or a phone number, whichever they prefer, but at least one way to reach them.
 
 **Options List** {=ex:or-l1 ?sh:or .rdf:List}: [Email Contact] {+ex:emailContact ?rdf:first}, then [followed] {=ex:or-l2 ?rdf:rest} by [Phone Contact] {+ex:phoneContact ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Email Contact** {=ex:emailContact .sh:PropertyShape} ensures [contact] {+ex:contact ?sh:path} contains [@] {sh:pattern}.
+**Email Contact** {=ex:emailContact .sh:PropertyShape} accepts any [contact] {+ex:contact ?sh:path} containing [@] {sh:pattern}.
 
-**Phone Contact** {=ex:phoneContact .sh:PropertyShape} ensures [contact] {+ex:contact ?sh:path} contains [-] {sh:pattern}.
-
----
+**Phone Contact** {=ex:phoneContact .sh:PropertyShape} accepts any [contact] {+ex:contact ?sh:path} containing [-] {sh:pattern}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Email Contact {=ex:ValidEmail ?member}
-Contact: [user@example.com] {ex:contact}
+Reach her at [user@example.com] {ex:contact}.
 
 ### Valid Phone Contact {=ex:ValidPhone ?member}
-Contact: [555-123-4567] {ex:contact}
+Or text [555-123-4567] {ex:contact} — either channel works.
 
 ### Invalid Contact {=ex:InvalidContact ?member}
-Contact: [invalid] {ex:contact}
+All we have is [invalid] {ex:contact} — no @, no digits, unreachable, fails.
 ~~~~~~
 
 
@@ -1441,28 +1421,26 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (NoRole fails becau
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:xone/>
 
-## Role Validation Shape {=ex:RoleValidationShape .sh:NodeShape label}
+## Tool Library Passes {=ex:RoleValidationShape .sh:NodeShape label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with **Role must be exactly one type** {sh:message}.
+We issue membership passes for a community tool-lending library. Every [member] {+member ?sh:targetObjectsOf} must satisfy **Role must be exactly one type** {sh:message} — admin or regular user, one badge, not two, not none.
 
 **Options List** {=ex:xone-l1 ?sh:xone .rdf:List}: [Admin Role] {+ex:adminRole ?rdf:first}, then [followed] {=ex:xone-l2 ?rdf:rest} by [User Role] {+ex:userRole ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 
-**Admin Role** {=ex:adminRole .sh:PropertyShape} ensures [role] {+ex:role ?sh:path} is exactly [admin] {sh:hasValue}.
+**Admin Role** {=ex:adminRole .sh:PropertyShape} recognizes a [role] {+ex:role ?sh:path} of exactly [admin] {sh:hasValue}.
 
-**User Role** {=ex:userRole .sh:PropertyShape} ensures [role] {+ex:role ?sh:path} is exactly [user] {sh:hasValue}.
-
----
+**User Role** {=ex:userRole .sh:PropertyShape} recognizes a [role] {+ex:role ?sh:path} of exactly [user] {sh:hasValue}.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid Admin {=ex:ValidAdmin ?member}
-Role: [admin] {ex:role}
+Runs the front desk — role [admin] {ex:role}, passes.
 
 ### Valid User {=ex:ValidUser ?member}
-Role: [user] {ex:role}
+Borrows drills on weekends — role [user] {ex:role}, passes.
 
 ### Invalid - No Role {=ex:NoRole ?member}
-Role: [guest] {ex:role}
+Showing up as [guest] {ex:role} — neither badge type, fails.
 ~~~~~~
 
 
@@ -1517,21 +1495,20 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidUser fails 
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:length/>
 
-## User Account Test Shape {=ex:UserAccountTestShape .sh:NodeShape  label}
+## Makerspace Badges {=ex:UserAccountTestShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with correct length of the **username** {+#usernameLength ?sh:property sh:name}.
+We run a neighborhood makerspace, and every [member] {+member ?sh:targetObjectsOf} gets a door badge. The **username** {+#usernameLength ?sh:property sh:name} printed on it must be 3–20 characters — long enough to be distinct, short enough to fit the badge.
 
-**Username must be 3-20 characters** {=#usernameLength .sh:PropertyShape sh:message} requires [username] {+ex:username ?sh:path} to have at least [3] {sh:minLength ^^xsd:integer} and at most [20] {sh:maxLength ^^xsd:integer} characters.
-
----
+## Username must be 3-20 characters. {=#usernameLength .sh:PropertyShape sh:message}
+Our [username] {+ex:username ?sh:path} must be at least [3] {sh:minLength ^^xsd:integer} and at most [20] {sh:maxLength ^^xsd:integer} characters.
 
 ## Test Data {=ex:data .Container}
 
 ### Valid User {=ex:ValidUser ?member}
-Username: [john_doe] {ex:username}
+Badge reads [john_doe] {ex:username} — fits nicely.
 
 ### Invalid User {=ex:InvalidUser ?member}
-Username: [jd] {ex:username}
+Badge reads [jd] {ex:username} — two letters is not a name, fails.
 ~~~~~~
 
 
@@ -1586,7 +1563,7 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmail fails
 
 Validates all [member] {+member ?sh:targetObjectsOf} entities with corporate **email** {+ex:EmailPatternConstraint ?sh:property sh:name}.
 
-**Email must end with example.com** {=ex:EmailPatternConstraint .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} to match [example\.com$] {sh:pattern} with [i] {sh:flags}.
+**Email must end with example.com, got {$value}** {=ex:EmailPatternConstraint .sh:PropertyShape sh:message} requires [email] {+ex:email ?sh:path} to match [example\.com$] {sh:pattern} with [i] {sh:flags}.
 
 ---
 
@@ -1648,21 +1625,20 @@ Expects `1` {cat:expectedViolations ^^xsd:integer} violation (GermanDocument fai
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:language/>
 
-## Multilingual Document Shape {=ex:MultilingualDocumentShape .sh:NodeShape  label}
+## Welcome Pack Shape {=ex:MultilingualDocumentShape .sh:NodeShape  label}
 
-Validates all [member] {+member ?sh:targetObjectsOf} entities with english or french **title** {+#titleLanguage ?sh:property sh:name}.
+We print the welcome pack for a bed-and-breakfast on the Quebec border. Every [document] {+member ?sh:targetObjectsOf} we hand to guests carries a **title** {+#titleLanguage ?sh:property sh:name} in english or french — our two working languages, nothing else.
 
-**Title language must be en or fr** {=#titleLanguage .sh:PropertyShape sh:message} requires [title] {+ex:title ?sh:path} language tags to be in the **Allowed Languages List** {=ex:lang-l1 ?sh:languageIn .rdf:List}: **en** {rdf:first},  [or] {=ex:lang-l2 ?rdf:rest} **fr** {rdf:first} - [only these 2 languages are allowed] {+rdf:nil ?rdf:rest}. {=}
-
----
+## Title language must be en or fr. {=#titleLanguage .sh:PropertyShape sh:message}
+The [title] {+ex:title ?sh:path} language tag must appear in the **Allowed Languages List** {=ex:lang-l1 ?sh:languageIn .rdf:List}: **en** {rdf:first},  [or] {=ex:lang-l2 ?rdf:rest} **fr** {rdf:first} - [only these 2 languages are allowed] {+rdf:nil ?rdf:rest}. {=}
 
 ## Test Data {=ex:data .Container}
 
 ### English Document {=ex:EnglishDocument ?member}
-Title: [Hello World] {ex:title @en}
+Greeted with [Hello World] {ex:title @en} at the door.
 
 ### Invalid Document {=ex:GermanDocument ?member}
-Title: [Hallo Welt] {ex:title @de}
+Greeted with [Hallo Welt] {ex:title @de} — lovely German, but not one of our two languages, fails.
 ~~~~~~
 
 
