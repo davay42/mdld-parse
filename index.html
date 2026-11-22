@@ -75,6 +75,7 @@
         import './src/graph.js'
         // Import crawl functionality
         import { crawl } from './src/crawl.js';
+        import { validate, extractPOJO } from './shapes/validator.js';
 
         // import 'virtual:uno.css'
 
@@ -523,6 +524,39 @@
                     statementsGraphElement.quads = [];
                     statementsGraphElement.context = context;
                     statementsStats.textContent = 'No elevated statements';
+                }
+
+                // SHACL validation + POJO extraction (documents without shapes show a notice)
+                try {
+                    const shaclReport = validate({ quads: result.quads });
+                    const vStats = document.getElementById('shacl-stats');
+                    const vOut = document.getElementById('shacl-output');
+                    if (vStats) vStats.textContent = shaclReport.conforms ? 'conforms' : `${shaclReport.results.length} violations`;
+                    if (vOut) {
+                        vOut.textContent = shaclReport.conforms
+                            ? '✓ Document conforms to its shapes'
+                            : shaclReport.results.slice(0, 50).map(v =>
+                                `• ${v.component?.value?.split('#').pop()} — ${v.focusNode?.value?.split('/').pop()}: ${v.message || ''}`
+                            ).join('\n');
+                    }
+                } catch (e) {
+                    const vStats = document.getElementById('shacl-stats');
+                    const vOut = document.getElementById('shacl-output');
+                    if (vStats) vStats.textContent = '';
+                    if (vOut) vOut.textContent = `No SHACL shapes: ${e.message}`;
+                }
+                try {
+                    const pojos = extractPOJO({ quads: result.quads });
+                    const pStats = document.getElementById('pojo-stats');
+                    const pOut = document.getElementById('pojo-output');
+                    const json = JSON.stringify(pojos, null, 2);
+                    if (pStats) pStats.textContent = Array.isArray(pojos) ? `${pojos.length} objects` : '1 object';
+                    if (pOut) pOut.textContent = json.length > 8000 ? json.slice(0, 8000) + '\n…' : json;
+                } catch (e) {
+                    const pStats = document.getElementById('pojo-stats');
+                    const pOut = document.getElementById('pojo-output');
+                    if (pStats) pStats.textContent = '';
+                    if (pOut) pOut.textContent = `No extractable shape: ${e.message}`;
                 }
 
                 // Convert quads to readable format
@@ -1279,6 +1313,38 @@
                             style="height: 400px;">
                             <quad-graph id="statements-graph" height="400" charge="-120" link-dist="180"></quad-graph>
                         </div>
+                    </div>
+                </details>
+
+                <!-- SHACL Validation -->
+                <details class="details">
+                    <summary>
+                        <span>SHACL Validation</span>
+                        <span style="flex: auto;"></span>
+                        <span id="shacl-stats" class="stats"></span>
+                    </summary>
+                    <div class="m-2 flex flex-col">
+                        <pre
+                            class="w-full min-h-24 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
+                    <code id="shacl-output" class="language-markdown text-xs block">
+                        No SHACL shapes in this document.</code>
+                </pre>
+                    </div>
+                </details>
+
+                <!-- POJO Extraction -->
+                <details class="details">
+                    <summary>
+                        <span>Extraction (POJO)</span>
+                        <span style="flex: auto;"></span>
+                        <span id="pojo-stats" class="stats"></span>
+                    </summary>
+                    <div class="m-2 flex flex-col">
+                        <pre
+                            class="w-full min-h-24 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
+                    <code id="pojo-output" class="language-json text-xs block">
+                        No extractable shape in this document.</code>
+                </pre>
                     </div>
                 </details>
 
