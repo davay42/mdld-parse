@@ -2,7 +2,7 @@
 
 **Zero-dependency SHACL Core validator for the MD-LD ecosystem.**
 
-A single-file (~1,450 LOC), synchronous SHACL validator that achieves **100% parity with [shacl-engine](https://github.com/rdf-ext/shacl-engine)** on the W3C SHACL 1.2 Core test suite, with no external RDF libraries required — and doubles as a **projection engine**: the same shapes that validate also extract (`extract` / `extractGraph`).
+A single-file (~1,600 LOC), synchronous SHACL validator that achieves **100% parity with [shacl-engine](https://github.com/rdf-ext/shacl-engine)** on the W3C SHACL 1.2 Core test suite, with no external RDF libraries required — and doubles as a **projection engine**: the same shapes that validate also extract (`extract` / `extractGraph`).
 
 ```
 validator.js  →  1,450 lines  →  0 dependencies  →  301/301 violations match
@@ -280,7 +280,7 @@ per call; beyond that, shard by target or wait for the indexed store.
 ## Architecture
 
 ```
-validator.js (~1,450 LOC)
+validator.js (~1,600 LOC)
 ├── Namespaces & constants      (~30 LOC)
 ├── Term helpers                (~50 LOC)  termKey, termEquals, isLiteral
 ├── Store                       (~40 LOC)  Minimal RDF/JS DatasetCore

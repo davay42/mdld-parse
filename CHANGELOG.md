@@ -1,5 +1,25 @@
 # MD-LD evolution
 
+## v1.2.3 unified evaluation — `evaluate()` + ontology validation packs
+
+### Added
+- **`evaluate(options)`** — the core SHACL operation: one traversal per (shape, focus node) produces `{ conforms, violations, records }` — violations and conformance-gated POJOs are mutually exclusive views of the same evaluation, so they can never disagree. Options: `quads`/`shapes`+`data`, `shape` (restrict to one IRI), `allowJS` (default `false`), `context`, `byNode` (default `true`), `maxDepth`
+- **`validate()` / `extract()` are now thin views over `evaluate()`** — same evaluation, different projection; ~60 lines of duplicated traversal removed
+- **`allowJS` in `extract()`** — `sh:js` constraints now gate projection identically to validation (previously always skipped, so js-guarded fields were silently kept); pass `allowJS: true` for trusted shapes
+- **Ontology validation packs** — `ontologies/*.shapes.md` companions for core vocabularies (`rdf`, `rdfs`, `xsd`): shapes for each vocabulary's constructs plus self-verifying `pack:Demo` nodes carrying source, `pack:expectedViolations`, and `pack:extractedPOJO` contracts in the graph itself — catalog conventions (`pack:` mirrors `cat:`)
+- **`ontologies/selftest.mjs`** — auto-discovers every `*.shapes.md` pack and verifies pack+ontology conformance, declared violation counts, and graph-pinned POJO contracts; wired into `npm run test-shapes`
+- **`docs/performance.md`** — measured report: parse ~105K q/s, `evaluate()` ~500K q/s, 200 ms real-time envelope ≈ 100K quads
+
+### Performance
+- **Tri-indexed `Store`** — added `byObject` index; `match()` picks the smallest candidate set across subject/predicate/object lookups; `has()`/`delete()` now indexed instead of linear scans
+- **Per-Store graph cache** (`WeakMap`) — `subClassOf` adjacency, `rdf:type` index, superclass/subclass closures, and `instancesOf` results built once and memoized; `sh:class` checks no longer recompute hierarchies per value
+- **Transitive path memoization** — `zeroOrMore`/`oneOrMore` results cached per (start, predicate, direction), deduplicated at enqueue
+- **`expandIRI` context signature memoized** — context key string built once per context object instead of per term
+- **Net**: `evaluate()` sustains ~500K quads/sec (25K products / ~125K quads in ~230 ms, Apple Silicon) — ~3.5× faster than the pre-index baseline, linear to 250K quads
+
+### Fixed
+- **Duplicate results in transitive paths** — `zeroOrMore`/`oneOrMore` could emit the same node multiple times; now deduplicated at enqueue
+
 ## v1.2.2 unified library — shapes merged into the root bundle
 
 ### Changed
