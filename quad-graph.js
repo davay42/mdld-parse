@@ -388,6 +388,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:gra
 .graphs.collapsed{max-width:auto}
 .graphs.collapsed .graphs-list{display:none}
 .graphs-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-weight:600;color:#aaa}
+.graphs-toggle{display:inline-flex;cursor:pointer;color:#aaa}
+.graphs-toggle svg{display:block;transition:transform .15s}
+.graphs.collapsed .graphs-toggle svg{transform:rotate(-90deg)}
 .graphs-item{display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer}
 .graphs-item:hover{color:#fff}
 .graphs-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;flex:1}
@@ -396,7 +399,7 @@ var QuadGraph = class extends Base {
 	constructor() {
 		super();
 		const root = this.attachShadow({ mode: "open" });
-		root.innerHTML = `<style>${CSS}</style><canvas></canvas><div class="hud"><span></span><div class="bar"><i></i></div></div><div class="tip"></div><div class="graphs"><div class="graphs-header"><span>Graphs</span><span class="graphs-toggle" style="cursor:pointer">▼</span></div><div class="graphs-list"></div></div>`;
+		root.innerHTML = `<style>${CSS}</style><canvas></canvas><div class="hud"><span></span><div class="bar"><i></i></div></div><div class="tip"></div><div class="graphs"><div class="graphs-header"><span>Graphs</span><span class="graphs-toggle"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5 5 6.5 8 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div><div class="graphs-list"></div></div>`;
 		this._cv = root.querySelector("canvas");
 		this._g2 = this._cv.getContext("2d");
 		this._stat = root.querySelector(".hud span");
@@ -657,8 +660,8 @@ var QuadGraph = class extends Base {
 			}
 		}
 		if (graphs.length > 1) {
+			this._graphsPanel.style.display = "";
 			this._graphsPanel.classList.remove("collapsed");
-			this._graphsToggle.textContent = "▼";
 			this._graphsList.innerHTML = "";
 			graphs.map((_, i) => i).sort((a, b) => graphs[a].localeCompare(graphs[b])).forEach((i) => {
 				const g = graphs[i];
@@ -676,10 +679,7 @@ var QuadGraph = class extends Base {
 				div.onclick = () => this._toggleGraph(i);
 				this._graphsList.appendChild(div);
 			});
-		} else {
-			this._graphsPanel.classList.add("collapsed");
-			this._graphsToggle.textContent = "▶";
-		}
+		} else this._graphsPanel.style.display = "none";
 		const off = new Int32Array(n + 1);
 		for (let e = 0; e < m; e++) {
 			off[LS[e] + 1]++;
@@ -1298,7 +1298,6 @@ var QuadGraph = class extends Base {
 		});
 		this._graphsToggle.addEventListener("click", () => {
 			this._graphsPanel.classList.toggle("collapsed");
-			this._graphsToggle.textContent = this._graphsPanel.classList.contains("collapsed") ? "▶" : "▼";
 		});
 		cv.addEventListener("dblclick", (e) => {
 			const p = this._xy(e), i = this._pick(p.x, p.y);
