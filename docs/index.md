@@ -49,7 +49,7 @@ This document describes the render() and deconstruct() pair — the bridge betwe
 Automatic diff document generation via the `remove` parameter. Enables CRDT-style workflows, state management, and collaborative editing with human-readable diffs using polarity retractions syntax.
 
 ### [SHACL: Validation and Extraction](./shapes.md)
-The shape is the contract. One SHACL shape drives `validate()` (what's wrong), `extractPOJO()` (what's true, conformance-gated), and `extractSubGraph()` (what's permitted) — zero dependencies, ~15K entities/sec, self-verified by the catalog.
+The shape is the contract. One SHACL shape drives `validate()` (what's wrong), `extract()` (what's true, conformance-gated), and `extractGraph()` (what's permitted) — zero dependencies, ~15K entities/sec, self-verified by the catalog.
 
 ---
 
