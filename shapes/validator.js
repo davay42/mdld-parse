@@ -1278,10 +1278,10 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
   for (const entry of projectionPlanFor(shapesDS, shapeTerm, shapeCache)) {
     // validFields semantics: a property is emitted only if it conforms to
     // its shape — every key in the POJO is a validated fact. sh:js constraints
-    // don't run here (allowJS: false), so js-guarded fields are kept.
+    // sh:js runs only when the caller opts in via allowJS — same gate as validate().
     // Constraint-free property shapes skip the gate entirely.
     if (entry.gated) {
-      const gate = { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false }
+      const gate = { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: options?.allowJS === true }
       if (validateNodeAgainstShape(dataDS, shapesDS, entry.shape, focusNode, gate).length > 0) continue
     }
     for (const pathTerm of entry.pathTerms) {
@@ -1446,7 +1446,7 @@ function extract(input, shapeIRI, options = {}) {
   const hasNodeConstraints = nodeInfo.constraints.some(c => !NODE_LEVEL_SKIP.includes(c.component))
   const kept = !hasNodeConstraints ? targets : targets.filter(t =>
     validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t,
-      { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false },
+      { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: options.allowJS === true },
       { nodeLevelOnly: true }).length === 0)
 
   const prefixes = options.prefixes ?? buildPrefixes(options.context ?? (Array.isArray(input) ? null : input?.context))

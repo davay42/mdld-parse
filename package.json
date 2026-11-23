@@ -37,7 +37,7 @@
 	],
 	"scripts": {
 		"test": "node tests/index.js",
-		"test-shapes": "node shapes/selftest.js",
+		"test-shapes": "node shapes/selftest.js && node ontologies/selftest.mjs",
 		"gen-extracted": "node shapes/gen-extracted.js",
 		"demo-shapes": "node shapes/kitchen-sink.js",
 		"dev": "vite dev",
