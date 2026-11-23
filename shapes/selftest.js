@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parse, DataFactory } from '../src/index.js'
-import { validate, isSupportedTerm, extractPOJO, extractSubGraph } from './validator.js'
+import { validate, isSupportedTerm, extract, extractGraph } from './validator.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const catalogPath = process.argv[2] || join(here, 'catalog.md')
@@ -160,7 +160,7 @@ for (const d of demos.values()) {
   }
 }
 
-// ── 4. EXTRACTED POJO: cat:extractedPOJO ↔ extractPOJO ──────────────────────
+// ── 4. EXTRACTED POJO: cat:extractedPOJO ↔ extract ──────────────────────
 // Every demo declares its canonical extraction as ~~~~~~json {cat:extractedPOJO}:
 // { "<shapeShortIRI>": { "<focusShortIRI>": { ...pojo... } } }. Verify it.
 
@@ -198,7 +198,7 @@ function canonJSON(v) {
         seen.add(q.subject.value)
         const s = q.subject.value
         if (!quads.some(x => x.subject.value === s && x.predicate.value.startsWith(SH + 'target'))) continue
-        const byNode = extractPOJO({ quads }, s, { byNode: true })
+        const byNode = extract({ quads }, s, { byNode: true })
         const shaped = {}
         for (const [focus, pojo] of Object.entries(byNode)) shaped[short(focus)] = pojo
         actual[short(s)] = shaped
@@ -230,7 +230,7 @@ try {
   fail(`self: ${e.message}`)
 }
 
-// ── 6. PROJECTION: extractPOJO / extractSubGraph ─────────────────────────────
+// ── 6. PROJECTION: extract / extractGraph ─────────────────────────────
 // The shape is the extraction schema: same quads, same shapes, two projections.
 
 {
@@ -294,7 +294,7 @@ try {
   const projQuads = [...pShapes, ...pData]
 
   try {
-    const pojos = extractPOJO({ quads: projQuads }, T('PersonShape'))
+    const pojos = extract({ quads: projQuads }, T('PersonShape'))
     const [alice, bob] = pojos
     const ok =
       pojos.length === 2 &&
@@ -309,10 +309,10 @@ try {
       fail(`projection: unexpected POJO ${JSON.stringify(pojos)}`)
     }
 
-    const single = extractPOJO({ quads: projQuads.filter(q => q.subject.value !== T('Bob')) }, T('PersonShape'))
-    if (!single || single.name !== 'Alice') fail('projection: single-target extractPOJO should return one object')
+    const single = extract({ quads: projQuads.filter(q => q.subject.value !== T('Bob')) }, T('PersonShape'))
+    if (!single || single.name !== 'Alice') fail('projection: single-target extract should return one object')
 
-    const sub = extractSubGraph({ quads: projQuads }, T('PersonShape'))
+    const sub = extractGraph({ quads: projQuads }, T('PersonShape'))
     const subKeys = new Set(sub.map(q => `${q.subject.value}|${q.predicate.value}|${q.object.value}`))
     const has = (s, p) => [...subKeys].some(k => k.startsWith(`${T(s)}|${T(p)}|`))
     const keepsList = sub.some(q => q.predicate.value === RDF + 'first') &&

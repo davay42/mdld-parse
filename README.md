@@ -805,15 +805,12 @@ JSON-file caching live in `docs/cache-adapters.md`.
 - **Partial-result-safe** — errors are collected in `result.errors`; the crawl continues
 - **Cancellable** — `AbortSignal` yields `{ aborted: true }` plus everything fetched so far
 
-## ✅ SHACL Validation — `mdld-parse/shapes`
+## ✅ SHACL Validation
 
-New in **v1.2.0**, extended in **v1.2.1**. A zero-dependency, synchronous
-**SHACL Core validator** (~1,450 LOC, no RDF libraries) that consumes
-mdld-parse quads directly — and doubles as a **projection engine**: the same
-shapes that validate also extract.
+A zero-dependency, synchronous **SHACL Core validator** (~1,450 LOC, no RDF libraries) that consumes `mdld-parse` quads directly — and doubles as a **projection engine**: the same shapes that validate also extract.
 
 ```js
-import { validate } from 'mdld-parse/shapes';
+import { validate } from 'mdld-parse';
 const report = validate({ quads });           // auto-classifies shapes vs data
 // or: validate({ shapes, data }) / new Validator(shapeQuads).validate(dataQuads)
 ```
@@ -828,11 +825,11 @@ const report = validate({ quads });           // auto-classifies shapes vs data
 - **SHACL-JS** (`sh:js` → `sh:JSConstraint` → `sh:script`) — opt-in via
   `allowJS: true`, disabled by default so untrusted shapes can't execute code
 - **Out of scope by design** — SHACL-SPARQL, SHACL-AF, external JS libraries
-- **Shape-driven extraction (v1.2.1)** — `extractPOJO()` projects quads through
+- **Shape-driven extraction (v1.2.1)** — `extract()` projects quads through
   a shape into typed JS objects (`sh:name` keys, datatype casting, nested
   `sh:node`/`sh:qualifiedValueShape`, RDF lists → arrays) — emitting only
   fields that conform, so every key is a validated fact;
-  `extractSubGraph()`
+  `extractGraph()`
   returns the quad sub-graph a shape permits — the `rdf-lens` idea with zero
   dependencies
 - **Measured** — ~200K quads/sec on a 5-constraint product shape (5,000 products / ~26K quads in ~130ms, Apple Silicon, shape work cached per `Validator`)
@@ -841,13 +838,13 @@ Extraction uses the same shape — `sh:name` keys, datatype casting, conformance
 gating (only validated fields/records are emitted):
 
 ```js
-import { extractPOJO, extractSubGraph } from 'mdld-parse/shapes';
+import { extract, extractGraph } from 'mdld-parse';
 
-const pojos = extractPOJO({ quads }, 'tag:ex,2026:PersonShape');
+const pojos = extract({ quads }, 'tag:ex,2026:PersonShape');
 // → [{ name: "Alice", age: 30, address: { city: "Paris" }, tags: ["a","b"] }]
 //   only fields that conform — offending keys are simply absent
 
-const sub = extractSubGraph({ quads }, 'tag:ex,2026:PersonShape');
+const sub = extractGraph({ quads }, 'tag:ex,2026:PersonShape');
 // → Quad[] with only shape-permitted predicates, nested entities, list chains
 ```
 
@@ -881,9 +878,9 @@ JS/quads ──generate()──▶ canonical MD-LD ──rewrite prose──▶ 
 - **Humans** edit the same text — narrative first, carriers invisible.
   The graph view exposes orphans and broken links instantly.
 - **Shapes are queries.** `validate()` reports violations;
-  `extractPOJO({ quads, context }, shapeIRI)` returns clean typed JSON —
+  `extract({ quads, context }, shapeIRI)` returns clean typed JSON —
   only conforming fields and records — shareable without the graph;
-  `extractSubGraph` does the same for RDF.
+  `extractGraph` does the same for RDF.
 
 Worked example: `examples/demo/education.md`. Full API and conformance
 semantics: `shapes/README.md`.

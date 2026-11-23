@@ -79,7 +79,7 @@ its `status` is `[backlog]`, which isn't on the board list, and its
 `Task1` and `Task3` pass; unassigned tasks are fine because the assignee
 rule only fires when the link exists.
 
-**POJO extraction** — `extractPOJO({ quads }, 'http://example.org/TaskShape')`
+**POJO extraction** — `extract({ quads }, 'http://example.org/TaskShape')`
 returns only what conforms, keyed by `sh:name` with typed casts:
 
 ```json
@@ -101,7 +101,7 @@ returns only what conforms, keyed by `sh:name` with typed casts:
 `Task2` is absent entirely — its node-level `sh:closed` violation excludes
 the record. Every key shown is a validated fact.
 
-**Subgraph extraction** — `extractSubGraph({ quads }, '…/TaskShape')`
+**Subgraph extraction** — `extractGraph({ quads }, '…/TaskShape')`
 returns only the quads the shape permits: declared predicates plus
 `rdf:type`, recursing into `ex:assignee` → Person records. `ex:priority`
 never leaves the document.

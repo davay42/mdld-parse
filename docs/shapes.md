@@ -4,13 +4,13 @@ A SHACL shape is usually described as a constraint — a filter that says what d
 
 ```
 MD-LD text → parse → quads ──► validate()      → violations (what's wrong)
-                          └─► extractPOJO()    → objects   (what's true)
-                          └─► extractSubGraph()→ quads     (what's permitted)
+                          └─► extract()    → objects   (what's true)
+                          └─► extractGraph()→ quads     (what's permitted)
 ```
 
 Write the shape once. Get validation, UI-ready objects, and sanitized sub-graphs — no TypeScript interface, no GraphQL schema, no SPARQL query. The shape is the single source of truth for an entity's structure, its integrity, and its serialization.
 
-This document covers `mdld-parse/shapes` — a zero-dependency, synchronous SHACL Core validator (~1,450 LOC) that consumes mdld-parse quads directly.
+This document covers `mdld-parse` — a zero-dependency, synchronous SHACL Core validator (~1,450 LOC) that consumes mdld-parse quads directly.
 
 ---
 
@@ -19,7 +19,7 @@ This document covers `mdld-parse/shapes` — a zero-dependency, synchronous SHAC
 ### Quick start
 
 ```js
-import { validate, Validator } from 'mdld-parse/shapes'
+import { validate, Validator } from 'mdld-parse'
 import { parse } from 'mdld-parse'
 
 const { quads } = parse({ text: mdldString })
@@ -63,16 +63,16 @@ Out of scope by design: SHACL-SPARQL, SHACL-AF, external JS libraries. See `shap
 
 Validation answers "is this record allowed?" Extraction answers "what does this record look like through the schema?" — and, crucially, **only the parts that validate**.
 
-### `extractPOJO` — the UI lens
+### `extract` — the UI lens
 
 ```js
-import { extractPOJO } from 'mdld-parse/shapes'
+import { extract } from 'mdld-parse'
 
-const people = extractPOJO({ quads }, 'tag:ex,2026:PersonShape')
+const people = extract({ quads }, 'tag:ex,2026:PersonShape')
 // → [{ name: "Alice", age: 30, address: { city: "Paris" }, tags: ["a", "b"] }]
 ```
 
-For each extractable property the shape declares, `extractPOJO` resolves `sh:path` values and emits a key:
+For each extractable property the shape declares, `extract` resolves `sh:path` values and emits a key:
 
 - **Key** — `sh:name` if present, else the predicate's local name
 - **Literal casting** — `xsd:integer`/`decimal`/etc. → `Number`, `xsd:boolean` → `boolean`, `xsd:date`/`dateTime` → `Date`, everything else → `string`
@@ -88,18 +88,18 @@ Extraction is **two-tier conformance-gated** — this is what makes "if it extra
 
 ```js
 // ProductShape declares name/price/category; InvalidProduct2 has price = -10
-extractPOJO({ quads }, 'tag:ex,ProductShape')
+extract({ quads }, 'tag:ex,ProductShape')
 // InvalidProduct2 appears WITHOUT "price" — the key's absence is the violation
 ```
 
 Every key in the output is a validated fact. `sh:js` guards don't execute during projection (`allowJS` stays off), so js-guarded fields are kept.
 
-`extractPOJO` accepts `{ quads }`, `{ shapes, data }`, or a raw `Quad[]`; omitting `shapeIRI` uses the first non-deactivated NodeShape. Options: `byNode: true` returns `{ focusValue: pojo }`, `maxDepth` bounds `sh:node` recursion (cycles degrade to the bare IRI).
+`extract` accepts `{ quads }`, `{ shapes, data }`, or a raw `Quad[]`; omitting `shapeIRI` uses the first non-deactivated NodeShape. Options: `byNode: true` returns `{ focusValue: pojo }`, `maxDepth` bounds `sh:node` recursion (cycles degrade to the bare IRI).
 
-### `extractSubGraph` — the RDF lens
+### `extractGraph` — the RDF lens
 
 ```js
-const sub = extractSubGraph({ quads }, 'tag:ex,PersonShape')
+const sub = extractGraph({ quads }, 'tag:ex,PersonShape')
 // → Quad[] containing only what the shape permits
 ```
 
@@ -132,7 +132,7 @@ Expects `4` {cat:expectedViolations ^^xsd:integer} violations (...)
 1. **Coverage** — every `sh:` property in `ontology.md` (the W3C vocabulary, ground truth) is accounted for in the catalog
 2. **Sync** — every term the catalog presents as covered exists in `SUPPORTED_VOCABULARY`
 3. **Demos** — every `cat:demo` source re-parses and validates to `cat:expectedViolations`
-4. **Extraction** — every demo's `cat:extractedPOJO` block deep-equals live `extractPOJO` output
+4. **Extraction** — every demo's `cat:extractedPOJO` block deep-equals live `extract` output
 5. **Self** — the catalog's own SHACL shapes conform against the catalog graph
 
 Plus: a procedural **projection** check on hand-built quads, and a **document round-trip** guard (`parse → generate → parse` is quad-identical — the catalog is canonical MD-LD).
@@ -150,7 +150,7 @@ node shapes/selftest.js
 
 Extraction costs ≈1.3–1.4× `validate()` on the same graph — the conformance gate reuses the validator, constraint-free shapes skip the gate entirely, and per-shape metadata compiles once into a cached projection plan. Measured on Apple Silicon (4-property Person shape, nested `sh:node` + RDF list):
 
-| Entities | Quads | validate | extractPOJO |
+| Entities | Quads | validate | extract |
 |---|---|---|---|
 | 1,000 | 11K | 50ms | 62ms |
 | 10,000 | 110K | 448ms | 631ms |

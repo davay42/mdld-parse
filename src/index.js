@@ -13,6 +13,8 @@ import {
     locate
 } from './utils.js';
 
+export { validate, Validator, createShapeDetector, isSupportedTerm, extractGraph, extract } from '../shapes/validator.js';
+
 export { parse, merge, generate, generateNode, DEFAULT_CONTEXT, DataFactory, hash, expandIRI, shortenIRI, parseSemanticBlock, locate, render, deconstruct, highlight };
 
 /**

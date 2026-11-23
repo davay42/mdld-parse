@@ -75,7 +75,7 @@
         import './src/graph.js'
         // Import crawl functionality
         import { crawl } from './src/crawl.js';
-        import { validate, extractPOJO } from './shapes/validator.js';
+        import { validate, extract } from './shapes/validator.js';
 
         // import 'virtual:uno.css'
 
@@ -555,7 +555,7 @@
                     const pojoTabs = {};
                     let total = 0;
                     for (const iri of shapeIris) {
-                        const byNode = extractPOJO({ quads: result.quads, context }, iri, { byNode: true });
+                        const byNode = extract({ quads: result.quads, context }, iri, { byNode: true });
                         const keys = Object.keys(byNode);
                         if (!keys.length) continue;
                         total += keys.length;

@@ -2,10 +2,10 @@
 /**
  * kitchen-sink.mjs — one complex document exercising every projection feature.
  * Assembles shapes+data as quads, renders canonical MD-LD via generate(),
- * re-parses it, then runs validate + extractPOJO + extractSubGraph.
+ * re-parses it, then runs validate + extract + extractGraph.
  */
 import { DataFactory, generate, parse } from '../src/index.js'
-import { validate, extractPOJO, extractSubGraph } from './validator.js'
+import { validate, extract, extractGraph } from './validator.js'
 
 const df = DataFactory
 const nn = v => df.namedNode(v)
@@ -227,13 +227,13 @@ for (const v of report.results) {
 }
 
 // ── Extract POJO ────────────────────────────────────────────────────────────
-console.log('\n=== extractPOJO ===')
-const pojos = extractPOJO({ quads: all }, T('EmployeeShape'))
+console.log('\n=== extract ===')
+const pojos = extract({ quads: all }, T('EmployeeShape'))
 console.log(JSON.stringify(pojos, null, 2))
 
 // ── Extract SubGraph ────────────────────────────────────────────────────────
-console.log('\n=== extractSubGraph ===')
-const sub = extractSubGraph({ quads: all }, T('EmployeeShape'))
+console.log('\n=== extractGraph ===')
+const sub = extractGraph({ quads: all }, T('EmployeeShape'))
 const predCount = {}
 for (const qd of sub) {
   const p = qd.predicate.value.replace(BASE, 'ex:').split('/').pop()

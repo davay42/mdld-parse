@@ -6,7 +6,7 @@
  * world: { "<shapeShortIRI>": { "<focusShortIRI>": { ...pojo... } } } with IRIs
  * shortened by the demo's own [ex] prefix. The block is written as
  * ~~~~~~json {cat:extractedPOJO} immediately after the ~~~~~~md {cat:demo} fence,
- * and selftest.js verifies it deterministically against extractPOJO.
+ * and selftest.js verifies it deterministically against extract.
  *
  * Usage:  node gen-extracted.js [catalog.md]
  * Exit:   0 = blocks written, 1 = parse/extraction error
@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parse } from '../src/index.js'
-import { extractPOJO } from './validator.js'
+import { extract } from './validator.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const catalogPath = process.argv[2] || join(here, 'catalog.md')
@@ -51,7 +51,7 @@ function extractAll(source) {
   const short = shortener(source)
   const out = {}
   for (const shape of targetedShapes(quads)) {
-    const byNode = extractPOJO({ quads }, shape, { byNode: true })
+    const byNode = extract({ quads }, shape, { byNode: true })
     const shaped = {}
     for (const [focus, pojo] of Object.entries(byNode)) shaped[short(focus)] = pojo
     out[short(shape)] = shaped

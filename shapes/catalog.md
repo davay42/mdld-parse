@@ -95,7 +95,7 @@ Three declarations pin down the expected outcome:
   literals that must each match an actual violation's rendered `sh:message`
   (identity — if a shape's message template drifts, the demo fails).
 - `~~~~~~json {cat:extractedPOJO}` — *what survives*: the canonical
-  `extractPOJO` output for the demo's shapes (projection — regenerate with
+  `extract` output for the demo's shapes (projection — regenerate with
   `node gen-extracted.js`).
 
 `node selftest.js` re-parses each demo's fenced world, runs the real
