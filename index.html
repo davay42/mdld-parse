@@ -546,13 +546,45 @@
                     if (vOut) vOut.textContent = `No SHACL shapes: ${e.message}`;
                 }
                 try {
-                    const byNode = extractPOJO({ quads: result.quads, context }, null, { byNode: true });
-                    const pojos = byNode;
+                    // Extract per sh:NodeShape — each shape is an independent projection
+                    const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+                    const SH_NODE = 'http://www.w3.org/ns/shacl#NodeShape';
+                    const shapeIris = [...new Set(result.quads
+                        .filter(q => q.predicate.value === RDF_TYPE && q.object.value === SH_NODE)
+                        .map(q => q.subject.value))];
+                    const pojoTabs = {};
+                    let total = 0;
+                    for (const iri of shapeIris) {
+                        const byNode = extractPOJO({ quads: result.quads, context }, iri, { byNode: true });
+                        const keys = Object.keys(byNode);
+                        if (!keys.length) continue;
+                        total += keys.length;
+                        pojoTabs[`${shortenIRI(iri, context)} (${keys.length})`] = JSON.stringify(byNode, null, 2);
+                    }
+                    window.pojoTabs = pojoTabs;
                     const pStats = document.getElementById('pojo-stats');
                     const pOut = document.getElementById('pojo-output');
-                    const json = JSON.stringify(pojos, null, 2);
-                    if (pStats) pStats.textContent = `${Object.keys(pojos).length} objects`;
-                    if (pOut) pOut.textContent = json.length > 8000 ? json.slice(0, 8000) + '\n…' : json;
+                    const tabsEl = document.getElementById('pojo-tabs');
+                    if (pStats) pStats.textContent = `${total} records across ${Object.keys(pojoTabs).length} shapes`;
+                    if (tabsEl) {
+                        tabsEl.innerHTML = '';
+                        for (const [name, json] of Object.entries(window.pojoTabs)) {
+                            const btn = document.createElement('button');
+                            btn.className = 'button secondary';
+                            btn.textContent = name;
+                            btn.onclick = () => {
+                                window.pojoActive = json;
+                                if (pOut) pOut.textContent = json.length > 8000 ? json.slice(0, 8000) + '\n…' : json;
+                                tabsEl.querySelectorAll('button').forEach(b => b.classList.remove('primary'));
+                                btn.classList.add('primary');
+                            };
+                            tabsEl.appendChild(btn);
+                        }
+                        const first = tabsEl.querySelector('button');
+                        if (first) first.click();
+                    } else if (pOut) {
+                        pOut.textContent = 'No extractable shape in this document.';
+                    }
                 } catch (e) {
                     const pStats = document.getElementById('pojo-stats');
                     const pOut = document.getElementById('pojo-output');
@@ -986,6 +1018,21 @@
             }
         });
 
+        // Copy active POJO tab to clipboard
+        document.getElementById('copy-pojo-btn').addEventListener('click', async () => {
+            const json = window.pojoActive;
+            if (!json) {
+                showNotification('No POJO content to copy', 'error');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(json);
+                showNotification('POJOs copied to clipboard', 'success');
+            } catch {
+                showNotification('POJOs copied to clipboard', 'success');
+            }
+        });
+
         // Download MDLD file
         document.getElementById('download-mdld-btn').addEventListener('click', () => {
             if (!currentMDLD) {
@@ -1339,8 +1386,10 @@
                         <span>Extraction (POJO)</span>
                         <span style="flex: auto;"></span>
                         <span id="pojo-stats" class="stats"></span>
+                        <button id="copy-pojo-btn" class="button secondary" title="Copy active shape's POJOs">📋 Copy</button>
                     </summary>
                     <div class="m-2 flex flex-col">
+                        <div id="pojo-tabs" class="flex gap-1 mb-2 flex-wrap"></div>
                         <pre
                             class="w-full p-4 min-h-24 max-h-72 overflow-y-auto bg-gray-50 dark:bg-gray-900 border border-gray-600 dark:border-gray-500 rounded text-white">
                     <code id="pojo-output" class="language-json text-xs block">

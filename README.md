@@ -861,6 +861,31 @@ SHACL shapes. See `shapes/README.md`.
 node shapes/selftest.js   # 32/32 demos + extractedPOJO, catalog conforms to itself
 ```
 
+### The knowledge loop — canonical text as fixed point
+
+The core workflow: **quads are truth, MD-LD is its canonical rendering.**
+
+```
+JS/quads ──generate()──▶ canonical MD-LD ──rewrite prose──▶ parse() ──generate()──▶ same quads?
+   ▲                                                                              │
+   └──────────────────────────── shapes: validate + extract ◀───────────────────────┘
+```
+
+- **Agents** build knowledge as quads in JS, `generate({ quads })` emits
+  canonical MD-LD, then prose is rewritten *around* the annotation
+  carriers — never inside them. `parse(text) → generate(quads)` must
+  reproduce the canonical text quad-identically: that's the definition of
+  a graph-preserving transformation, checked mechanically.
+- **Humans** edit the same text — narrative first, carriers invisible.
+  The graph view exposes orphans and broken links instantly.
+- **Shapes are queries.** `validate()` reports violations;
+  `extractPOJO({ quads, context }, shapeIRI)` returns clean typed JSON —
+  only conforming fields and records — shareable without the graph;
+  `extractSubGraph` does the same for RDF.
+
+Worked example: `examples/demo/education.md`. Full API and conformance
+semantics: `shapes/README.md`.
+
 ### Utility Functions
 
 ```javascript
