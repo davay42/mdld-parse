@@ -807,7 +807,7 @@ JSON-file caching live in `docs/cache-adapters.md`.
 
 ## ✅ SHACL Validation
 
-A zero-dependency, synchronous **SHACL Core validator** (~1,450 LOC, no RDF libraries) that consumes `mdld-parse` quads directly — and doubles as a **projection engine**: the same shapes that validate also extract.
+A zero-dependency, synchronous **SHACL Core validator** (~1,600 LOC, no RDF libraries) that consumes `mdld-parse` quads directly — and doubles as a **projection engine**: the same shapes that validate also extract.
 
 ```js
 import { evaluate, validate, extract } from 'mdld-parse';
