@@ -436,6 +436,8 @@ mdld-shapes validates RDF data against SHACL shapes on mdld-parse's own principl
 
 `sh:targetClass` (with subClassOf traversal), `sh:targetNode`, `sh:target` (generic, treated as targetNode), `sh:targetSubjectsOf`, `sh:targetObjectsOf`. Focus nodes are deduplicated per shape.
 
+**Subclass-aware targeting & meta-modeling.** `instancesOf` closes over `rdfs:subClassOf` in the correct direction: `targetClass prov:Person` focuses every instance typed `prov:Person` *or* any class declared `rdfs:subClassOf prov:Person` (e.g. `edu:Teacher`, `edu:Student`) — see `cat:demo/subclass`. The same machinery makes shapes able to target `rdfs:Class` itself, validating class *declarations* (labels, comments) as first-class nodes — shapes describing shapes is just another graph.
+
 ### Constraint dispatch
 
 All ~30 components are evaluated in `evalConstraint` by name (`ClassConstraintComponent`, `MinCountConstraintComponent`, …). Unknown components are skipped silently (forward compatibility). Property-level components (counts, equals, disjoint, lessThan*, uniqueLang, hasValue, qualified counts, closed) evaluate once per path; all others evaluate per value node.

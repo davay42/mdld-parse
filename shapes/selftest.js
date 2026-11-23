@@ -74,6 +74,7 @@ for (const q of cat) {
   if (!d) continue
   if (q.predicate.value === CAT + 'demo') d.source = q.object.value
   else if (q.predicate.value === CAT + 'expectedViolations') d.expected = parseInt(q.object.value, 10)
+  else if (q.predicate.value === CAT + 'expectedViolationMessage') (d.expectedMessages ??= []).push(q.object.value)
   else if (q.predicate.value === RDF_TYPE && q.object.value === CAT + 'notCovered') d.notCovered = true
 }
 
@@ -137,13 +138,21 @@ for (const d of demos.values()) {
   try {
     const { quads: demoQuads } = parse({ text: d.source })
     // catalog demos are trusted shapes — sh:js enabled explicitly
-    const actual = validate({ quads: demoQuads, allowJS: true }).results.length
-    if (actual === d.expected) {
+    const report = validate({ quads: demoQuads, allowJS: true })
+    const actual = report.results.length
+    // Optional message-level expectations: every cat:expectedViolationMessage
+    // literal must substring-match some actual violation's rendered message.
+    const msgFails = (d.expectedMessages || []).filter(m =>
+      !report.results.some(v => (v.message || '').includes(m)))
+    if (actual === d.expected && msgFails.length === 0) {
       pass++
       rows.push({ name: d.name, status: 'ok', detail: `${actual} violation(s)` })
-    } else {
+    } else if (actual !== d.expected) {
       fail(`demo ${d.name}: expected ${d.expected} violations, got ${actual}`)
       rows.push({ name: d.name, status: 'FAIL', detail: `expected ${d.expected}, got ${actual}` })
+    } else {
+      fail(`demo ${d.name}: ${msgFails.length} expected violation message(s) unmatched: ${msgFails.join(' | ')}`)
+      rows.push({ name: d.name, status: 'FAIL', detail: `${msgFails.length} message(s) unmatched` })
     }
   } catch (e) {
     fail(`demo ${d.name}: ${e.message}`)

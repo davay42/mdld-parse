@@ -1710,7 +1710,8 @@ Also may have [Flags] {+sh:flags .class:PatternConstraint label} added.
 The pattern constraint validates string values against regular expression patterns. This example validates that emails must end with example.com.
 
 ### Pattern Demo {=cat:demo/pattern .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmail fails because it doesn't match the pattern - ends with .org not .com)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation: `Email must end with example.com, got user@example.org` {cat:expectedViolationMessage}
+
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:pattern/>
 
@@ -3207,6 +3208,44 @@ Budget: [15000.00] {ex:budget ^^xsd:decimal}
 - **Ambiguous constraints** - Ensure constraints are clear and specific
 - **Incomplete test coverage** - Test all constraint combinations
 - **Incorrect subject chaining** - Use proper syntax for nested objects
+
+### Subclass Demo {=cat:demo/subclass .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Whiskers fails: no label — targetClass prov:Person-style subclass closure means Dog and Cat instances are both Animals; meta-modeling: shapes can target rdfs:Class itself)
+~~~~~~md {cat:demo}
+[ex] <tag:my@example.org,2026:subclass/>
+[rdfs] <http://www.w3.org/2000/01/rdf-schema#>
+
+## Animal Records Shape {=ex:AnimalShape .sh:NodeShape label}
+
+Every [animal] {+ex:Animal ?sh:targetClass} on file — including subclasses — must have a **label** {+#animalLabel ?sh:property sh:name} so the registry UI can render a card.
+
+## Animal label is required {=#animalLabel .sh:PropertyShape sh:message}
+Our [label] {+rdfs:label ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value.
+
+## Dog {=ex:Dog .Class label}
+A [dog] {+ex:Animal ?rdfs:subClassOf} is an animal.
+
+## Cat {=ex:Cat .Class label}
+A [cat] {+ex:Animal ?rdfs:subClassOf} is an animal.
+
+## Test Data
+
+### Rex {=ex:rex .ex:Dog label}
+Good boy.
+
+### Whiskers {=ex:whiskers .ex:Cat}
+No label — the card would render blank.
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:AnimalShape": {
+        "ex:rex": {
+            "label": "Rex"
+        }
+    }
+}
+~~~~~~
 
 <a id="self-validation"></a>
 
