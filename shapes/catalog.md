@@ -168,9 +168,11 @@ Price: [200.00] {ex:price ^^xsd:decimal}
 Target class targets all nodes that are instances of a specific RDF class for shape validation.
 
 ~~~~~~md
-**[Shape] targets [Class] instances** {=ex:ShapeName .sh:NodeShape label}
+[ex] <tag:catalog,2026:ex/>
 
-[Shape Name] {=ex:ShapeName .sh:NodeShape label} targets all [Class] {+ex:Class ?sh:targetClass} instances to validate requirements.
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} is validated by this shape.
 ~~~~~~
 
 **Key components:**
@@ -273,9 +275,11 @@ Security Clearance: [secret] {ex:securityClearance}
 Target node targets specific individual nodes identified by their IRI for precise validation.
 
 ~~~~~~md
-**[Shape] targets [Node]** {=ex:ShapeName .sh:NodeShape label}
+[ex] <tag:catalog,2026:ex/>
 
-[Shape Name] {=ex:ShapeName .sh:NodeShape label} targets the [Node] {+ex:Node ?sh:targetNode} for validation.
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+[The node] {+ex:Node ?sh:targetNode} is the single focus of this shape.
 ~~~~~~
 
 **Key components:**
@@ -389,9 +393,11 @@ Authority: [0] {ex:authority ^^xsd:integer}
 Target subjects of targets all subjects that have a specific property pointing to any value.
 
 ~~~~~~md
-**[Shape] targets subjects of [Property]** {=ex:ShapeName .sh:NodeShape label}
+[ex] <tag:catalog,2026:ex/>
 
-[Shape Name] {=ex:ShapeName .sh:NodeShape label} targets all subjects of [Property] {+ex:property ?sh:targetSubjectsOf} to validate requirements.
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every subject of our [property] {+ex:property ?sh:targetSubjectsOf} is validated.
 ~~~~~~
 
 **Key components:**
@@ -511,9 +517,11 @@ References: [Affordable product] {+ex:AffordableProduct ?ex:references}
 Target objects of targets all objects that are pointed to by a specific property.
 
 ~~~~~~md
-**[Shape] targets objects of [Property]** {=ex:ShapeName .sh:NodeShape label}
+[ex] <tag:catalog,2026:ex/>
 
-[Shape Name] {=ex:ShapeName .sh:NodeShape label} targets all objects of [Property] {+ex:property ?sh:targetObjectsOf} to validate requirements.
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every object of our [property] {+ex:property ?sh:targetObjectsOf} is validated.
 ~~~~~~
 
 **Key components:**
@@ -572,7 +580,15 @@ Target objects of targets all objects that are pointed to by a specific property
 
 **Test data pattern:**
 ~~~~~~md
-[Label] {+ex:instanceID ?ex:propertyName .ex:ClassName}
+[ex] <tag:catalog,2026:ex/>
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} — a literal property on the instance.
 ~~~~~~
 
 **For detailed syntax, see:**
@@ -858,7 +874,17 @@ Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — th
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must be an instance of [Class] {+ex:Class ?sh:class}
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must be an instance of [Class] {+ex:Class ?sh:class}.
+
 ~~~~~~
 
 **Use for:** Type safety, referential integrity, data quality
@@ -931,7 +957,17 @@ Priced at [29.99] {ex:price ^^xsd:string} — same digits, wrong type, fails.
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must be a [Datatype] {+xsd:datatype ?sh:datatype} value.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must be a [value] {+xsd:string ?sh:datatype} — datatype shown here as xsd:string, swap for any XSD type.
+
 ~~~~~~
 
 **Use for:** Type safety, data quality, calculations
@@ -1006,7 +1042,17 @@ This filing is backwards: content is <https://example.org> {?ex:content} — a l
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must be a [NodeKind] {+sh:NodeKind ?sh:nodeKind}.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must be a [IRI] {+sh:IRI ?sh:nodeKind}.
+
 ~~~~~~
 
 **Use for:** Type safety, IRI vs literal validation
@@ -1081,7 +1127,17 @@ We hold two addresses for this member — [work@example.com] {ex:email} and [per
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must have at least [min] {sh:minCount ^^xsd:integer} and at most [max] {sh:maxCount ^^xsd:integer} values.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} and at most [3] {sh:maxCount ^^xsd:integer} values.
+
 ~~~~~~
 
 **Use for:** Required properties, single-valued properties, multi-valued limits
@@ -1163,7 +1219,17 @@ A yard sign at [5] {ex:price ^^xsd:decimal} — below our ten-dollar floor, fail
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must be at least [min] {sh:minInclusive ^^xsd:datatype} and at most [max] {sh:maxInclusive ^^xsd:datatype}.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must be at least [0] {sh:minInclusive ^^xsd:integer} and at most [120] {sh:maxInclusive ^^xsd:integer}.
+
 ~~~~~~
 
 **Use for:** Price validation, age restrictions, date validation, numeric ranges
@@ -1238,7 +1304,17 @@ Ordered [2024-06-25] {ex:orderDate ^^xsd:date} but supposedly ships [2024-06-20]
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must be [operator] {sh:lessThan} [Reference] {+ex:reference ?sh:lessThan}.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must be [below] {+ex:reference ?sh:lessThan} the reference value.
+
 ~~~~~~
 
 **Use for:** Date validation, version control, business rules, ordering constraints
@@ -1310,7 +1386,17 @@ Labeled [Germany] {ex:prefLabel} and also [Germany] {ex:altLabel} — the same w
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must be [disjoint] {+ex:otherProperty ?sh:disjoint} with [Other Property].
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must be [disjoint] {+ex:otherProperty ?sh:disjoint} from the other property's values.
+
 ~~~~~~
 
 **Use for:** Label validation, category separation, mutually exclusive attributes
@@ -1381,6 +1467,9 @@ Cancelled last month — status [deleted] {ex:status}, matches the forbidden sha
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 [Shape] {=ex:Shape .sh:NodeShape} must not conform to [Forbidden Shape] {+ex:ForbiddenShape ?sh:not}.
 ~~~~~~
 
@@ -1455,6 +1544,9 @@ Selling from the [baked goods] {ex:category} stall but never listed a [price] {e
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 [Constraints List] {=ex:and-list ?sh:and .rdf:List}: [First] {=ex:first ?rdf:first}, then [rest] {=ex:and-l2 ?rdf:rest} followed by [Second] {+ex:second ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 ~~~~~~
 
@@ -1535,6 +1627,9 @@ All we have is [invalid] {ex:contact} — no @, no digits, unreachable, fails.
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 [Options List] {=ex:or-l1 ?sh:or .rdf:List}: [First] {+ex:first ?rdf:first}, then [rest] {=ex:or-l2 ?rdf:rest} by [Second] {+ex:second ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 ~~~~~~
 
@@ -1617,6 +1712,9 @@ Showing up as [guest] {ex:role} — neither badge type, fails.
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 [Options List] {=ex:xone-l1 ?sh:xone .rdf:List}: [First] {+ex:first ?rdf:first}, then [rest] {=ex:xone-l2 ?rdf:rest} by [Second] {+ex:second ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
 ~~~~~~
 
@@ -1692,7 +1790,17 @@ Badge reads [jd] {ex:username} — two letters is not a name, fails.
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must have at least [min] {sh:minLength ^^xsd:integer} and at most [max] {sh:maxLength ^^xsd:integer} characters.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must have at least [1] {sh:minLength ^^xsd:integer} and at most [100] {sh:maxLength ^^xsd:integer} characters.
+
 ~~~~~~
 
 **Use for:** Username validation, password policies, content limits, form validation
@@ -1764,7 +1872,17 @@ Our [email] {+ex:email ?sh:path} must match [example\.com$] {sh:pattern}, case-i
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must match [regex pattern] {sh:pattern} with [flags] {sh:flags}.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must match [the pattern] {sh:pattern "^[a-z]+$"} with [flags] {sh:flags "i"}.
+
 ~~~~~~
 
 **Use for:** Email validation, phone number formatting, identifier patterns, URL validation
@@ -1836,6 +1954,9 @@ Greeted with [Hallo Welt] {ex:title @de} — lovely German, but not one of our t
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 [Property] {+ex:propertyName ?sh:path} language tags must be in allowed list.
 
 **Allowed Languages List** {=ex:lang-l1 ?sh:languageIn .rdf:List}: [en] {rdf:first}, then [rest] {=ex:lang-l2 ?rdf:rest} by [fr] {rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
@@ -1912,7 +2033,17 @@ Two English titles — [Hello World] {ex:title @en} and [Hola Mundo] {ex:title @
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} values have [true] {sh:uniqueLang ^^xsd:boolean}.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} values have [unique language tags] {sh:uniqueLang ^^xsd:boolean}.
+
 ~~~~~~
 
 **Use for:** Multilingual content, translation management, content localization
@@ -1982,7 +2113,17 @@ Warming spares — status [standby] {ex:status}, not active, fails.
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must be exactly [Value] {sh:hasValue}.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must be exactly [active] {sh:hasValue "active"}.
+
 ~~~~~~
 
 **Use for:** Fixed status fields, required constants, environment flags, system identifiers
@@ -2055,7 +2196,17 @@ Leased at [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}, street [St
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must conform to [Shape] {+ex:ShapeName ?sh:node}.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must conform to [the nested shape] {+ex:NestedShape ?sh:node}.
+
 ~~~~~~
 
 **Use for:** Nested object validation, complex data models, structural integrity
@@ -2124,6 +2275,9 @@ Marked [Pending] {+ex:Pending ?ex:status} — we have no pending membership, fai
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 [Property] {+ex:propertyName ?sh:path} must be in allowed list.
 
 **Allowed List** {=ex:in-l1 ?sh:in .rdf:List}: [First] {+ex:first ?rdf:first}, then [rest] {=ex:in-l2 ?rdf:rest} by [Second] {+ex:second ?rdf:first} and [nil] {+rdf:nil ?rdf:rest}. {=}
@@ -2200,7 +2354,17 @@ Only reachable at [bob@gmail.com] {ex:email} — personal mail isn't a work emai
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
-[Property] {+ex:propertyName ?sh:path} must have exactly [count] {sh:qualifiedMinCount sh:qualifiedMaxCount ^^xsd:integer} values that conform to [Shape] {+ex:ShapeName ?sh:qualifiedValueShape}.
+[ex] <tag:catalog,2026:ex/>
+
+
+# Shape Name {=ex:ShapeName .sh:NodeShape label}
+
+Every [instance] {+ex:Class ?sh:targetClass} has a **property** {+#prop ?sh:property sh:name}.
+
+# Property {=#prop .sh:PropertyShape sh:name}
+
+Our [value] {+ex:propertyName ?sh:path} must have at least [2] {sh:qualifiedMinCount ^^xsd:integer} and at most [2] {sh:qualifiedMaxCount ^^xsd:integer} values conforming to [the qualified shape] {+ex:QualifiedShape ?sh:qualifiedValueShape}.
+
 ~~~~~~
 
 **Use for:** Work email validation, primary contact validation, conditional counting
@@ -2274,6 +2438,9 @@ A card with an [email] {ex:email} field we never print — [Jane Smith] {ex:name
 The closed constraint enables closed world validation where only explicitly declared properties are allowed.
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 **[Shape] with closed world validation** {=ex:ClosedShape .sh:NodeShape  label}
 
 [Shape Name] {=ex:ShapeName .sh:NodeShape} has **no additional properties** {sh:closed}.
@@ -2374,6 +2541,9 @@ Badge [inactive] {ex:status}, floor tag [inactive] {ex:status} — fails on stat
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 [Constraint] {=ex:PropertyConstraint .sh:PropertyShape} is [deactivated] {sh:deactivated}.
 ~~~~~~
 
@@ -2454,6 +2624,9 @@ Contact [email] {+ex:email ?sh:path} must be a [string] {+xsd:string ?sh:datatyp
 The severity constraint defines the severity level of validation violations.
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 **[Constraint description]** {=ex:PropertyConstraint .sh:PropertyShape sh:message}
 
 [Property Name] {+ex:propertyName ?sh:path} [constraint description] with [Severity] {+sh:SeverityLevel ?sh:severity}.
@@ -2542,6 +2715,9 @@ Signed for [-1000.00] {ex:contractValue ^^xsd:decimal} — a contract that pays 
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 **[Business rule]** {=ex:PropertyConstraint .sh:PropertyShape sh:message}
 [Property] {+ex:propertyName ?sh:path} [constraint description].
 ~~~~~~
@@ -2618,6 +2794,9 @@ Pottery night on [2024-12-25] {ex:eventDate ^^xsd:date} — a real date, passes.
 ## 📝 MDLD Syntax Patterns
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 [Property] {+ex:propertyName ?sh:path} must pass custom validation.
 
 ~~~js {=ex:JSConstraintName ?sh:JSConstraint sh:js}
@@ -2926,6 +3105,9 @@ Advanced SHACL techniques enable you to model complex business rules and validat
 Shape composition allows you to reuse validation logic across multiple shapes by referencing one shape within another.
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 **Property must conform to shape** {=ex:PropertyRule .sh:PropertyShape ?sh:property}
 [propertyName] {+ex:propertyName ?sh:path} must conform to [Target Shape] {+ex:TargetShape ?sh:node}.
 ~~~~~~
@@ -2945,6 +3127,9 @@ Shape composition allows you to reuse validation logic across multiple shapes by
 The NOT constraint prevents data from conforming to a specific shape pattern.
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 **Property must not conform to forbidden shape** {=ex:PropertyRule .sh:PropertyShape ?sh:property}
 [propertyName] {+ex:propertyName ?sh:path} must not conform to [Forbidden Shape] {+ex:ForbiddenShape ?sh:not}.
 ~~~~~~
@@ -2965,6 +3150,9 @@ Employee status must not conform to [Terminated Status Shape] {+ex:TerminatedSta
 Qualified count constraints allow you to count only values that conform to a specific shape, enabling conditional counting.
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 **Property must have N values conforming to shape** {=ex:PropertyRule .sh:PropertyShape ?sh:property}
 [propertyName] {+ex:propertyName ?sh:path} must have at least [N] {sh:qualifiedMinCount ^^xsd:integer} values that conform to [Qualified Shape] {=ex:QualifiedShape .sh:NodeShape ?sh:qualifiedValueShape}.
 ~~~~~~
@@ -2985,6 +3173,9 @@ Qualified count constraints allow you to count only values that conform to a spe
 You can apply multiple constraints to the same property by combining them in a single rule.
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 **Property with multiple constraints** {=ex:PropertyRule .sh:PropertyShape ?sh:property}
 [propertyName] {+ex:propertyName ?sh:path} must have exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} value and be at least [0.01] {sh:minInclusive ^^xsd:decimal}.
 ~~~~~~
@@ -2999,6 +3190,9 @@ You can apply multiple constraints to the same property by combining them in a s
 When testing advanced shapes with nested objects, use subject chaining to create proper test data.
 
 ~~~~~~md
+[ex] <tag:catalog,2026:ex/>
+
+
 #### Parent Entity {=ex:Parent1 .ex:Parent ?member}
 Property: [value1] {+ex:Child1 ?ex:property} and [value2] {+ex:Child2 ?ex:property}
 
