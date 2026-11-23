@@ -20,7 +20,9 @@ Textbook: [Strang] {+edu:strang .edu:Book ?edu:textbook label} — *Introduction
 ### PHIL 110 — Ethics in Technology {=edu:phil110 .edu:Course label}
 Taught by [Dr. Reyes] {+edu:reyes ?edu:taughtBy}, meets [TR] {edu:schedule} 15:00–16:15. No prerequisite — open to all undergraduates.
 
-## Teachers
+## Teachers  
+
+A [Teacher] {=edu:Teacher .Class label} is a [Person] {+prov:Person ?subClassOf .Class label} who teaches courses.
 
 ### Dr. Chen {=edu:chen .edu:Teacher label}
 > Algorithms and data structures. Known for asking "but *why* is it O(n log n)?" in every lecture. {comment}
@@ -33,11 +35,12 @@ Taught by [Dr. Reyes] {+edu:reyes ?edu:taughtBy}, meets [TR] {edu:schedule} 15:0
 
 ## Classmates
 
+A [Student] {=edu:Student .Class label} is a [Person] {+prov:Person ?subClassOf} who studies courses.
+
 ### Marcus Webb {=edu:marcus .edu:Student label}
 > CS major, sits front-left. {comment}
 
-Once explained merge sort to me in the library until
-2 a.m. — the explanation became [my own words] {+edu:merge-sort-note ?edu:explainedBy label}.
+Once explained merge sort to me in the library until 2 a.m. — the explanation became [my own words] {+edu:merge-sort-note ?edu:explainedBy label}.
 
 ### Priya Nair {=edu:priya .edu:Student label}
 > Philosophy minor taking PHIL 110 with me. {comment}
@@ -85,7 +88,7 @@ Marcus stayed after class and walked me through [priority queues] {+edu:pq .edu:
 **Stability promise** {=edu:marcus-quote .edu:Quote label}
 > Merge sort is stable. Quicksort isn't. Stability is a promise you make to your data. {comment}
 during [Week 5] {+edu:cs101-w5 ?edu:saidIn}
-[Marcus Webb] {=edu:marcus ?edu:author} was quoting [Dr. Chen] {=edu:chen ?edu:quoted}, who quoted [Knuth] {=edu:knuth .edu:Person ?edu:quoted label}. 
+[Marcus Webb] {=edu:marcus ?edu:author} was quoting [Dr. Chen] {=edu:chen ?edu:quoted}, who quoted [Knuth] {=edu:knuth .prov:Person ?edu:quoted label}. 
 
 **My own summary** {=edu:cs101-w5-pq .edu:LectureNote label}
 > Half-formed notes from the whiteboard session — never got a date. {comment}
@@ -127,7 +130,7 @@ A machine that passes is a machine that has learned our patterns —
 not one that has a mind.
 ~~~
 during [Week 6] {+edu:phil110-w6 ?edu:saidIn}
-[Priya Nair] {=edu:priya ?edu:author} was thinking of [Alan Turing] {=edu:turing .edu:Person ?edu:quoted label}.
+[Priya Nair] {=edu:priya ?edu:author} was thinking of [Alan Turing] {=edu:turing .prov:Person ?edu:quoted label}.
 
 **Patterns as mind** {=edu:reyes-quote .edu:Quote label}
 > But the patterns ARE the mind, arguably. {comment}
@@ -144,7 +147,7 @@ due [2026-10-17] {edu:dueDate ^^xsd:date}.
 
 ## Shapes
 
-The notebook describes itself — six shapes govern what a good record looks
+The notebook describes itself — four shapes govern what a good record looks
 like. Every typed node must carry a **label**: that's the string the UI
 renders on each card, so a missing label is a broken card.
 
@@ -157,7 +160,7 @@ whoever said them.
 
 `Note label is required — {$focusNode} missing {$path}` {=#noteLabel .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} human-readable [label] {+label ?sh:path}.
 
-`Note date is required — {$focusNode} has no valid {$path} (xsd:date)` {=#noteDate .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} value that is a [date] {+xsd:date ?sh:datatype}.
+`Note date is required — {$focusNode} has no valid {$path} (xsd:date)` {=#noteDate .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} value for our [date] {+edu:date ?sh:path} that is a [date] {+xsd:date ?sh:datatype}.
 
 `Quotes must satisfy Quote Shape — bad quote on {$focusNode} via {$path}` {=#noteQuotes .sh:PropertyShape sh:message} expects each [said-in quote] {+edu:saidInPath ?sh:path} to satisfy the **Quote Shape** {+edu:QuoteShape ?sh:node} — each with its text and author.
 
@@ -179,28 +182,13 @@ Every [course] {+edu:Course ?sh:targetClass} has a **label** {+#courseLabel ?sh:
 ## Course label is required — {$focusNode} missing {$path} {=#courseLabel .sh:PropertyShape sh:message}
 Our [label] {+label ?sh:path} must have at least [1] {sh:minCount ^^xsd:integer} value.
 
-## Course teacher is required — {$focusNode} missing {$path} {=#courseTeacher .sh:PropertyShape sh:message}
-Our [teacher] {+edu:taughtBy ?sh:path} must satisfy the **Teacher Shape** {+edu:TeacherShape ?sh:node} — at least [1] {sh:minCount ^^xsd:integer} value.
+`Course teacher is required — {$focusNode} missing {$path}` {=#courseTeacher .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} [teacher] {+edu:taughtBy ?sh:path} that satisfies the **Person Shape** {+edu:PersonShape ?sh:node}.
 
-## Teacher Shape {=edu:TeacherShape .sh:NodeShape label} 
+## Person Shape {=edu:PersonShape .sh:NodeShape label}
 
-Expects every [teacher] {+edu:Teacher ?sh:targetClass} to have a **label** {+#teacherLabel ?sh:property sh:name}.
-
-`Teacher label is required — {$focusNode} missing {$path}` {=#teacherLabel .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} [label] {+label ?sh:path}.
-
-# Student Shape {=edu:StudentShape .sh:NodeShape label}
-
-Every [student] {+edu:Student ?sh:targetClass} has a **label** {+#studentLabel ?sh:property sh:name}.
-
-`Student label is required — {$focusNode} missing {$path}` {=#studentLabel .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} [label] {+label ?sh:path}.
-
-# Person Shape {=edu:PersonShape .sh:NodeShape label}
-
-Every [person] {+edu:Person ?sh:targetClass} — quoted authors, historical
-figures — has a **label** {+#personLabel ?sh:property sh:name}.
-
-`Person label is required — {$focusNode} missing {$path}` {=#personLabel .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} [label] {+label ?sh:path}.
-
+Every [person] {+prov:Person ?sh:targetClass} — teachers, students, quoted
+authors, historical figures — has a **label** {+#personLabel ?sh:property sh:name}.
+`Person label is required — {$focusNode} missing {$path}` {=#personLabel .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} [label] {+rdfs:label ?sh:path}.
 ---
 
 # What this graph demonstrates

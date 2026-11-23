@@ -196,20 +196,22 @@ function readList(ds, head) {
 
 /** Get all instances of a class (including rdfs:subClassOf chain). */
 function instancesOf(ds, classIRI) {
-  const supers = new Set([termKey(classIRI)])
+  // Subclass closure: classes C where C rdfs:subClassOf* classIRI —
+  // instances of any subclass are instances of the target class.
+  const classes = new Set([termKey(classIRI)])
   let changed = true
   while (changed) {
     changed = false
     for (const q of ds.match(null, nn(RDFS + 'subClassOf'), null)) {
-      if (supers.has(termKey(q.subject)) && !supers.has(termKey(q.object))) {
-        supers.add(termKey(q.object))
+      if (classes.has(termKey(q.object)) && !classes.has(termKey(q.subject))) {
+        classes.add(termKey(q.subject))
         changed = true
       }
     }
   }
   const out = []
   for (const q of ds.match(null, RDF_TYPE, null)) {
-    if (supers.has(termKey(q.object))) out.push(q.subject)
+    if (classes.has(termKey(q.object))) out.push(q.subject)
   }
   return out
 }
