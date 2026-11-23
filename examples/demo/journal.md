@@ -1,8 +1,18 @@
 [j] <tag:alice@example.com,2026:journal/>
 
-# Personal Journal {=tag:alice@example.com,2026:journal .j:Journal label}
+# Personal Journal {=j: .j:Journal label}
 
-Includes records: [06 May 2026] {+j:2026/05/06 ?member}
+## Year 2026 {=j:2026 .j:Period label}
+
+Quite a year so far. I've been writing through [January] {+j:2026/01 ?prov:hadMember label}, [February] {+j:2026/02 ?prov:hadMember label}, [March] {+j:2026/03 ?prov:hadMember label}, [April] {+j:2026/04 ?prov:hadMember label}, and now [May] {+j:2026/05 ?prov:hadMember label}.
+
+## May 2026 {=j:2026/05 .j:Period label}
+
+May kicked off on [2026-05-01] {prov:startedAtTime ^^xsd:date}. I'm splitting it into weeks: [1–3] {+j:2026/05/week-1 ?prov:hadMember label}, [4–10] {+j:2026/05/week-2 ?prov:hadMember label}, [11–17] {+j:2026/05/week-3 ?prov:hadMember label}, [18–24] {+j:2026/05/week-4 ?prov:hadMember label}, [25–31] {+j:2026/05/week-5 ?prov:hadMember label}.
+
+## Week 2, May 2026 {=j:2026/05/week-2 .j:Period label}
+
+Week ran [2026-05-04] {prov:startedAtTime ^^xsd:date} to [2026-05-10] {prov:endedAtTime ^^xsd:date}. Decent week overall — [6] {j:totalActivities ^^xsd:integer} things logged, [5] {j:readingHours ^^xsd:integer} hrs reading, [8] {j:workHours ^^xsd:integer} hrs work, [3] {j:exerciseHours ^^xsd:integer} hrs moving. Set [5] {j:goalsTotal ^^xsd:integer} goals Monday, hit [4] {j:goalsCompleted ^^xsd:integer}, rolled [1] {j:goalsCarryOver ^^xsd:integer} over.
 
 ### 06 May 2026 {=j:2026/05/06 .j:DayEntry label}
 
@@ -69,6 +79,14 @@ Journal properties — typed and labeled like everything else:
 [visited] {=j:visited .rdf:Property label} is `places the day visited` {comment}.
 [topic] {=j:topic .rdf:Property label} is `what a conversation was about` {comment}.
 
+[total-activities] {=j:totalActivities .rdf:Property label} is `activities logged in the period` {comment}.
+[reading-hours] {=j:readingHours .rdf:Property label} is `hours spent reading` {comment}.
+[work-hours] {=j:workHours .rdf:Property label} is `hours spent working` {comment}.
+[exercise-hours] {=j:exerciseHours .rdf:Property label} is `hours spent moving` {comment}.
+[goals-total] {=j:goalsTotal .rdf:Property label} is `goals set` {comment}.
+[goals-completed] {=j:goalsCompleted .rdf:Property label} is `goals hit` {comment}.
+[goals-carry-over] {=j:goalsCarryOver .rdf:Property label} is `goals rolled to next period` {comment}.
+
 Everything I write ends up here. Started keeping this in [2026] {+j:2026 ?prov:hadMember label}.
 
 ======
@@ -133,22 +151,27 @@ Every [location] {+prov:Location ?sh:targetClass} has a **label** {+#locationLab
 
 `Stats stress — {$focusNode}` {=#statsStress .sh:PropertyShape sh:name} reads our [stress] {+j:stress ?sh:path} out of ten.
 
-
-## Year 2026 {=j:2026 .j:Period label}
-
-Quite a year so far. I've been writing through [January] {+j:2026/01 ?prov:hadMember label}, [February] {+j:2026/02 ?prov:hadMember label}, [March] {+j:2026/03 ?prov:hadMember label}, [April] {+j:2026/04 ?prov:hadMember label}, and now [May] {+j:2026/05 ?prov:hadMember label}.
-
-## May 2026 {=j:2026/05 .j:Period label}
-
-May kicked off on [2026-05-01] {prov:startedAtTime ^^xsd:date}. I'm splitting it into weeks: [1–3] {+j:2026/05/week-1 ?prov:hadMember label}, [4–10] {+j:2026/05/week-2 ?prov:hadMember label}, [11–17] {+j:2026/05/week-3 ?prov:hadMember label}, [18–24] {+j:2026/05/week-4 ?prov:hadMember label}, [25–31] {+j:2026/05/week-5 ?prov:hadMember label}.
-
-## Week 2, May 2026 {=j:2026/05/week-2 .j:Period label}
-
-Week ran [2026-05-04] {prov:startedAtTime ^^xsd:date} to [2026-05-10] {prov:endedAtTime ^^xsd:date}. Decent week overall — [6] {j:totalActivities ^^xsd:integer} things logged, [5] {j:readingHours ^^xsd:integer} hrs reading, [8] {j:workHours ^^xsd:integer} hrs work, [3] {j:exerciseHours ^^xsd:integer} hrs moving. Set [5] {j:goalsTotal ^^xsd:integer} goals Monday, hit [4] {j:goalsCompleted ^^xsd:integer}, rolled [1] {j:goalsCarryOver ^^xsd:integer} over.
-
 ======
 # Generated Records Shape {=j:GeneratedShape .sh:NodeShape label}
 
 Everything [generated] {+prov:generated ?sh:targetObjectsOf} by the journal must be a [record] {+j:Record ?sh:class} — provenance output is domain data, not raw prov. Each carries its **label** {+#genLabel ?sh:property sh:name}.
 
 `Generated label — {$focusNode}` {=#genLabel .sh:PropertyShape sh:name} reads our [label] {+rdfs:label ?sh:path}.
+
+# Journal Week Shape {=j:WeekShape .sh:NodeShape label}
+
+[The week] {+j:2026/05/week-2 ?sh:targetNode} rolls up its **activities** {+#weekActivities ?sh:property sh:name}, **reading** {+#weekReading ?sh:property sh:name}, **work** {+#weekWork ?sh:property sh:name}, **exercise** {+#weekExercise ?sh:property sh:name}, and **goals** {+#weekGoals ?sh:property sh:name}, **goals done** {+#weekDone ?sh:property sh:name}, and **goals carried** {+#weekCarried ?sh:property sh:name}.
+
+`Week activities — {$focusNode}` {=#weekActivities .sh:PropertyShape sh:name} reads our [total] {+j:totalActivities ?sh:path}.
+
+`Week reading — {$focusNode}` {=#weekReading .sh:PropertyShape sh:name} reads our [reading hours] {+j:readingHours ?sh:path}.
+
+`Week work — {$focusNode}` {=#weekWork .sh:PropertyShape sh:name} reads our [work hours] {+j:workHours ?sh:path}.
+
+`Week exercise — {$focusNode}` {=#weekExercise .sh:PropertyShape sh:name} reads our [exercise hours] {+j:exerciseHours ?sh:path}.
+
+`Week goals set — {$focusNode}` {=#weekGoals .sh:PropertyShape sh:name} reads our [goals total] {+j:goalsTotal ?sh:path}.
+
+`Week goals done — {$focusNode}` {=#weekDone .sh:PropertyShape sh:name} reads our [goals completed] {+j:goalsCompleted ?sh:path}.
+
+`Week goals carried — {$focusNode}` {=#weekCarried .sh:PropertyShape sh:name} reads our [goals carried over] {+j:goalsCarryOver ?sh:path}.
