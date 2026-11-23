@@ -40,7 +40,7 @@ SHACL (Shapes Constraint Language) is a W3C standard for validating RDF graphs. 
 Let's create a simple shape for validating user accounts:
 
 ### Initial demo {=cat:demo/start .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation.
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Email is required` {cat:expectedViolationMessage} violation.
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:users/>
 
@@ -106,7 +106,7 @@ These are targeting predicates that determine which nodes get validated (not con
 The targetClass constraint targets all nodes that are instances of a specific RDF class. This example validates all Product instances for business requirements.
 
 ### Target Class Demo {=cat:demo/targetClass .cat:Demo ?cat:hasDemo}
-Expects `2` {cat:expectedViolations ^^xsd:integer} violations (InvalidProduct fails twice: missing name AND negative price; Service not validated since it's not a Product)
+Expects `2` {cat:expectedViolations ^^xsd:integer} violation(s): `Product must have exactly one name` {cat:expectedViolationMessage}, `Product price must be positive` {cat:expectedViolationMessage} violations (InvalidProduct fails twice: missing name AND negative price; Service not validated since it's not a Product)
 ~~~~~~md {cat:demo}
 [ex] <tag:example.com,2026:targeting/>
 
@@ -204,7 +204,7 @@ Target class targets all nodes that are instances of a specific RDF class for sh
 The targetNode constraint targets specific individual nodes for validation. This example demonstrates critical infrastructure and executive validation scenarios.
 
 ### Target Node Demo {=cat:demo/targetNode .cat:Demo ?cat:hasDemo}
-**Expected Result:** [3] {cat:expectedViolations ^^xsd:integer} violations (MainDatabase fails twice: status offline AND uptime < 99.9%; CEO fails: clearance is secret not top-secret; BackupDatabase and CFO not validated as they're not targeted)
+**Expected Result:** [3] {cat:expectedViolations ^^xsd:integer} violation(s): `Main database must be online` {cat:expectedViolationMessage}, `Database uptime must be at least 99.9%` {cat:expectedViolationMessage}, `CEO must have top-secret security clearance` {cat:expectedViolationMessage} violations (MainDatabase fails twice: status offline AND uptime < 99.9%; CEO fails: clearance is secret not top-secret; BackupDatabase and CFO not validated as they're not targeted)
 ~~~~~~md {cat:demo}
 [ex] <tag:example.com,2026:targeting/>
 
@@ -300,7 +300,7 @@ Target node targets specific individual nodes identified by their IRI for precis
 The targetSubjectsOf constraint targets all subjects (nodes) that have a specific property pointing to any value. This example demonstrates management and approval scenarios where we validate entities that initiate relationships.
 
 ### Target Subjects Of Demo {=cat:demo/targetSubjectsOf .cat:Demo ?cat:hasDemo }
-**Expected Result:** `3` {cat:expectedViolations ^^xsd:integer} violations (EngineeringManager fails twice: level < 3 AND teamSize > 10; FinanceApprover fails: authority < 2; JuniorDeveloper and RegularEmployee not validated as they don't initiate the relationships)
+**Expected Result:** `3` {cat:expectedViolations ^^xsd:integer} violation(s): `Managers must have level 3 or higher` {cat:expectedViolationMessage}, `Managers can oversee at most 10 team members` {cat:expectedViolationMessage}, `Approvers must have authority level 2 or higher` {cat:expectedViolationMessage} violations (EngineeringManager fails twice: level < 3 AND teamSize > 10; FinanceApprover fails: authority < 2; JuniorDeveloper and RegularEmployee not validated as they don't initiate the relationships)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:targeting/>
 
@@ -418,7 +418,7 @@ Target subjects of targets all subjects that have a specific property pointing t
 The targetObjectsOf constraint targets all objects (nodes) that are referenced by a specific property. This example demonstrates team membership and product reference scenarios where we validate entities that are referenced by others.
 
 ### Target Objects Of Demo {=cat:demo/targetObjectsOf .cat:Demo ?cat:hasDemo label}
-**Expected Result:** `4` {cat:expectedViolations ^^xsd:integer} violations (EngineeringTeam fails twice: workload > 40 AND status inactive; ExpensiveProduct fails twice: price > 1000 AND unavailable; QATeam and AffordableProduct pass; developers and orders not validated as they're subjects, not objects)
+**Expected Result:** `4` {cat:expectedViolations ^^xsd:integer} violation(s): `Team members must not exceed 40 hours workload` {cat:expectedViolationMessage}, `Team members must be active` {cat:expectedViolationMessage}, `Referenced products must be available` {cat:expectedViolationMessage}, `Referenced products must cost $1000 or less` {cat:expectedViolationMessage} violations (EngineeringTeam fails twice: workload > 40 AND status inactive; ExpensiveProduct fails twice: price > 1000 AND unavailable; QATeam and AffordableProduct pass; developers and orders not validated as they're subjects, not objects)
 ~~~~~~md {cat:demo}
 [ex] <tag:example.com,2026:targeting/>
 
@@ -680,7 +680,7 @@ MD-LD expresses path structures with IRIs instead of blank nodes — `sh:path` p
 - Zero or One Path {+sh:zeroOrOnePath ?cat:includes .class:PropertyPath}
 
 ### Property Path Demo {=cat:demo/paths .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Eve fails because she has neither ex:email nor ex:workEmail; the alternativePath structure is an IRI, not a blank node)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Email is required via primary or work address` {cat:expectedViolationMessage} violation (Eve fails because she has neither ex:email nor ex:workEmail; the alternativePath structure is an IRI, not a blank node)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:paths/>
 
@@ -805,7 +805,7 @@ SHACL-AF and SHACL-SPARQL extension terms — not covered by this catalog:
 The class constraint ensures property values are instances of a specific RDF class. This example validates that employee managers must be Person instances.
 
 ### Class Demo {=cat:demo/class .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEmployee fails because manager is not a Person)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Manager must be a Person instance, got robot.` {cat:expectedViolationMessage} violation (InvalidEmployee fails because manager is not a Person)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:class/>
 
@@ -877,7 +877,7 @@ Our records show [robot] {+ex:robot ?ex:manager .ex:Robot} as the manager — th
 The datatype constraint ensures literal values have the correct datatype. This example validates that product prices must be decimal values.
 
 ### Data Type Demo {=cat:demo/datatype .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fails because price is string, not decimal)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Price must be decimal — got 29.99 at price.` {cat:expectedViolationMessage} violation (InvalidProduct fails because price is string, not decimal)
 
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:datatype/>
@@ -949,7 +949,7 @@ Priced at [29.99] {ex:price ^^xsd:string} — same digits, wrong type, fails.
 The nodeKind constraint expects a node to be of a specific kind (blank node, IRI, or literal). This example validates that content must be literal and references must be IRIs.
 
 ### Node Kind Demo {=cat:demo/nodekind .cat:Demo ?cat:hasDemo}
-Expects `2` {cat:expectedViolations ^^xsd:integer} violations (InvalidDocument fails twice: content is IRI not literal, reference is text not IRI)
+Expects `2` {cat:expectedViolations ^^xsd:integer} violation(s): `Content must be literal.` {cat:expectedViolationMessage}, `Reference must be IRI.` {cat:expectedViolationMessage} violations (InvalidDocument fails twice: content is IRI not literal, reference is text not IRI)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:nodekind/>
 
@@ -1028,7 +1028,7 @@ This filing is backwards: content is <https://example.org> {?ex:content} — a l
 Count constraints specify the minimum and maximum number of values a property must have. This example validates that email must be exactly one value.
 
 ### Count Demo {=cat:demo/count .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidPerson fails because it has two emails instead of one)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Email must be exactly one.` {cat:expectedViolationMessage} violation (InvalidPerson fails because it has two emails instead of one)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:count/>
 
@@ -1110,7 +1110,7 @@ We hold two addresses for this member — [work@example.com] {ex:email} and [per
 Range constraints specify minimum and maximum values for numeric or date properties. This example validates that product prices must be between 10 and 100 inclusive.
 
 ### Range Demo {=cat:demo/range .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidProduct fails because price is 5, below the minimum of 10)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Price must be between 10 and 100 inclusive.` {cat:expectedViolationMessage} violation (InvalidProduct fails because price is 5, below the minimum of 10)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
@@ -1185,7 +1185,7 @@ Also provides [Less than or equals] {+sh:lessThanOrEquals .class:ComparisonConst
 Comparison constraints validate property values against reference nodes using comparison operators. This example validates that order dates must be before shipping dates.
 
 ### Comparison Demo {=cat:demo/comparison .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidOrder fails because order date is after shipping date)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Order date must be before shipping date.` {cat:expectedViolationMessage} violation (InvalidOrder fails because order date is after shipping date)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:comparison/>
 
@@ -1257,7 +1257,7 @@ Ordered [2024-06-25] {ex:orderDate ^^xsd:date} but supposedly ships [2024-06-20]
 The disjoint constraint ensures that values of a property are disjoint with values of another property. This example validates that preferred labels must be different from alternative labels.
 
 ### Disjoint Demo {=cat:demo/disjoint .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Germany fails because preferred and alternative labels are the same)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Preferred labels must be different from alternative labels.` {cat:expectedViolationMessage} violation (Germany fails because preferred and alternative labels are the same)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:disjoint/>
 
@@ -1398,7 +1398,7 @@ Cancelled last month — status [deleted] {ex:status}, matches the forbidden sha
 The AND constraint requires all specified constraints to be satisfied. This example validates that products must have both a price and a category.
 
 ### AND Demo {=cat:demo/and .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (MissingPriceProduct fails because it lacks price)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Product must have price and category` {cat:expectedViolationMessage} violation (MissingPriceProduct fails because it lacks price)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:and/>
 
@@ -1473,7 +1473,7 @@ Selling from the [baked goods] {ex:category} stall but never listed a [price] {e
 The OR constraint requires at least one of the specified constraints to be satisfied. This example validates that a contact must be either an email (contains @) or a phone number (contains -).
 
 ### OR Demo {=cat:demo/or .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidContact fails because it matches neither email nor phone pattern)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Contact must be email or phone` {cat:expectedViolationMessage} violation (InvalidContact fails because it matches neither email nor phone pattern)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:or/>
 
@@ -1555,7 +1555,7 @@ All we have is [invalid] {ex:contact} — no @, no digits, unreachable, fails.
 The XONE constraint requires exactly one of the specified constraints to be satisfied. This example validates that a role must be exactly one type (admin or user), not both and not neither.
 
 ### XONE Demo {=cat:demo/xone .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (NoRole fails because it matches neither admin nor user)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Role must be exactly one type` {cat:expectedViolationMessage} violation (NoRole fails because it matches neither admin nor user)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:xone/>
 
@@ -1639,7 +1639,7 @@ Showing up as [guest] {ex:role} — neither badge type, fails.
 Length constraints specify the minimum and maximum length of string values. This example validates that usernames must be between 3 and 20 characters.
 
 ### Length Demo {=cat:demo/length .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidUser fails because username is only 2 characters, below the minimum of 3)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Username must be 3-20 characters.` {cat:expectedViolationMessage} violation (InvalidUser fails because username is only 2 characters, below the minimum of 3)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:length/>
 
@@ -1783,7 +1783,7 @@ Our [email] {+ex:email ?sh:path} must match [example\.com$] {sh:pattern}, case-i
 The languageIn constraint constrains string literals to have language tags from a specified list. This example validates that document titles must be in English or French.
 
 ### Language Demo {=cat:demo/language .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (GermanDocument fails because title language is de, not in the allowed list)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Title language must be en or fr.` {cat:expectedViolationMessage} violation (GermanDocument fails because title language is de, not in the allowed list)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:language/>
 
@@ -1856,7 +1856,7 @@ Greeted with [Hallo Welt] {ex:title @de} — lovely German, but not one of our t
 The uniqueLang constraint ensures that language tags of string literals are unique within a property. This example validates that document titles cannot have duplicate language tags.
 
 ### UniqueLang Demo {=cat:demo/uniqueLang .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidDocument fails because it has duplicate @en language tags)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Each language tag must appear only once.` {cat:expectedViolationMessage} violation (InvalidDocument fails because it has duplicate @en language tags)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:uniqueLang/>
 
@@ -1929,7 +1929,7 @@ Two English titles — [Hello World] {ex:title @en} and [Hola Mundo] {ex:title @
 The hasValue constraint requires a property to have exactly a specific value. This example validates that server status must be exactly "active".
 
 ### Has Value Demo {=cat:demo/hasvalue .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (BackupServer fails because status is standby, not active)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Status must be active.` {cat:expectedViolationMessage} violation (BackupServer fails because status is standby, not active)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:hasvalue/>
 
@@ -2071,7 +2071,7 @@ Leased at [Short Address] {=ex:ShortAddress .ex:Address ?ex:address}, street [St
 The in constraint constrains property values to be within a specified list of allowed values. This example validates that status must be either "Active" or "Inactive".
 
 ### In Demo {=cat:demo/in .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidStatusEmployee fails because status is Pending, not in the allowed list)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Status must be Active or Inactive.` {cat:expectedViolationMessage} violation (InvalidStatusEmployee fails because status is Pending, not in the allowed list)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:in/>
 
@@ -2145,7 +2145,7 @@ And it's opposite boundary - [Maximum Qualified Count] {=sh:qualifiedMaxCount .c
 Qualified count constraints apply count constraints only to values that meet additional shape criteria. This example validates that employees must have exactly one work email (matching the WorkEmailShape pattern).
 
 ### Qualified Demo {=cat:demo/qualified .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (NoWorkEmployee fails because it has 0 work emails - the email doesn't match the WorkEmailShape pattern)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Employee must have exactly one work email` {cat:expectedViolationMessage} violation (NoWorkEmployee fails because it has 0 work emails - the email doesn't match the WorkEmailShape pattern)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:qualified/>
 
@@ -2318,7 +2318,7 @@ The closed constraint enables closed world validation where only explicitly decl
 The deactivated constraint temporarily disables specific constraints during validation. This example shows a deactivated category rule while the status rule remains active.
 
 ### Deactivated Demo {=cat:demo/deactivated .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidAccount fails because status is inactive; category rule is deactivated so it doesn't cause a violation)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `User status must be active` {cat:expectedViolationMessage} violation (InvalidAccount fails because status is inactive; category rule is deactivated so it doesn't cause a violation)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:deactivated/>
 
@@ -2391,7 +2391,7 @@ Paired with the text [message] {+sh:message ?seeAlso}
 The severity constraint defines the severity level of validation violations (Info, Warning, Violation). This example demonstrates user account validation with different severity levels for different constraints.
 
 ### Severity Demo {=cat:demo/severity .cat:Demo ?cat:hasDemo}
-Expects `3` {cat:expectedViolations ^^xsd:integer} violations (InvalidUser fails three times: Critical for invalid email, Warning for age > 120, Info for missing name)
+Expects `3` {cat:expectedViolations ^^xsd:integer} violation(s): `Email address is required and must be valid` {cat:expectedViolationMessage}, `Age should be between 18 and 120` {cat:expectedViolationMessage}, `Name should be a string of 2+ letters` {cat:expectedViolationMessage} violations (InvalidUser fails three times: Critical for invalid email, Warning for age > 120, Info for missing name)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:range/>
 
@@ -2489,7 +2489,7 @@ The severity constraint defines the severity level of validation violations.
 The message constraint provides human-readable error messages for constraint violations. This example shows a custom violation message for contract value validation.
 
 ### Message Demo {=cat:demo/message .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidContract fails with message "Contract value must be positive")
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Contract value must be positive` {cat:expectedViolationMessage} violation (InvalidContract fails with message "Contract value must be positive")
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:message/>
 
@@ -2557,7 +2557,7 @@ Signed for [-1000.00] {ex:contractValue ^^xsd:decimal} — a contract that pays 
 The JavaScript constraint allows custom JavaScript validation functions for complex constraint logic. This example validates that event dates must be valid JavaScript dates.
 
 ### JS Demo {=cat:demo/js .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (InvalidEvent fails because "not-a-date" is not a valid JavaScript date)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Event date must be valid` {cat:expectedViolationMessage} violation (InvalidEvent fails because "not-a-date" is not a valid JavaScript date)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:js/>
 
@@ -3003,7 +3003,7 @@ Status: [active] {ex:status}
 The following example demonstrates multiple advanced techniques in a single validation scenario:
 
 ### Advanced Demo {=cat:demo/advanced .cat:Demo ?cat:hasDemo}
-Expects `3` {cat:expectedViolations ^^xsd:integer} violations (Employee2 fails: invalid department; Employee4 fails: only 1 completed project, needs 2; Employee5 fails: negative salary; Employee1 and Employee3 pass — the sh:not on the literal status value cannot conform to TerminatedStatusShape)
+Expects `3` {cat:expectedViolations ^^xsd:integer} violation(s): `Employee must have at least 2 completed projects` {cat:expectedViolationMessage}, `Salary must be positive` {cat:expectedViolationMessage} violations (Employee2 fails: invalid department; Employee4 fails: only 1 completed project, needs 2; Employee5 fails: negative salary; Employee1 and Employee3 pass — the sh:not on the literal status value cannot conform to TerminatedStatusShape)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:advanced/>
 
@@ -3210,7 +3210,7 @@ Budget: [15000.00] {ex:budget ^^xsd:decimal}
 - **Incorrect subject chaining** - Use proper syntax for nested objects
 
 ### Subclass Demo {=cat:demo/subclass .cat:Demo ?cat:hasDemo}
-Expects `1` {cat:expectedViolations ^^xsd:integer} violation (Whiskers fails: no label — targetClass prov:Person-style subclass closure means Dog and Cat instances are both Animals; meta-modeling: shapes can target rdfs:Class itself)
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Animal label is required` {cat:expectedViolationMessage} violation (Whiskers fails: no label — targetClass prov:Person-style subclass closure means Dog and Cat instances are both Animals; meta-modeling: shapes can target rdfs:Class itself)
 ~~~~~~md {cat:demo}
 [ex] <tag:my@example.org,2026:subclass/>
 [rdfs] <http://www.w3.org/2000/01/rdf-schema#>
