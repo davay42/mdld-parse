@@ -840,7 +840,7 @@ const pojos = extract({ quads }, 'tag:ex,PersonShape');
   `extractGraph()`
   returns the quad sub-graph a shape permits — the `rdf-lens` idea with zero
   dependencies
-- **Measured** — ~200K quads/sec on a 5-constraint product shape (5,000 products / ~26K quads in ~130ms, Apple Silicon, shape work cached per `Validator`)
+- **Measured** — `evaluate()` sustains ~300K quads/sec end-to-end (violations + records in one pass): 5,000 products / ~25K quads in ~84ms, Apple Silicon
 
 Extraction uses the same shape — `sh:name` keys, datatype casting, conformance
 gating (only validated fields/records are emitted):

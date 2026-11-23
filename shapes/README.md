@@ -252,6 +252,11 @@ Measured on Apple Silicon (reused `Validator` — shape work is cached):
 
 ≈200K quads/sec on a 5-constraint product shape; scales linearly.
 
+`evaluate()` (violations + records in one pass) sustains **~300K quads/sec**
+on the same class of workload — 5,000 products / ~25K quads in ~84ms —
+faster than `validate()` + `extract()` run separately, since both views share
+one evaluation.
+
 The `Store` implementation is a thin wrapper over `Set<Quad>` with linear `match()`. For very large datasets, an indexed store would be faster — but MD-LD's use case is small-to-medium shapes.
 
 ### Projection performance
