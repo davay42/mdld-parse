@@ -1,5 +1,22 @@
 # MD-LD evolution
 
+## v1.2.2 unified library — shapes merged into the root bundle
+
+### Changed
+- **Single-file library** — `shapes.js` merged into `mdld-parse.js` (175 kB / ~42 kB gz): `parse`, `generate`, `validate`, `extract`, `extractGraph`, `render`, `deconstruct`, `highlight` all importable from `'mdld-parse'`; the `./shapes` export path removed (tree-shaking covers parse-only consumers)
+- **Renamed extraction API** — `extractPOJO()` → `extract()`, `extractSubGraph()` → `extractGraph()`; no backwards compatibility kept
+- **Context-aware IRI shortening** — `extract()`/`validate()` accept `context` (or `{ quads, context }` input) so POJO keys, IRI fields, `byNode` keys, and `sh:message` placeholders render as CURIEs; full IRIs preserved when no context is given
+
+### Fixed
+- **`instancesOf` subclass direction** — `rdfs:subClassOf` closure now collects subclasses correctly, so `sh:targetClass prov:Person` catches `edu:Teacher`/`edu:Student` instances (spec-required behavior; previously walked superclasses)
+- **`sh:closed` + `extractGraph` path structures** — predicate IRIs inside `alternativePath`/`inversePath`/transitives are whitelisted (landed in 1.2.1 line, confirmed)
+
+### Added
+- **`cat:expectedViolationMessage`** — catalog demos declare expected violation message literals; `selftest.js` substring-matches each against rendered `sh:message`, closing the count→message→POJO contract loop (33/33 demos)
+- **`cat:demo/subclass`** — permanent regression test for subclass-aware targeting and `rdfs:Class` meta-modeling
+- **`examples/demo/education.md`** — life-domain showcase: semester notebook with courses/teachers/students, dated lecture notes, first-class quotes with `edu:quoted` attribution chains, six cooperating shapes, per-class POJO extraction
+- **Playground panels** — SHACL validation + per-shape POJO extraction tabs with copy buttons in `index.html`
+
 ## v1.2.1 SHACL projection — shapes as extraction schemas
 
 ### Added
