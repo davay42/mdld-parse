@@ -656,6 +656,30 @@ function jsSource(shapesDS, jsTerm) {
   throw new Error(`sh:js constraint ${jsTerm?.value} has no sh:script`)
 }
 
+/** Invert an MD-LD context {prefix: iri} into a longest-first [iri, prefix] list for message shortening. */
+function buildPrefixes(context) {
+  if (!context || typeof context !== 'object') return null
+  const pairs = []
+  for (const [prefix, iri] of Object.entries(context)) {
+    if (typeof iri === 'string' && iri.startsWith('http')) pairs.push([iri, prefix === '@vocab' ? '' : prefix])
+  }
+  return pairs.sort((a, b) => b[0].length - a[0].length)
+}
+
+/** Shorten a term for human-facing sh:message output: prefix:local when a context prefix matches, else local name. */
+function shortenTerm(term, prefixes) {
+  if (!term) return ''
+  if (isLiteral(term)) return term.value
+  const iri = term.value
+  if (prefixes) {
+    for (const [ns, prefix] of prefixes) {
+      if (iri.startsWith(ns)) return prefix ? `${prefix}:${iri.slice(ns.length)}` : iri.slice(ns.length)
+    }
+  }
+  const i = Math.max(iri.lastIndexOf('/'), iri.lastIndexOf('#'))
+  return i >= 0 ? iri.slice(i + 1) : iri
+}
+
 // ─── Constraint evaluation ─────────────────────────────────────────────────────
 
 /**
@@ -672,9 +696,9 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
   function renderMessage() {
     if (!rawMessage) return null
     return rawMessage
-      .replaceAll('{$value}', jsValue(value) ?? '')
-      .replaceAll('{$path}', ctx.path?.value ?? '')
-      .replaceAll('{$focusNode}', focusNode?.value ?? '')
+      .replaceAll('{$value}', shortenTerm(value, ctx.prefixes) ?? '')
+      .replaceAll('{$path}', shortenTerm(ctx.path, ctx.prefixes) ?? '')
+      .replaceAll('{$focusNode}', shortenTerm(focusNode, ctx.prefixes) ?? '')
   }
 
   function viol(extra = {}) {
@@ -1437,6 +1461,7 @@ function extractPOJO(input, shapeIRI, options = {}) {
  */
 function validate(options) {
   const { shapesDS, dataDS } = resolveDatasets(options)
+  const prefixes = buildPrefixes(options.context)
 
   const allViolations = []
   const shapeKeys = findShapes(shapesDS)
@@ -1451,7 +1476,7 @@ function validate(options) {
     if (deactivated.length > 0 && (deactivated[0].value === 'true' || deactivated[0] === true)) continue
 
     const targets = resolveTargets(dataDS, shapesDS, shapeTerm)
-    const ctx = { visited: new Set(), shapeTerm, shapeCache, jsCache: new Map(), allowJS: options.allowJS === true }
+    const ctx = { visited: new Set(), shapeTerm, shapeCache, jsCache: new Map(), allowJS: options.allowJS === true, prefixes }
 
     for (const focusNode of targets) {
       allViolations.push(...validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, ctx))
@@ -1488,7 +1513,7 @@ class Validator {
   }
 
   validate(dataQuads) {
-    return validate({ shapes: this.#shapeQuads, data: dataQuads, allowJS: this.#options.allowJS })
+    return validate({ shapes: this.#shapeQuads, data: dataQuads, allowJS: this.#options.allowJS, context: this.#options.context })
   }
 }
 

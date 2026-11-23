@@ -528,7 +528,7 @@
 
                 // SHACL validation + POJO extraction (documents without shapes show a notice)
                 try {
-                    const shaclReport = validate({ quads: result.quads });
+                    const shaclReport = validate({ quads: result.quads, context });
                     const vStats = document.getElementById('shacl-stats');
                     const vOut = document.getElementById('shacl-output');
                     if (vStats) vStats.textContent = shaclReport.conforms ? 'conforms' : `${shaclReport.results.length} violations`;
