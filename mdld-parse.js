@@ -190,9 +190,18 @@ function hash(str) {
 	return Math.abs(h).toString(16).slice(0, 12);
 }
 var iriCache$1 = /* @__PURE__ */ new Map();
+var ctxSigCache = /* @__PURE__ */ new WeakMap();
+function ctxSignature(ctx) {
+	let sig = ctxSigCache.get(ctx);
+	if (sig === void 0) {
+		sig = `${ctx["@vocab"] || ""}|${Object.keys(ctx).filter((k) => k !== "@vocab").sort().map((k) => `${k}:${ctx[k]}`).join(",")}`;
+		ctxSigCache.set(ctx, sig);
+	}
+	return sig;
+}
 function expandIRI(term, ctx) {
 	if (term == null) return null;
-	const cacheKey = `${term}|${ctx["@vocab"] || ""}|${Object.keys(ctx).filter((k) => k !== "@vocab").sort().map((k) => `${k}:${ctx[k]}`).join(",")}`;
+	const cacheKey = `${term}|${ctxSignature(ctx)}`;
 	if (iriCache$1.has(cacheKey)) return iriCache$1.get(cacheKey);
 	const t = (typeof term === "string" ? term : typeof term === "object" && typeof term.value === "string" ? term.value : String(term)).trim();
 	let result;
