@@ -256,11 +256,21 @@ export function hash(str) {
 }
 
 const iriCache = new Map();
+const ctxSigCache = new WeakMap();
+
+function ctxSignature(ctx) {
+    let sig = ctxSigCache.get(ctx);
+    if (sig === undefined) {
+        sig = `${ctx['@vocab'] || ''}|${Object.keys(ctx).filter(k => k !== '@vocab').sort().map(k => `${k}:${ctx[k]}`).join(',')}`;
+        ctxSigCache.set(ctx, sig);
+    }
+    return sig;
+}
 
 export function expandIRI(term, ctx) {
     if (term == null) return null;
 
-    const cacheKey = `${term}|${ctx['@vocab'] || ''}|${Object.keys(ctx).filter(k => k !== '@vocab').sort().map(k => `${k}:${ctx[k]}`).join(',')}`;
+    const cacheKey = `${term}|${ctxSignature(ctx)}`;
     if (iriCache.has(cacheKey)) {
         return iriCache.get(cacheKey);
     }
