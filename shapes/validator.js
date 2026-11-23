@@ -679,9 +679,6 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 
   function viol(extra = {}) {
     const v = { focusNode, value, severity, component: nn(SH + component), message: renderMessage(), shape: ctx.shapeTerm, path: ctx.path, ...extra }
-    if (typeof process !== 'undefined' && process.env?.DEBUG) {
-      console.log(`  ⚠️  ${component} violation: focus=${focusNode?.value}, value=${value?.value || 'none'}, shape=${ctx.shapeTerm?.value}`)
-    }
     return v
   }
 
@@ -962,11 +959,6 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
   const shapeInfo = getShapeInfo(shapesDS, shapeTerm, parentCtx.shapeCache)
   const { constraints, deactivated, isPropertyShape, pathTerms } = shapeInfo
   if (deactivated) { parentCtx.visited.delete(key); return [] }
-
-  if (typeof process !== 'undefined' && process.env?.DEBUG) {
-    console.log(`\n🔍 Validating: ${focusNode?.value} against ${shapeTerm?.value} (${isPropertyShape ? 'PropertyShape' : 'NodeShape'})`)
-    console.log(`   Constraints: ${constraints.map(c => c.component).join(', ')}`)
-  }
 
   const violations = []
   const ctx = { ...parentCtx, shapeTerm }
@@ -1463,37 +1455,6 @@ function validate(options) {
 
     for (const focusNode of targets) {
       allViolations.push(...validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, ctx))
-    }
-  }
-
-  // Debug: log violation summary
-  if (typeof process !== 'undefined' && process.env?.DEBUG) {
-    const byConstraint = {}
-    const byShape = {}
-    for (const v of allViolations) {
-      const constraint = v.component?.value?.replace('http://www.w3.org/ns/shacl#', '') || 'Unknown'
-      const shape = v.shape?.value || 'Unknown'
-      byConstraint[constraint] = (byConstraint[constraint] || 0) + 1
-      byShape[shape] = (byShape[shape] || 0) + 1
-    }
-    console.log('\n📊 Violation breakdown by constraint:')
-    for (const [constraint, count] of Object.entries(byConstraint).sort((a, b) => b[1] - a[1])) {
-      console.log(`  ${constraint}: ${count}`)
-    }
-    console.log('\n📊 Violation breakdown by shape:')
-    for (const [shape, count] of Object.entries(byShape).sort((a, b) => b[1] - a[1])) {
-      console.log(`  ${shape}: ${count}`)
-    }
-
-    // Log first 10 violations in detail
-    console.log('\n📋 First 10 violations:')
-    for (let i = 0; i < Math.min(10, allViolations.length); i++) {
-      const v = allViolations[i]
-      console.log(`  ${i + 1}. Focus: ${v.focusNode?.value}`)
-      console.log(`     Shape: ${v.shape?.value}`)
-      console.log(`     Path: ${v.path?.value || 'none'}`)
-      console.log(`     Constraint: ${v.component?.value?.replace('http://www.w3.org/ns/shacl#', '')}`)
-      console.log(`     Value: ${v.value?.value || 'none'}`)
     }
   }
 
