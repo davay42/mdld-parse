@@ -128,9 +128,12 @@ Validates all [Task] {+my:Task ?sh:targetClass} instances.
 **Status Constraint** {=my:TaskShape-status .sh:PropertyShape ?sh:property}
 Path: [status] {+my:status ?sh:path}
 Required: [1] {sh:minCount ^^xsd:integer}
-In: [todo, in-progress, done, blocked] {+my:status-values ?sh:in}
+In: **allowed values** {+my:status-values ?sh:in}
 
 > Task status must be one of: todo, in-progress, done, blocked. {sh:message}
+
+**Allowed statuses** {=my:status-values .rdf:List}
+[todo] {rdf:first}, then [next] {=my:status-values2 ?rdf:rest} by [in-progress] {rdf:first}, then [next] {=my:status-values3 ?rdf:rest} by [done] {rdf:first}, then [next] {=my:status-values4 ?rdf:rest} by [blocked] {rdf:first}, ending at [nil] {+rdf:nil ?rdf:rest}.
 
 **Priority Constraint** {=my:TaskShape-priority .sh:PropertyShape ?sh:property}
 Path: [priority] {+my:priority ?sh:path}
