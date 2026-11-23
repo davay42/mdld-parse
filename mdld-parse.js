@@ -3497,6 +3497,7 @@ function isLiteral(t) {
 var _quads = /* @__PURE__ */ new WeakMap();
 var _bySubject = /* @__PURE__ */ new WeakMap();
 var _byPredicate = /* @__PURE__ */ new WeakMap();
+var _byObject = /* @__PURE__ */ new WeakMap();
 var _Store_brand = /* @__PURE__ */ new WeakSet();
 _Symbol$iterator = Symbol.iterator;
 var Store = class Store {
@@ -3505,6 +3506,7 @@ var Store = class Store {
 		_classPrivateFieldInitSpec(this, _quads, /* @__PURE__ */ new Set());
 		_classPrivateFieldInitSpec(this, _bySubject, /* @__PURE__ */ new Map());
 		_classPrivateFieldInitSpec(this, _byPredicate, /* @__PURE__ */ new Map());
+		_classPrivateFieldInitSpec(this, _byObject, /* @__PURE__ */ new Map());
 		if (quads) for (const q of quads) this.add(q);
 	}
 	get size() {
@@ -3515,20 +3517,22 @@ var Store = class Store {
 		_classPrivateFieldGet2(_quads, this).add(q);
 		_assertClassBrand(_Store_brand, this, _addToIndex).call(this, _classPrivateFieldGet2(_bySubject, this), q.subject, q);
 		_assertClassBrand(_Store_brand, this, _addToIndex).call(this, _classPrivateFieldGet2(_byPredicate, this), q.predicate, q);
+		_assertClassBrand(_Store_brand, this, _addToIndex).call(this, _classPrivateFieldGet2(_byObject, this), q.object, q);
 		return this;
 	}
 	delete(q) {
-		for (const x of _classPrivateFieldGet2(_quads, this)) {
+		for (const x of this.match(q.subject, q.predicate, q.object)) {
 			if (!quadEq(x, q)) continue;
 			_classPrivateFieldGet2(_quads, this).delete(x);
 			_assertClassBrand(_Store_brand, this, _deleteFromIndex).call(this, _classPrivateFieldGet2(_bySubject, this), x.subject, x);
 			_assertClassBrand(_Store_brand, this, _deleteFromIndex).call(this, _classPrivateFieldGet2(_byPredicate, this), x.predicate, x);
+			_assertClassBrand(_Store_brand, this, _deleteFromIndex).call(this, _classPrivateFieldGet2(_byObject, this), x.object, x);
 			break;
 		}
 		return this;
 	}
 	has(q) {
-		for (const x of _classPrivateFieldGet2(_quads, this)) if (quadEq(x, q)) return true;
+		for (const x of this.match(q.subject, q.predicate, q.object)) if (quadEq(x, q)) return true;
 		return false;
 	}
 	*[_Symbol$iterator]() {
@@ -3538,6 +3542,7 @@ var Store = class Store {
 		let candidates = _classPrivateFieldGet2(_quads, this);
 		if (s) candidates = _assertClassBrand(_Store_brand, this, _getSmaller).call(this, candidates, _classPrivateFieldGet2(_bySubject, this), s);
 		if (p) candidates = _assertClassBrand(_Store_brand, this, _getSmaller).call(this, candidates, _classPrivateFieldGet2(_byPredicate, this), p);
+		if (o) candidates = _assertClassBrand(_Store_brand, this, _getSmaller).call(this, candidates, _classPrivateFieldGet2(_byObject, this), o);
 		const r = [];
 		for (const q of candidates) if ((!s || termEquals(q.subject, s)) && (!p || termEquals(q.predicate, p)) && (!o || termEquals(q.object, o)) && (!g || termEquals(q.graph, g))) r.push(q);
 		return new Store(r);
@@ -3605,19 +3610,87 @@ function readList(ds, head) {
 	}
 	return items;
 }
-/** Get all instances of a class (including rdfs:subClassOf chain). */
-function instancesOf(ds, classIRI) {
-	const classes = /* @__PURE__ */ new Set([termKey(classIRI)]);
-	let changed = true;
-	while (changed) {
-		changed = false;
-		for (const q of ds.match(null, nn(RDFS + "subClassOf"), null)) if (classes.has(termKey(q.object)) && !classes.has(termKey(q.subject))) {
-			classes.add(termKey(q.subject));
-			changed = true;
+var storeCaches = /* @__PURE__ */ new WeakMap();
+function graphCache(ds) {
+	let c = storeCaches.get(ds);
+	if (!c) {
+		c = {
+			subParents: null,
+			subChildren: null,
+			typeIdx: null,
+			closure: /* @__PURE__ */ new Map(),
+			instances: /* @__PURE__ */ new Map()
+		};
+		storeCaches.set(ds, c);
+	}
+	return c;
+}
+function subParentsOf(ds, c) {
+	if (!c.subParents) {
+		c.subParents = /* @__PURE__ */ new Map();
+		c.subChildren = /* @__PURE__ */ new Map();
+		for (const q of ds.match(null, nn(RDFS + "subClassOf"), null)) {
+			const sk = termKey(q.subject), ok = termKey(q.object);
+			(c.subParents.get(sk) || c.subParents.set(sk, []).get(sk)).push(ok);
+			(c.subChildren.get(ok) || c.subChildren.set(ok, []).get(ok)).push(sk);
 		}
 	}
-	const out = [];
-	for (const q of ds.match(null, RDF_TYPE, null)) if (classes.has(termKey(q.object))) out.push(q.subject);
+	return c.subParents;
+}
+function subChildrenOf(ds, c) {
+	subParentsOf(ds, c);
+	return c.subChildren;
+}
+function typeIndex(ds, c) {
+	if (!c.typeIdx) {
+		c.typeIdx = /* @__PURE__ */ new Map();
+		for (const q of ds.match(null, RDF_TYPE, null)) {
+			const ok = termKey(q.object);
+			let set = c.typeIdx.get(ok);
+			if (!set) c.typeIdx.set(ok, set = /* @__PURE__ */ new Set());
+			set.add(termKey(q.subject));
+		}
+	}
+	return c.typeIdx;
+}
+/** All superclasses of key (incl. itself), memoized. */
+function superclassClosure(ds, key, c) {
+	let out = c.closure.get(key);
+	if (out) return out;
+	out = /* @__PURE__ */ new Set([key]);
+	const parents = subParentsOf(ds, c);
+	const queue = [key];
+	while (queue.length) for (const p of parents.get(queue.pop()) || []) if (!out.has(p)) {
+		out.add(p);
+		queue.push(p);
+	}
+	c.closure.set(key, out);
+	return out;
+}
+/** All subclasses of key (incl. itself), memoized. */
+function subclassClosure(ds, key, c) {
+	const seen = /* @__PURE__ */ new Set([key]);
+	const queue = [key];
+	const children = subChildrenOf(ds, c);
+	while (queue.length) for (const ch of children.get(queue.pop()) || []) if (!seen.has(ch)) {
+		seen.add(ch);
+		queue.push(ch);
+	}
+	return seen;
+}
+/** Get all instances of a class (including rdfs:subClassOf chain). */
+function instancesOf(ds, classIRI) {
+	const c = graphCache(ds);
+	const ck = termKey(classIRI);
+	let out = c.instances.get(ck);
+	if (out) return out;
+	const classes = subclassClosure(ds, ck, c);
+	const tidx = typeIndex(ds, c);
+	const subjects = /* @__PURE__ */ new Set();
+	for (const cls of classes) for (const sk of tidx.get(cls) || []) subjects.add(sk);
+	out = [];
+	for (const q of ds.match(null, RDF_TYPE, null)) if (subjects.has(termKey(q.subject))) out.push(q.subject);
+	c.instances.set(ck, out);
 	return out;
 }
 function createShapeDetector() {
@@ -4086,19 +4159,25 @@ function pathPredicates(shapesDS, pathTerm) {
 	return out;
 }
 function transitive(ds, start, pred, includeStart) {
+	const c = graphCache(ds);
+	c.trans ?? (c.trans = /* @__PURE__ */ new Map());
+	const ck = termKey(start) + "|" + termKey(pred) + "|" + (includeStart ? 1 : 0);
+	const hit = c.trans.get(ck);
+	if (hit) return hit;
 	const results = includeStart ? [start] : [];
 	const visited = /* @__PURE__ */ new Set();
 	const queue = [start];
 	for (let cursor = 0; cursor < queue.length; cursor++) {
 		const cur = queue[cursor];
-		const k = termKey(cur);
-		if (visited.has(k)) continue;
-		visited.add(k);
-		for (const next of valuesOf(ds, cur, pred)) {
+		if (visited.has(termKey(cur))) continue;
+		visited.add(termKey(cur));
+		for (const next of valuesOf(ds, cur, pred)) if (!visited.has(termKey(next))) {
+			visited.add(termKey(next));
 			results.push(next);
 			queue.push(next);
 		}
 	}
+	c.trans.set(ck, results);
 	return results;
 }
 function toNumber(t) {
@@ -4207,24 +4286,16 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 		};
 	}
 	switch (component) {
-		case "ClassConstraintComponent":
+		case "ClassConstraintComponent": {
 			if (!isNamedNode(value) && !isBlankNode(value)) {
 				violations.push(viol());
 				break;
 			}
-			if (!valuesOf(dataDS, value, RDF_TYPE).some((t) => {
-				const supers = /* @__PURE__ */ new Set([termKey(t)]);
-				let changed = true;
-				while (changed) {
-					changed = false;
-					for (const q of dataDS.match(null, nn(RDFS + "subClassOf"), null)) if (supers.has(termKey(q.subject)) && !supers.has(termKey(q.object))) {
-						supers.add(termKey(q.object));
-						changed = true;
-					}
-				}
-				return supers.has(termKey(params.class));
-			})) violations.push(viol());
+			const types = valuesOf(dataDS, value, RDF_TYPE);
+			const gc = graphCache(dataDS);
+			if (!types.some((t) => superclassClosure(dataDS, termKey(t), gc).has(termKey(params.class)))) violations.push(viol());
 			break;
+		}
 		case "DatatypeConstraintComponent":
 			if (!isLiteral(value) || !termEquals(value.datatype, params.datatype)) violations.push(viol());
 			break;
@@ -4858,46 +4929,113 @@ function extractGraph(input, shapeIRI, options = {}) {
 * @param {Object} [options]   { arrays?: boolean (always emit arrays), maxDepth?: number,
 *                               byNode?: boolean (return {focusValue: pojo} instead of pojo(s)) }
 */
+function resolveShapeTermKey(input, shapeIRI) {
+	const { shapesDS } = resolveDatasets(input);
+	const t = resolveShapeTerm(shapesDS, shapeIRI);
+	return t ? t.value : shapeIRI;
+}
 function extract(input, shapeIRI, options = {}) {
-	const { shapesDS, dataDS } = resolveDatasets(input);
-	const shapeTerm = resolveShapeTerm(shapesDS, shapeIRI);
-	const targets = resolveTargets(dataDS, shapesDS, shapeTerm);
-	const shapeCache = /* @__PURE__ */ new Map();
-	const maxDepth = options.maxDepth ?? 32;
-	const NODE_LEVEL_SKIP = [
-		"MinCountConstraintComponent",
-		"MaxCountConstraintComponent",
-		"EqualsConstraintComponent",
-		"DisjointConstraintComponent",
-		"LessThanConstraintComponent",
-		"LessThanOrEqualsConstraintComponent",
-		"UniqueLangConstraintComponent",
-		"HasValueConstraintComponent",
-		"QualifiedMinCountConstraintComponent",
-		"QualifiedMaxCountConstraintComponent"
-	];
-	const kept = !getShapeInfo(shapesDS, shapeTerm, shapeCache).constraints.some((c) => !NODE_LEVEL_SKIP.includes(c.component)) ? targets : targets.filter((t) => validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t, {
-		visited: /* @__PURE__ */ new Set(),
-		shapeCache,
-		jsCache: /* @__PURE__ */ new Map(),
-		allowJS: options.allowJS === true
-	}, { nodeLevelOnly: true }).length === 0);
-	const prefixes = options.prefixes ?? buildPrefixes(options.context ?? (Array.isArray(input) ? null : input?.context));
-	const pojoOptions = {
+	const report = evaluate({
+		...input,
+		shape: shapeIRI,
 		...options,
-		prefixes
-	};
-	const pojos = kept.map((t) => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, /* @__PURE__ */ new Set(), maxDepth, pojoOptions));
-	if (options.byNode) {
-		const out = {};
-		kept.forEach((t, i) => {
-			if (!isEmptyPOJO(pojos[i])) out[shortenDataIRI(t.value, prefixes)] = pojos[i];
-		});
-		return out;
+		byNode: options.byNode === true
+	});
+	const rec = report.records[resolveShapeTermKey(input, shapeIRI)] ?? Object.values(report.records)[0] ?? (options.byNode ? {} : []);
+	if (options.byNode) return rec;
+	if (Array.isArray(rec)) return rec.length === 1 ? rec[0] : rec;
+	return rec && Object.keys(rec).length ? rec : {};
+}
+var EVAL_NODE_LEVEL_SKIP = [
+	"MinCountConstraintComponent",
+	"MaxCountConstraintComponent",
+	"EqualsConstraintComponent",
+	"DisjointConstraintComponent",
+	"LessThanConstraintComponent",
+	"LessThanOrEqualsConstraintComponent",
+	"UniqueLangConstraintComponent",
+	"HasValueConstraintComponent",
+	"QualifiedMinCountConstraintComponent",
+	"QualifiedMaxCountConstraintComponent"
+];
+/**
+* Evaluate a graph against SHACL shapes — violations and records in one pass.
+*
+* @param {Object} options
+* @param {Array}  [options.quads]   - All quads (auto-classified)
+* @param {Array}  [options.shapes]  - Shape quads only
+* @param {Array}  [options.data]    - Data quads only
+* @param {string} [options.shape]   - Restrict to one shape IRI
+* @param {boolean}[options.allowJS] - Opt-in sh:js execution (default false)
+* @param {Object} [options.context] - Prefix context for messages/keys
+* @param {boolean}[options.byNode]  - Key records by focus IRI (default true)
+* @param {number} [options.maxDepth] - Projection recursion cap (default 32)
+* @returns {{ conforms: boolean, violations: Array, records: Object }}
+*/
+function evaluate(options = {}) {
+	const { shapesDS, dataDS } = resolveDatasets(options);
+	const prefixes = buildPrefixes(options.context);
+	const allowJS = options.allowJS === true;
+	const byNode = options.byNode !== false;
+	const maxDepth = options.maxDepth ?? 32;
+	const shapeCache = /* @__PURE__ */ new Map();
+	const jsCache = /* @__PURE__ */ new Map();
+	let shapeTerms = findShapes(shapesDS).map((k) => getShapeTerm(shapesDS, k)).filter(Boolean);
+	if (options.shape) {
+		const wanted = resolveShapeTerm(shapesDS, options.shape);
+		shapeTerms = wanted ? [wanted] : [];
 	}
-	const nonEmpty = pojos.filter((p) => !isEmptyPOJO(p));
-	if (targets.length === 1) return nonEmpty[0] ?? {};
-	return nonEmpty;
+	const allViolations = [];
+	const records = {};
+	for (const shapeTerm of shapeTerms) {
+		const deactivated = valuesOf(shapesDS, shapeTerm, sh("deactivated"));
+		if (deactivated.length > 0 && (deactivated[0].value === "true" || deactivated[0] === true)) continue;
+		const shapeKey = shapeTerm.value;
+		const targets = resolveTargets(dataDS, shapesDS, shapeTerm);
+		const vctx = {
+			visited: /* @__PURE__ */ new Set(),
+			shapeTerm,
+			shapeCache,
+			jsCache,
+			allowJS,
+			prefixes
+		};
+		for (const focusNode of targets) allViolations.push(...validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, vctx));
+		const kept = !getShapeInfo(shapesDS, shapeTerm, shapeCache).constraints.some((c) => !EVAL_NODE_LEVEL_SKIP.includes(c.component)) ? targets : targets.filter((t) => validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t, {
+			visited: /* @__PURE__ */ new Set(),
+			shapeCache,
+			jsCache,
+			allowJS,
+			prefixes
+		}, { nodeLevelOnly: true }).length === 0);
+		const pojoOptions = {
+			...options,
+			prefixes,
+			allowJS
+		};
+		const pojos = kept.map((t) => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, /* @__PURE__ */ new Set(), maxDepth, pojoOptions));
+		if (byNode) {
+			const out = {};
+			kept.forEach((t, i) => {
+				if (!isEmptyPOJO(pojos[i])) out[shortenDataIRI(t.value, prefixes)] = pojos[i];
+			});
+			records[shapeKey] = out;
+		} else records[shapeKey] = pojos.filter((p) => !isEmptyPOJO(p));
+	}
+	const uniqueViolations = [];
+	const seen = /* @__PURE__ */ new Set();
+	for (const v of allViolations) {
+		const k = `${v.focusNode?.value}|${v.path?.value || ""}|${v.component?.value}|${v.value?.value || ""}`;
+		if (!seen.has(k)) {
+			seen.add(k);
+			uniqueViolations.push(v);
+		}
+	}
+	return {
+		conforms: uniqueViolations.length === 0,
+		violations: uniqueViolations,
+		records
+	};
 }
 /**
 * Validate data against SHACL shapes.
@@ -4910,39 +5048,10 @@ function extract(input, shapeIRI, options = {}) {
 * @returns {{ conforms: boolean, results: Array }}
 */
 function validate(options) {
-	const { shapesDS, dataDS } = resolveDatasets(options);
-	const prefixes = buildPrefixes(options.context);
-	const allViolations = [];
-	const shapeKeys = findShapes(shapesDS);
-	const shapeCache = /* @__PURE__ */ new Map();
-	for (const key of shapeKeys) {
-		const shapeTerm = getShapeTerm(shapesDS, key);
-		if (!shapeTerm) continue;
-		const deactivated = valuesOf(shapesDS, shapeTerm, sh("deactivated"));
-		if (deactivated.length > 0 && (deactivated[0].value === "true" || deactivated[0] === true)) continue;
-		const targets = resolveTargets(dataDS, shapesDS, shapeTerm);
-		const ctx = {
-			visited: /* @__PURE__ */ new Set(),
-			shapeTerm,
-			shapeCache,
-			jsCache: /* @__PURE__ */ new Map(),
-			allowJS: options.allowJS === true,
-			prefixes
-		};
-		for (const focusNode of targets) allViolations.push(...validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, ctx));
-	}
-	const uniqueViolations = [];
-	const seen = /* @__PURE__ */ new Set();
-	for (const v of allViolations) {
-		const key = `${v.focusNode?.value}|${v.path?.value || ""}|${v.component?.value}|${v.value?.value || ""}`;
-		if (!seen.has(key)) {
-			seen.add(key);
-			uniqueViolations.push(v);
-		}
-	}
+	const report = evaluate(options);
 	return {
-		conforms: uniqueViolations.length === 0,
-		results: uniqueViolations
+		conforms: report.conforms,
+		results: report.violations
 	};
 }
 var _shapeQuads = /* @__PURE__ */ new WeakMap();
@@ -4982,4 +5091,4 @@ function updateValue({ text, quad, value, origin }) {
 	if (!location || !location.valueRange) return text;
 	return text.substring(0, location.valueRange.start) + value + text.substring(location.valueRange.end);
 }
-export { DEFAULT_CONTEXT, DataFactory, SUPPORTED_VOCABULARY, Store, Validator, createShapeDetector, deconstruct, expandIRI, extract, extractGraph, generate, generateNode, hash, highlight, isSupportedTerm, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue, validate };
+export { DEFAULT_CONTEXT, DataFactory, SUPPORTED_VOCABULARY, Store, Validator, createShapeDetector, deconstruct, evaluate, expandIRI, extract, extractGraph, generate, generateNode, hash, highlight, isSupportedTerm, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue, validate };
