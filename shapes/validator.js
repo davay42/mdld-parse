@@ -661,7 +661,8 @@ function buildPrefixes(context) {
   if (!context || typeof context !== 'object') return null
   const pairs = []
   for (const [prefix, iri] of Object.entries(context)) {
-    if (typeof iri === 'string' && iri.startsWith('http')) pairs.push([iri, prefix === '@vocab' ? '' : prefix])
+    const ns = typeof iri === 'string' ? iri : iri?.['@id']
+    if (typeof ns === 'string' && ns) pairs.push([ns, prefix === '@vocab' ? '' : prefix])
   }
   return pairs.sort((a, b) => b[0].length - a[0].length)
 }
@@ -1131,10 +1132,20 @@ function castLiteral(term) {
   return term.value
 }
 
-function termToPOJO(term) {
+/** Shorten an IRI to prefix:local for POJO output when a context prefix matches; full IRI otherwise. */
+function shortenDataIRI(iri, prefixes) {
+  if (prefixes) {
+    for (const [ns, prefix] of prefixes) {
+      if (iri.startsWith(ns)) return prefix ? `${prefix}:${iri.slice(ns.length)}` : iri.slice(ns.length)
+    }
+  }
+  return iri
+}
+
+function termToPOJO(term, prefixes) {
   if (!term) return null
   if (isLiteral(term)) return castLiteral(term)
-  return term.value
+  return shortenDataIRI(term.value, prefixes)
 }
 
 function pathKey(pathTerm) {
@@ -1255,7 +1266,7 @@ function projectTerm(dataDS, shapesDS, term, nodeShape, shapeCache, stack, maxDe
       return readList(dataDS, term).map(m => projectTerm(dataDS, shapesDS, m, null, shapeCache, stack, maxDepth, options))
     } catch { /* malformed list — fall through to bare value */ }
   }
-  return termToPOJO(term)
+  return termToPOJO(term, options?.prefixes)
 }
 
 function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, maxDepth, options) {
@@ -1436,10 +1447,12 @@ function extractPOJO(input, shapeIRI, options = {}) {
       { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: false },
       { nodeLevelOnly: true }).length === 0)
 
-  const pojos = kept.map(t => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, new Set(), maxDepth, options))
+  const prefixes = options.prefixes ?? buildPrefixes(options.context ?? (Array.isArray(input) ? null : input?.context))
+  const pojoOptions = { ...options, prefixes }
+  const pojos = kept.map(t => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, new Set(), maxDepth, pojoOptions))
   if (options.byNode) {
     const out = {}
-    kept.forEach((t, i) => { if (!isEmptyPOJO(pojos[i])) out[t.value] = pojos[i] })
+    kept.forEach((t, i) => { if (!isEmptyPOJO(pojos[i])) out[shortenDataIRI(t.value, prefixes)] = pojos[i] })
     return out
   }
   const nonEmpty = pojos.filter(p => !isEmptyPOJO(p))

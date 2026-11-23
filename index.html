@@ -546,10 +546,8 @@
                     if (vOut) vOut.textContent = `No SHACL shapes: ${e.message}`;
                 }
                 try {
-                    const byNode = extractPOJO({ quads: result.quads }, null, { byNode: true });
-                    // Re-key by shortened IRI for readability
-                    const pojos = {};
-                    for (const [iri, pojo] of Object.entries(byNode)) pojos[shortenIRI(iri, context)] = pojo;
+                    const byNode = extractPOJO({ quads: result.quads, context }, null, { byNode: true });
+                    const pojos = byNode;
                     const pStats = document.getElementById('pojo-stats');
                     const pOut = document.getElementById('pojo-output');
                     const json = JSON.stringify(pojos, null, 2);
