@@ -1,91 +1,76 @@
+[my] <tag:alice@example.com,2026:catalog/>
+[schema] <https://schema.org/>
 [xsd] <http://www.w3.org/2001/XMLSchema#>
-[my] <tag:alice@example.com,2026:>
 
-# XSD Datatypes Demo {=my:xsd-demo .prov:Entity label}
+# Catalog Ledger {=my:catalog .prov:Entity label}
 
-Demonstrates proper use of XSD datatypes in MD-LD annotations.
+> The inventory office's ledger — every field is typed because downstream systems do math on it. {comment}
 
-## String Datatypes
+The catalog tracks what we sell and what customers order. Prices are decimals, weights are decimals, stock is boolean, and every date is a real XSD temporal type — because `"$79.99"` is a string that happens to look like money, while `79.99` is money.
 
-### Plain String
-Title: [Data Types Demo] {my:title}
+## Product: Wireless Headphones {=my:headphones .schema:Product .prov:Entity label}
 
-### Language-Tagged String
-Description: [This example shows language tagging] {my:description @en}
-Description: [Este ejemplo muestra etiquetado de idioma] {my:description @es}
-Description: [Cet exemple montre l'étiquetage de langue] {my:description @fr}
+Our flagship audio product. SKU [WH-1000] {my:sku}, priced at [79.99] {my:price ^^xsd:decimal}, weighing [0.25] {my:weight ^^xsd:decimal} kilograms. Currently [true] {my:inStock ^^xsd:boolean} — released [2026-06-15] {my:releaseDate ^^xsd:date}, last catalogued [2026-05-06T09:15:00Z] {my:lastUpdated ^^xsd:dateTime}.
 
-## Numeric Datatypes
+Multilingual description for our storefront: [Wireless over-ear headphones] {my:description @en}, [Auriculares inalámbricos] {my:description @es}, [Casque sans fil] {my:description @fr}.
 
-### Integer
-Count: [42] {my:count ^^xsd:integer}
-Year: [2026] {my:year ^^xsd:gYear}
-Month: [5] {my:month ^^xsd:gMonth}
-Day: [6] {my:day ^^xsd:gDay}
+## Order: ORD-2026-0542 {=my:order-0542 .my:Order .prov:Activity label}
 
-### Decimal
-Price: [19.99] {my:price ^^xsd:decimal}
-Percentage: [87.5] {my:percentage ^^xsd:decimal}
-Ratio: [3.14159] {my:ratio ^^xsd:decimal}
+Placed on [2026-05-06] {my:orderDate ^^xsd:date} for a total of [158.97] {my:totalAmount ^^xsd:decimal}. Priority shipping is [false] {my:priorityShipping ^^xsd:boolean}; estimated delivery [2026-05-08T14:00:00Z] {my:estimatedDelivery ^^xsd:dateTime}.
 
-## Temporal Datatypes
+The order activity ran [02:45:00] {my:processingTime ^^xsd:time} from start to confirmation, part of a project window lasting [P1Y2M3DT4H30M] {my:projectDuration ^^xsd:duration}.
 
-### Date
-Created: [2026-05-06] {my:created ^^xsd:date}
-Birthday: [1990-12-25] {my:birthday ^^xsd:date}
+## Draft: Mystery Gadget {=my:mystery-gadget .schema:Product .prov:Entity label}
 
-### DateTime
-Started: [2026-05-06T14:30:00Z] {my:startedAt ^^xsd:dateTime}
-Deadline: [2026-12-31T23:59:59Z] {my:deadline ^^xsd:dateTime}
+A product page staged for review — SKU [MG-0001] {my:sku}, weight [0.5] {my:weight ^^xsd:decimal}, but the price field was imported from a spreadsheet as text: ["79.99"] {my:price} — no decimal datatype, just a string that looks numeric. Flagged for cleanup before publishing.
 
-### Time
-Meeting time: [09:30:00] {my:meetingTime ^^xsd:time}
-Duration: [02:45:00] {my:duration ^^xsd:time}
+======
 
-### Duration
-Project duration: [P1Y2M3DT4H30M] {my:projectDuration ^^xsd:duration}
-Sprint length: [P2W] {my:sprintLength ^^xsd:duration}
+## Vocabulary
 
-## Boolean and Binary
+[schema:Product] {=schema:Product .Class label} is `a sellable item` {comment} — borrowed from schema.org as our prototype.
+[my:Order] {=my:Order .Class label} is `a customer purchase` {comment} — a kind of [activity] {+prov:Activity ?subClassOf}.
 
-### Boolean
-Active: [true] {my:isActive ^^xsd:boolean}
-Completed: [false] {my:isCompleted ^^xsd:boolean}
-Available: [1] {my:isAvailable ^^xsd:boolean}
+[sku] {=my:sku .rdf:Property label} is `stock-keeping unit` {comment}.
+[price] {=my:price .rdf:Property label} is `cost in USD` {comment}.
+[weight] {=my:weight .rdf:Property label} is `mass in kilograms` {comment}.
+[in-stock] {=my:inStock .rdf:Property label} is `available to order` {comment}.
+[release-date] {=my:releaseDate .rdf:Property label} is `when the product launched` {comment}.
+[last-updated] {=my:lastUpdated .rdf:Property label} is `when the catalog entry last changed` {comment}.
+[description] {=my:description .rdf:Property label} is `storefront copy, language-tagged` {comment}.
+[order-date] {=my:orderDate .rdf:Property label} is `when the order was placed` {comment}.
+[total-amount] {=my:totalAmount .rdf:Property label} is `order total in USD` {comment}.
+[priority-shipping] {=my:priorityShipping .rdf:Property label} is `expedited delivery flag` {comment}.
+[estimated-delivery] {=my:estimatedDelivery .rdf:Property label} is `promised arrival` {comment}.
+[processing-time] {=my:processingTime .rdf:Property label} is `how long fulfillment took` {comment}.
+[project-duration] {=my:projectDuration .rdf:Property label} is `the catalog project's elapsed window` {comment}.
 
-## Specialized Types
+======
 
-### URI/IRI
-Website: [https://example.com] {my:website}
-Identifier: [urn:isbn:978-3-16-148410-0] {my:isbn}
+## Catalog Shapes
 
-### Base64 Binary
-Avatar data: [SGVsbG8gdG8gdGVuIGRhdGE=] {my:avatar ^^xsd:base64Binary}
+Datatype constraints are how the ledger stays honest — a price that isn't `xsd:decimal` isn't a price, it's text wearing a price's clothes.
 
-## Real-World Example
+# Product Shape {=my:ProductShape .sh:NodeShape label}
 
-### Product Catalog Entry {=my:product .prov:Entity label}
+Every [product] {+schema:Product ?sh:targetClass} has a **label** {+#prodLabel ?sh:property sh:name}, a **price** {+#prodPrice ?sh:property sh:name} that is a real decimal, a **weight** {+#prodWeight ?sh:property sh:name}, an **in-stock flag** {+#prodStock ?sh:property sh:name}, and a **release date** {+#prodRelease ?sh:property sh:name}.
 
-Name: [Wireless Headphones] {my:title}
-SKU: [WH-1000] {my:sku ^^xsd:string}
-Price: [$79.99] {my:price ^^xsd:decimal}
-Weight: [0.25] {my:weight ^^xsd:decimal}
-In stock: [true] {my:inStock ^^xsd:boolean}
-Release date: [2026-06-15] {my:releaseDate ^^xsd:date}
-Last updated: [2026-05-06T09:15:00Z] {my:lastUpdated ^^xsd:dateTime}
+`Product label is required — {$focusNode} missing {$path}` {=#prodLabel .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [label] {+rdfs:label ?sh:path}.
 
-### Customer Order {=my:order .prov:Activity label}
+`Product price must be decimal — {$focusNode} {$path} is {$value}` {=#prodPrice .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [price] {+my:price ?sh:path} as [decimal] {+xsd:decimal ?sh:datatype}, and at least [0] {sh:minInclusive ^^xsd:decimal}.
 
-Order ID: [ORD-2026-0542] {my:orderId ^^xsd:string}
-Order date: [2026-05-06] {my:orderDate ^^xsd:date}
-Total amount: [158.97] {my:totalAmount ^^xsd:decimal}
-Priority shipping: [false] {my:priorityShipping ^^xsd:boolean}
-Estimated delivery: [2026-05-08T14:00:00Z] {my:estimatedDelivery ^^xsd:dateTime}
+`Product weight must be decimal — {$focusNode} {$path} is {$value}` {=#prodWeight .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [weight] {+my:weight ?sh:path} as [decimal] {+xsd:decimal ?sh:datatype}.
 
-This demonstrates comprehensive XSD datatype usage for:
-- Text with language tags
-- Various numeric formats
-- Complete temporal coverage
-- Boolean flags
-- Specialized binary/URI types
-- Real-world business scenarios
+`Product stock flag must be boolean — {$focusNode} {$path} is {$value}` {=#prodStock .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [in-stock] {+my:inStock ?sh:path} as [boolean] {+xsd:boolean ?sh:datatype}.
+
+`Product release must be a date — {$focusNode} {$path} is {$value}` {=#prodRelease .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [release] {+my:releaseDate ?sh:path} as [date] {+xsd:date ?sh:datatype}.
+
+# Order Shape {=my:OrderShape .sh:NodeShape label}
+
+Every [order] {+my:Order ?sh:targetClass} has an **order date** {+#ordDate ?sh:property sh:name}, a **total** {+#ordTotal ?sh:property sh:name} that is decimal, and an **estimated delivery** {+#ordDelivery ?sh:property sh:name} that is a real dateTime.
+
+`Order date must be a date — {$focusNode} {$path} is {$value}` {=#ordDate .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [order-date] {+my:orderDate ?sh:path} as [date] {+xsd:date ?sh:datatype}.
+
+`Order total must be decimal — {$focusNode} {$path} is {$value}` {=#ordTotal .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [total] {+my:totalAmount ?sh:path} as [decimal] {+xsd:decimal ?sh:datatype}, and at least [0] {sh:minInclusive ^^xsd:decimal}.
+
+`Order delivery must be a dateTime — {$focusNode} {$path} is {$value}` {=#ordDelivery .sh:PropertyShape sh:message} expects exactly [1] {sh:minCount sh:maxCount ^^xsd:integer} [delivery] {+my:estimatedDelivery ?sh:path} as [dateTime] {+xsd:dateTime ?sh:datatype}.

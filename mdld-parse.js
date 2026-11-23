@@ -4737,7 +4737,7 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
 				visited: /* @__PURE__ */ new Set(),
 				shapeCache,
 				jsCache: /* @__PURE__ */ new Map(),
-				allowJS: false
+				allowJS: options?.allowJS === true
 			};
 			if (validateNodeAgainstShape(dataDS, shapesDS, entry.shape, focusNode, gate).length > 0) continue;
 		}
@@ -4880,7 +4880,7 @@ function extract(input, shapeIRI, options = {}) {
 		visited: /* @__PURE__ */ new Set(),
 		shapeCache,
 		jsCache: /* @__PURE__ */ new Map(),
-		allowJS: false
+		allowJS: options.allowJS === true
 	}, { nodeLevelOnly: true }).length === 0);
 	const prefixes = options.prefixes ?? buildPrefixes(options.context ?? (Array.isArray(input) ? null : input?.context));
 	const pojoOptions = {
