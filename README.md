@@ -818,11 +818,13 @@ const report = validate({ quads });           // auto-classifies shapes vs data
 // or: validate({ shapes, data }) / new Validator(shapeQuads).validate(dataQuads)
 ```
 
-- **Full SHACL Core surface** — all constraint components, all 5 target types,
-  all property path types (IRI structures — no blank nodes needed), logical
-  constraints (`not`/`and`/`or`/`xone` with RDF lists), qualified counts,
-  closed shapes, `sh:message` templates (`{$value}`/`{$path}`/`{$focusNode}`),
-  `sh:severity`/`sh:deactivated`
+- **Full SHACL 1.1 Core surface** — every constraint component (except
+  `qualifiedValueShapesDisjoint`, deprecated in the 1.2 WD), all target
+  types, all property path types (IRI structures — no blank nodes needed),
+  logical constraints (`not`/`and`/`or`/`xone` with RDF lists), qualified
+  counts, closed shapes, `sh:message` templates
+  (`{$value}`/`{$path}`/`{$focusNode}`), `sh:severity`/`sh:deactivated`,
+  and `sh:js` (opt-in). SHACL 1.2 WD additions are documented future work.
 - **SHACL-JS** (`sh:js` → `sh:JSConstraint` → `sh:script`) — opt-in via
   `allowJS: true`, disabled by default so untrusted shapes can't execute code
 - **Out of scope by design** — SHACL-SPARQL, SHACL-AF, external JS libraries

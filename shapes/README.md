@@ -310,7 +310,8 @@ const report = validate({ shapes: shapesQuads,  dataQuads })
 ## The Self-Validating Loop
 
 ```bash
-node selftest.js   # the whole loop, one command
+node selftest.js   # the whole loop, one command — ~0.17s: 33 demos
+                   # validated, message-checked, extracted, round-tripped
 ```
 
 The catalog is not documentation *about* SHACL — it is SHACL. Five closed
@@ -424,9 +425,11 @@ mdld-shapes validates RDF data against SHACL shapes on mdld-parse's own principl
 
 ### Scope
 
-**In scope — SHACL Core** (W3C REC-shacl + 1.2 Core WD): all constraint components, all target types, all property path types, logical constraints (`not`/`and`/`or`/`xone`), qualified counts, closed shapes, severity/message/deactivated, and `sh:js` (opt-in via `allowJS`).
+**In scope — SHACL Core** (W3C REC-shacl): every SHACL 1.1 Core constraint component except `qualifiedValueShapesDisjoint` — deprecated upstream, absent from the SHACL 1.2 Core WD — plus all target types, all property path types, logical constraints (`not`/`and`/`or`/`xone`), qualified counts, closed shapes, severity/message/deactivated, and `sh:js` (opt-in via `allowJS`).
 
-**Out of scope:** SHACL-SPARQL (`sh:sparql`, `sh:targetWhere`, `sh:ask`/`select`/`construct`/`update`), SHACL-AF (rules, functions, entailment regimes), SHACL-UI, `sh:jsLibrary*`/`jsFunctionName` (external libraries are never fetched), full RDFS entailment (only `rdfs:subClassOf` for `sh:class` and `rdfs:subPropertyOf` for property-pair constraints), `qualifiedValueShapesDisjoint`.
+**SHACL 1.2 Core WD additions not yet implemented:** list constraints (`memberShape`, `minListLength`, `maxListLength`, `uniqueMembers`), `singleLine`/`flags`, `subsetOf`, `someValue`, RDF-star reification components, `rootClass`, `uniqueValuesFor`, and the SPARQL-dependent targets (`targetWhere`, `sh:shape`, `sh:ShapeClass`).
+
+**Out of scope:** SHACL-SPARQL (`sh:sparql`, `sh:targetWhere`, `sh:ask`/`select`/`construct`/`update`), SHACL-AF (rules, functions, entailment regimes), SHACL-UI, `sh:jsLibrary*`/`jsFunctionName` (external libraries are never fetched), full RDFS entailment (only `rdfs:subClassOf` for `sh:class`/targeting and `rdfs:subPropertyOf` for property-pair constraints), `qualifiedValueShapesDisjoint`.
 
 ### Integration with mdld-parse
 
@@ -485,4 +488,4 @@ node selftest.js   # 32/32 demos + extractedPOJO, 0 self-violations, 101/101 ter
 
 ### Compliance
 
-SHACL Core constraint/target/path surface is implemented and demo-verified. Non-goals and known partial behaviors are listed under "Honest Limitations" above. `qualifiedValueShapesDisjoint`, message-template edge cases beyond `{$value}`/`{$path}`/`{$focusNode}`, and deep RDFS entailment remain the honest remainder.
+SHACL Core constraint/target/path surface is implemented and demo-verified — **complete for SHACL 1.1 Core** except `qualifiedValueShapesDisjoint` (deprecated in the 1.2 WD), with the 1.2 WD additions listed above as future work. Message-template edge cases beyond `{$value}`/`{$path}`/`{$focusNode}` and deep RDFS entailment remain the honest remainder.
