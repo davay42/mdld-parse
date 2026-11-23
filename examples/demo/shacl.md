@@ -76,9 +76,12 @@ Minimum: [0.01] {sh:minInclusive ^^xsd:decimal}
 **Category Rule** {+my:ProductShape-category .sh:PropertyShape ?sh:property}
 Path: [category] {+my:category ?sh:path}
 Required: [1] {sh:minCount ^^xsd:integer}
-In: [Electronics, Books, Clothing] {+my:categories ?sh:in}
+In: **allowed values** {+my:categories ?sh:in}
 
 > Category must be one of: Electronics, Books, Clothing. {sh:message}
+
+**Allowed categories** {=my:categories .rdf:List}
+[Electronics] {rdf:first}, then [next] {=my:categories2 ?rdf:rest} by [Books] {rdf:first}, then [next] {=my:categories3 ?rdf:rest} by [Clothing] {rdf:first}, ending at [nil] {+rdf:nil ?rdf:rest}.
 
 ## Test Data
 
