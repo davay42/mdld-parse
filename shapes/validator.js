@@ -1024,7 +1024,7 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
     }
 
     // Process sh:property shapes (skipped in nodeLevelOnly mode — used by
-    // extractPOJO to gate whole records on node-level constraints only)
+    // extract to gate whole records on node-level constraints only)
     for (const propShape of opts.nodeLevelOnly ? [] : shapeInfo.propertyShapes) {
       const propInfo = getShapeInfo(shapesDS, propShape, parentCtx.shapeCache)
       const { constraints: propConstraints, deactivated: propDeactivated, pathTerms: propPathTerms } = propInfo
@@ -1060,8 +1060,8 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
 // ─── Projection ────────────────────────────────────────────────────────────────
 // SHACL shapes are not only constraints — they are extraction schemas.
 // These functions project a quad array through a shape, rdf-lens style:
-//   extractSubGraph → the quads an entity is allowed to have
-//   extractPOJO     → plain JavaScript objects with typed values
+//   extractGraph → the quads an entity is allowed to have
+//   extract     → plain JavaScript objects with typed values
 
 /** Split mixed quads into shape/data datasets, mirroring validate(). */
 function resolveDatasets(input) {
@@ -1318,7 +1318,7 @@ function quadKey(q) {
  * sh:node shapes or shapes targeting the object's rdf:type.
  * RDF list chains hanging off kept quads are included whole.
  */
-function extractSubGraph(input, shapeIRI, options = {}) {
+function extractGraph(input, shapeIRI, options = {}) {
   const { shapesDS, dataDS } = resolveDatasets(input)
   const shapeTerm = resolveShapeTerm(shapesDS, shapeIRI)
   const shapeCache = new Map()
@@ -1425,7 +1425,7 @@ function extractSubGraph(input, shapeIRI, options = {}) {
  * @param {Object} [options]   { arrays?: boolean (always emit arrays), maxDepth?: number,
  *                               byNode?: boolean (return {focusValue: pojo} instead of pojo(s)) }
  */
-function extractPOJO(input, shapeIRI, options = {}) {
+function extract(input, shapeIRI, options = {}) {
   const { shapesDS, dataDS } = resolveDatasets(input)
   const shapeTerm = resolveShapeTerm(shapesDS, shapeIRI)
   const targets = resolveTargets(dataDS, shapesDS, shapeTerm)
@@ -1532,5 +1532,5 @@ class Validator {
   }
 }
 
-export { validate, Validator, createShapeDetector, Store, SUPPORTED_VOCABULARY, isSupportedTerm, extractSubGraph, extractPOJO }
+export { validate, Validator, createShapeDetector, Store, SUPPORTED_VOCABULARY, isSupportedTerm, extractGraph, extract }
 export default validate
