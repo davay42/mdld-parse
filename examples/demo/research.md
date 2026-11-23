@@ -147,7 +147,7 @@ Every [person] {+prov:Person ?sh:targetClass} has a **label** {+#personLabel ?sh
 
 `Funding period — {$focusNode}` {=#fundPeriod .sh:PropertyShape sh:name} reads our [period] {+research:period ?sh:path}.
 
-`Funding funder — {$focusNode}` {=#fundFunder .sh:PropertyShape sh:name} reads our [funder] {+research:nasa ?sh:path} — the organization attributed.
+`Funding funder — {$focusNode}` {=#fundFunder .sh:PropertyShape sh:name} reads our [funder] {+prov:wasAttributedTo ?sh:path} — the organization attributed.
 
 # Statement Shape {=research:StatementShape .sh:NodeShape label}
 
