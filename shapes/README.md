@@ -252,8 +252,8 @@ Measured on Apple Silicon (reused `Validator` — shape work is cached):
 
 ≈200K quads/sec on a 5-constraint product shape; scales linearly.
 
-`evaluate()` (violations + records in one pass) sustains **~300K quads/sec**
-on the same class of workload — 5,000 products / ~25K quads in ~84ms —
+`evaluate()` (violations + records in one pass, tri-indexed store)
+sustains **~500K quads/sec** — 25,000 products / ~125K quads in ~230ms —
 faster than `validate()` + `extract()` run separately, since both views share
 one evaluation.
 

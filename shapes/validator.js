@@ -60,6 +60,7 @@ class Store {
   #quads = new Set()
   #bySubject = new Map()
   #byPredicate = new Map()
+  #byObject = new Map()
 
   constructor(quads) {
     if (quads) for (const q of quads) this.add(q)
@@ -72,27 +73,33 @@ class Store {
     this.#quads.add(q)
     this.#addToIndex(this.#bySubject, q.subject, q)
     this.#addToIndex(this.#byPredicate, q.predicate, q)
+    this.#addToIndex(this.#byObject, q.object, q)
     return this
   }
 
   delete(q) {
-    for (const x of this.#quads) {
+    for (const x of this.match(q.subject, q.predicate, q.object)) {
       if (!quadEq(x, q)) continue
       this.#quads.delete(x)
       this.#deleteFromIndex(this.#bySubject, x.subject, x)
       this.#deleteFromIndex(this.#byPredicate, x.predicate, x)
+      this.#deleteFromIndex(this.#byObject, x.object, x)
       break
     }
     return this
   }
 
-  has(q) { for (const x of this.#quads) if (quadEq(x, q)) return true; return false }
+  has(q) {
+    for (const x of this.match(q.subject, q.predicate, q.object)) if (quadEq(x, q)) return true
+    return false
+  }
   *[Symbol.iterator]() { yield* this.#quads }
 
   match(s, p, o, g) {
     let candidates = this.#quads
     if (s) candidates = this.#getSmaller(candidates, this.#bySubject, s)
     if (p) candidates = this.#getSmaller(candidates, this.#byPredicate, p)
+    if (o) candidates = this.#getSmaller(candidates, this.#byObject, o)
 
     const r = []
     for (const q of candidates) {
@@ -194,25 +201,81 @@ function readList(ds, head) {
   return items
 }
 
-/** Get all instances of a class (including rdfs:subClassOf chain). */
-function instancesOf(ds, classIRI) {
-  // Subclass closure: classes C where C rdfs:subClassOf* classIRI —
-  // instances of any subclass are instances of the target class.
-  const classes = new Set([termKey(classIRI)])
-  let changed = true
-  while (changed) {
-    changed = false
+// Per-Store graph indexes — built lazily, shared across an entire evaluate()
+// run. subclass adjacency and the rdf:type index are O(vocab+types) once,
+// then every closure/instance lookup is a memoized graph walk.
+const storeCaches = new WeakMap()
+function graphCache(ds) {
+  let c = storeCaches.get(ds)
+  if (!c) { c = { subParents: null, subChildren: null, typeIdx: null, closure: new Map(), instances: new Map() }; storeCaches.set(ds, c) }
+  return c
+}
+function subParentsOf(ds, c) {
+  if (!c.subParents) {
+    c.subParents = new Map(); c.subChildren = new Map()
     for (const q of ds.match(null, nn(RDFS + 'subClassOf'), null)) {
-      if (classes.has(termKey(q.object)) && !classes.has(termKey(q.subject))) {
-        classes.add(termKey(q.subject))
-        changed = true
-      }
+      const sk = termKey(q.subject), ok = termKey(q.object)
+      ;(c.subParents.get(sk) || c.subParents.set(sk, []).get(sk)).push(ok)
+      ;(c.subChildren.get(ok) || c.subChildren.set(ok, []).get(ok)).push(sk)
     }
   }
-  const out = []
-  for (const q of ds.match(null, RDF_TYPE, null)) {
-    if (classes.has(termKey(q.object))) out.push(q.subject)
+  return c.subParents
+}
+function subChildrenOf(ds, c) { subParentsOf(ds, c); return c.subChildren }
+function typeIndex(ds, c) {
+  if (!c.typeIdx) {
+    c.typeIdx = new Map()
+    for (const q of ds.match(null, RDF_TYPE, null)) {
+      const ok = termKey(q.object)
+      let set = c.typeIdx.get(ok); if (!set) c.typeIdx.set(ok, set = new Set())
+      set.add(termKey(q.subject))
+    }
   }
+  return c.typeIdx
+}
+/** All superclasses of key (incl. itself), memoized. */
+function superclassClosure(ds, key, c) {
+  let out = c.closure.get(key)
+  if (out) return out
+  out = new Set([key])
+  const parents = subParentsOf(ds, c)
+  const queue = [key]
+  while (queue.length) {
+    for (const p of parents.get(queue.pop()) || []) {
+      if (!out.has(p)) { out.add(p); queue.push(p) }
+    }
+  }
+  c.closure.set(key, out)
+  return out
+}
+/** All subclasses of key (incl. itself), memoized. */
+function subclassClosure(ds, key, c) {
+  const seen = new Set([key]); const queue = [key]
+  const children = subChildrenOf(ds, c)
+  while (queue.length) {
+    for (const ch of children.get(queue.pop()) || []) {
+      if (!seen.has(ch)) { seen.add(ch); queue.push(ch) }
+    }
+  }
+  return seen
+}
+
+/** Get all instances of a class (including rdfs:subClassOf chain). */
+function instancesOf(ds, classIRI) {
+  const c = graphCache(ds)
+  const ck = termKey(classIRI)
+  let out = c.instances.get(ck)
+  if (out) return out
+  const classes = subclassClosure(ds, ck, c)
+  const tidx = typeIndex(ds, c)
+  const subjects = new Set()
+  for (const cls of classes) for (const sk of tidx.get(cls) || []) subjects.add(sk)
+  // map subject keys back to terms via a scan of type quads for those keys
+  out = []
+  for (const q of ds.match(null, RDF_TYPE, null)) {
+    if (subjects.has(termKey(q.subject))) out.push(q.subject)
+  }
+  c.instances.set(ck, out)
   return out
 }
 
@@ -559,19 +622,23 @@ function pathPredicates(shapesDS, pathTerm) {
 }
 
 function transitive(ds, start, pred, includeStart) {
+  const c = graphCache(ds)
+  c.trans ??= new Map()
+  const ck = termKey(start) + '|' + termKey(pred) + '|' + (includeStart ? 1 : 0)
+  const hit = c.trans.get(ck)
+  if (hit) return hit
   const results = includeStart ? [start] : []
   const visited = new Set()
   const queue = [start]
   for (let cursor = 0; cursor < queue.length; cursor++) {
     const cur = queue[cursor]
-    const k = termKey(cur)
-    if (visited.has(k)) continue
-    visited.add(k)
+    if (visited.has(termKey(cur))) continue
+    visited.add(termKey(cur))
     for (const next of valuesOf(ds, cur, pred)) {
-      results.push(next)
-      queue.push(next)
+      if (!visited.has(termKey(next))) { visited.add(termKey(next)); results.push(next); queue.push(next) }
     }
   }
+  c.trans.set(ck, results)
   return results
 }
 
@@ -713,21 +780,8 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
     case 'ClassConstraintComponent': {
       if (!isNamedNode(value) && !isBlankNode(value)) { violations.push(viol()); break }
       const types = valuesOf(dataDS, value, RDF_TYPE)
-      const ok = types.some(t => {
-        // Check subclass chain
-        const supers = new Set([termKey(t)])
-        let changed = true
-        while (changed) {
-          changed = false
-          for (const q of dataDS.match(null, nn(RDFS + 'subClassOf'), null)) {
-            if (supers.has(termKey(q.subject)) && !supers.has(termKey(q.object))) {
-              supers.add(termKey(q.object))
-              changed = true
-            }
-          }
-        }
-        return supers.has(termKey(params.class))
-      })
+      const gc = graphCache(dataDS)
+      const ok = types.some(t => superclassClosure(dataDS, termKey(t), gc).has(termKey(params.class)))
       if (!ok) violations.push(viol())
       break
     }
