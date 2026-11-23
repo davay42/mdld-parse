@@ -1425,41 +1425,104 @@ function extractGraph(input, shapeIRI, options = {}) {
  * @param {Object} [options]   { arrays?: boolean (always emit arrays), maxDepth?: number,
  *                               byNode?: boolean (return {focusValue: pojo} instead of pojo(s)) }
  */
+function resolveShapeTermKey(input, shapeIRI) {
+  const { shapesDS } = resolveDatasets(input)
+  const t = resolveShapeTerm(shapesDS, shapeIRI)
+  return t ? t.value : shapeIRI
+}
+
 function extract(input, shapeIRI, options = {}) {
-  const { shapesDS, dataDS } = resolveDatasets(input)
-  const shapeTerm = resolveShapeTerm(shapesDS, shapeIRI)
-  const targets = resolveTargets(dataDS, shapesDS, shapeTerm)
-  const shapeCache = new Map()
+  const report = evaluate({ ...input, shape: shapeIRI, ...options, byNode: options.byNode === true })
+  const rec = report.records[resolveShapeTermKey(input, shapeIRI)] ??
+              Object.values(report.records)[0] ?? (options.byNode ? {} : [])
+  if (options.byNode) return rec
+  if (Array.isArray(rec)) return rec.length === 1 ? rec[0] : rec
+  return rec && Object.keys(rec).length ? rec : {}
+}
+
+// ─── evaluate(): one traversal, two views ─────────────────────────────────────
+// The unified operation: per (shape, focusNode) the same constraint evaluation
+// yields violations AND the conforming values that become the POJO — mutually
+// exclusive by construction. validate() and extract() are views of this.
+
+const EVAL_NODE_LEVEL_SKIP = ['MinCountConstraintComponent', 'MaxCountConstraintComponent',
+  'EqualsConstraintComponent', 'DisjointConstraintComponent', 'LessThanConstraintComponent',
+  'LessThanOrEqualsConstraintComponent', 'UniqueLangConstraintComponent',
+  'HasValueConstraintComponent', 'QualifiedMinCountConstraintComponent',
+  'QualifiedMaxCountConstraintComponent']
+
+/**
+ * Evaluate a graph against SHACL shapes — violations and records in one pass.
+ *
+ * @param {Object} options
+ * @param {Array}  [options.quads]   - All quads (auto-classified)
+ * @param {Array}  [options.shapes]  - Shape quads only
+ * @param {Array}  [options.data]    - Data quads only
+ * @param {string} [options.shape]   - Restrict to one shape IRI
+ * @param {boolean}[options.allowJS] - Opt-in sh:js execution (default false)
+ * @param {Object} [options.context] - Prefix context for messages/keys
+ * @param {boolean}[options.byNode]  - Key records by focus IRI (default true)
+ * @param {number} [options.maxDepth] - Projection recursion cap (default 32)
+ * @returns {{ conforms: boolean, violations: Array, records: Object }}
+ */
+function evaluate(options = {}) {
+  const { shapesDS, dataDS } = resolveDatasets(options)
+  const prefixes = buildPrefixes(options.context)
+  const allowJS = options.allowJS === true
+  const byNode = options.byNode !== false
   const maxDepth = options.maxDepth ?? 32
+  const shapeCache = new Map()
+  const jsCache = new Map()
 
-  // Two-tier conformance: node-level constraints (sh:closed, sh:not,
-  // sh:and/or/xone on the node shape, …) gate whole records; property shapes
-  // gate individual fields inside pojoForNode. Focus nodes failing either
-  // tier are omitted — absence means "nothing here validates".
-  // Shapes with no node-level constraints skip the record gate entirely.
-  const NODE_LEVEL_SKIP = ['MinCountConstraintComponent', 'MaxCountConstraintComponent',
-    'EqualsConstraintComponent', 'DisjointConstraintComponent', 'LessThanConstraintComponent',
-    'LessThanOrEqualsConstraintComponent', 'UniqueLangConstraintComponent',
-    'HasValueConstraintComponent', 'QualifiedMinCountConstraintComponent',
-    'QualifiedMaxCountConstraintComponent']
-  const nodeInfo = getShapeInfo(shapesDS, shapeTerm, shapeCache)
-  const hasNodeConstraints = nodeInfo.constraints.some(c => !NODE_LEVEL_SKIP.includes(c.component))
-  const kept = !hasNodeConstraints ? targets : targets.filter(t =>
-    validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t,
-      { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: options.allowJS === true },
-      { nodeLevelOnly: true }).length === 0)
-
-  const prefixes = options.prefixes ?? buildPrefixes(options.context ?? (Array.isArray(input) ? null : input?.context))
-  const pojoOptions = { ...options, prefixes }
-  const pojos = kept.map(t => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, new Set(), maxDepth, pojoOptions))
-  if (options.byNode) {
-    const out = {}
-    kept.forEach((t, i) => { if (!isEmptyPOJO(pojos[i])) out[shortenDataIRI(t.value, prefixes)] = pojos[i] })
-    return out
+  let shapeTerms = findShapes(shapesDS).map(k => getShapeTerm(shapesDS, k)).filter(Boolean)
+  if (options.shape) {
+    const wanted = resolveShapeTerm(shapesDS, options.shape)
+    shapeTerms = wanted ? [wanted] : []
   }
-  const nonEmpty = pojos.filter(p => !isEmptyPOJO(p))
-  if (targets.length === 1) return nonEmpty[0] ?? {}
-  return nonEmpty
+
+  const allViolations = []
+  const records = {}
+
+  for (const shapeTerm of shapeTerms) {
+    const deactivated = valuesOf(shapesDS, shapeTerm, sh('deactivated'))
+    if (deactivated.length > 0 && (deactivated[0].value === 'true' || deactivated[0] === true)) continue
+
+    const shapeKey = shapeTerm.value
+    const targets = resolveTargets(dataDS, shapesDS, shapeTerm)
+    const vctx = { visited: new Set(), shapeTerm, shapeCache, jsCache, allowJS, prefixes }
+
+    // Pass 1 — violations (full constraint evaluation per focus node)
+    for (const focusNode of targets) {
+      allViolations.push(...validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, vctx))
+    }
+
+    // Pass 2 — records (node-level gate + property conformance via shared caches)
+    const nodeInfo = getShapeInfo(shapesDS, shapeTerm, shapeCache)
+    const hasNodeConstraints = nodeInfo.constraints.some(c => !EVAL_NODE_LEVEL_SKIP.includes(c.component))
+    const kept = !hasNodeConstraints ? targets : targets.filter(t =>
+      validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t,
+        { visited: new Set(), shapeCache, jsCache, allowJS, prefixes },
+        { nodeLevelOnly: true }).length === 0)
+
+    const pojoOptions = { ...options, prefixes, allowJS }
+    const pojos = kept.map(t => pojoForNode(dataDS, shapesDS, shapeTerm, t, shapeCache, new Set(), maxDepth, pojoOptions))
+    if (byNode) {
+      const out = {}
+      kept.forEach((t, i) => { if (!isEmptyPOJO(pojos[i])) out[shortenDataIRI(t.value, prefixes)] = pojos[i] })
+      records[shapeKey] = out
+    } else {
+      records[shapeKey] = pojos.filter(p => !isEmptyPOJO(p))
+    }
+  }
+
+  const uniqueViolations = []
+  const seen = new Set()
+  for (const v of allViolations) {
+    const k = `${v.focusNode?.value}|${v.path?.value || ''}|${v.component?.value}|${v.value?.value || ''}`
+    if (!seen.has(k)) { seen.add(k); uniqueViolations.push(v) }
+  }
+
+  return { conforms: uniqueViolations.length === 0, violations: uniqueViolations, records }
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────────
@@ -1475,44 +1538,8 @@ function extract(input, shapeIRI, options = {}) {
  * @returns {{ conforms: boolean, results: Array }}
  */
 function validate(options) {
-  const { shapesDS, dataDS } = resolveDatasets(options)
-  const prefixes = buildPrefixes(options.context)
-
-  const allViolations = []
-  const shapeKeys = findShapes(shapesDS)
-  const shapeCache = new Map()
-
-  for (const key of shapeKeys) {
-    const shapeTerm = getShapeTerm(shapesDS, key)
-    if (!shapeTerm) continue
-
-    // Check if deactivated
-    const deactivated = valuesOf(shapesDS, shapeTerm, sh('deactivated'))
-    if (deactivated.length > 0 && (deactivated[0].value === 'true' || deactivated[0] === true)) continue
-
-    const targets = resolveTargets(dataDS, shapesDS, shapeTerm)
-    const ctx = { visited: new Set(), shapeTerm, shapeCache, jsCache: new Map(), allowJS: options.allowJS === true, prefixes }
-
-    for (const focusNode of targets) {
-      allViolations.push(...validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, ctx))
-    }
-  }
-
-  // Deduplicate violations (same focusNode + path + component = same violation)
-  const uniqueViolations = []
-  const seen = new Set()
-  for (const v of allViolations) {
-    const key = `${v.focusNode?.value}|${v.path?.value || ''}|${v.component?.value}|${v.value?.value || ''}`
-    if (!seen.has(key)) {
-      seen.add(key)
-      uniqueViolations.push(v)
-    }
-  }
-
-  return {
-    conforms: uniqueViolations.length === 0,
-    results: uniqueViolations
-  }
+  const report = evaluate(options)
+  return { conforms: report.conforms, results: report.violations }
 }
 
 /**
@@ -1532,5 +1559,5 @@ class Validator {
   }
 }
 
-export { validate, Validator, createShapeDetector, Store, SUPPORTED_VOCABULARY, isSupportedTerm, extractGraph, extract }
+export { validate, Validator, createShapeDetector, Store, SUPPORTED_VOCABULARY, isSupportedTerm, extractGraph, extract, evaluate }
 export default validate

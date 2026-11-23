@@ -123,6 +123,30 @@ All 7 SHACL path types: `PredicatePath`, `InversePath`, `SequencePath`, `Alterna
 
 ## API
 
+### `evaluate(options) → { conforms, violations, records }`
+
+The core operation — one traversal per (shape, focus node) produces **both views**: `violations` (what failed) and `records` (what conforms, as POJOs). They are mutually exclusive by construction: a value either violates or projects, never both.
+
+```javascript
+import { evaluate } from 'mdld-parse'
+
+const report = evaluate({ quads, allowJS: true, context })
+// report.conforms  — true when violations is empty
+// report.violations — ValidationResult[] (same as validate().results)
+// report.records    — { [shapeIRI]: { [nodeKey]: pojo } } (same as extract byNode)
+```
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `quads` / `shapes`+`data` | `Quad[]` | Input graph (auto-classified or pre-split) |
+| `shape` | `string` | Restrict evaluation to one shape IRI |
+| `allowJS` | `boolean` | Opt-in `sh:js` execution — **default `false`** (untrusted shapes can't run code) |
+| `context` | `Object` | Prefix map for messages and record keys |
+| `byNode` | `boolean` | Key records by focus IRI — **default `true`** |
+| `maxDepth` | `number` | Projection recursion cap — default `32` |
+
+`validate()` and `extract()` are thin views over `evaluate()` — same evaluation, different projection. `sh:js` constraints honor `allowJS` identically in both views, so violations and records can never disagree.
+
 ### `validate(options) → { conforms, results }`
 
 | Option | Type | Description |
@@ -166,7 +190,7 @@ const isShape = detector.classify(quad)
 
 ### `extract(input, shapeIRI?, options?) → Object | Object[]`
 
-Projects data through a shape into plain JavaScript objects — the SHACL shape acts as the extraction schema (the `rdf-lens` idea, zero dependencies). **Every emitted key is a validated fact, and every emitted record satisfies the node shape**: node-level constraints (`sh:closed`, `sh:not`, `sh:and`/`or`/`xone` on the node, …) gate whole records; each property is extracted only if its values conform to the property shape — offending fields are omitted, and focus nodes left with no conforming fields are dropped entirely. A missing key *is* the violation rendered structurally. (`sh:js` constraints don't run during projection — `allowJS` stays off — so js-guarded fields are kept.) For each extractable property it resolves `sh:path` values, uses `sh:name` (falling back to the path's local name) as the key, and casts literals by datatype: `xsd:integer`/`decimal`/etc. → `Number`, `xsd:boolean` → `boolean`, `xsd:date`/`dateTime` → `Date`, everything else → `string`.
+Projects data through a shape into plain JavaScript objects — the SHACL shape acts as the extraction schema (the `rdf-lens` idea, zero dependencies). **Every emitted key is a validated fact, and every emitted record satisfies the node shape**: node-level constraints (`sh:closed`, `sh:not`, `sh:and`/`or`/`xone` on the node, …) gate whole records; each property is extracted only if its values conform to the property shape — offending fields are omitted, and focus nodes left with no conforming fields are dropped entirely. A missing key *is* the violation rendered structurally. (`sh:js` constraints run during projection only when `allowJS: true` is passed — js-guarded fields that fail are omitted, keeping projection and validation in sync.) For each extractable property it resolves `sh:path` values, uses `sh:name` (falling back to the path's local name) as the key, and casts literals by datatype: `xsd:integer`/`decimal`/etc. → `Number`, `xsd:boolean` → `boolean`, `xsd:date`/`dateTime` → `Date`, everything else → `string`.
 
 "Extractable properties" means `sh:property` links **plus** PropertyShape members of `sh:and`/`sh:or`/`sh:xone` compositions (`sh:not` members are excluded — they describe what must *not* appear), and a shape's own `sh:path` when the shape is property-shape-like. `sh:deactivated` property shapes are skipped. `sh:node` and `sh:qualifiedValueShape` both recurse into nested POJOs; RDF lists (`rdf:first`/`rdf:rest`) become arrays; IRIs without a shape project to their IRI string.
 
@@ -506,3 +530,13 @@ node selftest.js   # 32/32 demos + extractedPOJO, 0 self-violations, 101/101 ter
 ### Compliance
 
 SHACL Core constraint/target/path surface is implemented and demo-verified — **complete for SHACL 1.1 Core** except `qualifiedValueShapesDisjoint` (deprecated in the 1.2 WD), with the 1.2 WD additions listed above as future work. Message-template edge cases beyond `{$value}`/`{$path}`/`{$focusNode}` and deep RDFS entailment remain the honest remainder.
+
+## Ontology Packs (`ontologies/*.shapes.md`)
+
+Beyond the SHACL spec catalog, `ontologies/` ships **validation packs** — one `*.shapes.md` companion per core vocabulary (`rdf`, `rdfs`, `xsd`, …). Each pack is a self-contained seed: shapes for that vocabulary's constructs, `pack:Demo` nodes carrying source + `pack:expectedViolations` + `pack:extractedPOJO` contracts in the graph itself.
+
+```bash
+node ontologies/selftest.mjs   # verifies every pack + its demos
+```
+
+The `pack:` predicate vocabulary mirrors `cat:` catalog conventions (`pack:Demo`, `pack:demo`, `pack:expectedViolations`, `pack:extractedPOJO`), so packs are catalog continuations — merge a pack with any data document and `evaluate()` enforces the vocabulary's structural rules.

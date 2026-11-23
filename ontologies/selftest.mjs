@@ -16,7 +16,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parse, merge } from '../src/index.js'
-import { validate, extract } from '../shapes/validator.js'
+import { evaluate } from '../shapes/validator.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -45,9 +45,9 @@ for (const file of packs) {
       const { quads: ontQuads } = parse({ text: readFileSync(ontFile, 'utf8') })
       quads = merge({ quads: packQuads }, { quads: ontQuads }).quads
     } catch { /* no sibling ontology — pack stands alone */ }
-    const r = validate({ quads })
-    if (r.results.length === 0) ok(`pack + ontology: 0 violations`)
-    else fail(`pack violations: ${r.results.map(v => v.message?.slice(0, 60)).join(' | ')}`)
+    const r = evaluate({ quads })
+    if (r.violations.length === 0) ok(`pack + ontology: 0 violations`)
+    else fail(`pack violations: ${r.violations.map(v => v.message?.slice(0, 60)).join(' | ')}`)
   } catch (e) { fail(`pack parse/validate error: ${e.message}`) }
 
   // 2/3/4. pack:Example nodes — source + expectations all in the graph
@@ -66,17 +66,17 @@ for (const file of packs) {
     let quads, context
     try { ({ quads, context } = parse({ text: srcQ.object.value })) }
     catch (e) { fail(`${name} source parse error: ${e.message}`); continue }
-    const r = validate({ quads: [...packQuads, ...quads], allowJS: true })
+    const report = evaluate({ quads: [...packQuads, ...quads], context, allowJS: true })
     const wantV = expVQ ? parseInt(expVQ.object.value) : null
-    if (wantV != null && r.results.length === wantV) ok(`${name}: ${wantV} violation(s) as declared`)
-    else if (wantV != null) fail(`${name}: expected ${wantV} violations, got ${r.results.length}`)
+    if (wantV != null && report.violations.length === wantV) ok(`${name}: ${wantV} violation(s) as declared`)
+    else if (wantV != null) fail(`${name}: expected ${wantV} violations, got ${report.violations.length}`)
     if (expPQ) {
       try {
         const expected = JSON.parse(expPQ.object.value)
         const actual = {}
         for (const si of shapeIris) {
           const nm = si.split('/').pop()
-          if (expected[nm] !== undefined) actual[nm] = extract({ quads: [...packQuads, ...quads], context }, si, { byNode: true, allowJS: true })
+          if (expected[nm] !== undefined) actual[nm] = report.records[si] ?? {}
         }
         const same = JSON.stringify(sortKeys(actual)) === JSON.stringify(sortKeys(expected))
         if (same) ok(`${name} POJO matches graph contract`)

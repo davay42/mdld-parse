@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parse, DataFactory } from '../src/index.js'
-import { validate, isSupportedTerm, extract, extractGraph } from './validator.js'
+import { validate, evaluate, isSupportedTerm, extract, extractGraph } from './validator.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const catalogPath = process.argv[2] || join(here, 'catalog.md')
@@ -191,6 +191,10 @@ function canonJSON(v) {
       const m = d.source.match(/\[ex\]\s*<([^>\s]+)>/)
       const base = m ? m[1] : null
       const short = v => (base && typeof v === 'string' && v.startsWith(base)) ? 'ex:' + v.slice(base.length) : v
+      // one evaluate() per demo — violations pass already ran in the demo loop,
+      // here we need only the records view; shapeCache/jsCache are per-call so
+      // this is a single traversal producing every shape's POJO at once
+      const report = evaluate({ quads })
       const actual = {}
       const seen = new Set()
       for (const q of quads) {
@@ -198,9 +202,8 @@ function canonJSON(v) {
         seen.add(q.subject.value)
         const s = q.subject.value
         if (!quads.some(x => x.subject.value === s && x.predicate.value.startsWith(SH + 'target'))) continue
-        const byNode = extract({ quads }, s, { byNode: true })
         const shaped = {}
-        for (const [focus, pojo] of Object.entries(byNode)) shaped[short(focus)] = pojo
+        for (const [focus, pojo] of Object.entries(report.records[s] ?? {})) shaped[short(focus)] = pojo
         actual[short(s)] = shaped
       }
       checked++
