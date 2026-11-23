@@ -415,6 +415,23 @@ Same as `mdld-parse`. See the [mdld-parse repository](https://github.com/mdld-js
 
 ---
 
+## Shapes-Driven Knowledge Curation
+
+Shapes are not only validators — they are **specifications of a complete graph**. The curation loop turns validation into knowledge building:
+
+1. **Write the ideal shapes first** — declare what a *finished* document looks like (required properties, types, counts), even where the data doesn't exist yet
+2. **`validate()` → violations are the work list** — each violation names a specific, checkable gap between what exists and what the domain requires
+3. **Fill the graph with real content** — write the missing facts as natural prose; carriers carry the semantics
+4. **Re-validate until green** — `conforms: true` is the deterministic completion signal; no human judgment needed
+5. **`extract()` verifies the payoff** — the same shapes project the curated data into typed JSON; the shape is simultaneously the spec, the contract, and the schema
+
+This inverts the usual workflow: instead of describing the graph you have, shapes prescribe the graph you want. For agents it is a self-driving loop — `validate → fix prose → re-validate` converges mechanically. Demonstrated in `examples/demo/research.md` (Dataset/Activity/Person curation shapes) and `examples/demo/journal.md` (prototype-targeted class hierarchy).
+
+Two principles keep curation honest:
+
+- **Prototype targeting scales rules** — `targetClass prov:Entity` reaches every `j:Record` subclass, so common requirements (mandatory `rdfs:label`) apply everywhere through one shape
+- **Extraction exposes data-quality bugs validation can't see** — `sh:minCount` checks presence, not lexical validity; `"80,000"^^xsd:integer` passes validation but fails the `Number` cast in `extract()`. Typed projection is the second, stricter gate.
+
 ## Specification
 
 *Merged from the former `spec.md` — this README is now the single metadocument for the catalog and its validation loop.*
