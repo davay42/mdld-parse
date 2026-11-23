@@ -324,7 +324,8 @@ loops keep `ontology.md`, `catalog.md`, and `validator.js` synchronized:
    `validator.js`); implemented-but-marked-`notCovered` terms are reported.
 3. **Demos** (catalog → validator) — every `cat:Demo`'s `cat:demo` source is
    re-parsed and validated; the violation count must equal
-   `cat:expectedViolations`.
+   `cat:expectedViolations`, and every `cat:expectedViolationMessage` literal
+   must substring-match an actual violation's rendered message.
 4. **Extraction** (catalog ↔ projection) — every demo declares its canonical
    extraction as a `~~~~~~json {cat:extractedPOJO}` block
    (`{ shape → focus → pojo }`, IRIs shortened by the demo's `[ex]` prefix),
@@ -342,6 +343,13 @@ nested `sh:node`, RDF lists, predicate filtering), and a **document round-trip**
 guard verifies `parse(text) → generate(quads) → parse()` is quad-identical
 (521 quads, 0 diffs). The catalog is canonical MD-LD — what you read is
 exactly what the quads say.
+
+**The contract.** Together these checks make each demo a deterministic
+pathway through the graph: the *message* is the contract (what went wrong,
+in the shape's own words), the *POJO* is the guarantee (that what remains
+is meaningful, conforming data). Count proves arity, message proves
+identity, extraction proves projection — a demo is verified only when all
+three agree.
 
 ### Demo conventions
 

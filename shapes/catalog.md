@@ -84,6 +84,24 @@ One signup gave a [name] — [Alice] {=ex:Alice .ex:User ex:username} — but ne
 4. **Add constraints** - Apply constraint rules (minCount, datatype, pattern, etc.)
 5. **Test with data** - Create test data with valid and invalid examples
 
+## How demos verify themselves
+
+Every `cat:Demo` below is a self-checking contract, not just an example.
+Three declarations pin down the expected outcome:
+
+- `Expects \`N\` {cat:expectedViolations ^^xsd:integer}` — *how many*
+  violations the demo must produce (arity).
+- `` `message` {cat:expectedViolationMessage} `` — *which* violations, as
+  literals that must each match an actual violation's rendered `sh:message`
+  (identity — if a shape's message template drifts, the demo fails).
+- `~~~~~~json {cat:extractedPOJO}` — *what survives*: the canonical
+  `extractPOJO` output for the demo's shapes (projection — regenerate with
+  `node gen-extracted.js`).
+
+`node selftest.js` re-parses each demo's fenced world, runs the real
+validator, and checks all three. The message is the contract; the POJO is
+the proof the remaining data is meaningful.
+
 <a id="targeting-index"></a>
 
 ## Targeting Mechanism {+class:Targeting .Class label}
