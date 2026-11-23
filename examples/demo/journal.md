@@ -34,7 +34,7 @@ Back [home] {+j:place/home .j:Place ?prov:atLocation label}. Ground the [beans] 
 
 #### Afternoon {=#afternoon .j:Session ?prov:wasInformedBy label}
 
-Split between reading and grinding through docs.
+> Split between reading and grinding through docs. {comment}
 
 ##### Reading {=#reading .j:Session ?prov:wasInformedBy label}
 
