@@ -6,6 +6,19 @@
 
 Three strata: the **ontology** defines what exists and how it connects; the **meta-shapes** keep the vocabulary itself honest; the **conversation** is data awaiting judgment by shapes not yet written.
 
+This document is itself a `prov:Bundle` of modules — the root graph stays navigable while payloads stay dormant:
+
+[Part I workbench] {+llm:part1#workbench ?prov:hadMember}
+[Part II workbench] {+llm:part2#workbench ?prov:hadMember}
+[Part III workbench] {+llm:part3#workbench ?prov:hadMember}
+[Part IV workbench] {+llm:part4#workbench ?prov:hadMember}
+[Part I oracle] {+llm:part1#canonical ?prov:hadMember}
+[Part II oracle] {+llm:part2#canonical ?prov:hadMember}
+[Part III oracle] {+llm:part3#canonical ?prov:hadMember}
+[Part IV oracle] {+llm:part4#canonical ?prov:hadMember}
+[Day log 2026-11-24] {+llm:day-2026-11-24 ?prov:hadMember}
+[Seed conversation] {+llm:conv-001 ?prov:hadMember}
+
 ---
 
 
@@ -14,6 +27,7 @@ Three strata: the **ontology** defines what exists and how it connects; the **me
 Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded. Equal digest means the graph is untouched.
 
 ## Canonical: Part I — The Ontology {=llm:part1#canonical .llm:CanonicalText label}
+[Part 1 workbench] {+llm:part1#workbench ?prov:wasDerivedFrom}
 [sha256:5d652a6223c07555] {llm:canonicalHash}
 
 ~~~~~~md {=llm:part1#workbench .llm:Workbench prov:value}
@@ -33,6 +47,7 @@ A message's speaker is a **Role** {=llm:Role .Class label} — a kind of [Thing]
 Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded. Equal digest means the graph is untouched.
 
 ## Canonical: Part II — Tools, Agents & Products {=llm:part2#canonical .llm:CanonicalText label}
+[Part 2 workbench] {+llm:part2#workbench ?prov:wasDerivedFrom}
 [sha256:fe174e35c8afef7c] {llm:canonicalHash}
 
 ~~~~~~md {=llm:part2#workbench .llm:Workbench prov:value}
@@ -52,6 +67,7 @@ Behind every message stands an **Agent** {=llm:Agent .Class label}, the reasonin
 Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded. Equal digest means the graph is untouched.
 
 ## Canonical: Part III — The Meta-Shapes {=llm:part3#canonical .llm:CanonicalText label}
+[Part 3 workbench] {+llm:part3#workbench ?prov:wasDerivedFrom}
 [sha256:dc22af601faa52f9] {llm:canonicalHash}
 
 ~~~~~~md {=llm:part3#workbench .llm:Workbench prov:value}
@@ -116,6 +132,7 @@ Every [ToolResult] {+llm:ToolResult ?sh:targetClass} has **returned from** {+#tr
 Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded. Equal digest means the graph is untouched.
 
 ## Canonical: Part IV — The Conversation Begins {=llm:part4#canonical .llm:CanonicalText label}
+[Part 4 workbench] {+llm:part4#workbench ?prov:wasDerivedFrom}
 Verbose oracle — full canonical text for demo; parts 1–3 seal by hash.
 
 ~~~~~~md {=llm:part4#canonical .llm:CanonicalText prov:value}
