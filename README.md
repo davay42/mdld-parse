@@ -38,7 +38,33 @@ Human text → Graph immediately
 
 ## 🚀 Quick Start
 
-Install the package in Node environment:
+**Zero install — paste into any browser console:**
+
+```javascript
+const m = await import('https://mdld.js.org/mdld-parse.js')
+const { quads } = m.parse({ text: `[ex] <tag:demo,2026:>
+# Signup sheet {=ex:Sheet .sh:NodeShape label}
+Every [User] {+ex:User ?sh:targetClass} needs **name** {+#nameRule ?sh:property sh:name}, **email** {+#emailRule ?sh:property sh:name} and **age** {+#ageRule ?sh:property sh:name}.
+[Email is required — {$focusNode}] {=#emailRule .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} [email] {+ex:email ?sh:path}.
+[Name] {=#nameRule .sh:PropertyShape sh:name} reads our [name] {+ex:name ?sh:path}.
+[Age] {=#ageRule .sh:PropertyShape sh:name} reads our [age] {+ex:age ?sh:path}.
+# Bobby {=ex:Bob .ex:User label}
+[Bobby] {ex:name} is [34] {ex:age ^^xsd:integer}` })
+document.body.innerHTML = '<quad-graph></quad-graph><pre id="out"></pre>'
+document.querySelector('quad-graph').quads = quads   // graph appears instantly
+const r = m.evaluate({ quads })
+document.getElementById('out').textContent =
+  'violations:\n' + r.violations.map(v => '  • ' + (v.message || v.component.value)).join('\n') +
+  '\n\nrecords:\n' + JSON.stringify(r.records, null, 2)
+// → violations: • Email is required — tag:demo,2026:Bob
+// → records: { "tag:demo,2026:Sheet": { "tag:demo,2026:Bob": { name: "Bobby", age: 34 } } }
+```
+
+That's the whole engine booting in one paste — parser, SHACL evaluator, and the visual cortex. `QuadGraph` auto-registers; `evaluate()` returns violations and typed records together.
+
+### Node.js
+
+Install the package:
 
 ```bash
 pnpm install mdld-parse
