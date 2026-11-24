@@ -9,7 +9,8 @@
  *
  * Attributes: height, charge (repulsion, default 40), link-dist (default 45), labels="off"
  * Methods:    focus(iri) select(iri|null) fit() pin(iri,on) reheat() getNode(iri)
- * Props:      quads, context, positions ({iri:[x,y]} get/set — persist & restore layouts)
+ * Props:      quads, context, positions ({iri:[x,y]} get/set — persist & restore layouts),
+ *             persist (bool — save node positions + viewport to localStorage, opt-in)
  * Events:     node-click (detail = iri) · node-select (iri|null) · node-hover (iri|null) · settled
  * Input:      wheel/pinch zoom, drag background = pan, drag node = move, dblclick node = pin/unpin
  * Theming:    labels use the CSS `color` of the element; background is transparent.
@@ -27,6 +28,63 @@ const LABEL_RANK = new Map([
 ].map((p, i) => [p, i]));
 const MAX_LIT = 6, TAU = 6.2832, GOLD = 2.39996, MIN_D2 = 25, MAX_V = 60;
 const Base = typeof HTMLElement !== 'undefined' ? HTMLElement : class { };
+
+/* Shared layout store: one localStorage ring buffer of iri→[x,y] shared by every
+   <quad-graph> instance, so nodes keep their positions across documents/updates.
+   Re-inserting a key moves it to the back; oldest entries are evicted past POS_MAX. */
+const POS_KEY = 'qg:positions', POS_MAX = 12000, VIEW_KEY = 'qg:views', VIEW_MAX = 64;
+let posCache, viewCache;
+const posStore = () => {
+    if (posCache === undefined) { try { posCache = JSON.parse(localStorage.getItem(POS_KEY)) || {}; } catch { posCache = {}; } }
+    return posCache;
+};
+const viewStore = () => {
+    if (viewCache === undefined) { try { viewCache = JSON.parse(localStorage.getItem(VIEW_KEY)) || {}; } catch { viewCache = {}; } }
+    return viewCache;
+};
+const posFlush = () => {
+    try {
+        const ks = Object.keys(posCache), n = ks.length - POS_MAX;
+        for (let i = 0; i < n; i++) delete posCache[ks[i]];
+        localStorage.setItem(POS_KEY, JSON.stringify(posCache));
+    } catch { }
+};
+const viewFlush = () => {
+    try {
+        const ks = Object.keys(viewCache), n = ks.length - VIEW_MAX;
+        for (let i = 0; i < n; i++) delete viewCache[ks[i]];
+        localStorage.setItem(VIEW_KEY, JSON.stringify(viewCache));
+    } catch { }
+};
+/* 64-bit hash (cyrb53 finalizer) — keys stored positions so IRIs aren't recoverable
+   from localStorage. ~2^64 preimage work; a rare collision only swaps two seed
+   positions, which the force layout smooths out. */
+const posHash = s => {
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (let i = 0; i < s.length; i++) {
+        const ch = s.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+};
+/* Order-independent quad-set hash → per-document key for viewport persistence. */
+const quadsKey = quads => {
+    let sum = 0, xr = 0;
+    for (const q of quads) {
+        if (!q?.subject || !q?.predicate || !q?.object) continue;
+        let h = 2166136261;
+        for (const t of [q.subject, q.predicate, q.object, q.graph]) {
+            const s = (t?.termType ?? '') + '\n' + (t?.value ?? '') + '\n' + (t?.datatype?.value ?? t?.language ?? '');
+            h ^= 0x9e3779b9;
+            for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+        }
+        h = h >>> 0; sum = (sum + h) >>> 0; xr = (xr ^ h) >>> 0;
+    }
+    return sum.toString(36) + '.' + xr.toString(36);
+};
 
 const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13; return h >>> 0; };
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -219,7 +277,8 @@ export class QuadGraph extends Base {
         this._quads = []; this._pfx = []; this._L = new Layout(); this._ids = null; this._names = []; this._typ = new Int32Array(0);
         this._classes = [null]; this._lits = new Map(); this._lab = new Map(); this._lc = []; this._plc = [];
         this._v = { k: 1, x: 0, y: 0 }; this._w = 600; this._h = 480; this._dpr = 1; this._fg = '#888'; this._halo = 'rgba(255,255,255,.8)'; this._tt = -1e9;
-        this._sel = -1; this._hov = -1; this._nl = []; this._el = []; this._auto = true; this._fc = 0; this._ht = 0; this._st = '';
+        this._sel = -1; this._hov = -1; this._hl = []; this._he = []; this._hn = -1; this._ha = 0.9; this._hkey = null; this._hforce = false; this._fade = 0; this._fdim = 0;
+        this._auto = true; this._fc = 0; this._ht = 0; this._st = '';
         this._occ = new Uint8Array(0); this._oc = 1; this._or = 1; this._ptrs = new Map(); this._gs = null;
         this._bend = new Float32Array(0); this._lp = new Int32Array(0); this._pc = []; this._fill = []; this._ring = [];
         this._graphs = []; this._edgeGraph = new Uint16Array(0); this._nodeGraphs = []; this._visibleGraphs = new Set(); this._nodeVisible = new Uint8Array(0);
@@ -227,12 +286,13 @@ export class QuadGraph extends Base {
         this._bind();
     }
     connectedCallback() {
-        this._ro = new ResizeObserver(() => this._resize()); this._ro.observe(this);
+        this._ro = new ResizeObserver(() => { this._roSeen = 1; this._resize(); }); this._ro.observe(this);
         this._mq = typeof matchMedia !== 'undefined' ? matchMedia('(prefers-color-scheme: dark)') : null;
         this._onTheme = () => { this._tt = -1e9; this._dirty = true; this._wake(); }; this._mq?.addEventListener('change', this._onTheme);
+        this._onHide = () => { if (this._persist) { this._saveLayout(); this._saveView(); } }; addEventListener('pagehide', this._onHide);
         this._resize(); if (this._quads.length && !this._ids) this._queue(); this._wake();
     }
-    disconnectedCallback() { cancelAnimationFrame(this._raf); this._raf = 0; this._ro?.disconnect(); this._mq?.removeEventListener('change', this._onTheme); }
+    disconnectedCallback() { removeEventListener('pagehide', this._onHide); if (this._persist) { this._saveLayout(); this._saveView(); } cancelAnimationFrame(this._raf); this._raf = 0; this._ro?.disconnect(); this._mq?.removeEventListener('change', this._onTheme); }
     attributeChangedCallback(name, _, v) {
         const L = this._L;
         if (name === 'height') this.style.height = /^\d+$/.test(v) ? v + 'px' : v || '';
@@ -243,7 +303,7 @@ export class QuadGraph extends Base {
 
     /* ── public API ── */
     get quads() { return this._quads; }
-    set quads(q) { this._quads = q || []; this._queue(); }
+    set quads(q) { this._quads = q || []; this._vkey = undefined; this._queue(); }
     get context() { return this._ctxObj; }
     set context(c) {
         this._ctxObj = c || {};
@@ -356,11 +416,12 @@ export class QuadGraph extends Base {
             bend[e] = (j - (c - 1) / 2) * 16 * (LS[e] < LT[e] ? 1 : -1);
         }
         // preserve / seed positions
-        const old = this._ids, oL = this._L, ox = oL.x, oy = oL.y, opin = oL.pin, seed = this._seed; this._seed = null;
+        const old = this._ids, oL = this._L, ox = oL.x, oy = oL.y, opin = oL.pin, seed = this._seed || (this._persist ? this._loadLayout() : null), seedH = !this._seed && this._persist; this._seed = null;
         const x = new Float64Array(n), y = new Float64Array(n), placed = new Uint8Array(n), pin = new Uint8Array(n);
+        let seeded = 0;
         for (let i = 0; i < n; i++) {
-            const s = seed?.[names[i]], j = old?.get(names[i]);
-            if (s) { x[i] = s[0]; y[i] = s[1]; placed[i] = 1; }
+            const s = seed?.[seedH ? posHash(names[i]) : names[i]], j = old?.get(names[i]);
+            if (s) { x[i] = s[0]; y[i] = s[1]; placed[i] = 1; if (seedH) seeded++; }
             else if (j !== undefined) { x[i] = ox[j]; y[i] = oy[j]; placed[i] = 1; pin[i] = opin[j] & 1; }
         }
         const hadOld = old && old.size > 0 && placed.some(v => v);
@@ -377,9 +438,15 @@ export class QuadGraph extends Base {
             _pOff: pOff, _pList: pList, _cOff: cOff, _cList: cList, _order: order, _off: off, _adj: adj
         });
         const L = this._L; L.charge = Math.abs(parseFloat(this.getAttribute('charge'))) || 40; L.linkDist = parseFloat(this.getAttribute('link-dist')) || 45;
-        L.load(x, y, LS, LT, deg, r, mass, pin); if (hadOld) L.alpha = 0.5;
-        this._sel = -1; this._hov = -1; this._nl = []; this._el = []; this._tip.style.display = 'none';
-        if (!hadOld) { this._auto = true; if (n) Object.assign(this._v, this._fitTarget()); }
+        L.load(x, y, LS, LT, deg, r, mass, pin); if (hadOld) L.alpha = 0.5; else if (seeded) L.alpha = 0.25;
+        this._sel = -1; this._hov = -1; this._hl = []; this._he = []; this._hn = -1; this._ha = 0.9; this._hkey = null; this._hforce = false; this._fade = 0; this._fdim = 0;
+        this._tip.style.display = 'none';
+        if (!hadOld) {
+            if (this._persist) {
+                if (this._roSeen) { this._auto = !this._loadView(); if (this._auto && n) Object.assign(this._v, this._fitTarget()); }
+                else this._viewPending = true;   // wait for ResizeObserver so _w/_h are real before anchoring
+            } else { this._auto = true; if (n) Object.assign(this._v, this._fitTarget()); }
+        }
         this._theme(); this._dirty = true; this._wake();
     }
 
@@ -422,11 +489,60 @@ export class QuadGraph extends Base {
         this._halo = 'rgba(0,0,0,.8)'; // Dark outline for contrast on light text
     }
 
+    /* ── layout persistence: positions ↔ shared localStorage ring buffer (iri → [x,y]);
+       viewport ↔ per-document key derived from the quad set ── */
+    _viewKey() { return this._vkey ??= quadsKey(this._quads); }
+    _loadLayout() { return this._persist ? posStore() : null; }
+    _loadView() {
+        try {
+            const o = viewStore()[this._viewKey()], v = this._v, L = this._L;
+            if (!o) return false;
+            if (o.a != null) {                                    // anchor: node nearest center + its offset
+                for (let i = 0; i < L.n; i++) if (posHash(this._names[i]) === o.a) {
+                    v.k = clamp(o.k, 0.005, 60);
+                    v.x = this._w / 2 + o.ox - L.x[i] * v.k;
+                    v.y = this._h / 2 + o.oy - L.y[i] * v.k;
+                    return true;
+                }
+            }
+            if (o.x == null) return false;                        // fallback: absolute transform
+            Object.assign(v, { k: clamp(o.k, 0.005, 60), x: o.x, y: o.y });
+            return true;
+        } catch { return false; }
+    }
+    _saveView() {
+        const L = this._L, v = this._v, k = this._viewKey(), o = viewStore();
+        // anchor on the node nearest the viewport center; keep absolute transform as fallback
+        let bi = -1, bd = Infinity, cx = (this._w / 2 - v.x) / v.k, cy = (this._h / 2 - v.y) / v.k;
+        for (let i = 0; i < L.n; i++) { const dx = L.x[i] - cx, dy = L.y[i] - cy, d = dx * dx + dy * dy; if (d < bd) { bd = d; bi = i; } }
+        delete o[k];
+        o[k] = { k: v.k, x: v.x, y: v.y, ...(bi >= 0 ? { a: posHash(this._names[bi]), ox: L.x[bi] * v.k + v.x - this._w / 2, oy: L.y[bi] * v.k + v.y - this._h / 2 } : null) };
+        viewFlush();
+    }
+    _saveLayout() {
+        const L = this._L; if (!L.n) return;
+        const o = posStore();
+        for (let i = 0; i < L.n; i++) {
+            const id = this._names[i];
+            if (id.startsWith('_:')) continue;   // blank node ids aren't stable across parses
+            const h = posHash(id);
+            delete o[h]; o[h] = [L.x[i] | 0, L.y[i] | 0];
+        }
+        posFlush();
+    }
+    get persist() { return this._persist; }
+    set persist(v) { this._persist = !!v; }
+
     /* ── view ── */
     _resize() {
         const w = this.clientWidth || 600, h = this.clientHeight || 480, d = Math.min(globalThis.devicePixelRatio || 1, this._L.n > 50000 ? 1.5 : 2);
         Object.assign(this, { _w: w, _h: h, _dpr: d, _oc: Math.ceil(w / 12) + 1, _or: Math.ceil(h / 12) + 1 });
         this._cv.width = Math.round(w * d); this._cv.height = Math.round(h * d); this._occ = new Uint8Array(this._oc * this._or);
+        if (this._viewPending && this._L.n) {
+            this._viewPending = false;
+            this._auto = !this._loadView();
+            if (this._auto) Object.assign(this._v, this._fitTarget());
+        }
         if (this._auto && this._L.n) Object.assign(this._v, this._fitTarget());
         this._dirty = true; this._wake();
     }
@@ -450,12 +566,17 @@ export class QuadGraph extends Base {
         const L = this._L, was = L.active; let more = false;
         if (was) { const it = L.iter; L.step(L.n > 20000 ? 8 : 5, L.n > 3000 ? 1 : 2); if (L.iter !== it) this._dirty = true; more = L.active; }
         if (this._auto && L.n && (more ? ++this._fc % 6 === 0 : was)) this._anim = this._fitTarget();
-        if (was && !more) { this._auto = false; this.dispatchEvent(new CustomEvent('settled')); }
+        if (was && !more) { this._auto = false; this.dispatchEvent(new CustomEvent('settled')); if (this._persist) this._saveLayout(); }
         if (this._anim) {
             const a = this._anim, v = this._v;
             v.k += (a.k - v.k) * 0.2; v.x += (a.x - v.x) * 0.2; v.y += (a.y - v.y) * 0.2; this._dirty = true;
             if (Math.abs(a.k - v.k) < a.k * 1e-3 && Math.abs(a.x - v.x) < 0.5 && Math.abs(a.y - v.y) < 0.5) { Object.assign(v, a); this._anim = null; }
         }
+        if (this._syncHighlight()) this._dirty = true;
+        const ft = this._sel >= 0 || this._hov >= 0 ? 1 : 0, dt = this._sel >= 0 ? 1 : this._hov >= 0 ? 2 / 3 : 0;
+        const ease = (c, t) => Math.abs(t - c) < 0.004 ? t : c + (t - c) * 0.16;
+        const nf = ease(this._fade, ft), nd = ease(this._fdim, dt);
+        if (nf !== this._fade || nd !== this._fdim) { this._fade = nf; this._fdim = nd; this._dirty = true; }
         if (this._dirty) { this._dirty = false; this._draw(); }
         const now = performance.now();
         if (now - this._ht > 150 || !more) {
@@ -464,8 +585,9 @@ export class QuadGraph extends Base {
             const s = `${L.n.toLocaleString()} nodes · ${L.ls.length.toLocaleString()} links${gcount > 1 ? ` · ${gcount} graphs` : ''}`;
             if (s !== this._st) this._stat.textContent = this._st = s;
             this._bar.style.width = (more ? Math.min(1, L.alpha) * 100 : 0) + '%';
+            if (this._persist && now - (this._vt || 0) > 400) { this._vt = now; this._saveView(); }
         }
-        if (more || this._anim) this._wake();
+        if (more || this._anim || this._fade !== ft || this._fdim !== dt) this._wake();
     }
 
     /* ── rendering ── */
@@ -474,7 +596,7 @@ export class QuadGraph extends Base {
         g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
         if (!L.n) return;
         if (performance.now() - this._tt > 1000) this._theme();
-        const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, bend = this._bend, isType = this._isType;
+        const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, hov = this._hov, bend = this._bend, isType = this._isType;
         const x0 = -v.x * inv, y0 = -v.y * inv, x1 = (W - v.x) * inv, y1 = (H - v.y) * inv;
         g.setTransform(d * k, 0, 0, d * k, d * v.x, d * v.y); g.lineCap = 'round';
         const addEdge = (e, ap) => {
@@ -492,7 +614,7 @@ export class QuadGraph extends Base {
             }
         };
         // links, batched per predicate; alpha adapts to density
-        const arrows = k > 0.45 && E < 40000, base = (E > 100000 ? 0.2 : E > 20000 ? 0.3 : E > 3000 ? 0.45 : 0.65) * (sel >= 0 ? 0.25 : 1);
+        const arrows = k > 0.45 && E < 40000, base = (E > 100000 ? 0.2 : E > 20000 ? 0.3 : E > 3000 ? 0.45 : 0.65) * (1 - 0.75 * this._fdim);
         g.lineWidth = (E > 50000 ? 0.7 : 1) * inv;
         for (let p = 0; p < this._pc.length; p++) {
             const ap = arrows ? new Path2D() : null; g.beginPath();
@@ -505,7 +627,7 @@ export class QuadGraph extends Base {
             if (ap) { g.globalAlpha = Math.min(1, (isTypePred ? base * 0.25 : base) * 1.5); g.fillStyle = isTypePred ? '#666' : this._pc[p]; g.fill(ap); }
         }
         // nodes, batched per class; sub-pixel nodes become rects
-        const ring = k > 0.65 && (L.n < 30000 || k > 2); g.lineWidth = 1.4 * inv; g.globalAlpha = sel >= 0 ? 0.28 : 1;
+        const ring = k > 0.65 && (L.n < 30000 || k > 2); g.lineWidth = 1.4 * inv; g.globalAlpha = 1 - 0.72 * this._fdim;
         for (let cl = 0; cl < this._fill.length; cl++) {
             g.beginPath();
             for (let a = this._cOff[cl]; a < this._cOff[cl + 1]; a++) {
@@ -524,12 +646,15 @@ export class QuadGraph extends Base {
             const cl = this._typ[i]; g.beginPath(); g.arc(x[i], y[i], r[i], 0, TAU);
             g.fillStyle = this._fill[cl]; g.fill(); g.lineWidth = (strong ? 2.5 : 1.4) * inv; g.strokeStyle = strong ? this._fg : this._ring[cl]; g.stroke();
         };
-        if (sel >= 0) {
-            g.lineWidth = 1.6 * inv; g.globalAlpha = 0.9;
-            for (const e of this._el) { const ap = new Path2D(), col = this._pc[this._lp[e]]; g.beginPath(); addEdge(e, ap); g.strokeStyle = g.fillStyle = col; g.stroke(); g.fill(ap); }
-            g.globalAlpha = 1; for (const i of this._nl) dot(i, false); dot(sel, true);
+        const fa = this._fade;
+        if (fa > 0.01 && this._hn >= 0) {
+            g.lineWidth = 1.6 * inv; g.globalAlpha = this._ha * fa;
+            for (const e of this._he) { const ap = new Path2D(), col = this._pc[this._lp[e]]; g.beginPath(); addEdge(e, ap); g.strokeStyle = g.fillStyle = col; g.stroke(); g.fill(ap); }
+            g.globalAlpha = fa;
+            for (const i of this._hl) dot(i, false); dot(this._hn, true);
         }
-        if (this._hov >= 0 && this._hov !== sel) dot(this._hov, true);
+        g.globalAlpha = 1;
+        if (sel >= 0 && hov >= 0 && hov !== sel) dot(hov, true);
         g.lineWidth = 1.2 * inv; g.strokeStyle = this._fg; g.setLineDash([3 * inv, 3 * inv]);
         for (let i = 0; i < L.n; i++) if (L.pin[i] & 1) { g.beginPath(); g.arc(x[i], y[i], r[i] + 3 * inv, 0, TAU); g.stroke(); }
         g.setLineDash([]);
@@ -537,7 +662,7 @@ export class QuadGraph extends Base {
         g.globalAlpha = 1;
     }
     _drawLabels(g, d) {
-        const L = this._L, { x, y, r, ls, lt } = L, v = this._v, k = v.k, W = this._w, H = this._h, sel = this._sel, oc = this._occ, cols = this._oc, C = 12;
+        const L = this._L, { x, y, r, ls, lt } = L, v = this._v, k = v.k, W = this._w, H = this._h, hov = this._hov, oc = this._occ, cols = this._oc, C = 12;
         g.setTransform(d, 0, 0, d, 0, 0); oc.fill(0);
         g.font = '11px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 1.5;
         const reserve = (cx, cy, w, h, force) => {
@@ -553,27 +678,30 @@ export class QuadGraph extends Base {
             if (!force && rs < 2) return 0;
             const t = this._label(i), w = t.length * 6.1 + 6, ty = sy - rs - 8;
             if (!reserve(sx, ty, w, 14, force)) return 0;
-            g.globalAlpha = sel >= 0 && !force ? 0.35 : 1;
+            g.globalAlpha = force ? this._fade : 1 - 0.65 * this._fdim;
             g.strokeStyle = this._halo; g.strokeText(t, sx, ty); g.fillStyle = this._fg; g.fillText(t, sx, ty); return 1;
         };
-        if (sel >= 0) { put(sel, true); for (const i of this._nl) put(i, true); }
-        if (this._hov >= 0) put(this._hov, true);
+        if (this._fade > 0.02 && this._hn >= 0) {
+            put(this._hn, true);
+            if (this._hforce) for (const i of this._hl) put(i, true); else for (const i of this._hl) put(i, false);
+        }
+        if (hov >= 0) put(hov, true);
         for (let a = 0, seen = 0, drawn = 0; a < L.n && drawn < 700 && seen < 6000; a++) { const s = put(this._order[a], false); if (s >= 0) seen++; if (s > 0) drawn++; }
         if (k < 0.5 || !ls.length) return;
-        g.font = '9px system-ui,sans-serif'; g.globalAlpha = 0.9; g.lineWidth = 1;
+        g.font = '11px system-ui,sans-serif'; g.globalAlpha = 0.9; g.lineWidth = 1.2;
         for (let e = 0, cnt = 0; e < ls.length && cnt < 150; e++) {
             if (this._isType[e]) continue; // skip rdf:type edge labels
             if (!this._visibleGraphs.has(this._edgeGraph[e])) continue; // skip hidden graph edge labels
             const s = ls[e], t = lt[e], dx = (x[t] - x[s]) * k, dy = (y[t] - y[s]) * k, len = Math.sqrt(dx * dx + dy * dy);
-            if (len < 70) continue;
+            if (len < 80) continue;
             const b = this._bend[e] * k, mx = (x[s] + x[t]) / 2 * k + v.x - dy / len * b, my = (y[s] + y[t]) / 2 * k + v.y + dx / len * b;
             if (mx < 0 || mx > W || my < 0 || my > H) continue;
-            const txt = this._plabel(this._lp[e]), tw = txt.length * 5.2;
-            if (len < tw + 30) continue;
+            const txt = this._plabel(this._lp[e]), tw = txt.length * 6.3;
+            if (len < tw + 34) continue;
             const ca = Math.abs(dx / len), sa = Math.abs(dy / len);
-            if (!reserve(mx, my, tw * ca + 10 * sa, tw * sa + 10 * ca)) continue;
+            if (!reserve(mx, my, tw * ca + 12 * sa, tw * sa + 12 * ca)) continue;
             let ang = Math.atan2(dy, dx); if (ang > Math.PI / 2 || ang < -Math.PI / 2) ang += Math.PI;
-            g.save(); g.translate(mx, my); g.rotate(ang); g.strokeStyle = this._halo; g.strokeText(txt, 0, -5); g.fillStyle = this._pc[this._lp[e]]; g.fillText(txt, 0, -5); g.restore(); cnt++;
+            g.save(); g.translate(mx, my); g.rotate(ang); g.strokeStyle = this._halo; g.strokeText(txt, 0, -6); g.fillStyle = this._pc[this._lp[e]]; g.fillText(txt, 0, -6); g.restore(); cnt++;
         }
     }
 
@@ -588,10 +716,26 @@ export class QuadGraph extends Base {
         }
         return best;
     }
+    _neighbors(i) {
+        const L = this._L, off = this._off, adj = this._adj, nl = [], el = [];
+        if (i >= 0) { const s = new Set(); for (let a = off[i]; a < off[i + 1]; a++) { const e = adj[a]; el.push(e); s.add(L.ls[e] === i ? L.lt[e] : L.ls[e]); } for (const j of s) nl.push(j); }
+        return [nl, el];
+    }
+    /** Refresh the displayed highlight set only when its source changes; the stale
+       set is kept while _fade eases out so the highlight can fade away smoothly. */
+    _syncHighlight() {
+        const sel = this._sel, hov = this._hov;
+        const key = sel >= 0 ? sel : hov >= 0 ? ~hov : null;
+        if (key === null || key === this._hkey) return false;
+        this._hkey = key;
+        const i = sel >= 0 ? sel : hov;
+        [this._hl, this._he] = this._neighbors(i);
+        this._hn = i; this._ha = sel >= 0 ? 0.9 : 0.45; this._hforce = sel >= 0;
+        return true;
+    }
     _select(i) {
         if (i === this._sel) return;
-        const L = this._L, off = this._off, adj = this._adj; this._sel = i; this._nl = []; this._el = [];
-        if (i >= 0) { const s = new Set(); for (let a = off[i]; a < off[i + 1]; a++) { const e = adj[a]; this._el.push(e); s.add(L.ls[e] === i ? L.lt[e] : L.ls[e]); } this._nl = [...s]; }
+        this._sel = i;
         this.dispatchEvent(new CustomEvent('node-select', { detail: i >= 0 ? this._names[i] : null, bubbles: true }));
         this._dirty = true; this._wake();
     }

@@ -3104,6 +3104,40 @@ function extractAttr(tag, name) {
 function unescapeHtml(s) {
 	return String(s).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
 }
+// \0@oxc-project+runtime@0.156.0/helpers/esm/typeof.js
+function _typeof(o) {
+	"@babel/helpers - typeof";
+	return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o) {
+		return typeof o;
+	} : function(o) {
+		return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
+	}, _typeof(o);
+}
+// \0@oxc-project+runtime@0.156.0/helpers/esm/toPrimitive.js
+function toPrimitive(t, r) {
+	if ("object" != _typeof(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, r || "default");
+		if ("object" != _typeof(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return ("string" === r ? String : Number)(t);
+}
+// \0@oxc-project+runtime@0.156.0/helpers/esm/toPropertyKey.js
+function toPropertyKey(t) {
+	var i = toPrimitive(t, "string");
+	return "symbol" == _typeof(i) ? i : i + "";
+}
+// \0@oxc-project+runtime@0.156.0/helpers/esm/defineProperty.js
+function _defineProperty(e, r, t) {
+	return (r = toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
+		value: t,
+		enumerable: !0,
+		configurable: !0,
+		writable: !0
+	}) : e[r] = t, e;
+}
 // src/highlight.js
 /**
 * MD-LD Syntax Highlighter
@@ -3423,40 +3457,71 @@ function highlight(code) {
 	}
 	return result;
 }
-// \0@oxc-project+runtime@0.156.0/helpers/esm/typeof.js
-function _typeof(o) {
-	"@babel/helpers - typeof";
-	return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o) {
-		return typeof o;
-	} : function(o) {
-		return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
-	}, _typeof(o);
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/toPrimitive.js
-function toPrimitive(t, r) {
-	if ("object" != _typeof(t) || !t) return t;
-	var e = t[Symbol.toPrimitive];
-	if (void 0 !== e) {
-		var i = e.call(t, r || "default");
-		if ("object" != _typeof(i)) return i;
-		throw new TypeError("@@toPrimitive must return a primitive value.");
+var EditorBase = typeof HTMLElement !== "undefined" ? HTMLElement : class {};
+var EDITOR_CSS = `:host{display:block;position:relative;height:320px;min-height:120px}
+.wrap{position:absolute;inset:0}
+pre,textarea{position:absolute;inset:0;margin:0;padding:12px;border:0;box-sizing:border-box;overflow:hidden;font:.9em/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;tab-size:2;white-space:pre-wrap;overflow-wrap:anywhere}
+pre{pointer-events:none}
+textarea{background:transparent;resize:none;outline:none;color:transparent;caret-color:var(--mdld-caret,#eee);overflow:auto}
+pre h1,pre h2,pre h3,pre h4,pre h5,pre h6{display:inline;font-size:inherit;line-height:inherit;margin:0;padding:0;font-weight:inherit}
+::placeholder{color:var(--mdld-placeholder,#666)}`;
+var MdldEditorImpl = class extends EditorBase {
+	constructor() {
+		super();
+		const root = this.attachShadow({ mode: "open" });
+		root.innerHTML = `<style>${EDITOR_CSS}</style><div class="wrap"><pre aria-hidden="true"></pre><textarea spellcheck="false"></textarea></div>`;
+		this._ta = root.querySelector("textarea");
+		this._pre = root.querySelector("pre");
+		this._ta.addEventListener("input", () => this._paint());
+		this._ta.addEventListener("scroll", () => {
+			this._pre.scrollTop = this._ta.scrollTop;
+			this._pre.scrollLeft = this._ta.scrollLeft;
+		});
+		this._ta.addEventListener("keydown", (e) => {
+			if (e.key !== "Tab") return;
+			e.preventDefault();
+			this._ta.setRangeText("  ", this._ta.selectionStart, this._ta.selectionEnd, "end");
+			this._paint();
+			this._ta.dispatchEvent(new Event("input", { bubbles: true }));
+		});
 	}
-	return ("string" === r ? String : Number)(t);
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/toPropertyKey.js
-function toPropertyKey(t) {
-	var i = toPrimitive(t, "string");
-	return "symbol" == _typeof(i) ? i : i + "";
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/defineProperty.js
-function _defineProperty(e, r, t) {
-	return (r = toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
-		value: t,
-		enumerable: !0,
-		configurable: !0,
-		writable: !0
-	}) : e[r] = t, e;
-}
+	connectedCallback() {
+		this._paint();
+	}
+	attributeChangedCallback(name, _, v) {
+		if (!this._ta) return;
+		if (name === "value") this.value = v ?? "";
+		else if (name === "placeholder") this._ta.placeholder = v ?? "";
+		else if (name === "readonly") this._ta.readOnly = this.hasAttribute("readonly");
+		else if (name === "height") this.style.height = /^\d+$/.test(v) ? v + "px" : v || "";
+	}
+	get value() {
+		return this._ta?.value ?? "";
+	}
+	set value(v) {
+		if (this._ta) {
+			this._ta.value = v ?? "";
+			this._paint();
+		}
+	}
+	focus() {
+		this._ta?.focus();
+	}
+	_paint() {
+		this._pre.innerHTML = highlight(this._ta.value);
+		this._pre.scrollTop = this._ta.scrollTop;
+		this._pre.scrollLeft = this._ta.scrollLeft;
+	}
+};
+_defineProperty(MdldEditorImpl, "observedAttributes", [
+	"value",
+	"placeholder",
+	"readonly",
+	"height"
+]);
+var IS_EDITOR_BROWSER = typeof customElements !== "undefined" && typeof document !== "undefined";
+if (IS_EDITOR_BROWSER && !customElements.get("mdld-editor")) customElements.define("mdld-editor", MdldEditorImpl);
+var MdldEditor = IS_EDITOR_BROWSER ? MdldEditorImpl : void 0;
 // src/graph.js
 /**
 * <quad-graph> — zero-dependency RDF quad graph renderer (ESM, Canvas2D, ~670 LOC).
@@ -3469,7 +3534,8 @@ function _defineProperty(e, r, t) {
 *
 * Attributes: height, charge (repulsion, default 40), link-dist (default 45), labels="off"
 * Methods:    focus(iri) select(iri|null) fit() pin(iri,on) reheat() getNode(iri)
-* Props:      quads, context, positions ({iri:[x,y]} get/set — persist & restore layouts)
+* Props:      quads, context, positions ({iri:[x,y]} get/set — persist & restore layouts),
+*             persist (bool — save node positions + viewport to localStorage, opt-in)
 * Events:     node-click (detail = iri) · node-select (iri|null) · node-hover (iri|null) · settled
 * Input:      wheel/pinch zoom, drag background = pan, drag node = move, dblclick node = pin/unpin
 * Theming:    labels use the CSS `color` of the element; background is transparent.
@@ -3495,6 +3561,77 @@ var GOLD = 2.39996;
 var MIN_D2 = 25;
 var MAX_V = 60;
 var Base = typeof HTMLElement !== "undefined" ? HTMLElement : class {};
+var POS_KEY = "qg:positions";
+var POS_MAX = 12e3;
+var VIEW_KEY = "qg:views";
+var VIEW_MAX = 64;
+var posCache;
+var viewCache;
+var posStore = () => {
+	if (posCache === void 0) try {
+		posCache = JSON.parse(localStorage.getItem(POS_KEY)) || {};
+	} catch {
+		posCache = {};
+	}
+	return posCache;
+};
+var viewStore = () => {
+	if (viewCache === void 0) try {
+		viewCache = JSON.parse(localStorage.getItem(VIEW_KEY)) || {};
+	} catch {
+		viewCache = {};
+	}
+	return viewCache;
+};
+var posFlush = () => {
+	try {
+		const ks = Object.keys(posCache), n = ks.length - POS_MAX;
+		for (let i = 0; i < n; i++) delete posCache[ks[i]];
+		localStorage.setItem(POS_KEY, JSON.stringify(posCache));
+	} catch {}
+};
+var viewFlush = () => {
+	try {
+		const ks = Object.keys(viewCache), n = ks.length - VIEW_MAX;
+		for (let i = 0; i < n; i++) delete viewCache[ks[i]];
+		localStorage.setItem(VIEW_KEY, JSON.stringify(viewCache));
+	} catch {}
+};
+var posHash = (s) => {
+	let h1 = 3735928559, h2 = 1103547991;
+	for (let i = 0; i < s.length; i++) {
+		const ch = s.charCodeAt(i);
+		h1 = Math.imul(h1 ^ ch, 2654435761);
+		h2 = Math.imul(h2 ^ ch, 1597334677);
+	}
+	h1 = Math.imul(h1 ^ h1 >>> 16, 2246822507) ^ Math.imul(h2 ^ h2 >>> 13, 3266489909);
+	h2 = Math.imul(h2 ^ h2 >>> 16, 2246822507) ^ Math.imul(h1 ^ h1 >>> 13, 3266489909);
+	return (h2 >>> 0).toString(16).padStart(8, "0") + (h1 >>> 0).toString(16).padStart(8, "0");
+};
+var quadsKey = (quads) => {
+	let sum = 0, xr = 0;
+	for (const q of quads) {
+		if (!q?.subject || !q?.predicate || !q?.object) continue;
+		let h = 2166136261;
+		for (const t of [
+			q.subject,
+			q.predicate,
+			q.object,
+			q.graph
+		]) {
+			const s = (t?.termType ?? "") + "\n" + (t?.value ?? "") + "\n" + (t?.datatype?.value ?? t?.language ?? "");
+			h ^= 2654435769;
+			for (let i = 0; i < s.length; i++) {
+				h ^= s.charCodeAt(i);
+				h = Math.imul(h, 16777619);
+			}
+		}
+		h = h >>> 0;
+		sum = sum + h >>> 0;
+		xr = (xr ^ h) >>> 0;
+	}
+	return sum.toString(36) + "." + xr.toString(36);
+};
 var hash$1 = (s) => {
 	let h = 2166136261;
 	for (let i = 0; i < s.length; i++) {
@@ -3857,8 +3994,14 @@ var QuadGraph = class extends Base {
 		this._tt = -1e9;
 		this._sel = -1;
 		this._hov = -1;
-		this._nl = [];
-		this._el = [];
+		this._hl = [];
+		this._he = [];
+		this._hn = -1;
+		this._ha = .9;
+		this._hkey = null;
+		this._hforce = false;
+		this._fade = 0;
+		this._fdim = 0;
 		this._auto = true;
 		this._fc = 0;
 		this._ht = 0;
@@ -3882,7 +4025,10 @@ var QuadGraph = class extends Base {
 		this._bind();
 	}
 	connectedCallback() {
-		this._ro = new ResizeObserver(() => this._resize());
+		this._ro = new ResizeObserver(() => {
+			this._roSeen = 1;
+			this._resize();
+		});
 		this._ro.observe(this);
 		this._mq = typeof matchMedia !== "undefined" ? matchMedia("(prefers-color-scheme: dark)") : null;
 		this._onTheme = () => {
@@ -3891,11 +4037,23 @@ var QuadGraph = class extends Base {
 			this._wake();
 		};
 		this._mq?.addEventListener("change", this._onTheme);
+		this._onHide = () => {
+			if (this._persist) {
+				this._saveLayout();
+				this._saveView();
+			}
+		};
+		addEventListener("pagehide", this._onHide);
 		this._resize();
 		if (this._quads.length && !this._ids) this._queue();
 		this._wake();
 	}
 	disconnectedCallback() {
+		removeEventListener("pagehide", this._onHide);
+		if (this._persist) {
+			this._saveLayout();
+			this._saveView();
+		}
 		cancelAnimationFrame(this._raf);
 		this._raf = 0;
 		this._ro?.disconnect();
@@ -3921,6 +4079,7 @@ var QuadGraph = class extends Base {
 	}
 	set quads(q) {
 		this._quads = q || [];
+		this._vkey = void 0;
 		this._queue();
 	}
 	get context() {
@@ -4132,15 +4291,17 @@ var QuadGraph = class extends Base {
 			run.set(k, j + 1);
 			bend[e] = (j - (c - 1) / 2) * 16 * (LS[e] < LT[e] ? 1 : -1);
 		}
-		const old = this._ids, oL = this._L, ox = oL.x, oy = oL.y, opin = oL.pin, seed = this._seed;
+		const old = this._ids, oL = this._L, ox = oL.x, oy = oL.y, opin = oL.pin, seed = this._seed || (this._persist ? this._loadLayout() : null), seedH = !this._seed && this._persist;
 		this._seed = null;
 		const x = new Float64Array(n), y = new Float64Array(n), placed = new Uint8Array(n), pin = new Uint8Array(n);
+		let seeded = 0;
 		for (let i = 0; i < n; i++) {
-			const s = seed?.[names[i]], j = old?.get(names[i]);
+			const s = seed?.[seedH ? posHash(names[i]) : names[i]], j = old?.get(names[i]);
 			if (s) {
 				x[i] = s[0];
 				y[i] = s[1];
 				placed[i] = 1;
+				if (seedH) seeded++;
 			} else if (j !== void 0) {
 				x[i] = ox[j];
 				y[i] = oy[j];
@@ -4184,14 +4345,28 @@ var QuadGraph = class extends Base {
 		L.linkDist = parseFloat(this.getAttribute("link-dist")) || 45;
 		L.load(x, y, LS, LT, deg, r, mass, pin);
 		if (hadOld) L.alpha = .5;
+		else if (seeded) L.alpha = .25;
 		this._sel = -1;
 		this._hov = -1;
-		this._nl = [];
-		this._el = [];
+		this._hl = [];
+		this._he = [];
+		this._hn = -1;
+		this._ha = .9;
+		this._hkey = null;
+		this._hforce = false;
+		this._fade = 0;
+		this._fdim = 0;
 		this._tip.style.display = "none";
 		if (!hadOld) {
-			this._auto = true;
-			if (n) Object.assign(this._v, this._fitTarget());
+			if (this._persist) {
+				if (this._roSeen) {
+					this._auto = !this._loadView();
+					if (this._auto && n) Object.assign(this._v, this._fitTarget());
+				} else this._viewPending = true;
+			} else {
+				this._auto = true;
+				if (n) Object.assign(this._v, this._fitTarget());
+			}
 		}
 		this._theme();
 		this._dirty = true;
@@ -4247,6 +4422,77 @@ var QuadGraph = class extends Base {
 		this._fg = "#eee";
 		this._halo = "rgba(0,0,0,.8)";
 	}
+	_viewKey() {
+		return this._vkey ?? (this._vkey = quadsKey(this._quads));
+	}
+	_loadLayout() {
+		return this._persist ? posStore() : null;
+	}
+	_loadView() {
+		try {
+			const o = viewStore()[this._viewKey()], v = this._v, L = this._L;
+			if (!o) return false;
+			if (o.a != null) {
+				for (let i = 0; i < L.n; i++) if (posHash(this._names[i]) === o.a) {
+					v.k = clamp(o.k, .005, 60);
+					v.x = this._w / 2 + o.ox - L.x[i] * v.k;
+					v.y = this._h / 2 + o.oy - L.y[i] * v.k;
+					return true;
+				}
+			}
+			if (o.x == null) return false;
+			Object.assign(v, {
+				k: clamp(o.k, .005, 60),
+				x: o.x,
+				y: o.y
+			});
+			return true;
+		} catch {
+			return false;
+		}
+	}
+	_saveView() {
+		const L = this._L, v = this._v, k = this._viewKey(), o = viewStore();
+		let bi = -1, bd = Infinity, cx = (this._w / 2 - v.x) / v.k, cy = (this._h / 2 - v.y) / v.k;
+		for (let i = 0; i < L.n; i++) {
+			const dx = L.x[i] - cx, dy = L.y[i] - cy, d = dx * dx + dy * dy;
+			if (d < bd) {
+				bd = d;
+				bi = i;
+			}
+		}
+		delete o[k];
+		o[k] = {
+			k: v.k,
+			x: v.x,
+			y: v.y,
+			...bi >= 0 ? {
+				a: posHash(this._names[bi]),
+				ox: L.x[bi] * v.k + v.x - this._w / 2,
+				oy: L.y[bi] * v.k + v.y - this._h / 2
+			} : null
+		};
+		viewFlush();
+	}
+	_saveLayout() {
+		const L = this._L;
+		if (!L.n) return;
+		const o = posStore();
+		for (let i = 0; i < L.n; i++) {
+			const id = this._names[i];
+			if (id.startsWith("_:")) continue;
+			const h = posHash(id);
+			delete o[h];
+			o[h] = [L.x[i] | 0, L.y[i] | 0];
+		}
+		posFlush();
+	}
+	get persist() {
+		return this._persist;
+	}
+	set persist(v) {
+		this._persist = !!v;
+	}
 	_resize() {
 		const w = this.clientWidth || 600, h = this.clientHeight || 480, d = Math.min(globalThis.devicePixelRatio || 1, this._L.n > 5e4 ? 1.5 : 2);
 		Object.assign(this, {
@@ -4259,6 +4505,11 @@ var QuadGraph = class extends Base {
 		this._cv.width = Math.round(w * d);
 		this._cv.height = Math.round(h * d);
 		this._occ = new Uint8Array(this._oc * this._or);
+		if (this._viewPending && this._L.n) {
+			this._viewPending = false;
+			this._auto = !this._loadView();
+			if (this._auto) Object.assign(this._v, this._fitTarget());
+		}
 		if (this._auto && this._L.n) Object.assign(this._v, this._fitTarget());
 		this._dirty = true;
 		this._wake();
@@ -4326,6 +4577,7 @@ var QuadGraph = class extends Base {
 		if (was && !more) {
 			this._auto = false;
 			this.dispatchEvent(new CustomEvent("settled"));
+			if (this._persist) this._saveLayout();
 		}
 		if (this._anim) {
 			const a = this._anim, v = this._v;
@@ -4338,6 +4590,15 @@ var QuadGraph = class extends Base {
 				this._anim = null;
 			}
 		}
+		if (this._syncHighlight()) this._dirty = true;
+		const ft = this._sel >= 0 || this._hov >= 0 ? 1 : 0, dt = this._sel >= 0 ? 1 : this._hov >= 0 ? 2 / 3 : 0;
+		const ease = (c, t) => Math.abs(t - c) < .004 ? t : c + (t - c) * .16;
+		const nf = ease(this._fade, ft), nd = ease(this._fdim, dt);
+		if (nf !== this._fade || nd !== this._fdim) {
+			this._fade = nf;
+			this._fdim = nd;
+			this._dirty = true;
+		}
 		if (this._dirty) {
 			this._dirty = false;
 			this._draw();
@@ -4349,8 +4610,12 @@ var QuadGraph = class extends Base {
 			const s = `${L.n.toLocaleString()} nodes · ${L.ls.length.toLocaleString()} links${gcount > 1 ? ` · ${gcount} graphs` : ""}`;
 			if (s !== this._st) this._stat.textContent = this._st = s;
 			this._bar.style.width = (more ? Math.min(1, L.alpha) * 100 : 0) + "%";
+			if (this._persist && now - (this._vt || 0) > 400) {
+				this._vt = now;
+				this._saveView();
+			}
 		}
-		if (more || this._anim) this._wake();
+		if (more || this._anim || this._fade !== ft || this._fdim !== dt) this._wake();
 	}
 	_draw() {
 		const L = this._L, c = this._cv, g = this._g2, d = this._dpr, v = this._v, W = this._w, H = this._h;
@@ -4358,7 +4623,7 @@ var QuadGraph = class extends Base {
 		g.clearRect(0, 0, c.width, c.height);
 		if (!L.n) return;
 		if (performance.now() - this._tt > 1e3) this._theme();
-		const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, bend = this._bend;
+		const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, hov = this._hov, bend = this._bend;
 		this._isType;
 		const x0 = -v.x * inv, y0 = -v.y * inv, x1 = (W - v.x) * inv, y1 = (H - v.y) * inv;
 		g.setTransform(d * k, 0, 0, d * k, d * v.x, d * v.y);
@@ -4381,7 +4646,7 @@ var QuadGraph = class extends Base {
 				ap.closePath();
 			}
 		};
-		const arrows = k > .45 && E < 4e4, base = (E > 1e5 ? .2 : E > 2e4 ? .3 : E > 3e3 ? .45 : .65) * (sel >= 0 ? .25 : 1);
+		const arrows = k > .45 && E < 4e4, base = (E > 1e5 ? .2 : E > 2e4 ? .3 : E > 3e3 ? .45 : .65) * (1 - .75 * this._fdim);
 		g.lineWidth = (E > 5e4 ? .7 : 1) * inv;
 		for (let p = 0; p < this._pc.length; p++) {
 			const ap = arrows ? new Path2D() : null;
@@ -4399,7 +4664,7 @@ var QuadGraph = class extends Base {
 		}
 		const ring = k > .65 && (L.n < 3e4 || k > 2);
 		g.lineWidth = 1.4 * inv;
-		g.globalAlpha = sel >= 0 ? .28 : 1;
+		g.globalAlpha = 1 - .72 * this._fdim;
 		for (let cl = 0; cl < this._fill.length; cl++) {
 			g.beginPath();
 			for (let a = this._cOff[cl]; a < this._cOff[cl + 1]; a++) {
@@ -4433,10 +4698,11 @@ var QuadGraph = class extends Base {
 			g.strokeStyle = strong ? this._fg : this._ring[cl];
 			g.stroke();
 		};
-		if (sel >= 0) {
+		const fa = this._fade;
+		if (fa > .01 && this._hn >= 0) {
 			g.lineWidth = 1.6 * inv;
-			g.globalAlpha = .9;
-			for (const e of this._el) {
+			g.globalAlpha = this._ha * fa;
+			for (const e of this._he) {
 				const ap = new Path2D(), col = this._pc[this._lp[e]];
 				g.beginPath();
 				addEdge(e, ap);
@@ -4444,11 +4710,12 @@ var QuadGraph = class extends Base {
 				g.stroke();
 				g.fill(ap);
 			}
-			g.globalAlpha = 1;
-			for (const i of this._nl) dot(i, false);
-			dot(sel, true);
+			g.globalAlpha = fa;
+			for (const i of this._hl) dot(i, false);
+			dot(this._hn, true);
 		}
-		if (this._hov >= 0 && this._hov !== sel) dot(this._hov, true);
+		g.globalAlpha = 1;
+		if (sel >= 0 && hov >= 0 && hov !== sel) dot(hov, true);
 		g.lineWidth = 1.2 * inv;
 		g.strokeStyle = this._fg;
 		g.setLineDash([3 * inv, 3 * inv]);
@@ -4462,7 +4729,7 @@ var QuadGraph = class extends Base {
 		g.globalAlpha = 1;
 	}
 	_drawLabels(g, d) {
-		const L = this._L, { x, y, r, ls, lt } = L, v = this._v, k = v.k, W = this._w, H = this._h, sel = this._sel, oc = this._occ, cols = this._oc, C = 12;
+		const L = this._L, { x, y, r, ls, lt } = L, v = this._v, k = v.k, W = this._w, H = this._h, hov = this._hov, oc = this._occ, cols = this._oc, C = 12;
 		g.setTransform(d, 0, 0, d, 0, 0);
 		oc.fill(0);
 		g.font = "11px system-ui,sans-serif";
@@ -4485,47 +4752,48 @@ var QuadGraph = class extends Base {
 			if (!force && rs < 2) return 0;
 			const t = this._label(i), w = t.length * 6.1 + 6, ty = sy - rs - 8;
 			if (!reserve(sx, ty, w, 14, force)) return 0;
-			g.globalAlpha = sel >= 0 && !force ? .35 : 1;
+			g.globalAlpha = force ? this._fade : 1 - .65 * this._fdim;
 			g.strokeStyle = this._halo;
 			g.strokeText(t, sx, ty);
 			g.fillStyle = this._fg;
 			g.fillText(t, sx, ty);
 			return 1;
 		};
-		if (sel >= 0) {
-			put(sel, true);
-			for (const i of this._nl) put(i, true);
+		if (this._fade > .02 && this._hn >= 0) {
+			put(this._hn, true);
+			if (this._hforce) for (const i of this._hl) put(i, true);
+			else for (const i of this._hl) put(i, false);
 		}
-		if (this._hov >= 0) put(this._hov, true);
+		if (hov >= 0) put(hov, true);
 		for (let a = 0, seen = 0, drawn = 0; a < L.n && drawn < 700 && seen < 6e3; a++) {
 			const s = put(this._order[a], false);
 			if (s >= 0) seen++;
 			if (s > 0) drawn++;
 		}
 		if (k < .5 || !ls.length) return;
-		g.font = "9px system-ui,sans-serif";
+		g.font = "11px system-ui,sans-serif";
 		g.globalAlpha = .9;
-		g.lineWidth = 1;
+		g.lineWidth = 1.2;
 		for (let e = 0, cnt = 0; e < ls.length && cnt < 150; e++) {
 			if (this._isType[e]) continue;
 			if (!this._visibleGraphs.has(this._edgeGraph[e])) continue;
 			const s = ls[e], t = lt[e], dx = (x[t] - x[s]) * k, dy = (y[t] - y[s]) * k, len = Math.sqrt(dx * dx + dy * dy);
-			if (len < 70) continue;
+			if (len < 80) continue;
 			const b = this._bend[e] * k, mx = (x[s] + x[t]) / 2 * k + v.x - dy / len * b, my = (y[s] + y[t]) / 2 * k + v.y + dx / len * b;
 			if (mx < 0 || mx > W || my < 0 || my > H) continue;
-			const txt = this._plabel(this._lp[e]), tw = txt.length * 5.2;
-			if (len < tw + 30) continue;
+			const txt = this._plabel(this._lp[e]), tw = txt.length * 6.3;
+			if (len < tw + 34) continue;
 			const ca = Math.abs(dx / len), sa = Math.abs(dy / len);
-			if (!reserve(mx, my, tw * ca + 10 * sa, tw * sa + 10 * ca)) continue;
+			if (!reserve(mx, my, tw * ca + 12 * sa, tw * sa + 12 * ca)) continue;
 			let ang = Math.atan2(dy, dx);
 			if (ang > Math.PI / 2 || ang < -Math.PI / 2) ang += Math.PI;
 			g.save();
 			g.translate(mx, my);
 			g.rotate(ang);
 			g.strokeStyle = this._halo;
-			g.strokeText(txt, 0, -5);
+			g.strokeText(txt, 0, -6);
 			g.fillStyle = this._pc[this._lp[e]];
-			g.fillText(txt, 0, -5);
+			g.fillText(txt, 0, -6);
 			g.restore();
 			cnt++;
 		}
@@ -4546,21 +4814,36 @@ var QuadGraph = class extends Base {
 		}
 		return best;
 	}
-	_select(i) {
-		if (i === this._sel) return;
-		const L = this._L, off = this._off, adj = this._adj;
-		this._sel = i;
-		this._nl = [];
-		this._el = [];
+	_neighbors(i) {
+		const L = this._L, off = this._off, adj = this._adj, nl = [], el = [];
 		if (i >= 0) {
 			const s = /* @__PURE__ */ new Set();
 			for (let a = off[i]; a < off[i + 1]; a++) {
 				const e = adj[a];
-				this._el.push(e);
+				el.push(e);
 				s.add(L.ls[e] === i ? L.lt[e] : L.ls[e]);
 			}
-			this._nl = [...s];
+			for (const j of s) nl.push(j);
 		}
+		return [nl, el];
+	}
+	/** Refresh the displayed highlight set only when its source changes; the stale
+	set is kept while _fade eases out so the highlight can fade away smoothly. */
+	_syncHighlight() {
+		const sel = this._sel, hov = this._hov;
+		const key = sel >= 0 ? sel : hov >= 0 ? ~hov : null;
+		if (key === null || key === this._hkey) return false;
+		this._hkey = key;
+		const i = sel >= 0 ? sel : hov;
+		[this._hl, this._he] = this._neighbors(i);
+		this._hn = i;
+		this._ha = sel >= 0 ? .9 : .45;
+		this._hforce = sel >= 0;
+		return true;
+	}
+	_select(i) {
+		if (i === this._sel) return;
+		this._sel = i;
 		this.dispatchEvent(new CustomEvent("node-select", {
 			detail: i >= 0 ? this._names[i] : null,
 			bubbles: true
@@ -6428,4 +6711,4 @@ function updateValue({ text, quad, value, origin }) {
 	if (!location || !location.valueRange) return text;
 	return text.substring(0, location.valueRange.start) + value + text.substring(location.valueRange.end);
 }
-export { DEFAULT_CONTEXT, DataFactory, graph_default as QuadGraph, SUPPORTED_VOCABULARY, Store, Validator, createShapeDetector, deconstruct, evaluate, expandIRI, extract, extractGraph, generate, generateNode, hash, highlight, isSupportedTerm, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue, validate };
+export { DEFAULT_CONTEXT, DataFactory, MdldEditor, graph_default as QuadGraph, SUPPORTED_VOCABULARY, Store, Validator, createShapeDetector, deconstruct, evaluate, expandIRI, extract, extractGraph, generate, generateNode, hash, highlight, isSupportedTerm, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue, validate };

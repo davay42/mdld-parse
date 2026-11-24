@@ -650,11 +650,13 @@ fully environment-agnostic — the visual layer simply stays dormant.
 
 - **Zero dependencies** — Pure Canvas2D rendering, ~650 LOC
 - **Interactive** — Wheel/pinch zoom, drag background to pan, drag nodes to move, double-click to pin/unpin
+- **Neighborhood highlighting** — Hovering a node dims the rest of the graph and lights up its direct connections at ~50% strength; selecting does the same at 100%. Both fade smoothly in and out
 - **Force-directed layout** — Barnes-Hut quadtree for performance, time-sliced across frames
 - **Collision-free labels** — Greedy placement with viewport culling
 - **Dark theme** — High contrast light text on dark background
 - **Customizable** — Attributes for height, charge, link distance, labels
-- **API methods** — `focus(iri)`, `select(iri)`, `fit()`, `pin(iri, on)`, `reheat()`, `getNode(iri)`
+- **Layout persistence** — `persist = true` saves node positions and viewport across reloads via `localStorage` (opt-in, privacy-safe hashed keys)
+- **API methods** — `focus(iri)`, `select(iri)`, `fit()`, `pin(iri, on)`, `reheat()`, `getNode(iri)`, `positions` get/set, `persist` get/set
 
 ### Attributes
 
@@ -688,7 +690,23 @@ graph.reheat();
 // Get node data
 const nodeData = graph.getNode('http://example.org/alice');
 // { id, label, x, y, degree, pinned, type, literals }
+
+// Persist layout + viewport across reloads (localStorage, opt-in)
+graph.persist = true;
+
+// Manual layout seed/restore — { iri: [x, y] }, takes precedence over the store
+graph.positions = { 'http://example.org/alice': [120, -40] };
+const saved = graph.positions;   // snapshot of current layout
 ```
+
+### Layout persistence (`persist`)
+
+Set `graph.persist = true` and the component remembers where you left off:
+
+- **Node positions** go into a single shared `localStorage` ring buffer (`qg:positions`, ~12k entries) keyed by a 64-bit hash of each IRI — IRIs are never stored in plaintext. All `<quad-graph>` instances share the store, so nodes keep their positions across documents and edits: unchanged subjects stay put while the rest of the graph rearranges around them.
+- **Viewport** (zoom + pan) is anchored to the node nearest screen-center and stored per document under `qg:views`, keyed by an order-independent hash of the quad set — so it survives window resizes and falls back to the absolute transform if the anchor node disappears.
+- Positions are saved when the layout settles, on page hide, and on disconnect; everything is `try/catch`-guarded and silently no-ops where `localStorage` is unavailable.
+- Blank nodes (`_:` ids) are skipped — their ids aren't stable across parses. An explicit `graph.positions = {...}` assignment always wins over the store.
 
 ### Events
 
@@ -709,6 +727,36 @@ graph.addEventListener('settled', () => {
   console.log('Layout settled');
 });
 ```
+
+## ✏️ `<mdld-editor>`
+
+A zero-dependency MD-LD editor custom element — a transparent `<textarea>` over a `highlight()`-painted backdrop, so you get syntax highlighting with fully native editing (caret, selection, IME, undo). Ships inside `mdld-parse.js` and auto-registers in the browser, same as `<quad-graph>`.
+
+```html
+<mdld-editor id="editor" height="80svh"></mdld-editor>
+<script type="module">
+  import { parse } from 'mdld-parse';
+  const ed = document.getElementById('editor');
+  ed.value = '[ex] <tag:demo,2026:>\n# Alice {ex:alice .prov:Person}';
+  ed.addEventListener('input', () => {
+    const { quads } = parse({ text: ed.value });
+    document.querySelector('quad-graph').quads = quads;
+  });
+</script>
+```
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `value` | `''` | Initial/editor content (also a get/set property) |
+| `height` | `320px` | Editor height (`80svh`, `400px`, …) |
+| `placeholder` | — | Placeholder text |
+| `readonly` | off | Read-only mode |
+
+- **Events** — `input` bubbles normally; listen on the element for live parse-on-type
+- **Methods** — `focus()`
+- **Theming** — `--mdld-text`, `--mdld-caret`, `--mdld-placeholder` CSS vars; font is fixed 12px monospace with `tab-size: 2`
+- **Keys** — Tab inserts two spaces
+- `MdldEditor` is exported but `undefined` outside the DOM — feature-detect like `QuadGraph`
 
 ## Styling by Type
 

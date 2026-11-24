@@ -489,3 +489,53 @@ export function highlight(code) {
 
     return result;
 }
+
+/* ───────────────────────── <mdld-editor> — editor component ─────────────────────────
+ * A transparent <textarea> layered over a highlight()-painted <pre>: native caret,
+ * selection, IME, undo — no contenteditable caret math. Attributes: value,
+ * placeholder, readonly, height. Props: value (get/set). Events: input (bubbles).
+ * Methods: focus(). Tab inserts two spaces. DOM-guarded like <quad-graph>: registers
+ * in browser, exports undefined elsewhere. Theme via --mdld-text/--mdld-caret/
+ * --mdld-placeholder CSS vars. */
+const EditorBase = typeof HTMLElement !== 'undefined' ? HTMLElement : class { };
+const EDITOR_CSS = `:host{display:block;position:relative;height:320px;min-height:120px}
+.wrap{position:absolute;inset:0}
+pre,textarea{position:absolute;inset:0;margin:0;padding:12px;border:0;box-sizing:border-box;overflow:hidden;font:.9em/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;tab-size:2;white-space:pre-wrap;overflow-wrap:anywhere}
+pre{pointer-events:none}
+textarea{background:transparent;resize:none;outline:none;color:transparent;caret-color:var(--mdld-caret,#eee);overflow:auto}
+pre h1,pre h2,pre h3,pre h4,pre h5,pre h6{display:inline;font-size:inherit;line-height:inherit;margin:0;padding:0;font-weight:inherit}
+::placeholder{color:var(--mdld-placeholder,#666)}`;
+
+class MdldEditorImpl extends EditorBase {
+    static observedAttributes = ['value', 'placeholder', 'readonly', 'height'];
+    constructor() {
+        super();
+        const root = this.attachShadow({ mode: 'open' });
+        root.innerHTML = `<style>${EDITOR_CSS}</style><div class="wrap"><pre aria-hidden="true"></pre><textarea spellcheck="false"></textarea></div>`;
+        this._ta = root.querySelector('textarea'); this._pre = root.querySelector('pre');
+        this._ta.addEventListener('input', () => this._paint());
+        this._ta.addEventListener('scroll', () => { this._pre.scrollTop = this._ta.scrollTop; this._pre.scrollLeft = this._ta.scrollLeft; });
+        this._ta.addEventListener('keydown', e => {
+            if (e.key !== 'Tab') return;
+            e.preventDefault();
+            this._ta.setRangeText('  ', this._ta.selectionStart, this._ta.selectionEnd, 'end');
+            this._paint(); this._ta.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    }
+    connectedCallback() { this._paint(); }
+    attributeChangedCallback(name, _, v) {
+        if (!this._ta) return;
+        if (name === 'value') this.value = v ?? '';
+        else if (name === 'placeholder') this._ta.placeholder = v ?? '';
+        else if (name === 'readonly') this._ta.readOnly = this.hasAttribute('readonly');
+        else if (name === 'height') this.style.height = /^\d+$/.test(v) ? v + 'px' : v || '';
+    }
+    get value() { return this._ta?.value ?? ''; }
+    set value(v) { if (this._ta) { this._ta.value = v ?? ''; this._paint(); } }
+    focus() { this._ta?.focus(); }
+    _paint() { this._pre.innerHTML = highlight(this._ta.value); this._pre.scrollTop = this._ta.scrollTop; this._pre.scrollLeft = this._ta.scrollLeft; }
+}
+
+const IS_EDITOR_BROWSER = typeof customElements !== 'undefined' && typeof document !== 'undefined';
+if (IS_EDITOR_BROWSER && !customElements.get('mdld-editor')) customElements.define('mdld-editor', MdldEditorImpl);
+export const MdldEditor = IS_EDITOR_BROWSER ? MdldEditorImpl : undefined;
