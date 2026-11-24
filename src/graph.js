@@ -219,7 +219,7 @@ export class QuadGraph extends Base {
         this._quads = []; this._pfx = []; this._L = new Layout(); this._ids = null; this._names = []; this._typ = new Int32Array(0);
         this._classes = [null]; this._lits = new Map(); this._lab = new Map(); this._lc = []; this._plc = [];
         this._v = { k: 1, x: 0, y: 0 }; this._w = 600; this._h = 480; this._dpr = 1; this._fg = '#888'; this._halo = 'rgba(255,255,255,.8)'; this._tt = -1e9;
-        this._sel = -1; this._hov = -1; this._nl = []; this._el = []; this._auto = true; this._fc = 0; this._ht = 0; this._st = '';
+        this._sel = -1; this._hov = -1; this._nl = []; this._el = []; this._hnl = []; this._hel = []; this._auto = true; this._fc = 0; this._ht = 0; this._st = '';
         this._occ = new Uint8Array(0); this._oc = 1; this._or = 1; this._ptrs = new Map(); this._gs = null;
         this._bend = new Float32Array(0); this._lp = new Int32Array(0); this._pc = []; this._fill = []; this._ring = [];
         this._graphs = []; this._edgeGraph = new Uint16Array(0); this._nodeGraphs = []; this._visibleGraphs = new Set(); this._nodeVisible = new Uint8Array(0);
@@ -378,7 +378,7 @@ export class QuadGraph extends Base {
         });
         const L = this._L; L.charge = Math.abs(parseFloat(this.getAttribute('charge'))) || 40; L.linkDist = parseFloat(this.getAttribute('link-dist')) || 45;
         L.load(x, y, LS, LT, deg, r, mass, pin); if (hadOld) L.alpha = 0.5;
-        this._sel = -1; this._hov = -1; this._nl = []; this._el = []; this._tip.style.display = 'none';
+        this._sel = -1; this._hov = -1; this._nl = []; this._el = []; this._hnl = []; this._hel = []; this._tip.style.display = 'none';
         if (!hadOld) { this._auto = true; if (n) Object.assign(this._v, this._fitTarget()); }
         this._theme(); this._dirty = true; this._wake();
     }
@@ -474,7 +474,7 @@ export class QuadGraph extends Base {
         g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
         if (!L.n) return;
         if (performance.now() - this._tt > 1000) this._theme();
-        const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, bend = this._bend, isType = this._isType;
+        const { x, y, r, ls, lt } = L, k = v.k, inv = 1 / k, E = ls.length, sel = this._sel, hov = this._hov, bend = this._bend, isType = this._isType;
         const x0 = -v.x * inv, y0 = -v.y * inv, x1 = (W - v.x) * inv, y1 = (H - v.y) * inv;
         g.setTransform(d * k, 0, 0, d * k, d * v.x, d * v.y); g.lineCap = 'round';
         const addEdge = (e, ap) => {
@@ -492,7 +492,7 @@ export class QuadGraph extends Base {
             }
         };
         // links, batched per predicate; alpha adapts to density
-        const arrows = k > 0.45 && E < 40000, base = (E > 100000 ? 0.2 : E > 20000 ? 0.3 : E > 3000 ? 0.45 : 0.65) * (sel >= 0 ? 0.25 : 1);
+        const arrows = k > 0.45 && E < 40000, base = (E > 100000 ? 0.2 : E > 20000 ? 0.3 : E > 3000 ? 0.45 : 0.65) * (sel >= 0 ? 0.25 : hov >= 0 ? 0.5 : 1);
         g.lineWidth = (E > 50000 ? 0.7 : 1) * inv;
         for (let p = 0; p < this._pc.length; p++) {
             const ap = arrows ? new Path2D() : null; g.beginPath();
@@ -505,7 +505,7 @@ export class QuadGraph extends Base {
             if (ap) { g.globalAlpha = Math.min(1, (isTypePred ? base * 0.25 : base) * 1.5); g.fillStyle = isTypePred ? '#666' : this._pc[p]; g.fill(ap); }
         }
         // nodes, batched per class; sub-pixel nodes become rects
-        const ring = k > 0.65 && (L.n < 30000 || k > 2); g.lineWidth = 1.4 * inv; g.globalAlpha = sel >= 0 ? 0.28 : 1;
+        const ring = k > 0.65 && (L.n < 30000 || k > 2); g.lineWidth = 1.4 * inv; g.globalAlpha = sel >= 0 ? 0.28 : hov >= 0 ? 0.55 : 1;
         for (let cl = 0; cl < this._fill.length; cl++) {
             g.beginPath();
             for (let a = this._cOff[cl]; a < this._cOff[cl + 1]; a++) {
@@ -528,8 +528,12 @@ export class QuadGraph extends Base {
             g.lineWidth = 1.6 * inv; g.globalAlpha = 0.9;
             for (const e of this._el) { const ap = new Path2D(), col = this._pc[this._lp[e]]; g.beginPath(); addEdge(e, ap); g.strokeStyle = g.fillStyle = col; g.stroke(); g.fill(ap); }
             g.globalAlpha = 1; for (const i of this._nl) dot(i, false); dot(sel, true);
+            if (hov >= 0 && hov !== sel) dot(hov, true);
+        } else if (hov >= 0) {
+            g.lineWidth = 1.6 * inv; g.globalAlpha = 0.45;
+            for (const e of this._hel) { const ap = new Path2D(), col = this._pc[this._lp[e]]; g.beginPath(); addEdge(e, ap); g.strokeStyle = g.fillStyle = col; g.stroke(); g.fill(ap); }
+            g.globalAlpha = 1; for (const i of this._hnl) dot(i, false); dot(hov, true);
         }
-        if (this._hov >= 0 && this._hov !== sel) dot(this._hov, true);
         g.lineWidth = 1.2 * inv; g.strokeStyle = this._fg; g.setLineDash([3 * inv, 3 * inv]);
         for (let i = 0; i < L.n; i++) if (L.pin[i] & 1) { g.beginPath(); g.arc(x[i], y[i], r[i] + 3 * inv, 0, TAU); g.stroke(); }
         g.setLineDash([]);
@@ -537,7 +541,7 @@ export class QuadGraph extends Base {
         g.globalAlpha = 1;
     }
     _drawLabels(g, d) {
-        const L = this._L, { x, y, r, ls, lt } = L, v = this._v, k = v.k, W = this._w, H = this._h, sel = this._sel, oc = this._occ, cols = this._oc, C = 12;
+        const L = this._L, { x, y, r, ls, lt } = L, v = this._v, k = v.k, W = this._w, H = this._h, sel = this._sel, hov = this._hov, oc = this._occ, cols = this._oc, C = 12;
         g.setTransform(d, 0, 0, d, 0, 0); oc.fill(0);
         g.font = '11px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 1.5;
         const reserve = (cx, cy, w, h, force) => {
@@ -553,11 +557,12 @@ export class QuadGraph extends Base {
             if (!force && rs < 2) return 0;
             const t = this._label(i), w = t.length * 6.1 + 6, ty = sy - rs - 8;
             if (!reserve(sx, ty, w, 14, force)) return 0;
-            g.globalAlpha = sel >= 0 && !force ? 0.35 : 1;
+            g.globalAlpha = !force && (sel >= 0 || hov >= 0) ? (sel >= 0 ? 0.35 : 0.6) : 1;
             g.strokeStyle = this._halo; g.strokeText(t, sx, ty); g.fillStyle = this._fg; g.fillText(t, sx, ty); return 1;
         };
         if (sel >= 0) { put(sel, true); for (const i of this._nl) put(i, true); }
-        if (this._hov >= 0) put(this._hov, true);
+        else if (hov >= 0) for (const i of this._hnl) put(i, false);
+        if (hov >= 0) put(hov, true);
         for (let a = 0, seen = 0, drawn = 0; a < L.n && drawn < 700 && seen < 6000; a++) { const s = put(this._order[a], false); if (s >= 0) seen++; if (s > 0) drawn++; }
         if (k < 0.5 || !ls.length) return;
         g.font = '9px system-ui,sans-serif'; g.globalAlpha = 0.9; g.lineWidth = 1;
@@ -588,10 +593,14 @@ export class QuadGraph extends Base {
         }
         return best;
     }
+    _neighbors(i) {
+        const L = this._L, off = this._off, adj = this._adj, nl = [], el = [];
+        if (i >= 0) { const s = new Set(); for (let a = off[i]; a < off[i + 1]; a++) { const e = adj[a]; el.push(e); s.add(L.ls[e] === i ? L.lt[e] : L.ls[e]); } for (const j of s) nl.push(j); }
+        return [nl, el];
+    }
     _select(i) {
         if (i === this._sel) return;
-        const L = this._L, off = this._off, adj = this._adj; this._sel = i; this._nl = []; this._el = [];
-        if (i >= 0) { const s = new Set(); for (let a = off[i]; a < off[i + 1]; a++) { const e = adj[a]; this._el.push(e); s.add(L.ls[e] === i ? L.lt[e] : L.ls[e]); } this._nl = [...s]; }
+        this._sel = i; [this._nl, this._el] = this._neighbors(i);
         this.dispatchEvent(new CustomEvent('node-select', { detail: i >= 0 ? this._names[i] : null, bubbles: true }));
         this._dirty = true; this._wake();
     }
@@ -630,7 +639,7 @@ export class QuadGraph extends Base {
                 this._mp = p;
                 if (!this._hp) this._hp = requestAnimationFrame(() => {
                     this._hp = 0; const q = this._mp, i = this._pick(q.x, q.y);
-                    if (i !== this._hov) { this._hov = i; cv.style.cursor = i >= 0 ? 'pointer' : 'grab'; this._dirty = true; this._wake(); this.dispatchEvent(new CustomEvent('node-hover', { detail: i >= 0 ? this._names[i] : null })); }
+                    if (i !== this._hov) { this._hov = i; [this._hnl, this._hel] = this._neighbors(i); cv.style.cursor = i >= 0 ? 'pointer' : 'grab'; this._dirty = true; this._wake(); this.dispatchEvent(new CustomEvent('node-hover', { detail: i >= 0 ? this._names[i] : null })); }
                     this._showTip(i, q.x, q.y);
                 });
                 return;
@@ -655,7 +664,7 @@ export class QuadGraph extends Base {
             }
         };
         cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-        cv.addEventListener('pointerleave', () => { if (this._hov >= 0 && !P.size) { this._hov = -1; this._dirty = true; this._wake(); } this._showTip(-1); });
+        cv.addEventListener('pointerleave', () => { if (this._hov >= 0 && !P.size) { this._hov = -1; this._hnl = []; this._hel = []; this._dirty = true; this._wake(); } this._showTip(-1); });
         this._graphsToggle.addEventListener('click', () => {
             this._graphsPanel.classList.toggle('collapsed');
         });
