@@ -1,6 +1,6 @@
 {
 	"name": "mdld-parse",
-	"version": "1.2.3",
+	"version": "1.2.4",
 	"description": "Write RDF knowledge graphs as plain Markdown. Parse to quads, generate back, merge documents. The human-friendly semantic web format.",
 	"keywords": [
 		"rdf",
@@ -26,14 +26,10 @@
 	"type": "module",
 	"main": "./dist/mdld-parse.js",
 	"exports": {
-		".": "./dist/mdld-parse.js",
-		"./graph": "./dist/quad-graph.js",
-		"./crawl": "./dist/crawl.js"
+		".": "./dist/mdld-parse.js"
 	},
 	"files": [
-		"dist/mdld-parse.js",
-		"dist/quad-graph.js",
-		"dist/crawl.js"
+		"dist/mdld-parse.js"
 	],
 	"scripts": {
 		"test": "node tests/index.js",

@@ -195,9 +195,16 @@ Discussed [Project Alpha] {alice:discussed}
 - **🔄 Round-trip safety** — Deterministic parse ↔ generate cycles
 - **🌐 HTML Codec** — Lossless `render()` and `deconstruct()` pair for web publishing
 
-**Bundle size:** 175KB unminified, ~42KB gzipped
+**Bundle size:** ~222KB unminified, ~57KB gzipped — the complete engine in one file
 
 ## 📦 Installation
+
+**One file. Zero dependencies. Fully self-contained** — `mdld-parse.js`
+(~222 kB) is the entire engine: parser, canonical generator, SHACL validator
+(`evaluate`/`validate`/`extract`), graph renderer (`<quad-graph>`, browser-only,
+exported as `undefined` elsewhere), merge, render, and highlight. There are no
+sub-path exports — everything is importable from `'mdld-parse'`, and the file
+can be air-gapped, vendored, or embedded anywhere ESM runs.
 
 ### Node.js
 
@@ -571,66 +578,47 @@ Visualize your RDF quads as an interactive force-directed graph with the zero-de
 
 ### Quick Start
 
+`<quad-graph>` ships **inside** `mdld-parse.js` — importing the library in a
+browser registers the custom element automatically. No second import, no
+sub-path, no extra file:
+
 ```html
 <!DOCTYPE html>
 <html>
 <head>
   <script type="importmap">
-    {
-      "imports": {
-        "mdld-parse": "https://mdld.js.org/mdld-parse.js",
-        "quad-graph": "https://mdld.js.org/quad-graph.js"
-      }
-    }
+    { "imports": { "mdld-parse": "https://mdld.js.org/mdld-parse.js" } }
   </script>
 </head>
 <body>
   <quad-graph height="600"></quad-graph>
   <script type="module">
-    import { parse } from 'mdld-parse';
-    import 'quad-graph'
+    import { parse } from 'mdld-parse';   // registers <quad-graph> as a side effect
     const graph = document.querySelector('quad-graph');
-    
+
     const mdld = `[ex] <tag:example.org,2026:>
 # Alice {=ex:alice .prov:Person label}
 [Alice] {ex:name} knows [Bob] {+ex:bob ?ex:knows}`;
 
     const result = parse({ text: mdld });
-    graph.context = result.context
+    graph.context = result.context;
     graph.quads = result.quads;
   </script>
 </body>
 </html>
 ```
 
-### Browser Console Usage
+### Node.js / non-browser
+
+`QuadGraph` is exported but **`undefined` outside the DOM** — feature-detect:
 
 ```javascript
-// Load the modules directly
-const mdld = await import('https://mdld.js.org/mdld-parse.js');
-const graph = await import('https://mdld.js.org/quad-graph.js');
-
-// Create and configure the graph
-const quadGraph = document.createElement('quad-graph');
-quadGraph.height = '600';
-document.body.appendChild(quadGraph);
-
-// Parse and visualize
-const result = mdld.parse({ text: yourMdldString });
-quadGraph.context = result.context;
-quadGraph.quads = result.quads;
+import { QuadGraph, parse } from 'mdld-parse';
+if (QuadGraph) { /* browser only — render graphs */ }
 ```
 
-### Installation
-
-```bash
-pnpm install mdld-parse
-```
-
-```javascript
-import { parse } from 'mdld-parse';
-import 'mdld-parse/quad-graph'; // Registers <quad-graph> custom element
-```
+The rest of the engine (parse, generate, evaluate, extract, render) is
+fully environment-agnostic — the visual layer simply stays dormant.
 
 ### Features
 
@@ -711,99 +699,13 @@ Use CSS attribute selectors to style elements by their RDF types:
 [data-iri="http://example.org/alice"] { font-weight: bold; }
 ```
 
-## 🕸️ Crawling the graph — `crawl.js`
+## 🕸️ Crawling the graph
 
-MD-LD documents link to each other with ordinary Markdown links, so the graph
-is already on the wire — you just need to follow it. `crawl.js` is a
-**zero-dependency crawler primitive** that does exactly that: fetch raw text,
-extract links, recurse. It knows nothing about MD-LD — the parser is applied at
-the call site, which keeps the core pure and the crawler reusable for *any*
-linked text format.
-
-New in **v1.0.9**. Ships as a separate entry point (`mdld-parse/crawl`) and is
-self-contained enough to load straight from the browser console — no bundler,
-no build step:
-
-```js
-// Browser console, on any MD-LD site
-const { crawl } = await import('/crawl.js');
-const { pages, errors } = await crawl('/index.md', { sameOrigin: true });
-console.table(pages.map(p => ({ url: p.url, depth: p.depth, links: p.links.length })));
-```
-
-```js
-// Node ≥ 18 / Deno / Bun
-import { crawl } from 'mdld-parse/crawl';
-const { pages } = await crawl('https://mdld.js.org/index.md', { maxPages: 25 });
-```
-
-Full pipeline — crawl the graph, parse every document into its own named graph:
-
-```js
-import { crawl } from 'mdld-parse/crawl';
-import { parse, deconstruct } from 'mdld-parse';
-
-const { pages } = await crawl('/index.md', { sameOrigin: true, cache: myCache });
-
-const results = pages.map(p => parse({
-  text: p.kind === 'html' ? deconstruct(p.text) : p.text, // HTML is a first-class transport
-  graph: p.finalUrl,                                      // redirect-correct document identity
-}));
-const quads = results.flatMap(r => r.quads); // the whole crawled graph, provenance intact
-```
-
-### What it extracts
-
-Both scanners run on **every** document — inline HTML is valid CommonMark, so
-documents are routinely mixed:
-
-- **Markdown**: inline links & images `[text](url)`, reference definitions
-  `[label]: url`, autolinks `<https://…>`
-- **HTML**: `<a href>` — comment-aware, quote-aware, entities decoded;
-  `<script>`/`<style>` contents are skipped
-
-Extraction is character-scanned (no regex in hot paths) and context-aware:
-fenced code blocks, code spans and HTML comments never yield phantom links.
-
-### Options
-
-| Option | Default | Description |
-| --- | --- | --- |
-| `maxDepth` | `5` | Maximum link distance from the start document |
-| `maxPages` | `100` | Hard cap on fetched pages — untrusted graphs can't balloon the crawl |
-| `concurrency` | `5` | Maximum in-flight fetches |
-| `sameOrigin` | `false` | Restrict the crawl to the start document's origin |
-| `cache` | `memoryCache()` | Any `{ get, set, delete? }` adapter |
-| `fetchFn` | `globalThis.fetch` | Wrap for retries, auth, proxies, rate limits |
-| `accept` | docs extensions | `(url) => boolean` target filter |
-| `onPage` | — | Per-page callback — parse incrementally while the crawl is in flight |
-| `signal` | — | `AbortSignal` — cancels and resolves with partial results |
-
-### Cache
-
-Caching is a three-method interface — bring your own storage:
-
-```js
-const cache = {
-  async get(url) { /* → { text, etag, lastModified, ... } | null  */ },
-  async set(url, entry) { /* persist */ },
-  async delete(url) { /* evict */ },
-};
-```
-
-Conditional requests are automatic: stored `ETag` / `Last-Modified` are re-sent
-as validators, `304` responses cost zero bytes and zero re-parse, and on 5xx or
-network failure the cached copy is served (stale-if-error). Cache failures are
-swallowed — a broken adapter (e.g. Safari private mode) degrades to "no cache",
-never to a failed crawl. Drop-in adapters for IndexedDB, localStorage and Node
-JSON-file caching live in `docs/cache-adapters.md`.
-
-### Guarantees
-
-- **Deterministic** — pages return in BFS discovery order, never completion order
-- **Bounded** — `maxDepth`, `maxPages`, http(s)-only protocol allow-list, binary content-types rejected
-- **Partial-result-safe** — errors are collected in `result.errors`; the crawl continues
-- **Cancellable** — `AbortSignal` yields `{ aborted: true }` plus everything fetched so far
+MD-LD documents link to each other, so the graph is already on the wire.
+Link-following is a **client concern**, not a library one — it lives in the
+playground (`demo/crawl.js`) and is documented in `docs/crawl.md`. The core
+stays pure: given knowledge, it parses, validates, extracts, renders, and
+displays it — acquisition is the caller's job.
 
 ## ✅ SHACL Validation
 
@@ -914,7 +816,7 @@ import {
 ## 🏗️ Architecture
 
 ### Design Principles
-- **Zero dependencies** — Pure JavaScript, 175KB unminified (~42KB gzipped)
+- **Zero dependencies** — Pure JavaScript, ~222KB unminified (~57KB gzipped), one file
 - **Streaming-first** — Single-pass parsing, O(n) complexity
 - **Character-based tokenization** — 20-28% faster than regex-based approaches
 - **Standards-compliant** — RDF/JS data model, W3C CURIE 1.0 syntax

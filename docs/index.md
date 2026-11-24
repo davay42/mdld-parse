@@ -69,7 +69,10 @@ Deep dive into parser internals: token structures, state machines, and processin
 ## 🚀 Performance & Philosophy
 
 ### [Performance Benchmarks](./Performance.md)
-Grounded performance metrics from real-world ontologies (PROV-O, RDF+RDFS, SHACL). 60fps limits (~4.5K quads), 1-second batch processing (~225K quads), and sustained throughput (252K quads/sec).
+Measured wall-clock report: parse ~105K q/s, `evaluate()` ~500K q/s end-to-end (violations + records in one pass, tri-indexed + memoized store), 200 ms real-time envelope ≈ 100K quads.
+
+### [Closure: How Loops Turn Claims Into Facts](./loops.md)
+Every claim in the system is the output of an executed invariant — eight closure loops from canonical fixed-point to the `<quad-graph>` gestalt feedback loop, plus where closure honestly stops.
 
 ### [Token Efficiency](./Token-Efficiency.md)
 Grounded token consumption comparison between MD-LD, JSON-LD and TTL - two tokenizers, 7 example cases + scaling tests - all discover  higher density of triples per token and per character and demostrate high density of meaning achievable with MD-LD.

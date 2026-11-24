@@ -1,5 +1,16 @@
 # MD-LD evolution
 
+## v1.2.4 unified single file — the complete epistemic engine
+
+### Changed
+- **`<quad-graph>` merged into `mdld-parse.js`** — the Canvas2D force-directed renderer ships inside the single bundle; importing the library in a browser registers the custom element automatically (no sub-path, no second import). `QuadGraph` is exported but `undefined` outside the DOM — feature-detect with `if (QuadGraph)`; the rest of the engine stays fully environment-agnostic
+- **`crawl.js` demoted to client concern** — moved to `demo/crawl.js` (playground-only); acquisition is transport, not knowledge — the core never touches the network. Documented in `docs/crawl.md`
+- **Single export surface** — `package.json` exposes only `"." → dist/mdld-parse.js`; no `./crawl`, `./graph`, or `./shapes` sub-paths remain
+
+### Added
+- **`docs/crawl.md`** — crawler API + design patterns (BFS bounds, ETag revalidation, soft-fail cache, AbortSignal, injectable fetch)
+- **`docs/performance.md`** — measured report: parse ~105K q/s, `evaluate()` ~500K q/s, 200 ms real-time envelope ≈ 100K quads
+
 ## v1.2.3 unified evaluation — `evaluate()` + ontology validation packs
 
 ### Added

@@ -63,7 +63,7 @@
     <link rel="stylesheet" href="./demo/styles.css">
 
     <script type="module">
-        import { parse, shortenIRI, expandIRI, generate } from './src/index.js';
+        import { parse, shortenIRI, expandIRI, generate, validate, extract } from './src/index.js';
         import { render } from './src/render.js'
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store, Parser } from 'n3';
@@ -71,11 +71,8 @@
         import { loadExample as loadExampleData } from './demo/examples.js';
         import { highlight as highlightMDLD, getIRIColor, TOKEN_COLORS } from './src/highlight.js';
         import { CodeJar } from 'codejar';
-        // Import RDF Graph Visualizer
-        import './src/graph.js'
         // Import crawl functionality
-        import { crawl } from './src/crawl.js';
-        import { validate, extract } from './shapes/validator.js';
+        import { crawl } from './demo/crawl.js';
 
         // import 'virtual:uno.css'
 
