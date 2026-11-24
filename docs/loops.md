@@ -54,6 +54,15 @@ The precise invariant is canonical **idempotence**:
 generate(parse(canonical)) ≡ canonical
 ```
 
+```js
+import { parse, generate } from 'mdld-parse'
+const text = `# Alice {=ex:alice .prov:Person label}
+[Alice] {ex:name} knows [Bob] {+ex:bob ?ex:knows}`
+const once = generate(parse({ text }).quads).text   // canonical form
+const twice = generate(parse({ text: once }).quads).text
+once === twice   // → true — fixed point reached, prose is now free to vary
+```
+
 Prose can vary freely — a human rewrites every sentence, an agent translates
 the document — and the transformation is graph-preserving iff the canonical
 projection is unchanged. "Did I break the data by editing the story?" becomes
@@ -67,6 +76,13 @@ flawless text. Syntactic hallucination has no surface to occur on.
 
 ```
 MD-LD → render() → HTML → deconstruct() → MD-LD → parse() → quads
+```
+
+```js
+import { parse, render, deconstruct } from 'mdld-parse'
+const html = render(text)                        // MD-LD → semantic HTML
+const md2 = deconstruct(html)                    // annotations survive as data-*
+const quads = parse({ text: md2 }).quads         // same graph, back through text
 ```
 
 Annotations survive as `data-annotation` attributes; `deconstruct()`
@@ -92,6 +108,13 @@ structurally impossible: they are not two computations. `validate()` and
 is a validated fact**. Two-tier gating: node-level constraints drop whole
 records; property-level constraints drop individual fields. A product with a
 negative price appears *without* the price key — the absence is the signal.
+```js
+import { evaluate } from 'mdld-parse'
+const { conforms, violations, records } = evaluate({ quads, context })
+// records.Product['ex:p1'].price — absent when the price violates;
+// the key's presence IS the proof it passed every constraint
+```
+
 Downstream consumers cannot receive invalid data; there is no `if (valid)`
 branch to forget. The type of the output is the guarantee.
 
@@ -111,6 +134,10 @@ SHACL-SPARQL, SHACL-AF). Complete coverage accounting and silent gaps cannot
 coexist; the loop makes omission visible, which makes honesty the path of
 least resistance.
 
+```bash
+node shapes/selftest.js   # coverage: every sh: term accounted for or declared-excluded
+```
+
 ## Loop V — The seeds
 
 `catalog.md` holds 33 executable worlds — each simultaneously documentation,
@@ -125,6 +152,11 @@ a tautology. The design anchors on `cat:expectedViolations`, a
 **hand-authored integer** — a human decided this world produces exactly four
 violations. The machine-regenerated POJOs are a *drift* guard layered on a
 *meaning* anchor. **Humans fix meaning, machines guard stability.**
+
+```js
+// every cat:Demo node IS the fixture: source fence + expectedViolations +
+// extractedPOJO literal — selftest.mjs verifies all three against live output
+```
 
 For agents this is the bootstrap: 33 small business stories with shapes, data,
 expected violations, and expected extractions — worked examples guaranteed
@@ -142,6 +174,14 @@ it is a **position in prose** — a caret in an editor, a red underline on a
 carrier, a click that scrolls to the sentence. The machine's objection becomes
 something a human who doesn't think in graphs can act on.
 
+```js
+import { parse, locate, updateValue } from 'mdld-parse'
+const { quads, origin } = parse({ text })
+const q = quads.find(q => q.subject.value.endsWith('alice'))
+const pos = locate(q, origin)          // → { start, end, valueStart, valueEnd }
+updateValue({ text, quad: q, value: 'Alicia' })  // writes back into the carrier
+```
+
 ## Loop VII — Merge
 
 Append-only documents with polarity (`+`/`-`) and a hard invariant:
@@ -153,6 +193,13 @@ Multi-writer collaboration without coordination: no locks, no server, no
 operational transform. A researcher agent asserts, a critic retracts, a human
 reviews the diff — merge is a function of the documents, not arrival order.
 Git becomes the transaction log because the semantics are replayable.
+
+```js
+import { merge } from 'mdld-parse'
+// doc A asserts, doc B retracts — quads ∩ remove = ∅ by construction;
+// merge([A, B]) is a pure function of the documents, order-independent
+const merged = merge([docA, docB])
+```
 
 ## Loop VIII — The Gestalt loop (vision)
 
@@ -182,6 +229,14 @@ the forest. Importing `mdld-parse` in a browser registers `<quad-graph>`
 automatically; in Node it exports `undefined` — the loop is present but
 dormant where there's no retina to serve.
 
+```html
+<script type="module">
+  import { parse } from 'mdld-parse'   // registers <quad-graph> automatically
+  const g = document.querySelector('quad-graph')
+  g.quads = parse({ text }).quads      // topology appears; the eye audits it
+</script>
+```
+
 ## The composition
 
 ```
@@ -199,6 +254,18 @@ Each stage inherits its own invariant; each failure is **local and named** —
 this focus node, this path, this value, this constraint component, with a byte
 range attached (Loop VI). The agent's search space collapses from "rewrite
 everything" to "change this."
+
+Two properties complete the picture:
+
+- **Views are projections, not copies.** `generateNode()`/`extract()`/filtered
+  `generate()` derive any lens — address book, org chart, audit view — from the
+  source graph on demand. No sync protocol, no stale cache: the view is always
+  a function of the source.
+- **Document trees keep provenance.** Parsing with `graph: path` stamps every
+  quad with its source document; `merge()` preserves per-document origin, so
+  `locate()` on any merged quad reaches the exact characters in the exact file
+  that authored it. File systems, chat logs, and version histories all map to
+  the same mechanism — the tree is a naming convention, not a coupling.
 
 Under shaped evaluation, a plausible-but-empty graph (invented predicates,
 `isRelatedTo`/`hasConnection`/`linksTo` meaning the same thing) produces

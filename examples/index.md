@@ -127,6 +127,8 @@ Complete LLM-assisted workflow with provenance tracking, temporal boundaries, an
 Full research workflow demonstration with activities, PROV-O integration, and SHACL validation throughout.
 
 ### [Dogfood](./dogfood.md)
+
+
 Comprehensive example showing complex relationships, nested structures, and various MD-LD features in real use.
 
 ---

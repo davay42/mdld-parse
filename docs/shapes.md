@@ -92,7 +92,7 @@ extract({ quads }, 'tag:ex,ProductShape')
 // InvalidProduct2 appears WITHOUT "price" — the key's absence is the violation
 ```
 
-Every key in the output is a validated fact. `sh:js` guards don't execute during projection (`allowJS` stays off), so js-guarded fields are kept.
+Every key in the output is a validated fact. `sh:js` guards execute during projection only when `allowJS: true` is passed — js-guarded fields that fail are omitted, keeping extraction and validation in sync (`evaluate()` produces both views in one pass).
 
 `extract` accepts `{ quads }`, `{ shapes, data }`, or a raw `Quad[]`; omitting `shapeIRI` uses the first non-deactivated NodeShape. Options: `byNode: true` returns `{ focusValue: pojo }`, `maxDepth` bounds `sh:node` recursion (cycles degrade to the bare IRI).
 
