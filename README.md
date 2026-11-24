@@ -813,6 +813,34 @@ import {
 } from 'mdld-parse';
 ```
 
+## 🧬 Epistemology — the eight closures
+
+Every claim in this library is the output of an executed invariant, not a
+promise. If a loop fails, it fails loudly — `npm run test-shapes` is the proof.
+
+| # | Loop | Invariant | Mechanism |
+|---|------|-----------|-----------|
+| I | **Fixed point** | `generate(parse(canonical)) ≡ canonical` | canonical serializer |
+| II | **Codec** | MD-LD → HTML → MD-LD → same quads | `render()`/`deconstruct()` |
+| III | **Gate** | violations and records are mutually exclusive | `evaluate()` single traversal |
+| IV | **Triangle** | spec ↔ docs ↔ code, 101/101 terms | catalog coverage+sync selftest |
+| V | **Seeds** | examples carry source+violations+POJOs in-graph | `cat:Demo`/`pack:Demo` nodes |
+| VI | **Origin** | every quad maps to byte range in source | `locate()`/`updateValue()` |
+| VII | **Merge** | assertion ∩ retraction = ∅, order-independent | `merge()` polarity replay |
+| VIII | **Gestalt** | human sees global topology SHACL can't | `<quad-graph>` (browser-only) |
+
+Two rules follow: **conservation** (nothing lost — loops I, II) and **admission**
+(nothing false passes — loops III–V). VI–VIII close the loop to the human:
+origin makes violations clickable, merge makes collaboration safe, the graph
+makes topology visible.
+
+**Conventions for agents**: shapes are contracts (`sh:property` + `sh:path` +
+`sh:name`), examples are executable (`cat:Demo`/`pack:Demo` nodes), and
+`evaluate({quads})` returns both `violations` and `records` in one pass —
+every emitted key is a validated fact. The full catalog (`shapes/catalog.md`,
+`ontologies/*.shapes.md`) and essays (`docs/loops.md`, `docs/kernel-alignment.md`)
+are in the repo — this README + the single `.js` file are the operational kernel.
+
 ## 🏗️ Architecture
 
 ### Design Principles
