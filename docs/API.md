@@ -416,6 +416,15 @@ try {
 }
 ```
 
+## SHACL: `evaluate()` / `validate()` / `extract()`
+
+The shape engine is documented in [SHACL: Validation and Extraction](./shapes.md).
+`evaluate(options)` is the core operation — one traversal returns
+`{ conforms, violations, records }` where violations and conformance-gated
+POJOs are mutually exclusive views of the same evaluation. `validate()` and
+`extract()` are thin projections over it. Key options: `allowJS` (default
+`false`, opt-in `sh:js`), `byNode` (default `true`), `maxDepth`, `context`.
+
 ## Performance Characteristics
 
 - **O(n) parsing** - Single pass, linear time complexity

@@ -68,6 +68,9 @@ Deep dive into parser internals: token structures, state machines, and processin
 
 ## 🚀 Performance & Philosophy
 
+### [Crawling the Graph](./crawl.md)
+Link-following as a client concern — BFS bounds, ETag revalidation, soft-fail cache, AbortSignal. Lives in `demo/crawl.js`, documented for reuse.
+
 ### [Performance Benchmarks](./Performance.md)
 Measured wall-clock report: parse ~105K q/s, `evaluate()` ~500K q/s end-to-end (violations + records in one pass, tri-indexed + memoized store), 200 ms real-time envelope ≈ 100K quads.
 
@@ -81,6 +84,12 @@ Grounded token consumption comparison between MD-LD, JSON-LD and TTL - two token
 The breathing cycles of knowledge from text to quads and back to composable text records - human-scale semantic documents that can be transformed back into other documents using scalable JS functions. Everything is readable at all times.
 
 ### [Human-Scale Software & Semantic Infrastructure](./Human-Scale.md)
+
+### [The Alignment](./kernel-alignment.md)
+A field guide to personal semantic infrastructure — why standards are discoveries, not inventions.
+
+### [Document-Driven Forms](./contenteditabe.md)
+The `contenteditable` pattern — the document is the form; `render()`/`deconstruct()` make prose editable without losing semantics.
 Philosophy manifesto: why semantic systems drift toward complexity, and how MD-LD enables human-readable, deterministic, locally-inspectable computation. Addresses preservation, long-term comprehensibility, and operational sustainability.
 
 ### [Application Development with MD-LD](./app-dev.md)
@@ -95,6 +104,9 @@ The paradigm shift from databases and query languages to pure Text->Quads[]->Tex
 ## 📋 Real-World Applications
 
 ### [Use Cases](./Use-Cases.md)
+
+### [Tasks: MDLD-Powered PKM](./TodoList.md)
+The todo-list demonstration — where human-readable documents and machine-processable graphs fully bridge.
 Practical examples and applications across different domains:
 
 - **Personal Knowledge Management** — Journal entries, project tracking, learning logs

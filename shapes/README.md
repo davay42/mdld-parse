@@ -250,7 +250,7 @@ Measured on Apple Silicon (reused `Validator` — shape work is cached):
 | 1,000 products | 5,187 | 200 | 33ms |
 | 5,000 products | 25,931 | 1,000 | 129ms |
 
-≈200K quads/sec on a 5-constraint product shape; scales linearly.
+≈200K quads/sec for `validate()` alone on a 5-constraint product shape; scales linearly.
 
 `evaluate()` (violations + records in one pass, tri-indexed store)
 sustains **~500K quads/sec** — 25,000 products / ~125K quads in ~230ms —
