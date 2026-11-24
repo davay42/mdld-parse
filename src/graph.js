@@ -28,6 +28,37 @@ const LABEL_RANK = new Map([
 const MAX_LIT = 6, TAU = 6.2832, GOLD = 2.39996, MIN_D2 = 25, MAX_V = 60;
 const Base = typeof HTMLElement !== 'undefined' ? HTMLElement : class { };
 
+/* Shared layout store: one localStorage ring buffer of iri→[x,y] shared by every
+   <quad-graph> instance, so nodes keep their positions across documents/updates.
+   Re-inserting a key moves it to the back; oldest entries are evicted past POS_MAX. */
+const POS_KEY = 'qg:positions', POS_MAX = 12000;
+let posCache;
+const posStore = () => {
+    if (posCache === undefined) { try { posCache = JSON.parse(localStorage.getItem(POS_KEY)) || {}; } catch { posCache = {}; } }
+    return posCache;
+};
+const posFlush = () => {
+    try {
+        const ks = Object.keys(posCache), n = ks.length - POS_MAX;
+        for (let i = 0; i < n; i++) delete posCache[ks[i]];
+        localStorage.setItem(POS_KEY, JSON.stringify(posCache));
+    } catch { }
+};
+/* 64-bit hash (cyrb53 finalizer) — keys stored positions so IRIs aren't recoverable
+   from localStorage. ~2^64 preimage work; a rare collision only swaps two seed
+   positions, which the force layout smooths out. */
+const posHash = s => {
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (let i = 0; i < s.length; i++) {
+        const ch = s.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+};
+
 const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13; return h >>> 0; };
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 /** Counting sort of indices 0..keys.length-1 by key → [offsets(K+1), list] */
@@ -233,7 +264,7 @@ export class QuadGraph extends Base {
         this._onTheme = () => { this._tt = -1e9; this._dirty = true; this._wake(); }; this._mq?.addEventListener('change', this._onTheme);
         this._resize(); if (this._quads.length && !this._ids) this._queue(); this._wake();
     }
-    disconnectedCallback() { cancelAnimationFrame(this._raf); this._raf = 0; this._ro?.disconnect(); this._mq?.removeEventListener('change', this._onTheme); }
+    disconnectedCallback() { if (this._persist) this._saveLayout(); cancelAnimationFrame(this._raf); this._raf = 0; this._ro?.disconnect(); this._mq?.removeEventListener('change', this._onTheme); }
     attributeChangedCallback(name, _, v) {
         const L = this._L;
         if (name === 'height') this.style.height = /^\d+$/.test(v) ? v + 'px' : v || '';
@@ -357,10 +388,10 @@ export class QuadGraph extends Base {
             bend[e] = (j - (c - 1) / 2) * 16 * (LS[e] < LT[e] ? 1 : -1);
         }
         // preserve / seed positions
-        const old = this._ids, oL = this._L, ox = oL.x, oy = oL.y, opin = oL.pin, seed = this._seed; this._seed = null;
+        const old = this._ids, oL = this._L, ox = oL.x, oy = oL.y, opin = oL.pin, seed = this._seed || (this._persist ? this._loadLayout() : null), seedH = !this._seed && this._persist; this._seed = null;
         const x = new Float64Array(n), y = new Float64Array(n), placed = new Uint8Array(n), pin = new Uint8Array(n);
         for (let i = 0; i < n; i++) {
-            const s = seed?.[names[i]], j = old?.get(names[i]);
+            const s = seed?.[seedH ? posHash(names[i]) : names[i]], j = old?.get(names[i]);
             if (s) { x[i] = s[0]; y[i] = s[1]; placed[i] = 1; }
             else if (j !== undefined) { x[i] = ox[j]; y[i] = oy[j]; placed[i] = 1; pin[i] = opin[j] & 1; }
         }
@@ -424,6 +455,22 @@ export class QuadGraph extends Base {
         this._halo = 'rgba(0,0,0,.8)'; // Dark outline for contrast on light text
     }
 
+    /* ── layout persistence: positions ↔ shared localStorage ring buffer (iri → [x,y]) ── */
+    _loadLayout() { return this._persist ? posStore() : null; }
+    _saveLayout() {
+        const L = this._L; if (!L.n) return;
+        const o = posStore();
+        for (let i = 0; i < L.n; i++) {
+            const id = this._names[i];
+            if (id.startsWith('_:')) continue;   // blank node ids aren't stable across parses
+            const h = posHash(id);
+            delete o[h]; o[h] = [L.x[i] | 0, L.y[i] | 0];
+        }
+        posFlush();
+    }
+    get persist() { return this._persist; }
+    set persist(v) { this._persist = !!v; }
+
     /* ── view ── */
     _resize() {
         const w = this.clientWidth || 600, h = this.clientHeight || 480, d = Math.min(globalThis.devicePixelRatio || 1, this._L.n > 50000 ? 1.5 : 2);
@@ -452,7 +499,7 @@ export class QuadGraph extends Base {
         const L = this._L, was = L.active; let more = false;
         if (was) { const it = L.iter; L.step(L.n > 20000 ? 8 : 5, L.n > 3000 ? 1 : 2); if (L.iter !== it) this._dirty = true; more = L.active; }
         if (this._auto && L.n && (more ? ++this._fc % 6 === 0 : was)) this._anim = this._fitTarget();
-        if (was && !more) { this._auto = false; this.dispatchEvent(new CustomEvent('settled')); }
+        if (was && !more) { this._auto = false; this.dispatchEvent(new CustomEvent('settled')); if (this._persist) this._saveLayout(); }
         if (this._anim) {
             const a = this._anim, v = this._v;
             v.k += (a.k - v.k) * 0.2; v.x += (a.x - v.x) * 0.2; v.y += (a.y - v.y) * 0.2; this._dirty = true;
