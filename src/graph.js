@@ -670,5 +670,9 @@ export class QuadGraph extends Base {
     }
 }
 
-if (typeof customElements !== 'undefined' && !customElements.get('quad-graph')) customElements.define('quad-graph', QuadGraph);
-export default QuadGraph;
+const IS_BROWSER = typeof HTMLElement !== 'undefined' && typeof customElements !== 'undefined' && typeof document !== 'undefined';
+if (IS_BROWSER && !customElements.get('quad-graph')) customElements.define('quad-graph', QuadGraph);
+// Environment-agnostic: outside a DOM the renderer is dormant — the class is
+// still defined (methods are DOM-bound) but consumers get undefined so
+// feature-detection (`if (QuadGraph)`) is the contract.
+export default IS_BROWSER ? QuadGraph : undefined;
