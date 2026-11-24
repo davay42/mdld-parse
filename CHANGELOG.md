@@ -1,5 +1,19 @@
 # MD-LD evolution
 
+## Unreleased — `<quad-graph>` interaction & persistence
+
+### Added
+- **Hover neighborhood highlighting** — hovering a node now dims the rest of the graph and highlights its direct connections (edges + neighbor nodes) at ~50% strength, mirroring select at 100%. Neighbor labels appear subject to normal collision rules. Select stays dominant when both apply
+- **Smooth highlight fades** — dimming and highlighting ease in/out over ~200 ms via two frame-loop scalars (`_fade`/`_fdim`) instead of snapping, eliminating flicker when sweeping across clusters. The last highlight set is retained while fading out
+- **`persist` property (opt-in)** — `graph.persist = true` persists layout across reloads via `localStorage`:
+  - **Positions**: shared ring buffer `qg:positions` (~12k entries, oldest-first eviction) keyed by a 64-bit cyrb53-style hash of each IRI — no plaintext IRIs at rest; shared by all `<quad-graph>` instances so nodes keep positions across documents and edits
+  - **Viewport**: per-document entry in `qg:views` (64-entry ring) keyed by an order-independent hash of the quad set; anchored to the node nearest screen-center with its pixel offset, falling back to the absolute transform — resize-robust
+  - Saves on `settled`, throttled during view changes, `pagehide`, and `disconnectedCallback`; all storage access guarded
+- **Store-seeded layouts reheat gently** — positions restored from the store start the simulation at `alpha = 0.25` instead of a full reheat, keeping refreshed layouts visually stable
+
+### Changed
+- **Predicate (edge) labels** enlarged 9px → 11px with adjusted collision metrics, matching node label size
+
 ## v1.2.4 unified single file — the complete epistemic engine
 
 ### Changed

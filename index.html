@@ -872,6 +872,7 @@
             ].filter(Boolean);
 
             for (const graphEl of graphEls) {
+                graphEl.persist = true;
                 graphEl.addEventListener('node-click', (event) => {
                     openNodeDialog(event.detail);
                 });

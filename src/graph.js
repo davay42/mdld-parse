@@ -9,7 +9,8 @@
  *
  * Attributes: height, charge (repulsion, default 40), link-dist (default 45), labels="off"
  * Methods:    focus(iri) select(iri|null) fit() pin(iri,on) reheat() getNode(iri)
- * Props:      quads, context, positions ({iri:[x,y]} get/set — persist & restore layouts)
+ * Props:      quads, context, positions ({iri:[x,y]} get/set — persist & restore layouts),
+ *             persist (bool — save node positions + viewport to localStorage, opt-in)
  * Events:     node-click (detail = iri) · node-select (iri|null) · node-hover (iri|null) · settled
  * Input:      wheel/pinch zoom, drag background = pan, drag node = move, dblclick node = pin/unpin
  * Theming:    labels use the CSS `color` of the element; background is transparent.
@@ -31,17 +32,28 @@ const Base = typeof HTMLElement !== 'undefined' ? HTMLElement : class { };
 /* Shared layout store: one localStorage ring buffer of iri→[x,y] shared by every
    <quad-graph> instance, so nodes keep their positions across documents/updates.
    Re-inserting a key moves it to the back; oldest entries are evicted past POS_MAX. */
-const POS_KEY = 'qg:positions', POS_MAX = 12000;
-let posCache;
+const POS_KEY = 'qg:positions', POS_MAX = 12000, VIEW_KEY = 'qg:views', VIEW_MAX = 64;
+let posCache, viewCache;
 const posStore = () => {
     if (posCache === undefined) { try { posCache = JSON.parse(localStorage.getItem(POS_KEY)) || {}; } catch { posCache = {}; } }
     return posCache;
+};
+const viewStore = () => {
+    if (viewCache === undefined) { try { viewCache = JSON.parse(localStorage.getItem(VIEW_KEY)) || {}; } catch { viewCache = {}; } }
+    return viewCache;
 };
 const posFlush = () => {
     try {
         const ks = Object.keys(posCache), n = ks.length - POS_MAX;
         for (let i = 0; i < n; i++) delete posCache[ks[i]];
         localStorage.setItem(POS_KEY, JSON.stringify(posCache));
+    } catch { }
+};
+const viewFlush = () => {
+    try {
+        const ks = Object.keys(viewCache), n = ks.length - VIEW_MAX;
+        for (let i = 0; i < n; i++) delete viewCache[ks[i]];
+        localStorage.setItem(VIEW_KEY, JSON.stringify(viewCache));
     } catch { }
 };
 /* 64-bit hash (cyrb53 finalizer) — keys stored positions so IRIs aren't recoverable
@@ -57,6 +69,21 @@ const posHash = s => {
     h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
     h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
     return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+};
+/* Order-independent quad-set hash → per-document key for viewport persistence. */
+const quadsKey = quads => {
+    let sum = 0, xr = 0;
+    for (const q of quads) {
+        if (!q?.subject || !q?.predicate || !q?.object) continue;
+        let h = 2166136261;
+        for (const t of [q.subject, q.predicate, q.object, q.graph]) {
+            const s = (t?.termType ?? '') + '\n' + (t?.value ?? '') + '\n' + (t?.datatype?.value ?? t?.language ?? '');
+            h ^= 0x9e3779b9;
+            for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+        }
+        h = h >>> 0; sum = (sum + h) >>> 0; xr = (xr ^ h) >>> 0;
+    }
+    return sum.toString(36) + '.' + xr.toString(36);
 };
 
 const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13; return h >>> 0; };
@@ -259,12 +286,13 @@ export class QuadGraph extends Base {
         this._bind();
     }
     connectedCallback() {
-        this._ro = new ResizeObserver(() => this._resize()); this._ro.observe(this);
+        this._ro = new ResizeObserver(() => { this._roSeen = 1; this._resize(); }); this._ro.observe(this);
         this._mq = typeof matchMedia !== 'undefined' ? matchMedia('(prefers-color-scheme: dark)') : null;
         this._onTheme = () => { this._tt = -1e9; this._dirty = true; this._wake(); }; this._mq?.addEventListener('change', this._onTheme);
+        this._onHide = () => { if (this._persist) { this._saveLayout(); this._saveView(); } }; addEventListener('pagehide', this._onHide);
         this._resize(); if (this._quads.length && !this._ids) this._queue(); this._wake();
     }
-    disconnectedCallback() { if (this._persist) this._saveLayout(); cancelAnimationFrame(this._raf); this._raf = 0; this._ro?.disconnect(); this._mq?.removeEventListener('change', this._onTheme); }
+    disconnectedCallback() { removeEventListener('pagehide', this._onHide); if (this._persist) { this._saveLayout(); this._saveView(); } cancelAnimationFrame(this._raf); this._raf = 0; this._ro?.disconnect(); this._mq?.removeEventListener('change', this._onTheme); }
     attributeChangedCallback(name, _, v) {
         const L = this._L;
         if (name === 'height') this.style.height = /^\d+$/.test(v) ? v + 'px' : v || '';
@@ -275,7 +303,7 @@ export class QuadGraph extends Base {
 
     /* ── public API ── */
     get quads() { return this._quads; }
-    set quads(q) { this._quads = q || []; this._queue(); }
+    set quads(q) { this._quads = q || []; this._vkey = undefined; this._queue(); }
     get context() { return this._ctxObj; }
     set context(c) {
         this._ctxObj = c || {};
@@ -390,9 +418,10 @@ export class QuadGraph extends Base {
         // preserve / seed positions
         const old = this._ids, oL = this._L, ox = oL.x, oy = oL.y, opin = oL.pin, seed = this._seed || (this._persist ? this._loadLayout() : null), seedH = !this._seed && this._persist; this._seed = null;
         const x = new Float64Array(n), y = new Float64Array(n), placed = new Uint8Array(n), pin = new Uint8Array(n);
+        let seeded = 0;
         for (let i = 0; i < n; i++) {
             const s = seed?.[seedH ? posHash(names[i]) : names[i]], j = old?.get(names[i]);
-            if (s) { x[i] = s[0]; y[i] = s[1]; placed[i] = 1; }
+            if (s) { x[i] = s[0]; y[i] = s[1]; placed[i] = 1; if (seedH) seeded++; }
             else if (j !== undefined) { x[i] = ox[j]; y[i] = oy[j]; placed[i] = 1; pin[i] = opin[j] & 1; }
         }
         const hadOld = old && old.size > 0 && placed.some(v => v);
@@ -409,10 +438,15 @@ export class QuadGraph extends Base {
             _pOff: pOff, _pList: pList, _cOff: cOff, _cList: cList, _order: order, _off: off, _adj: adj
         });
         const L = this._L; L.charge = Math.abs(parseFloat(this.getAttribute('charge'))) || 40; L.linkDist = parseFloat(this.getAttribute('link-dist')) || 45;
-        L.load(x, y, LS, LT, deg, r, mass, pin); if (hadOld) L.alpha = 0.5;
+        L.load(x, y, LS, LT, deg, r, mass, pin); if (hadOld) L.alpha = 0.5; else if (seeded) L.alpha = 0.25;
         this._sel = -1; this._hov = -1; this._hl = []; this._he = []; this._hn = -1; this._ha = 0.9; this._hkey = null; this._hforce = false; this._fade = 0; this._fdim = 0;
         this._tip.style.display = 'none';
-        if (!hadOld) { this._auto = true; if (n) Object.assign(this._v, this._fitTarget()); }
+        if (!hadOld) {
+            if (this._persist) {
+                if (this._roSeen) { this._auto = !this._loadView(); if (this._auto && n) Object.assign(this._v, this._fitTarget()); }
+                else this._viewPending = true;   // wait for ResizeObserver so _w/_h are real before anchoring
+            } else { this._auto = true; if (n) Object.assign(this._v, this._fitTarget()); }
+        }
         this._theme(); this._dirty = true; this._wake();
     }
 
@@ -455,8 +489,36 @@ export class QuadGraph extends Base {
         this._halo = 'rgba(0,0,0,.8)'; // Dark outline for contrast on light text
     }
 
-    /* ── layout persistence: positions ↔ shared localStorage ring buffer (iri → [x,y]) ── */
+    /* ── layout persistence: positions ↔ shared localStorage ring buffer (iri → [x,y]);
+       viewport ↔ per-document key derived from the quad set ── */
+    _viewKey() { return this._vkey ??= quadsKey(this._quads); }
     _loadLayout() { return this._persist ? posStore() : null; }
+    _loadView() {
+        try {
+            const o = viewStore()[this._viewKey()], v = this._v, L = this._L;
+            if (!o) return false;
+            if (o.a != null) {                                    // anchor: node nearest center + its offset
+                for (let i = 0; i < L.n; i++) if (posHash(this._names[i]) === o.a) {
+                    v.k = clamp(o.k, 0.005, 60);
+                    v.x = this._w / 2 + o.ox - L.x[i] * v.k;
+                    v.y = this._h / 2 + o.oy - L.y[i] * v.k;
+                    return true;
+                }
+            }
+            if (o.x == null) return false;                        // fallback: absolute transform
+            Object.assign(v, { k: clamp(o.k, 0.005, 60), x: o.x, y: o.y });
+            return true;
+        } catch { return false; }
+    }
+    _saveView() {
+        const L = this._L, v = this._v, k = this._viewKey(), o = viewStore();
+        // anchor on the node nearest the viewport center; keep absolute transform as fallback
+        let bi = -1, bd = Infinity, cx = (this._w / 2 - v.x) / v.k, cy = (this._h / 2 - v.y) / v.k;
+        for (let i = 0; i < L.n; i++) { const dx = L.x[i] - cx, dy = L.y[i] - cy, d = dx * dx + dy * dy; if (d < bd) { bd = d; bi = i; } }
+        delete o[k];
+        o[k] = { k: v.k, x: v.x, y: v.y, ...(bi >= 0 ? { a: posHash(this._names[bi]), ox: L.x[bi] * v.k + v.x - this._w / 2, oy: L.y[bi] * v.k + v.y - this._h / 2 } : null) };
+        viewFlush();
+    }
     _saveLayout() {
         const L = this._L; if (!L.n) return;
         const o = posStore();
@@ -476,6 +538,11 @@ export class QuadGraph extends Base {
         const w = this.clientWidth || 600, h = this.clientHeight || 480, d = Math.min(globalThis.devicePixelRatio || 1, this._L.n > 50000 ? 1.5 : 2);
         Object.assign(this, { _w: w, _h: h, _dpr: d, _oc: Math.ceil(w / 12) + 1, _or: Math.ceil(h / 12) + 1 });
         this._cv.width = Math.round(w * d); this._cv.height = Math.round(h * d); this._occ = new Uint8Array(this._oc * this._or);
+        if (this._viewPending && this._L.n) {
+            this._viewPending = false;
+            this._auto = !this._loadView();
+            if (this._auto) Object.assign(this._v, this._fitTarget());
+        }
         if (this._auto && this._L.n) Object.assign(this._v, this._fitTarget());
         this._dirty = true; this._wake();
     }
@@ -518,6 +585,7 @@ export class QuadGraph extends Base {
             const s = `${L.n.toLocaleString()} nodes · ${L.ls.length.toLocaleString()} links${gcount > 1 ? ` · ${gcount} graphs` : ''}`;
             if (s !== this._st) this._stat.textContent = this._st = s;
             this._bar.style.width = (more ? Math.min(1, L.alpha) * 100 : 0) + '%';
+            if (this._persist && now - (this._vt || 0) > 400) { this._vt = now; this._saveView(); }
         }
         if (more || this._anim || this._fade !== ft || this._fdim !== dt) this._wake();
     }
@@ -620,20 +688,20 @@ export class QuadGraph extends Base {
         if (hov >= 0) put(hov, true);
         for (let a = 0, seen = 0, drawn = 0; a < L.n && drawn < 700 && seen < 6000; a++) { const s = put(this._order[a], false); if (s >= 0) seen++; if (s > 0) drawn++; }
         if (k < 0.5 || !ls.length) return;
-        g.font = '9px system-ui,sans-serif'; g.globalAlpha = 0.9; g.lineWidth = 1;
+        g.font = '11px system-ui,sans-serif'; g.globalAlpha = 0.9; g.lineWidth = 1.2;
         for (let e = 0, cnt = 0; e < ls.length && cnt < 150; e++) {
             if (this._isType[e]) continue; // skip rdf:type edge labels
             if (!this._visibleGraphs.has(this._edgeGraph[e])) continue; // skip hidden graph edge labels
             const s = ls[e], t = lt[e], dx = (x[t] - x[s]) * k, dy = (y[t] - y[s]) * k, len = Math.sqrt(dx * dx + dy * dy);
-            if (len < 70) continue;
+            if (len < 80) continue;
             const b = this._bend[e] * k, mx = (x[s] + x[t]) / 2 * k + v.x - dy / len * b, my = (y[s] + y[t]) / 2 * k + v.y + dx / len * b;
             if (mx < 0 || mx > W || my < 0 || my > H) continue;
-            const txt = this._plabel(this._lp[e]), tw = txt.length * 5.2;
-            if (len < tw + 30) continue;
+            const txt = this._plabel(this._lp[e]), tw = txt.length * 6.3;
+            if (len < tw + 34) continue;
             const ca = Math.abs(dx / len), sa = Math.abs(dy / len);
-            if (!reserve(mx, my, tw * ca + 10 * sa, tw * sa + 10 * ca)) continue;
+            if (!reserve(mx, my, tw * ca + 12 * sa, tw * sa + 12 * ca)) continue;
             let ang = Math.atan2(dy, dx); if (ang > Math.PI / 2 || ang < -Math.PI / 2) ang += Math.PI;
-            g.save(); g.translate(mx, my); g.rotate(ang); g.strokeStyle = this._halo; g.strokeText(txt, 0, -5); g.fillStyle = this._pc[this._lp[e]]; g.fillText(txt, 0, -5); g.restore(); cnt++;
+            g.save(); g.translate(mx, my); g.rotate(ang); g.strokeStyle = this._halo; g.strokeText(txt, 0, -6); g.fillStyle = this._pc[this._lp[e]]; g.fillText(txt, 0, -6); g.restore(); cnt++;
         }
     }
 
