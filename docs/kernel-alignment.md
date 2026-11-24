@@ -171,6 +171,18 @@ The durability claim is not about JavaScript. JavaScript is the least durable in
 
 ---
 
+## VIII.5 Naming the Nodes — Identity Is a Choice of Authority
+
+Every node in a knowledge graph needs an IRI, and MD-LD offers three strategies, each a different relationship between author and knowledge:
+
+- **`tag:` (RFC 4151) — self-sovereign identity.** Requires only an email or domain you control; your authority is embedded in the identifier itself. `tag:alice@example.com,2026:` needs no registry, certificate, or permission.
+- **`nih:` (RFC 6920) — content-addressed identity.** The IRI is computed from the content's hash: same content, same IRI, on any machine. Deduplication and integrity without a coordination server.
+- **`https:` — the open web.** For things that already have addresses: Wikipedia, Wikidata, Schema.org, APIs.
+
+All three interoperate in one document — personal nodes under `tag:`, shared resources under `https:`, embedded content under `nih:`. Prefix folding builds hierarchies without boilerplate (`[j] <my:journal/>` then `j:2026-05-06`), and five prefixes (`rdf`, `rdfs`, `xsd`, `sh`, `prov`) are built in.
+
+The deeper point: **the choice of predicate IRI is a choice of audience.** Schema.org speaks to search engines; FOAF to the semantic social web; PROV-O to audit and reproducibility. Interoperability is not negotiated at runtime — it is embedded in the IRIs themselves. When no ontology fits, you author predicates under your own `tag:` namespace; they are still IRIs, still unambiguous, still publishable.
+
 ## IX. An Invitation
 
 This configuration is not a commandment. It is a clearing.

@@ -255,6 +255,18 @@ this focus node, this path, this value, this constraint component, with a byte
 range attached (Loop VI). The agent's search space collapses from "rewrite
 everything" to "change this."
 
+Two properties complete the picture:
+
+- **Views are projections, not copies.** `generateNode()`/`extract()`/filtered
+  `generate()` derive any lens — address book, org chart, audit view — from the
+  source graph on demand. No sync protocol, no stale cache: the view is always
+  a function of the source.
+- **Document trees keep provenance.** Parsing with `graph: path` stamps every
+  quad with its source document; `merge()` preserves per-document origin, so
+  `locate()` on any merged quad reaches the exact characters in the exact file
+  that authored it. File systems, chat logs, and version histories all map to
+  the same mechanism — the tree is a naming convention, not a coupling.
+
 Under shaped evaluation, a plausible-but-empty graph (invented predicates,
 `isRelatedTo`/`hasConnection`/`linksTo` meaning the same thing) produces
 thousands of violations and an empty `records` set. The system is *blind* to
