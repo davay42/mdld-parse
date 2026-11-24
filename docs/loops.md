@@ -208,7 +208,7 @@ topology. It cannot say "you have an island of 50 orphaned nodes" or "these
 predicates are never used." The human eye can — in milliseconds, in parallel,
 for free.
 
-`<quad-graph>` (Canvas2D, ~650 LOC, inside the single-file bundle) closes the
+`<quad-graph>` (Canvas2D, ~820 LOC, inside the single-file bundle) closes the
 loop between the graph and human spatial intuition:
 
 ```
