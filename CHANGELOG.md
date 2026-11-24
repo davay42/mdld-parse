@@ -13,7 +13,7 @@
 
 ### Changed
 - **Predicate (edge) labels** enlarged 9px → 11px with adjusted collision metrics, matching node label size
-- **`<mdld-editor>` custom element** (`src/mdld-editor.js`, ~55 LOC, zero-dependency) — a transparent `<textarea>` layered over a `highlight()`-painted `<pre>`: native caret, selection, IME, and undo with no contenteditable caret math. Attributes `value`/`placeholder`/`readonly`/`height`, `value` property, `input` events, `focus()`; Tab inserts two spaces; themeable via `--mdld-text`/`--mdld-caret`/`--mdld-placeholder` CSS vars. DOM-guarded like `<quad-graph>` — auto-registers in browser, `MdldEditor` export is `undefined` elsewhere
+- **`<mdld-editor>` custom element** (~55 LOC inside `src/highlight.js`, zero-dependency) — a transparent `<textarea>` layered over a `highlight()`-painted `<pre>`: native caret, selection, IME, and undo with no contenteditable caret math. Attributes `value`/`placeholder`/`readonly`/`height`, `value` property, `input` events, `focus()`; Tab inserts two spaces; themeable via `--mdld-text`/`--mdld-caret`/`--mdld-placeholder` CSS vars. DOM-guarded like `<quad-graph>` — auto-registers in browser, `MdldEditor` export is `undefined` elsewhere
 - **Playground migrated from `codejar` to `<mdld-editor>`** — `index.html` editor is now the custom element behind a thin `jar`-compatible adapter (`updateCode`/`toString`/`onUpdate`); the `codejar` dependency is unused
 
 ## v1.2.4 unified single file — the complete epistemic engine
