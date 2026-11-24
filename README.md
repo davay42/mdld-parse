@@ -728,6 +728,36 @@ graph.addEventListener('settled', () => {
 });
 ```
 
+## ✏️ `<mdld-editor>`
+
+A zero-dependency MD-LD editor custom element — a transparent `<textarea>` over a `highlight()`-painted backdrop, so you get syntax highlighting with fully native editing (caret, selection, IME, undo). Ships inside `mdld-parse.js` and auto-registers in the browser, same as `<quad-graph>`.
+
+```html
+<mdld-editor id="editor" height="80svh"></mdld-editor>
+<script type="module">
+  import { parse } from 'mdld-parse';
+  const ed = document.getElementById('editor');
+  ed.value = '[ex] <tag:demo,2026:>\n# Alice {ex:alice .prov:Person}';
+  ed.addEventListener('input', () => {
+    const { quads } = parse({ text: ed.value });
+    document.querySelector('quad-graph').quads = quads;
+  });
+</script>
+```
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `value` | `''` | Initial/editor content (also a get/set property) |
+| `height` | `320px` | Editor height (`80svh`, `400px`, …) |
+| `placeholder` | — | Placeholder text |
+| `readonly` | off | Read-only mode |
+
+- **Events** — `input` bubbles normally; listen on the element for live parse-on-type
+- **Methods** — `focus()`
+- **Theming** — `--mdld-text`, `--mdld-caret`, `--mdld-placeholder` CSS vars; font is fixed 12px monospace with `tab-size: 2`
+- **Keys** — Tab inserts two spaces
+- `MdldEditor` is exported but `undefined` outside the DOM — feature-detect like `QuadGraph`
+
 ## Styling by Type
 
 Use CSS attribute selectors to style elements by their RDF types:

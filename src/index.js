@@ -14,6 +14,7 @@ import {
 } from './utils.js';
 
 export { default as QuadGraph } from './graph.js';
+export { MdldEditor } from './highlight.js';
 export { validate, Validator, evaluate, createShapeDetector, Store, SUPPORTED_VOCABULARY, isSupportedTerm, extractGraph, extract } from '../shapes/validator.js';
 
 export { parse, merge, generate, generateNode, DEFAULT_CONTEXT, DataFactory, hash, expandIRI, shortenIRI, parseSemanticBlock, locate, render, deconstruct, highlight };

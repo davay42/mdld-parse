@@ -67,10 +67,8 @@
         import { render } from './src/render.js'
         import { runTests, tests } from './tests/index.js';
         import { Writer, DataFactory as N3DataFactory, Store, Parser } from 'n3';
-        import MarkdownIt from 'markdown-it';
         import { loadExample as loadExampleData } from './demo/examples.js';
         import { highlight as highlightMDLD, getIRIColor, TOKEN_COLORS } from './src/highlight.js';
-        import { CodeJar } from 'codejar';
         // Import crawl functionality
         import { crawl } from './demo/crawl.js';
 
@@ -79,12 +77,6 @@
         let currentTestResults = [];
         let jar = null;
 
-        // MDLD syntax highlighting function for CodeJar
-        const highlight = (editor) => {
-            const code = jar.toString();
-            editor.innerHTML = highlightMDLD(code);
-        };
-
         // Load example from imported modules
         window.loadExample = function (name) {
             const content = loadExampleData(name);
@@ -92,7 +84,7 @@
                 jar.updateCode(content);
                 parseMDLD();
             } else if (!jar) {
-                console.warn('CodeJar editor not initialized');
+                console.warn('mdld-editor not initialized');
             } else {
                 console.warn(`Example not found: ${name}`);
             }
@@ -849,20 +841,17 @@
 
         // Auto-run tests on page load
         window.addEventListener('load', () => {
-            // Initialize CodeJar editor
+            // Initialize <mdld-editor> — thin jar-compatible adapter so existing call sites are unchanged
             const editorElement = document.getElementById('editor');
             if (editorElement) {
-                jar = new CodeJar(editorElement, highlight, {
-                    tab: '  ', // 2 spaces for indentation
-                    indentOn: /[(\[{]$/,
-                    spellcheck: false,
-                    catchTab: true,
-                    preserveIdent: true,
-                    addClosing: true
-                });
-
-                // Initialize with empty content
-                jar.updateCode('');
+                jar = {
+                    updateCode: (code, callOnUpdate = true) => {
+                        editorElement.value = code;
+                        if (callOnUpdate) editorElement.dispatchEvent(new Event('input'));
+                    },
+                    toString: () => editorElement.value,
+                    onUpdate: (cb) => editorElement.addEventListener('input', () => cb(editorElement.value)),
+                };
                 setupAutoParse();
             }
 
@@ -1304,24 +1293,8 @@
                 </div>
 
                 <div class="editor-container" style="position: relative;">
-                    <div id="editor" class="editor"
-                        style="min-width: 100%;max-height:80svh; min-height: 400px;hyphens: auto; overflow-wrap:break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 14px; line-height: 1.5; padding: 12px; background: var(--bg-primary, white); color: var(--text-primary, #1f2937); border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
-                    </div>
-                    <style>
-                        .editor {
-                            tab-size: 2;
-                        }
-
-                        .editor:focus {
-                            outline: 2px solid var(--accent, #3b82f6);
-                            outline-offset: -2px;
-                        }
-
-                        .editor ::selection {
-                            background: var(--accent, #3b82f6);
-                            color: white;
-                        }
-                    </style>
+                    <mdld-editor id="editor" height="80svh"
+                        style="min-height: 400px; border: 1px solid var(--border-primary, #d1d5db); border-radius: 6px; background: var(--bg-primary, white); --mdld-text: var(--text-primary, #1f2937); --mdld-caret: var(--text-primary, #1f2937); --mdld-placeholder: #9ca3af;"></mdld-editor>
                 </div>
             </div>
 
@@ -1384,7 +1357,8 @@
                         <span>Extraction (POJO)</span>
                         <span style="flex: auto;"></span>
                         <span id="pojo-stats" class="stats"></span>
-                        <button id="copy-pojo-btn" class="button secondary" title="Copy active shape's POJOs">📋 Copy</button>
+                        <button id="copy-pojo-btn" class="button secondary" title="Copy active shape's POJOs">📋
+                            Copy</button>
                     </summary>
                     <div class="m-2 flex flex-col">
                         <div id="pojo-tabs" class="flex gap-1 mb-2 flex-wrap"></div>

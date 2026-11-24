@@ -1,6 +1,6 @@
 {
 	"name": "mdld-parse",
-	"version": "1.2.4",
+	"version": "1.2.5",
 	"description": "Write RDF knowledge graphs as plain Markdown. Parse to quads, generate back, merge documents. The human-friendly semantic web format.",
 	"keywords": [
 		"rdf",
@@ -52,15 +52,10 @@
 		"@unocss/extractor-pug": "^66.13.0",
 		"@vitejs/plugin-vue": "^6.0.11",
 		"@vueuse/core": "^15.0.0",
-		"codejar": "^5.0.0",
-		"markdown-it": "^15.0.3",
 		"n3": "^2.13.12",
-		"rdfa-parse": "^1.0.1",
-		"shiki": "^4.6.0",
 		"unocss": "^66.13.0",
 		"vite": "^8.3.8",
 		"vite-plugin-singlefile": "^2.3.4",
-		"vscode-textmate": "^9.3.2",
 		"vue": "^3.6.0-beta.17"
 	},
 	"packageManager": "pnpm@12.23.0+sha512.02da94ffaf133f46074322afe552f90d40b5f71ae259aefbccdacc5085b1d617e98d65e0131f5748b9b67445978ee5055d7d59a473f1eef0d504854fefcd5975"
