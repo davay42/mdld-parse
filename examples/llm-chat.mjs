@@ -60,6 +60,7 @@ const addMsg = (iri, type, role, content, agent) => {
     { subject: nn(iri), predicate: nn(LLM + 'content'), object: lit(content) },
     { subject: nn(iri), predicate: nn(PROV + 'generatedAtTime'), object: lit(now, XSD + 'dateTime') },
     { subject: nn(iri), predicate: nn(PROV + 'wasAttributedTo'), object: agent },
+    { subject: nn(iri), predicate: nn(LLM + 'signature'), object: lit(sha(content + '|' + agent.value)) },
     { subject: CONV, predicate: nn(PROV + 'hadMember'), object: nn(iri) },
   )
   if (lastMsg) quads.push({ subject: nn(iri), predicate: nn(LLM + 'inReplyTo'), object: lastMsg })
@@ -81,6 +82,40 @@ const agentReply = () => {
 
 const sha = t => 'sha256:' + createHash('sha256').update(t).digest('hex').slice(0, 16)
 const CTX = { llm: LLM, rdfs: RDFS, rdf: RDF, xsd: XSD, prov: PROV, sh: 'http://www.w3.org/ns/shacl#' }
+
+// audit: fool-proofing check — recompute every signature in the unfolded
+// graph. Messages: sha(content|author). Statements: sha(s|p|o|key), where the
+// key is the prov:Key node attributed to the statement's author.
+const auditSignatures = () => {
+  const bySubj = new Map()
+  for (const q of quads) {
+    if (!bySubj.has(q.subject.value)) bySubj.set(q.subject.value, {})
+    bySubj.get(q.subject.value)[q.predicate.value] = q.object
+  }
+  // author -> key material, via prov:Key nodes
+  const keyByAuthor = new Map()
+  for (const [sub, p] of bySubj) {
+    if (p[RDF + 'type']?.value === PROV + 'Key' && p[PROV + 'value'] && p[PROV + 'wasAttributedTo'])
+      keyByAuthor.set(p[PROV + 'wasAttributedTo'].value, p[PROV + 'value'].value)
+  }
+  let msgOk = 0, msgBad = [], stmtOk = 0, stmtBad = []
+  for (const [sub, p] of bySubj) {
+    const author = p[PROV + 'wasAttributedTo']?.value
+    if (p[LLM + 'content'] && author && p[LLM + 'signature']) {
+      if (p[LLM + 'signature'].value === sha(p[LLM + 'content'].value + '|' + author)) msgOk++
+      else msgBad.push(sub.split(',').pop())
+    }
+    if (p[RDF + 'subject'] && p[RDF + 'predicate'] && p[RDF + 'object'] && author && p[LLM + 'signature']) {
+      const key = keyByAuthor.get(author)
+      const claim = [p[RDF + 'subject'].value, p[RDF + 'predicate'].value, p[RDF + 'object'].value].join('|') + '|' + key
+      if (key && p[LLM + 'signature'].value === sha(claim)) stmtOk++
+      else stmtBad.push(sub.split(',').pop())
+    }
+  }
+  console.log(`audit: ${msgOk} messages + ${stmtOk} statements signed-ok${msgBad.length || stmtBad.length ? ` · BAD: ${[...msgBad, ...stmtBad].join(', ')}` : ''}`)
+  return { msgOk, msgBad, stmtOk, stmtBad }
+}
+auditSignatures()
 
 // verify: for each workbench module, regenerate canonical from its quads,
 // then check its oracle — canonicalHash digest first; canonicalText diff on mismatch.
@@ -156,6 +191,7 @@ if (process.argv[2] === 'log') {
       { subject: iri, predicate: nn(LLM + 'content'), object: lit(content) },
       { subject: iri, predicate: nn(PROV + 'generatedAtTime'), object: lit(now, XSD + 'dateTime') },
       { subject: iri, predicate: nn(PROV + 'wasAttributedTo'), object: agent },
+      { subject: iri, predicate: nn(LLM + 'signature'), object: lit(sha(content + '|' + agent.value)) },
       { subject: nn(convIri), predicate: nn(PROV + 'hadMember'), object: iri },
     ]
     if (last) q.push({ subject: iri, predicate: nn(LLM + 'inReplyTo'), object: last })

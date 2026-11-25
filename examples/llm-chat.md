@@ -17,6 +17,7 @@ This document is itself a `prov:Bundle` of modules — the root graph stays navi
 [Part III oracle] {+llm:part3#canonical ?prov:hadMember}
 [Part IV oracle] {+llm:part4#canonical ?prov:hadMember}
 [Day log 2026-11-24] {+llm:day-2026-11-24 ?prov:hadMember}
+[Day log 2026-11-25] {+llm:day-2026-11-25 ?prov:hadMember}
 [Seed conversation] {+llm:conv-001 ?prov:hadMember}
 [Golden graph workbench] {+llm:part5#workbench ?prov:hadMember}
 [Golden graph oracle] {+llm:part5#canonical ?prov:hadMember}
@@ -374,12 +375,14 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## exchange one {=llm:day-2026-11-24-msg-01 .llm:UserMessage label}
 *2026-11-24T09:51:57.873Z* {prov:generatedAtTime ^^xsd:dateTime}
 [exchange one] {llm:content}
+[sha256:04809658b89de1b9] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## reply one {=llm:day-2026-11-24-msg-02 .llm:AssistantMessage label}
 *2026-11-24T09:51:57.873Z* {prov:generatedAtTime ^^xsd:dateTime}
 [reply one] {llm:content}
+[sha256:8e8726c99275d0f5] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [exchange one] {+llm:day-2026-11-24-msg-01 ?llm:inReplyTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
@@ -387,6 +390,7 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## exchange two {=llm:day-2026-11-24-msg-03 .llm:UserMessage label}
 *2026-11-24T09:51:57.937Z* {prov:generatedAtTime ^^xsd:dateTime}
 [exchange two] {llm:content}
+[sha256:f883e4bf69acf3a6] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [reply one] {+llm:day-2026-11-24-msg-02 ?llm:inReplyTo}
 [llm:role-user] {+llm:role-user ?llm:role}
@@ -394,6 +398,7 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## reply two {=llm:day-2026-11-24-msg-04 .llm:AssistantMessage label}
 *2026-11-24T09:51:57.937Z* {prov:generatedAtTime ^^xsd:dateTime}
 [reply two] {llm:content}
+[sha256:6e42afb41adfc7c4] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [exchange two] {+llm:day-2026-11-24-msg-03 ?llm:inReplyTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
@@ -401,6 +406,7 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## From now on, use the verify tool to check the oracles before {=llm:day-2026-11-24-msg-05 .llm:UserMessage label}
 *2026-11-24T09:55:35.242Z* {prov:generatedAtTime ^^xsd:dateTime}
 [From now on, use the verify tool to check the oracles before reporting.] {llm:content}
+[sha256:22e0c773a3a9682f] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [reply two] {+llm:day-2026-11-24-msg-04 ?llm:inReplyTo}
 [llm:role-user] {+llm:role-user ?llm:role}
@@ -408,6 +414,7 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## Understood — I will call the verify tool and report its outp {=llm:day-2026-11-24-msg-06 .llm:AssistantMessage label}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Understood — I will call the verify tool and report its output.] {llm:content}
+[sha256:41359a0a6ed1c392] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [verify] {+llm:tool-verify ?llm:called}
 [From now on, use the verify tool to check the oracles before] {+llm:day-2026-11-24-msg-05 ?llm:inReplyTo}
@@ -416,6 +423,7 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## The rewrite is done. Verify the parts now. {=llm:day-2026-11-24-msg-07 .llm:UserMessage label}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [The rewrite is done. Verify the parts now.] {llm:content}
+[sha256:318ba43a804f1bc9] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [Understood — I will call the verify tool and report its outp] {+llm:day-2026-11-24-msg-06 ?llm:inReplyTo}
 [llm:role-user] {+llm:role-user ?llm:role}
@@ -423,6 +431,7 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## Running verification. {=llm:day-2026-11-24-msg-08 .llm:AssistantMessage label}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Running verification.] {llm:content}
+[sha256:9928af2ebeb789ae] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [verify] {+llm:tool-verify ?llm:called}
 [The rewrite is done. Verify the parts now.] {+llm:day-2026-11-24-msg-07 ?llm:inReplyTo}
@@ -431,6 +440,7 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## All four oracles MATCH — parts 1–4 verified clean. {=llm:day-2026-11-24-msg-09 .llm:AssistantMessage label}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [All four oracles MATCH — parts 1–4 verified clean.] {llm:content}
+[sha256:fc5d7f6a54da5839] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [Running verification.] {+llm:day-2026-11-24-msg-08 ?llm:inReplyTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
@@ -438,6 +448,7 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 ## verify output {=llm:day-2026-11-24-msg-10 .llm:ToolMessage label}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [part1..4: hash MATCH] {llm:content}
+[sha256:14ea81eeeee0a14b] {llm:signature}
 [verify] {+llm:tool-verify ?prov:wasAttributedTo}
 [All four oracles MATCH — parts 1–4 verified clean.] {+llm:day-2026-11-24-msg-09 ?llm:inReplyTo}
 [llm:role-tool] {+llm:role-tool ?llm:role}
@@ -454,6 +465,87 @@ part4: hash MATCH (sha256:9946bcb586873b07)
 
 ## verify {=llm:tool-verify .llm:Tool label}
 [regenerate canonical text per module and compare oracle digests] {llm:purpose}
+
+## Davay {=llm:user-davay .prov:Agent label}
+~~~~~~
+
+~~~~~~md {=llm:day-2026-11-25 .llm:Conversation prov:value}
+[llm] <tag:llm.chat.example,2026:>
+
+## Devin {=llm:agent-devin .llm:Agent label}
+
+## Day log 2026-11-25 {=llm:day-2026-11-25 .llm:Conversation label}
+[Yesterday we built the golden graph — what did today add on] {+llm:day-2026-11-25-msg-01 ?prov:hadMember}
+[Credentialled signatures, an agent service key, chained stat] {+llm:day-2026-11-25-msg-02 ?prov:hadMember}
+[And the parser contract?] {+llm:day-2026-11-25-msg-03 ?prov:hadMember}
+[Statements are now plain .rdf:Statement nodes — the parser e] {+llm:day-2026-11-25-msg-04 ?prov:hadMember}
+[What does the agent's proposal actually say?] {+llm:day-2026-11-25-msg-05 ?prov:hadMember}
+[Only human-held keys may sign rule-force statements; agent s] {+llm:day-2026-11-25-msg-06 ?prov:hadMember}
+[Verify everything still holds.] {+llm:day-2026-11-25-msg-07 ?prov:hadMember}
+[498 quads, 6 elevated statements, 0 violations, all six modu] {+llm:day-2026-11-25-msg-08 ?prov:hadMember}
+
+## Yesterday we built the golden graph — what did today add on {=llm:day-2026-11-25-msg-01 .llm:UserMessage label}
+*2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Yesterday we built the golden graph — what did today add on top?] {llm:content}
+[sha256:be7247412f905e48] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Credentialled signatures, an agent service key, chained stat {=llm:day-2026-11-25-msg-02 .llm:AssistantMessage label}
+*2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Credentialled signatures, an agent service key, chained statements via llm:previous, and shell-level shapes so the dormant document evaluates meaningfully before unfolding.] {llm:content}
+[sha256:93f47d44df6b06bf] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[Yesterday we built the golden graph — what did today add on] {+llm:day-2026-11-25-msg-01 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## And the parser contract? {=llm:day-2026-11-25-msg-03 .llm:UserMessage label}
+*2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
+[And the parser contract?] {llm:content}
+[sha256:4cfae868501087ff] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Credentialled signatures, an agent service key, chained stat] {+llm:day-2026-11-25-msg-02 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Statements are now plain .rdf:Statement nodes — the parser e {=llm:day-2026-11-25-msg-04 .llm:AssistantMessage label}
+*2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Statements are now plain .rdf:Statement nodes — the parser elevates them into result.statements automatically. Six claims surface: founding, label, ownership, two goals, and the agent's credential-ceiling proposal.] {llm:content}
+[sha256:d46f20aa4cbde743] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[And the parser contract?] {+llm:day-2026-11-25-msg-03 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## What does the agent's proposal actually say? {=llm:day-2026-11-25-msg-05 .llm:UserMessage label}
+*2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What does the agent's proposal actually say?] {llm:content}
+[sha256:805a051537b54883] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Statements are now plain .rdf:Statement nodes — the parser e] {+llm:day-2026-11-25-msg-04 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Only human-held keys may sign rule-force statements; agent s {=llm:day-2026-11-25-msg-06 .llm:AssistantMessage label}
+*2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Only human-held keys may sign rule-force statements; agent signatures cap at suggestion until countersigned. The agent used its own limited credential to argue for its own ceiling.] {llm:content}
+[sha256:810c7532fd62fa31] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[What does the agent's proposal actually say?] {+llm:day-2026-11-25-msg-05 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## Verify everything still holds. {=llm:day-2026-11-25-msg-07 .llm:UserMessage label}
+*2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Verify everything still holds.] {llm:content}
+[sha256:2035462cc26f3096] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Only human-held keys may sign rule-force statements; agent s] {+llm:day-2026-11-25-msg-06 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## 498 quads, 6 elevated statements, 0 violations, all six modu {=llm:day-2026-11-25-msg-08 .llm:AssistantMessage label}
+*2026-11-25T08:19:19.016Z* {prov:generatedAtTime ^^xsd:dateTime}
+[498 quads, 6 elevated statements, 0 violations, all six module oracles match — including the new day module.] {llm:content}
+[sha256:2e626346f54d9757] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[Verify everything still holds.] {+llm:day-2026-11-25-msg-07 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## Davay {=llm:user-davay .prov:Agent label}
 ~~~~~~
