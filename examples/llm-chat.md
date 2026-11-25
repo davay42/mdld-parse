@@ -18,6 +18,8 @@ This document is itself a `prov:Bundle` of modules — the root graph stays navi
 [Part IV oracle] {+llm:part4#canonical ?prov:hadMember}
 [Day log 2026-11-24] {+llm:day-2026-11-24 ?prov:hadMember}
 [Seed conversation] {+llm:conv-001 ?prov:hadMember}
+[Golden graph workbench] {+llm:part5#workbench ?prov:hadMember}
+[Golden graph oracle] {+llm:part5#canonical ?prov:hadMember}
 
 ---
 
@@ -192,6 +194,85 @@ A member of [LLM Chat Example] {=llm:conv-001 !prov:hadMember}. [User: start the
 A member of [LLM Chat Example] {=llm:conv-001 !prov:hadMember}.
 
 ## Davay {=llm:user-davay .prov:Agent label}
+~~~~~~
+
+---
+
+# Part V — The Golden Graph
+
+Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded.
+
+## Canonical: Part V — The Golden Graph {=llm:part5#canonical .llm:CanonicalText label}
+[Part V workbench] {+llm:part5#workbench ?prov:wasDerivedFrom}
+[sha256:a04e13e3899aff9a] {llm:canonicalHash}
+
+~~~~~~md {=llm:part5#workbench .llm:Workbench prov:value}
+[llm] <tag:llm.chat.example,2026:>
+
+# Part V — The Golden Graph
+
+Some facts are not data — they are *elevated*: decisions, conclusions, hard rules, soft suggestions. We record them as reified rdf:Statements — the claim itself becomes a node, carrying who asserted it and how much force it carries. The golden graph stays small on purpose: it stores only what must survive everything else.
+
+**ElevatedStatement** {=llm:ElevatedStatement .Class label} is a kind of [Statement] {+rdf:Statement ?subClassOf} — a reified claim with credentials. **InitialEvent** {=llm:InitialEvent .Class label} is a kind of [Activity] {+prov:Activity ?subClassOf} — an event that founds an organization. **Credential** {=llm:Credential .Class label} enumerates force: **rule** {=llm:rule .llm:Credential label} — hard, **guideline** {=llm:guideline .llm:Credential label} — expected, **suggestion** {=llm:suggestion .llm:Credential label} — optional. The **credential** {=llm:credential .rdf:Property label} binds an [ElevatedStatement] {+llm:ElevatedStatement ?domain} to its [Credential] {+llm:Credential ?range}. The **owner** {=llm:owner .rdf:Property label} binds an [Entity] {+prov:Entity ?domain} — here, the document itself — to the [Agent] {+prov:Agent ?range} who holds authority over it.
+
+## The first elevation — user instruction
+
+Davay initiates the statements system. The organization of this document is itself the first golden fact: a human and an agent collaborating on knowledge curation, with the human holding elevation rights.
+
+## Organization Founding {=llm:init-001 .llm:InitialEvent label}
+*2026-11-25* {prov:generatedAtTime ^^xsd:dateTime}
+
+Two statements elevate the founding — both asserted by [Davay] {+llm:user-davay ?prov:wasAttributedTo} and carrying **rule** force.
+
+## S1 — the founding has a type {=llm:init-stmt-1 .llm:ElevatedStatement}
+This statement claims the event is an InitialEvent.
+[Organization Founding] {+llm:init-001 ?rdf:subject}
+[type] {+rdf:type ?rdf:predicate}
+[InitialEvent] {+llm:InitialEvent ?rdf:object}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+**rule** {+llm:rule ?llm:credential}
+
+## S2 — the founding carries its label {=llm:init-stmt-2 .llm:ElevatedStatement}
+This statement claims the event's label.
+[Organization Founding] {+llm:init-001 ?rdf:subject}
+[label] {+rdfs:label ?rdf:predicate}
+[Human–agent knowledge curation begins] {rdf:object}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+**rule** {+llm:rule ?llm:credential}
+
+## S3 — Davay owns this document {=llm:owner-stmt-1 .llm:ElevatedStatement}
+The signature block's third claim: authority over the golden graph itself.
+[LLM Chat Example] {+llm:chat ?rdf:subject}
+[owner] {+llm:owner ?rdf:predicate}
+[Davay] {+llm:user-davay ?rdf:object}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+**rule** {+llm:rule ?llm:credential}
+
+## Golden Shapes
+
+## ElevatedStatementShape {=llm:ElevatedStatementShape .sh:NodeShape label}
+Every [ElevatedStatement] {+llm:ElevatedStatement ?sh:targetClass} has **subject** {+#esS ?sh:property sh:name}, **predicate** {+#esP ?sh:property sh:name}, **object** {+#esO ?sh:property sh:name}, **asserted by** {+#esA ?sh:property sh:name} and **credential** {+#esC ?sh:property sh:name}.
+[Subject is required — {focusNode}] {=#esS .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[subject] {+rdf:subject ?sh:path}
+[Predicate is required — {focusNode}] {=#esP .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[predicate] {+rdf:predicate ?sh:path}
+[Object is required — {focusNode}] {=#esO .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[object] {+rdf:object ?sh:path}
+[Assertion is required — {focusNode}] {=#esA .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[wasAttributedTo] {+prov:wasAttributedTo ?sh:path}
+[Credential is required — {focusNode}] {=#esC .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[credential] {+llm:credential ?sh:path}
+
+## InitialEventShape {=llm:InitialEventShape .sh:NodeShape label}
+Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?sh:property sh:name}.
+[Name is required — {focusNode}] {=#ieL .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[label] {+rdfs:label ?sh:path}
 ~~~~~~
 
 ---
