@@ -38,12 +38,13 @@ export function createToken(type, range, text, attrs = null, attrsRange = null, 
 }
 
 // List token creation - shared logic
-export function createListToken(type, line, lineStart, pos, match) {
-    const attrs = match[4] || null;
-    const prefix = match[1].length + (match[2] ? match[2].length : 0);
-    const rangeInfo = calcRangeInfo(line, attrs, lineStart, prefix, match[3].length);
-    return createToken(type, [lineStart, pos - 1], match[3].trim(), attrs,
-        rangeInfo.attrsRange, rangeInfo.valueRange, { indent: match[1].length });
+export function createListToken(type, line, lineStart, pos, result) {
+    const attrs = result.attrs || null;
+    const content = result.content.trim();
+    const prefix = result.indent + result.marker.length;
+    const rangeInfo = calcRangeInfo(line, attrs, lineStart, prefix, content.length);
+    return createToken(type, [lineStart, pos - 1], content, attrs,
+        rangeInfo.attrsRange, rangeInfo.valueRange, { indent: result.indent });
 }
 
 // Semantic block parsing - shared between parser and renderer
@@ -58,35 +59,6 @@ export function parseSemCached(attrs) {
         semCache[attrs] = sem;
     }
     return sem;
-}
-
-// Indentation utilities - shared for list processing
-export function getIndentLevel(block, sourceText) {
-    if (!block.range || !sourceText) return 0;
-
-    const text = sourceText.substring(block.range.start, block.range.end);
-    const indentMatch = text.match(/^(\s*)/);
-    const indentSpaces = indentMatch ? indentMatch[1].length : 0;
-
-    // CommonMark: 4 spaces or 1 tab = one level
-    // We'll use 2 spaces for better readability (configurable)
-    return Math.floor(indentSpaces / 2);
-}
-
-// Content extraction utilities - shared between parser and renderer
-export function extractContentFromRange(sourceText, range, attrsRange = null) {
-    if (!range || !sourceText) return '';
-
-    let text = sourceText.substring(range[0], range[1]);
-
-    // Remove MD-LD annotations, preserve content
-    if (attrsRange) {
-        const beforeAttrs = text.substring(0, attrsRange[0] - range[0]);
-        const afterAttrs = text.substring(attrsRange[1] - range[0]);
-        text = beforeAttrs + afterAttrs;
-    }
-
-    return text.trim();
 }
 
 // Clean text extraction utilities
@@ -252,13 +224,6 @@ export function processTokenWithBlockTracking(token, state, processAnnotations, 
         state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
 }
 
-// Quad key generation - shared between parser and renderer
-export function quadIndexKey(subject, predicate, object) {
-    const datatype = object.datatype?.value || '';
-    const language = object.language || '';
-    return `${subject.value}|${predicate.value}|${object.value}|${datatype}|${language}`;
-}
-
 // Optimized sorting utilities - inline for better minification
 export function sortQuadsByPredicate(quads) {
     return quads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
@@ -307,14 +272,27 @@ export function generateLiteralText(quad, context) {
     return `[${value}] {${annotation}}\n`;
 }
 
+export function generateLabelAnnotation(labelEntry, context) {
+    const language = labelEntry?.language || labelEntry?.term?.language || '';
+    if (language) return `label @${language}`;
+
+    const datatype = labelEntry?.datatype ||
+        labelEntry?.term?.datatype?.value ||
+        labelEntry?.term?.datatype ||
+        '';
+    if (datatype && datatype !== XSD_STRING) {
+        return `label ^^${shortenIRI(datatype, context)}`;
+    }
+    return 'label';
+}
+
 export const generateObjectText = (quad, context, labelLookup = null, filteredGroups = null, renderedQuads = null, compactInline = true, compactStats = null) => {
     const objShort = shortenIRI(quad.object.value, context);
     const predShort = shortenIRI(quad.predicate.value, context);
+    const labelEntry = labelLookup?.get(quad.object.value) || null;
 
     // Use rdfs:label if available, otherwise use shortened IRI
-    const displayText = labelLookup && labelLookup.has(quad.object.value)
-        ? labelLookup.get(quad.object.value).value
-        : objShort;
+    const displayText = labelEntry ? labelEntry.value : objShort;
 
     // Build inline type/label annotation if available
     // Only render inline types/labels ONCE per subject to ensure quad stability
@@ -323,20 +301,16 @@ export const generateObjectText = (quad, context, labelLookup = null, filteredGr
         const filtered = filteredGroups.get(quad.object.value);
         if (filtered) {
             const { types } = filtered;
-            const hasLabel = labelLookup.has(quad.object.value);
-
-            // Check if any type or label quad for this subject has already been rendered
-            const alreadyRendered = types.some(t => renderedQuads.has(t)) ||
-                (hasLabel && types.some(t =>
-                    t.predicate.value === RDFS_LABEL && renderedQuads.has(t)
-                ));
+            const hasLabel = !!labelEntry;
+            const labelRendered = hasLabel && labelEntry.quad && renderedQuads.has(labelEntry.quad);
+            const alreadyRendered = types.some(t => renderedQuads.has(t)) || labelRendered;
 
             if (!alreadyRendered) {
                 // Build inline types and label
                 const typeAnnotations = types.length > 0
                     ? types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
                     : '';
-                const labelAnnotation = hasLabel ? 'label' : '';
+                const labelAnnotation = hasLabel ? generateLabelAnnotation(labelEntry, context) : '';
 
                 if (typeAnnotations || labelAnnotation) {
                     inlineAnnotation = ' ' + [typeAnnotations, labelAnnotation].filter(Boolean).join(' ');
@@ -346,10 +320,7 @@ export const generateObjectText = (quad, context, labelLookup = null, filteredGr
 
                     // Mark only the type and label quads as rendered inline
                     types.forEach(q => renderedQuads.add(q));
-                    if (hasLabel) {
-                        const labelQuad = types.find(q => q.predicate.value === RDFS_LABEL);
-                        if (labelQuad) renderedQuads.add(labelQuad);
-                    }
+                    if (labelEntry?.quad) renderedQuads.add(labelEntry.quad);
                 }
             }
         }
@@ -372,30 +343,6 @@ export function filterQuadsByType(subjectQuads) {
         }
     }
     return { types, literals, objects };
-}
-
-// Predicate processing utilities - common RDFa patterns
-export function processPredicates(predicates, ctx) {
-    const literalProps = [];
-    const objectProps = [];
-    const reverseProps = [];
-
-    predicates.forEach(pred => {
-        const iri = typeof pred === 'string' ? pred : pred.iri;
-        const expanded = expandIRI(iri, ctx);
-        const shortened = shortenIRI(expanded, ctx);
-        const form = typeof pred === 'string' ? '' : (pred.form || '');
-
-        if (form === '!') {
-            reverseProps.push(shortened);
-        } else if (form === '?') {
-            objectProps.push(shortened);
-        } else {
-            literalProps.push(shortened);
-        }
-    });
-
-    return { literalProps, objectProps, reverseProps };
 }
 
 // Retraction text generation - for generate() remove parameter

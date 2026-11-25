@@ -213,6 +213,91 @@ export const generateLangTests = [
         throw new Error(`Expected 4 labels in round-trip, got ${labels.length}`);
       }
     }
+  },
+  {
+    name: 'generate with lang - same label value preserves distinct language tags',
+    fn: () => {
+      const quads = [
+        DataFactory.quad(
+          namedNode('http://example.org/person'),
+          namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+          namedNode('http://example.org/Person')
+        ),
+        DataFactory.quad(
+          namedNode('http://example.org/person'),
+          namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+          literal('Alice', 'en')
+        ),
+        DataFactory.quad(
+          namedNode('http://example.org/person'),
+          namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+          literal('Alice', 'es')
+        )
+      ];
+
+      const { text } = generate({
+        quads,
+        context: { ex: 'http://example.org/', rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', rdfs: 'http://www.w3.org/2000/01/rdf-schema#' },
+        lang: 'es'
+      });
+
+      const parsed = parse({
+        text,
+        context: { ex: 'http://example.org/', rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', rdfs: 'http://www.w3.org/2000/01/rdf-schema#' }
+      });
+      const labels = parsed.quads.filter(q => q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label');
+      const langs = labels.map(q => q.object.language).sort();
+      if (labels.length !== 2 || langs[0] !== 'en' || langs[1] !== 'es') {
+        throw new Error(`Expected Alice@en and Alice@es labels, got ${JSON.stringify(labels.map(q => ({ value: q.object.value, language: q.object.language })))}`);
+      }
+    }
+  },
+  {
+    name: 'generate preserves label datatype in headings and inline annotations',
+    fn: () => {
+      const nameType = namedNode('http://example.org/Name');
+      const quads = [
+        DataFactory.quad(
+          namedNode('http://example.org/z'),
+          namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+          namedNode('http://example.org/Doc')
+        ),
+        DataFactory.quad(
+          namedNode('http://example.org/z'),
+          namedNode('http://example.org/knows'),
+          namedNode('http://example.org/zz')
+        ),
+        DataFactory.quad(
+          namedNode('http://example.org/zz'),
+          namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+          namedNode('http://example.org/Person')
+        ),
+        DataFactory.quad(
+          namedNode('http://example.org/zz'),
+          namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+          literal('Alice', nameType)
+        )
+      ];
+
+      const { text } = generate({
+        quads,
+        context: { ex: 'http://example.org/', rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', rdfs: 'http://www.w3.org/2000/01/rdf-schema#' },
+        compactInline: true
+      });
+
+      if (!text.includes('label ^^ex:Name')) {
+        throw new Error(`Expected datatype label annotation, got:\n${text}`);
+      }
+
+      const parsed = parse({
+        text,
+        context: { ex: 'http://example.org/', rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', rdfs: 'http://www.w3.org/2000/01/rdf-schema#' }
+      });
+      const labels = parsed.quads.filter(q => q.predicate.value === 'http://www.w3.org/2000/01/rdf-schema#label');
+      if (labels.length !== 1 || labels[0].object.datatype?.value !== 'http://example.org/Name') {
+        throw new Error(`Expected one Alice label with ex:Name datatype, got ${JSON.stringify(labels.map(q => ({ value: q.object.value, datatype: q.object.datatype?.value })))}`);
+      }
+    }
   }
 ];
 

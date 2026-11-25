@@ -33,29 +33,28 @@ const Base = typeof HTMLElement !== 'undefined' ? HTMLElement : class { };
    <quad-graph> instance, so nodes keep their positions across documents/updates.
    Re-inserting a key moves it to the back; oldest entries are evicted past POS_MAX. */
 const POS_KEY = 'qg:positions', POS_MAX = 12000, VIEW_KEY = 'qg:views', VIEW_MAX = 64;
-let posCache, viewCache;
-const posStore = () => {
-    if (posCache === undefined) { try { posCache = JSON.parse(localStorage.getItem(POS_KEY)) || {}; } catch { posCache = {}; } }
-    return posCache;
+const makeStore = (key, max) => {
+    let cache;
+    return {
+        load() {
+            if (cache === undefined) {
+                try { cache = JSON.parse(localStorage.getItem(key)) || {}; } catch { cache = {}; }
+            }
+            return cache;
+        },
+        flush() {
+            try {
+                if (cache === undefined) return;
+                const ks = Object.keys(cache), n = ks.length - max;
+                for (let i = 0; i < n; i++) delete cache[ks[i]];
+                localStorage.setItem(key, JSON.stringify(cache));
+            } catch { }
+        }
+    };
 };
-const viewStore = () => {
-    if (viewCache === undefined) { try { viewCache = JSON.parse(localStorage.getItem(VIEW_KEY)) || {}; } catch { viewCache = {}; } }
-    return viewCache;
-};
-const posFlush = () => {
-    try {
-        const ks = Object.keys(posCache), n = ks.length - POS_MAX;
-        for (let i = 0; i < n; i++) delete posCache[ks[i]];
-        localStorage.setItem(POS_KEY, JSON.stringify(posCache));
-    } catch { }
-};
-const viewFlush = () => {
-    try {
-        const ks = Object.keys(viewCache), n = ks.length - VIEW_MAX;
-        for (let i = 0; i < n; i++) delete viewCache[ks[i]];
-        localStorage.setItem(VIEW_KEY, JSON.stringify(viewCache));
-    } catch { }
-};
+const posStorage = makeStore(POS_KEY, POS_MAX), viewStorage = makeStore(VIEW_KEY, VIEW_MAX);
+const posStore = () => posStorage.load(), viewStore = () => viewStorage.load();
+const posFlush = () => posStorage.flush(), viewFlush = () => viewStorage.flush();
 /* 64-bit hash (cyrb53 finalizer) — keys stored positions so IRIs aren't recoverable
    from localStorage. ~2^64 preimage work; a rare collision only swaps two seed
    positions, which the force layout smooths out. */

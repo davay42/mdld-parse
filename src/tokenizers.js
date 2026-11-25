@@ -9,6 +9,17 @@
 // BLOCK-LEVEL TOKENIZERS (Line-based)
 // ============================================================================
 
+function skipHorizontalWs(text, pos) {
+    while (pos < text.length && (text[pos] === ' ' || text[pos] === '\t')) pos++;
+    return pos;
+}
+
+function splitTrailingAttrs(text) {
+    const attrsMatch = text.match(/\s*\{([^}]+)\}\s*$/);
+    if (!attrsMatch) return { text, attrs: null };
+    return { text: text.slice(0, -attrsMatch[0].length).trim(), attrs: attrsMatch[1] };
+}
+
 /**
  * Detect code fence: 3+ backticks or tildes at line start
  * EBNF: backticks = "`", "`", "`", { "`" } | tildes = "~", "~", "~", { "~" }
@@ -63,10 +74,7 @@ export function detectPrefix(line) {
     if (!prefix) return null;
 
     // Find < after bracket (skip whitespace)
-    let pos = closeBracket + 1;
-    while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
-        pos++;
-    }
+    let pos = skipHorizontalWs(line, closeBracket + 1);
 
     if (pos >= line.length || line[pos] !== '<') return null;
 
@@ -99,22 +107,12 @@ export function detectHeading(line) {
     }
 
     // Extract content (skip # and whitespace)
-    let contentStart = depth;
-    while (contentStart < line.length && (line[contentStart] === ' ' || line[contentStart] === '\t')) {
-        contentStart++;
-    }
+    const contentStart = skipHorizontalWs(line, depth);
 
     // Check for trailing attributes {=...} or {...}
-    const trimmed = line.slice(contentStart);
-    const attrsMatch = trimmed.match(/\s*\{([^}]+)\}\s*$/);
-
-    let content = trimmed;
-    let attrs = null;
-
-    if (attrsMatch) {
-        attrs = attrsMatch[1];
-        content = trimmed.slice(0, -attrsMatch[0].length).trim();
-    }
+    const split = splitTrailingAttrs(line.slice(contentStart));
+    let content = split.text;
+    const attrs = split.attrs;
 
     // CommonMark closing sequence: optional spaces + #+ + optional spaces
     content = content.replace(/[ \t]+#+[ \t]*$/, '');
@@ -129,10 +127,7 @@ export function detectHeading(line) {
  */
 export function detectList(line) {
     // Skip leading whitespace for indentation detection
-    let pos = 0;
-    while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
-        pos++;
-    }
+    const pos = skipHorizontalWs(line, 0);
 
     const indent = pos;
     if (pos >= line.length) return null;
@@ -162,19 +157,12 @@ export function detectList(line) {
     }
 
     // Skip whitespace after marker
-    while (contentStart < line.length && (line[contentStart] === ' ' || line[contentStart] === '\t')) {
-        contentStart++;
-    }
+    contentStart = skipHorizontalWs(line, contentStart);
 
     // Extract content and check for trailing attributes
-    let content = line.slice(contentStart);
-    let attrs = null;
-
-    const attrsMatch = content.match(/\s*\{([^}]+)\}\s*$/);
-    if (attrsMatch) {
-        attrs = attrsMatch[1];
-        content = content.slice(0, -attrsMatch[0].length).trim();
-    }
+    const split = splitTrailingAttrs(line.slice(contentStart));
+    const content = split.text;
+    const attrs = split.attrs;
 
     return { indent, marker, content, attrs };
 }
@@ -192,20 +180,10 @@ export function detectBlockquote(line) {
     }
 
     // Extract content
-    let contentStart = 1;
-    while (contentStart < line.length && (line[contentStart] === ' ' || line[contentStart] === '\t')) {
-        contentStart++;
-    }
-
-    let content = line.slice(contentStart);
-    let attrs = null;
-
-    // Check for trailing attributes
-    const attrsMatch = content.match(/\s*\{([^}]+)\}\s*$/);
-    if (attrsMatch) {
-        attrs = attrsMatch[1];
-        content = content.slice(0, -attrsMatch[0].length).trim();
-    }
+    const contentStart = skipHorizontalWs(line, 1);
+    const split = splitTrailingAttrs(line.slice(contentStart));
+    const content = split.text;
+    const attrs = split.attrs;
 
     return { content, attrs };
 }
@@ -215,12 +193,7 @@ export function detectBlockquote(line) {
  * EBNF: standaloneSubject = whitespace*, "{", "=", ( iriRef | "#", fragment ), "}", whitespace*
  */
 export function detectStandaloneSubject(line) {
-    let pos = 0;
-
-    // Skip leading whitespace
-    while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
-        pos++;
-    }
+    let pos = skipHorizontalWs(line, 0);
 
     if (pos >= line.length || line[pos] !== '{') return null;
     pos++;
@@ -243,10 +216,7 @@ export function detectStandaloneSubject(line) {
     const content = line.slice(contentStart, pos).trim();
 
     // Skip trailing whitespace
-    pos++;
-    while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
-        pos++;
-    }
+    pos = skipHorizontalWs(line, pos + 1);
 
     // Must consume entire line (after optional trailing whitespace)
     if (pos < line.length) return null;
@@ -337,12 +307,7 @@ export function findMatchingBracket(text, startPos, openChar = '[', closeChar = 
  * Extract attributes block after a position: {...}
  */
 export function extractAttributes(text, startPos) {
-    let pos = startPos;
-
-    // Skip whitespace
-    while (pos < text.length && (text[pos] === ' ' || text[pos] === '\t')) {
-        pos++;
-    }
+    const pos = skipHorizontalWs(text, startPos);
 
     if (pos >= text.length || text[pos] !== '{') return null;
 
@@ -695,7 +660,6 @@ export function scanInlineCarriers(text, baseOffset = 0) {
                 }
                 break;
 
-            case '<':
             case '<':
                 detected = detectAngleBracketUrl(text, pos);
                 if (detected) {

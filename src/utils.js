@@ -1,7 +1,5 @@
 import { URL_REGEX, DEFAULT_CONTEXT, RDF_LANG_STRING, XSD_STRING, XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE } from './constants.js';
 
-const VALID_URI_SCHEMES = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file):/;
-
 // Base Term class for RDF/JS compatibility
 export class Term {
     constructor(id) {
@@ -296,7 +294,7 @@ export function expandIRI(term, ctx) {
 }
 
 export function shortenIRI(iri, ctx) {
-    if (!iri || !VALID_URI_SCHEMES.test(iri)) return iri;
+    if (!iri || !URL_REGEX.test(iri)) return iri;
     if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) return iri.substring(ctx['@vocab'].length);
 
     // Find the best matching prefix - more precise matching

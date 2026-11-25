@@ -7,12 +7,21 @@ import {
     generateLiteralText,
     generateObjectText,
     generateRetractionText,
+    generateLabelAnnotation,
     filterQuadsByType
 } from './shared.js';
 
 // Simple cache for IRI shortening to avoid repeated processing
 const iriCache = new Map();
 const CACHE_SIZE_LIMIT = 1000;
+
+function literalDatatype(term) {
+    return term?.datatype?.value || term?.datatype || '';
+}
+
+function literalKey(term) {
+    return JSON.stringify([term?.value ?? '', term?.language || '', literalDatatype(term)]);
+}
 
 function getCachedShortIRI(iri, context) {
     const cacheKey = `${iri}|${JSON.stringify(context)}`;
@@ -286,10 +295,9 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
             ? typesNotRendered.map(t => '.' + getCachedShortIRI(t.object.value, context)).sort().join(' ')
             : '';
         // Only add label indicator if label quad not already rendered inline
-        const labelQuad = subjectQuads.find(q => q.predicate.value === RDFS_LABEL);
+        const labelQuad = labelEntry?.quad || null;
         if (hasLabel && (!labelQuad || !renderedQuads.has(labelQuad))) {
-            const langTag = labelEntry.language ? ' @' + labelEntry.language : '';
-            annotations += (annotations ? ' ' : '') + 'label' + langTag;
+            annotations += (annotations ? ' ' : '') + generateLabelAnnotation(labelEntry, context);
         }
 
         const annotationStr = annotations ? ' ' + annotations : '';
@@ -300,10 +308,10 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
         if (labelQuad) renderedQuads.add(labelQuad);
 
         // Add literals (excluding the label used in heading) and objects
-        const headingLabel = hasLabel ? labelEntry.value : null;
+        const headingLabelKey = labelEntry?.key || null;
         sortQuadsByPredicate(literals).forEach(quad => {
-            // Skip only the label that matches the heading display, render additional labels
-            if (quad.predicate.value === RDFS_LABEL && quad.object.value === headingLabel) {
+            // Skip only the exact label rendered in the heading; keep same-value labels with other lang/datatype
+            if (quad.predicate.value === RDFS_LABEL && headingLabelKey && literalKey(quad.object) === headingLabelKey) {
                 return; // Skip the heading label
             }
             textParts.push(generateLiteralText(quad, context));
@@ -345,7 +353,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
                     const typeAnnotations = types.length > 0
                         ? types.map(t => '.' + getCachedShortIRI(t.object.value, context)).sort().join(' ')
                         : '';
-                    const labelAnnotation = hasLabel ? 'label' + (reverseSubjectLabelEntry.language ? ' @' + reverseSubjectLabelEntry.language : '') : '';
+                    const labelAnnotation = hasLabel ? generateLabelAnnotation(reverseSubjectLabelEntry, context) : '';
 
                     if (typeAnnotations || labelAnnotation) {
                         inlineAnnotation = ' ' + [typeAnnotations, labelAnnotation].filter(Boolean).join(' ');
@@ -353,10 +361,8 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
 
                         // Mark only the type and label quads as rendered inline
                         types.forEach(q => renderedQuads.add(q));
-                        if (hasLabel) {
-                            const labelQuad = subjectQuads.find(q => q.predicate.value === RDFS_LABEL);
-                            if (labelQuad) renderedQuads.add(labelQuad);
-                        }
+                        const labelQuad = reverseSubjectLabelEntry?.quad || null;
+                        if (labelQuad) renderedQuads.add(labelQuad);
                     }
 
                     // Check if this subject's quads are all rendered (reverse + inline types/labels)
@@ -400,7 +406,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
 
 function buildLabelLookup(subjectGroups, lang = null) {
     const labelLookup = new Map();
-    const labelsBySubject = new Map(); // Track all labels per subject to select best one
+    const labelsBySubject = new Map(); // Track all label quads per subject to select best one
 
     for (const subjectQuads of subjectGroups.values()) {
         for (const quad of subjectQuads) {
@@ -409,7 +415,7 @@ function buildLabelLookup(subjectGroups, lang = null) {
                 if (!labelsBySubject.has(subjectIRI)) {
                     labelsBySubject.set(subjectIRI, []);
                 }
-                labelsBySubject.get(subjectIRI).push(quad.object);
+                labelsBySubject.get(subjectIRI).push(quad);
             }
         }
     }
@@ -419,45 +425,50 @@ function buildLabelLookup(subjectGroups, lang = null) {
         if (candidates.length === 0) return null;
         // Sort by: length (ascending), then value (alphabetically)
         candidates.sort((a, b) => {
-            const lenDiff = a.value.length - b.value.length;
-            return lenDiff !== 0 ? lenDiff : a.value.localeCompare(b.value);
+            const lenDiff = a.object.value.length - b.object.value.length;
+            return lenDiff !== 0 ? lenDiff : a.object.value.localeCompare(b.object.value);
         });
         return candidates[0];
     };
 
     // Select best label for each subject: prioritize by language preference, then untagged, then English, then any language
     for (const [subjectIRI, labels] of labelsBySubject) {
-        let selectedLabel = null;
+        let selectedQuad = null;
 
         // If lang is specified, try to find that language first
         if (lang) {
-            const langLabels = labels.filter(lit => lit.language === lang);
-            selectedLabel = selectBestLabel(langLabels);
+            const langLabels = labels.filter(q => q.object.language === lang);
+            selectedQuad = selectBestLabel(langLabels);
         }
 
         // Try to find untagged label (most generic)
-        if (!selectedLabel) {
-            const untaggedLabels = labels.filter(lit => !lit.language);
-            selectedLabel = selectBestLabel(untaggedLabels);
+        if (!selectedQuad) {
+            const untaggedLabels = labels.filter(q => !q.object.language);
+            selectedQuad = selectBestLabel(untaggedLabels);
         }
 
         // Fall back to English label
-        if (!selectedLabel) {
-            const englishLabels = labels.filter(lit => lit.language === 'en');
-            selectedLabel = selectBestLabel(englishLabels);
+        if (!selectedQuad) {
+            const englishLabels = labels.filter(q => q.object.language === 'en');
+            selectedQuad = selectBestLabel(englishLabels);
         }
 
         // Fall back to any language-tagged label
-        if (!selectedLabel) {
-            const taggedLabels = labels.filter(lit => lit.language);
-            selectedLabel = selectBestLabel(taggedLabels);
+        if (!selectedQuad) {
+            const taggedLabels = labels.filter(q => q.object.language);
+            selectedQuad = selectBestLabel(taggedLabels);
         }
 
-        // Store the selected label value and language
-        if (selectedLabel) {
+        // Store the selected label term and its exact quad for stable rendering
+        if (selectedQuad) {
+            const labelTerm = selectedQuad.object;
             labelLookup.set(subjectIRI, {
-                value: selectedLabel.value,
-                language: selectedLabel.language || null
+                value: labelTerm.value,
+                language: labelTerm.language || null,
+                datatype: literalDatatype(labelTerm),
+                term: labelTerm,
+                quad: selectedQuad,
+                key: literalKey(labelTerm)
             });
         }
     }

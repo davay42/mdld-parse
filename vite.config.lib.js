@@ -9,7 +9,7 @@ export default {
             formats: ['es']
         },
         emptyOutDir: false,
-        target: 'es2020',
+        target: 'es2022',
         outDir: 'dist',
         minify: false,
         sourcemap: false,

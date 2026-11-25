@@ -283,8 +283,7 @@ function scanTokens(text) {
     function handleList(line, lineStart, pos) {
         const result = detectList(line);
         const indentStr = ' '.repeat(result.indent);
-        const match = [line, indentStr, result.marker, result.content, result.attrs];
-        tokens.push(createListToken('list', line, lineStart, pos, match));
+        tokens.push(createListToken('list', line, lineStart, pos, result));
 
         const cleanList = `${indentStr}${result.marker} ${result.content}`;
         mdLines.push(cleanList);

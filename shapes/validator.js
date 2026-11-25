@@ -407,58 +407,63 @@ function extractConstraints(shapesDS, shapeTerm) {
   const severities = valuesOf(shapesDS, shapeTerm, sh('severity'))
   const deactivated = valuesOf(shapesDS, shapeTerm, sh('deactivated'))
 
-  // Group into constraint components
-  // Value-type
-  if (params.class) constraints.push({ component: 'ClassConstraintComponent', params: { class: params.class }, messages, severities })
-  if (params.datatype) constraints.push({ component: 'DatatypeConstraintComponent', params: { datatype: params.datatype }, messages, severities })
-  if (params.nodeKind) constraints.push({ component: 'NodeKindConstraintComponent', params: { nodeKind: params.nodeKind }, messages, severities })
-  // Cardinality
-  if (params.minCount != null) constraints.push({ component: 'MinCountConstraintComponent', params: { minCount: parseInt(params.minCount.value) }, messages, severities })
-  if (params.maxCount != null) constraints.push({ component: 'MaxCountConstraintComponent', params: { maxCount: parseInt(params.maxCount.value) }, messages, severities })
-  // Range
-  if (params.minExclusive) constraints.push({ component: 'MinExclusiveConstraintComponent', params: { minExclusive: params.minExclusive }, messages, severities })
-  if (params.maxExclusive) constraints.push({ component: 'MaxExclusiveConstraintComponent', params: { maxExclusive: params.maxExclusive }, messages, severities })
-  if (params.minInclusive) constraints.push({ component: 'MinInclusiveConstraintComponent', params: { minInclusive: params.minInclusive }, messages, severities })
-  if (params.maxInclusive) constraints.push({ component: 'MaxInclusiveConstraintComponent', params: { maxInclusive: params.maxInclusive }, messages, severities })
-  // String
-  if (params.minLength != null) constraints.push({ component: 'MinLengthConstraintComponent', params: { minLength: parseInt(params.minLength.value) }, messages, severities })
-  if (params.maxLength != null) constraints.push({ component: 'MaxLengthConstraintComponent', params: { maxLength: parseInt(params.maxLength.value) }, messages, severities })
-  if (params.pattern) constraints.push({ component: 'PatternConstraintComponent', params: { pattern: params.pattern.value, flags: params.flags?.value || '' }, messages, severities })
-  if (params.languageIn) constraints.push({ component: 'LanguageInConstraintComponent', params: { languageIn: Array.isArray(params.languageIn) ? readList(shapesDS, params.languageIn[0]) : readList(shapesDS, params.languageIn) }, messages, severities })
-  if (params.uniqueLang) constraints.push({ component: 'UniqueLangConstraintComponent', params: { uniqueLang: params.uniqueLang.value === 'true' }, messages, severities })
-  // Property pair
-  if (params.equals) constraints.push({ component: 'EqualsConstraintComponent', params: { equals: params.equals }, messages, severities })
-  if (params.disjoint) constraints.push({ component: 'DisjointConstraintComponent', params: { disjoint: params.disjoint }, messages, severities })
-  if (params.lessThan) constraints.push({ component: 'LessThanConstraintComponent', params: { lessThan: params.lessThan }, messages, severities })
-  if (params.lessThanOrEquals) constraints.push({ component: 'LessThanOrEqualsConstraintComponent', params: { lessThanOrEquals: params.lessThanOrEquals }, messages, severities })
-  // Logical
-  if (params.not) {
-    // sh:not can have multiple values - create separate constraint for each
-    const notTerms = Array.isArray(params.not) ? params.not : [params.not]
-    for (const notTerm of notTerms) {
-      constraints.push({ component: 'NotConstraintComponent', params: { not: notTerm }, messages, severities })
+  const add = (component, params) => constraints.push({ component, params, messages, severities })
+  const asArray = (v) => Array.isArray(v) ? v : [v]
+  const readListParam = (v) => readList(shapesDS, Array.isArray(v) ? v[0] : v)
+  const intParam = (v) => parseInt(v.value)
+  const boolParam = (v) => v.value === 'true'
+
+  // Ordered to match the previous emission order; params with custom shapes use build().
+  const specs = [
+    // Value type
+    { param: 'class', component: 'ClassConstraintComponent' },
+    { param: 'datatype', component: 'DatatypeConstraintComponent' },
+    { param: 'nodeKind', component: 'NodeKindConstraintComponent' },
+    // Cardinality
+    { param: 'minCount', component: 'MinCountConstraintComponent', value: intParam },
+    { param: 'maxCount', component: 'MaxCountConstraintComponent', value: intParam },
+    // Range
+    { param: 'minExclusive', component: 'MinExclusiveConstraintComponent' },
+    { param: 'maxExclusive', component: 'MaxExclusiveConstraintComponent' },
+    { param: 'minInclusive', component: 'MinInclusiveConstraintComponent' },
+    { param: 'maxInclusive', component: 'MaxInclusiveConstraintComponent' },
+    // String
+    { param: 'minLength', component: 'MinLengthConstraintComponent', value: intParam },
+    { param: 'maxLength', component: 'MaxLengthConstraintComponent', value: intParam },
+    { param: 'pattern', component: 'PatternConstraintComponent', build: (raw, p) => ({ pattern: raw.value, flags: p.flags?.value || '' }) },
+    { param: 'languageIn', component: 'LanguageInConstraintComponent', list: true },
+    { param: 'uniqueLang', component: 'UniqueLangConstraintComponent', value: boolParam },
+    // Property pair
+    { param: 'equals', component: 'EqualsConstraintComponent' },
+    { param: 'disjoint', component: 'DisjointConstraintComponent' },
+    { param: 'lessThan', component: 'LessThanConstraintComponent' },
+    { param: 'lessThanOrEquals', component: 'LessThanOrEqualsConstraintComponent' },
+    // Logical
+    { param: 'not', component: 'NotConstraintComponent', many: true },
+    { param: 'and', component: 'AndConstraintComponent', list: true },
+    { param: 'or', component: 'OrConstraintComponent', list: true },
+    { param: 'xone', component: 'XoneConstraintComponent', list: true },
+    // Shape-based
+    { param: 'node', component: 'NodeConstraintComponent' },
+    { param: 'hasValue', component: 'HasValueConstraintComponent' },
+    { param: 'in', component: 'InConstraintComponent', list: true },
+    { param: 'closed', component: 'ClosedConstraintComponent', build: (raw, p) => ({
+      closed: raw !== false && !(isLiteral(raw) && ['false', '0'].includes(raw.value.toLowerCase())),
+      ignoredProperties: p.ignoredProperties ? readListParam(p.ignoredProperties) : []
+    }) },
+    { param: 'js', component: 'JSConstraintComponent', many: true },
+  ]
+
+  for (const spec of specs) {
+    const raw = params[spec.param]
+    if (raw == null) continue
+    for (const item of spec.many ? asArray(raw) : [raw]) {
+      const value = spec.list ? readListParam(item) : item
+      const mapped = spec.value ? spec.value(value) : value
+      add(spec.component, spec.build ? spec.build(item, params) : { [spec.param]: mapped })
     }
   }
-  if (params.and) constraints.push({ component: 'AndConstraintComponent', params: { and: Array.isArray(params.and) ? readList(shapesDS, params.and[0]) : readList(shapesDS, params.and) }, messages, severities })
-  if (params.or) constraints.push({ component: 'OrConstraintComponent', params: { or: Array.isArray(params.or) ? readList(shapesDS, params.or[0]) : readList(shapesDS, params.or) }, messages, severities })
-  if (params.xone) constraints.push({ component: 'XoneConstraintComponent', params: { xone: Array.isArray(params.xone) ? readList(shapesDS, params.xone[0]) : readList(shapesDS, params.xone) }, messages, severities })
-  // Shape-based
-  if (params.node) constraints.push({ component: 'NodeConstraintComponent', params: { node: params.node }, messages, severities })
-  if (params.hasValue) constraints.push({ component: 'HasValueConstraintComponent', params: { hasValue: params.hasValue }, messages, severities })
-  if (params.in) constraints.push({ component: 'InConstraintComponent', params: { in: Array.isArray(params.in) ? readList(shapesDS, params.in[0]) : readList(shapesDS, params.in) }, messages, severities })
-  if (params.closed != null) constraints.push({
-    component: 'ClosedConstraintComponent', params: {
-      closed: params.closed !== false &&
-        !(isLiteral(params.closed) && ['false', '0'].includes(params.closed.value.toLowerCase())),
-      ignoredProperties: params.ignoredProperties ? (Array.isArray(params.ignoredProperties) ? readList(shapesDS, params.ignoredProperties[0]) : readList(shapesDS, params.ignoredProperties)) : []
-    }, messages, severities
-  })
-  if (params.js) {
-    const jsTerms = Array.isArray(params.js) ? params.js : [params.js]
-    for (const jsTerm of jsTerms) {
-      constraints.push({ component: 'JSConstraintComponent', params: { js: jsTerm }, messages, severities })
-    }
-  }
+
   // Qualified - split into separate components per SHACL spec
   if (params.qualifiedValueShape) {
     if (params.qualifiedMinCount != null) {
@@ -752,6 +757,23 @@ function shortenTerm(term, prefixes) {
 
 // ─── Constraint evaluation ─────────────────────────────────────────────────────
 
+const COUNT_CHECKS = {
+  MinCountConstraintComponent: { param: 'minCount', fail: (n, limit) => n < limit },
+  MaxCountConstraintComponent: { param: 'maxCount', fail: (n, limit) => n > limit },
+}
+
+const LENGTH_CHECKS = {
+  MinLengthConstraintComponent: { param: 'minLength', fail: (len, limit) => len < limit },
+  MaxLengthConstraintComponent: { param: 'maxLength', fail: (len, limit) => len > limit },
+}
+
+const RANGE_CHECKS = {
+  MinInclusiveConstraintComponent: { param: 'minInclusive', fail: cmp => cmp < 0 },
+  MaxInclusiveConstraintComponent: { param: 'maxInclusive', fail: cmp => cmp > 0 },
+  MinExclusiveConstraintComponent: { param: 'minExclusive', fail: cmp => cmp <= 0 },
+  MaxExclusiveConstraintComponent: { param: 'maxExclusive', fail: cmp => cmp >= 0 },
+}
+
 /**
  * Evaluate a single constraint against a value.
  * @returns {Array} array of violation objects (empty if passes)
@@ -776,6 +798,27 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
     return v
   }
 
+  const countCheck = COUNT_CHECKS[component]
+  if (countCheck) {
+    if (countCheck.fail(values.length, params[countCheck.param])) violations.push(viol())
+    return violations
+  }
+
+  const lengthCheck = LENGTH_CHECKS[component]
+  if (lengthCheck) {
+    if (isLiteral(value) && lengthCheck.fail(value.value.length, params[lengthCheck.param])) violations.push(viol())
+    return violations
+  }
+
+  const rangeCheck = RANGE_CHECKS[component]
+  if (rangeCheck) {
+    if (isLiteral(value)) {
+      const cmp = compareValues(value, params[rangeCheck.param])
+      if (!isNaN(cmp) && rangeCheck.fail(cmp)) violations.push(viol())
+    }
+    return violations
+  }
+
   switch (component) {
     case 'ClassConstraintComponent': {
       if (!isNamedNode(value) && !isBlankNode(value)) { violations.push(viol()); break }
@@ -791,56 +834,6 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
     }
     case 'NodeKindConstraintComponent': {
       if (!checkNodeKind(value, params.nodeKind)) violations.push(viol())
-      break
-    }
-    case 'MinCountConstraintComponent': {
-      if (values.length < params.minCount) violations.push(viol())
-      break
-    }
-    case 'MaxCountConstraintComponent': {
-      if (values.length > params.maxCount) violations.push(viol())
-      break
-    }
-    case 'MinInclusiveConstraintComponent': {
-      // Only applies to literals
-      if (!isLiteral(value)) break
-      // Only compare if both values are comparable (same datatype or compatible)
-      const cmp = compareValues(value, params.minInclusive)
-      if (isNaN(cmp)) break  // Skip if not comparable
-      if (cmp < 0) violations.push(viol())
-      break
-    }
-    case 'MaxInclusiveConstraintComponent': {
-      // Only applies to literals
-      if (!isLiteral(value)) break
-      // Only compare if both values are comparable
-      const cmp = compareValues(value, params.maxInclusive)
-      if (isNaN(cmp)) break  // Skip if not comparable
-      if (cmp > 0) violations.push(viol())
-      break
-    }
-    case 'MinExclusiveConstraintComponent': {
-      if (!isLiteral(value)) break
-      const cmp = compareValues(value, params.minExclusive)
-      if (isNaN(cmp)) break
-      if (cmp <= 0) violations.push(viol())
-      break
-    }
-    case 'MaxExclusiveConstraintComponent': {
-      if (!isLiteral(value)) break
-      const cmp = compareValues(value, params.maxExclusive)
-      if (isNaN(cmp)) break
-      if (cmp >= 0) violations.push(viol())
-      break
-    }
-    case 'MinLengthConstraintComponent': {
-      if (!isLiteral(value)) break  // Only applies to literals
-      if (value.value.length < params.minLength) violations.push(viol())
-      break
-    }
-    case 'MaxLengthConstraintComponent': {
-      if (!isLiteral(value)) break  // Only applies to literals
-      if (value.value.length > params.maxLength) violations.push(viol())
       break
     }
     case 'PatternConstraintComponent': {
@@ -1030,6 +1023,23 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
   return violations
 }
 
+// Components evaluated once against the values array on property shapes.
+const PROPERTY_LEVEL_COMPONENTS = new Set([
+  'MinCountConstraintComponent', 'MaxCountConstraintComponent', 'EqualsConstraintComponent',
+  'DisjointConstraintComponent', 'LessThanConstraintComponent', 'LessThanOrEqualsConstraintComponent',
+  'UniqueLangConstraintComponent', 'HasValueConstraintComponent',
+  'QualifiedMinCountConstraintComponent', 'QualifiedMaxCountConstraintComponent',
+  'ClosedConstraintComponent',
+])
+
+// Components skipped when evaluating a NodeShape directly (Closed stays node-level).
+const NODE_LEVEL_SKIPPED_COMPONENTS = new Set([
+  'MinCountConstraintComponent', 'MaxCountConstraintComponent', 'EqualsConstraintComponent',
+  'DisjointConstraintComponent', 'LessThanConstraintComponent', 'LessThanOrEqualsConstraintComponent',
+  'UniqueLangConstraintComponent', 'HasValueConstraintComponent',
+  'QualifiedMinCountConstraintComponent', 'QualifiedMaxCountConstraintComponent',
+])
+
 // ─── Core validation ───────────────────────────────────────────────────────────
 
 function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parentCtx, opts = {}) {
@@ -1052,11 +1062,7 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
 
       for (const c of constraints) {
         // Property-level constraints (operate on values array)
-        if (['MinCountConstraintComponent', 'MaxCountConstraintComponent', 'EqualsConstraintComponent',
-          'DisjointConstraintComponent', 'LessThanConstraintComponent', 'LessThanOrEqualsConstraintComponent',
-          'UniqueLangConstraintComponent', 'HasValueConstraintComponent',
-          'QualifiedMinCountConstraintComponent', 'QualifiedMaxCountConstraintComponent',
-          'ClosedConstraintComponent'].includes(c.component)) {
+        if (PROPERTY_LEVEL_COMPONENTS.has(c.component)) {
           violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, values, propCtx))
         } else {
           // Value-level constraints (operate on each value)
@@ -1070,10 +1076,7 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
     // NodeShape: evaluate node-level constraints against the focus node itself
     for (const c of constraints) {
       // Skip property-level constraints at node level
-      if (['MinCountConstraintComponent', 'MaxCountConstraintComponent', 'EqualsConstraintComponent',
-        'DisjointConstraintComponent', 'LessThanConstraintComponent', 'LessThanOrEqualsConstraintComponent',
-        'UniqueLangConstraintComponent', 'HasValueConstraintComponent',
-        'QualifiedMinCountConstraintComponent', 'QualifiedMaxCountConstraintComponent'].includes(c.component)) continue
+      if (NODE_LEVEL_SKIPPED_COMPONENTS.has(c.component)) continue
       violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, [focusNode], ctx))
     }
 
@@ -1090,11 +1093,7 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
 
         for (const c of propConstraints) {
           // Property-level constraints (operate on values array)
-          if (['MinCountConstraintComponent', 'MaxCountConstraintComponent', 'EqualsConstraintComponent',
-            'DisjointConstraintComponent', 'LessThanConstraintComponent', 'LessThanOrEqualsConstraintComponent',
-            'UniqueLangConstraintComponent', 'HasValueConstraintComponent',
-            'QualifiedMinCountConstraintComponent', 'QualifiedMaxCountConstraintComponent',
-            'ClosedConstraintComponent'].includes(c.component)) {
+          if (PROPERTY_LEVEL_COMPONENTS.has(c.component)) {
             violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, values, propCtx))
           } else {
             // Value-level constraints (operate on each value)

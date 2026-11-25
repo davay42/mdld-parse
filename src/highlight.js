@@ -34,6 +34,22 @@ export const TOKEN_COLORS = {
     annotation: '#4b5563'     // Darker gray - annotation braces
 };
 
+const MARKDOWN_FORMATS = [
+    { delimiter: '**', tag: 'strong' },
+    { delimiter: '__', tag: 'strong' },
+    { delimiter: '*', tag: 'em' },
+    { delimiter: '_', tag: 'em' },
+    { delimiter: '`', tag: 'code' }
+];
+
+const ANNOTATION_MARKERS = [
+    { marker: '^^', length: 2 },
+    { marker: '?', length: 1 },
+    { marker: '!', length: 1 },
+    { marker: '@', length: 1 },
+    { marker: '.', length: 1 }
+];
+
 // Check if markdown formatting has following annotation
 function hasFollowingAnnotation(code, endPos) {
     let i = endPos;
@@ -47,78 +63,38 @@ function hasFollowingAnnotation(code, endPos) {
     return false;
 }
 
+function isLineStartOrAfterSpace(code, i) {
+    const prevChar = i > 0 ? code[i - 1] : '\n';
+    return prevChar === '\n' || prevChar === '\r' || prevChar === ' ' || prevChar === '\t';
+}
+
+function renderMarkerSpan(code, i, char) {
+    if (!isLineStartOrAfterSpace(code, i) || code[i + 1] !== ' ') return null;
+    const hasAnnotation = hasFollowingAnnotation(code, i + 2);
+    const markerColor = hasAnnotation ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : '';
+    return `<span style="${markerColor}">${escapeHtml(char)}</span>`;
+}
+
 // Process markdown formatting at specific position for non-bracket text
 function processMarkdownFormattingAtPosition(code, startPos) {
-    const char = code[startPos];
+    for (const { delimiter, tag } of MARKDOWN_FORMATS) {
+        if (!code.startsWith(delimiter, startPos)) continue;
 
-    // Check for **bold**
-    if (char === '*' && startPos + 1 < code.length && code[startPos + 1] === '*') {
-        const endPos = code.indexOf('**', startPos + 2);
-        if (endPos !== -1) {
-            const content = code.slice(startPos + 2, endPos);
-            const hasAnnotation = hasFollowingAnnotation(code, endPos + 2);
-            const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
-            return {
-                html: `<span${color}>**</span><strong>${escapeHtml(content)}</strong><span${color}>**</span>`,
-                nextIndex: endPos + 2
-            };
-        }
-    }
+        const contentStart = startPos + delimiter.length;
+        const endPos = code.indexOf(delimiter, contentStart);
+        if (endPos === -1) continue;
 
-    // Check for __bold__
-    if (char === '_' && startPos + 1 < code.length && code[startPos + 1] === '_') {
-        const endPos = code.indexOf('__', startPos + 2);
-        if (endPos !== -1) {
-            const content = code.slice(startPos + 2, endPos);
-            const hasAnnotation = hasFollowingAnnotation(code, endPos + 2);
-            const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
-            return {
-                html: `<span${color}>__</span><strong>${escapeHtml(content)}</strong><span${color}>__</span>`,
-                nextIndex: endPos + 2
-            };
-        }
-    }
+        const content = code.slice(contentStart, endPos);
+        const hasAnnotation = hasFollowingAnnotation(code, endPos + delimiter.length);
+        const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
+        const inner = tag === 'code'
+            ? `<code style="background-color:#7773">${escapeHtml(content)}</code>`
+            : `<${tag}>${escapeHtml(content)}</${tag}>`;
 
-    // Check for *italic*
-    if (char === '*') {
-        const endPos = code.indexOf('*', startPos + 1);
-        if (endPos !== -1) {
-            const content = code.slice(startPos + 1, endPos);
-            const hasAnnotation = hasFollowingAnnotation(code, endPos + 1);
-            const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
-            return {
-                html: `<span${color}>*</span><em>${escapeHtml(content)}</em><span${color}>*</span>`,
-                nextIndex: endPos + 1
-            };
-        }
-    }
-
-    // Check for _italic_
-    if (char === '_') {
-        const endPos = code.indexOf('_', startPos + 1);
-        if (endPos !== -1) {
-            const content = code.slice(startPos + 1, endPos);
-            const hasAnnotation = hasFollowingAnnotation(code, endPos + 1);
-            const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
-            return {
-                html: `<span${color}>_</span><em>${escapeHtml(content)}</em><span${color}>_</span>`,
-                nextIndex: endPos + 1
-            };
-        }
-    }
-
-    // Check for `code`
-    if (char === '`') {
-        const endPos = code.indexOf('`', startPos + 1);
-        if (endPos !== -1) {
-            const content = code.slice(startPos + 1, endPos);
-            const hasAnnotation = hasFollowingAnnotation(code, endPos + 1);
-            const color = hasAnnotation ? ` style="color: ${TOKEN_COLORS.marker}"` : '';
-            return {
-                html: `<span${color}>\`</span><code style="background-color:#7773">${escapeHtml(content)}</code><span${color}>\`</span>`,
-                nextIndex: endPos + 1
-            };
-        }
+        return {
+            html: `<span${color}>${delimiter}</span>${inner}<span${color}>${delimiter}</span>`,
+            nextIndex: endPos + delimiter.length
+        };
     }
 
     return null;
@@ -253,38 +229,11 @@ function parseAnnotation(content, prefixes) {
         const isRetracted = nextTermIsRetracted;
         nextTermIsRetracted = false; // Reset after one term
 
-        // Check for object markers (? or !)
-        if (part.startsWith('?') || part.startsWith('!')) {
-            const marker = part[0]; // ? or !
-            const rest = part.slice(1); // the CURIE or rest of the term
+        // Check for semantic markers (^^, ?, !, @, .)
+        const markerInfo = ANNOTATION_MARKERS.find(m => part.startsWith(m.marker));
+        if (markerInfo) {
             const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
-            result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
-            continue;
-        }
-
-        // Check for datatype markers (^^, @)
-        if (part.startsWith('^^')) {
-            const marker = '^^'; // the datatype marker
-            const rest = part.slice(2); // the datatype
-            const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
-            result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
-            continue;
-        }
-
-        if (part.startsWith('@')) {
-            const marker = '@'; // the language marker
-            const rest = part.slice(1); // the language code
-            const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
-            result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
-            continue;
-        }
-
-        // Check for type marker (.)
-        if (part.startsWith('.')) {
-            const marker = '.'; // the dot
-            const rest = part.slice(1); // the class name
-            const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
-            result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
+            result += `<span style="color: ${color}">${escapeHtml(markerInfo.marker)}</span>${renderTerm(part.slice(markerInfo.length), isRetracted, prefixes)}`;
             continue;
         }
 
@@ -442,43 +391,13 @@ export function highlight(code) {
             }
         }
 
-        // Handle list markers (-, *)
-        if (char === '-' || char === '*') {
-            // Check if this is a list marker (at start of line or after whitespace)
-            const prevChar = i > 0 ? code[i - 1] : '\n';
-            const isAtLineStart = prevChar === '\n' || prevChar === '\r';
-            const isAfterSpace = prevChar === ' ' || prevChar === '\t';
-
-            if (isAtLineStart || isAfterSpace) {
-                // Check if followed by space and has annotation
-                const nextChar = code[i + 1];
-                if (nextChar === ' ') {
-                    const hasAnnotation = hasFollowingAnnotation(code, i + 2);
-                    const markerColor = hasAnnotation ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : '';
-                    result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
-                    i++;
-                    continue;
-                }
-            }
-        }
-
-        // Handle blockquotes (>)
-        if (char === '>') {
-            // Check if this is a blockquote marker (at start of line or after whitespace)
-            const prevChar = i > 0 ? code[i - 1] : '\n';
-            const isAtLineStart = prevChar === '\n' || prevChar === '\r';
-            const isAfterSpace = prevChar === ' ' || prevChar === '\t';
-
-            if (isAtLineStart || isAfterSpace) {
-                // Check if followed by space and has annotation
-                const nextChar = code[i + 1];
-                if (nextChar === ' ') {
-                    const hasAnnotation = hasFollowingAnnotation(code, i + 2);
-                    const markerColor = hasAnnotation ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : '';
-                    result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
-                    i++;
-                    continue;
-                }
+        // Handle list markers (-, *) and blockquotes (>)
+        if (char === '-' || char === '*' || char === '>') {
+            const markerHtml = renderMarkerSpan(code, i, char);
+            if (markerHtml) {
+                result += markerHtml;
+                i++;
+                continue;
             }
         }
 
