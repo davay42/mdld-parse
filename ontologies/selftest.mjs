@@ -16,11 +16,11 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parse, merge } from '../src/index.js'
-import { evaluate } from '../shapes/validator.js'
+import { evaluate } from '../src/evaluate.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
-function sortKeys(o){ if(o instanceof Date) return o.toISOString(); if(Array.isArray(o)) return o.map(sortKeys); if(o&&typeof o==='object'&&o.constructor===Object){return Object.fromEntries(Object.keys(o).sort().map(k=>[k,sortKeys(o[k])]))} return o }
+function sortKeys(o) { if (o instanceof Date) return o.toISOString(); if (Array.isArray(o)) return o.map(sortKeys); if (o && typeof o === 'object' && o.constructor === Object) { return Object.fromEntries(Object.keys(o).sort().map(k => [k, sortKeys(o[k])])) } return o }
 
 let failures = 0
 const problems = []
@@ -51,8 +51,8 @@ for (const file of packs) {
   } catch (e) { fail(`pack parse/validate error: ${e.message}`) }
 
   // 2/3/4. pack:Example nodes — source + expectations all in the graph
-  const EX='https://mdld.js.org/ns/pack/'
-  const examples = packQuads.filter(q => q.predicate.value.endsWith('type') && q.object.value === EX+'Demo')
+  const EX = 'https://mdld.js.org/ns/pack/'
+  const examples = packQuads.filter(q => q.predicate.value.endsWith('type') && q.object.value === EX + 'Demo')
     .map(q => q.subject.value)
   const shapeIris = packQuads.filter(q => q.predicate.value.endsWith('type') && q.object.value.endsWith('NodeShape'))
     .map(q => q.subject.value)
@@ -60,8 +60,8 @@ for (const file of packs) {
     const name = exIri.split('/').pop()
     const srcQ = packQuads.find(q => q.subject.value === exIri &&
       q.predicate.value === EX + 'demo')
-    const expVQ = packQuads.find(q => q.subject.value === exIri && q.predicate.value === EX+'expectedViolations')
-    const expPQ = packQuads.find(q => q.subject.value === exIri && q.predicate.value === EX+'extractedPOJO')
+    const expVQ = packQuads.find(q => q.subject.value === exIri && q.predicate.value === EX + 'expectedViolations')
+    const expPQ = packQuads.find(q => q.subject.value === exIri && q.predicate.value === EX + 'extractedPOJO')
     if (!srcQ) { fail(`${name}: no source literal`); continue }
     let quads, context
     try { ({ quads, context } = parse({ text: srcQ.object.value })) }

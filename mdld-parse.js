@@ -5043,7 +5043,7 @@ var QuadGraph = class extends Base {
 var IS_BROWSER = typeof HTMLElement !== "undefined" && typeof customElements !== "undefined" && typeof document !== "undefined";
 if (IS_BROWSER && !customElements.get("quad-graph")) customElements.define("quad-graph", QuadGraph);
 var graph_default = IS_BROWSER ? QuadGraph : void 0;
-// shapes/validator.js
+// src/evaluate.js
 /**
 * mdld-shapes.js — Zero-dependency SHACL Core validator for the MD-LD ecosystem.
 *
@@ -6406,6 +6406,34 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
 	}
 	return obj;
 }
+var escHTML = (s) => String(s).replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
+function recordValueHTML(v) {
+	if (v === null || v === void 0 || v === "") return "<i>—</i>";
+	if (typeof v === "boolean") return v ? "true" : "false";
+	if (typeof v === "number" || typeof v === "bigint") return String(v);
+	if (v instanceof Date) {
+		if (isNaN(v)) return "<i>invalid date</i>";
+		const iso = v.toISOString();
+		const txt = !(v % 864e5) ? v.toLocaleDateString(void 0, {
+			dateStyle: "medium",
+			timeZone: "UTC"
+		}) : v.toLocaleString(void 0, {
+			dateStyle: "medium",
+			timeStyle: "short"
+		});
+		return `<time datetime="${escHTML(iso)}">${escHTML(txt)}</time>`;
+	}
+	if (Array.isArray(v)) return v.length ? `<ul>${v.map((x) => `<li>${recordValueHTML(x)}</li>`).join("")}</ul>` : "<i>empty</i>";
+	if (typeof v === "object") {
+		const rows = Object.entries(v);
+		return rows.length ? `<table><tbody>${rows.map(([k, x]) => `<tr><th scope="row">${escHTML(k)}</th><td>${recordValueHTML(x)}</td></tr>`).join("")}</tbody></table>` : "<i>empty</i>";
+	}
+	return escHTML(v);
+}
+/** Render one evaluate()/extract() POJO record as a semantic HTML table (no CSS). */
+function recordTable(pojo) {
+	return `<table><tbody>${Object.entries(pojo || {}).map(([k, v]) => `<tr><th scope="row">${escHTML(k)}</th><td>${recordValueHTML(v)}</td></tr>`).join("")}</tbody></table>`;
+}
 function quadKey(q) {
 	return `${termKey(q.subject)}|${termKey(q.predicate)}|${termKey(q.object)}|${termKey(q.graph)}`;
 }
@@ -6664,4 +6692,4 @@ function updateValue({ text, quad, value, origin }) {
 	if (!location || !location.valueRange) return text;
 	return text.substring(0, location.valueRange.start) + value + text.substring(location.valueRange.end);
 }
-export { DEFAULT_CONTEXT, DataFactory, MdldEditor, graph_default as QuadGraph, SUPPORTED_VOCABULARY, Store, Validator, createShapeDetector, deconstruct, evaluate, expandIRI, extract, extractGraph, generate, generateNode, hash, highlight, isSupportedTerm, locate, merge, parse, parseSemanticBlock, render, shortenIRI, updateValue, validate };
+export { DEFAULT_CONTEXT, DataFactory, MdldEditor, graph_default as QuadGraph, SUPPORTED_VOCABULARY, Store, Validator, createShapeDetector, deconstruct, evaluate, expandIRI, extract, extractGraph, generate, generateNode, hash, highlight, isSupportedTerm, locate, merge, parse, parseSemanticBlock, recordTable, render, shortenIRI, updateValue, validate };
