@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parse } from '../src/index.js'
-import { extract } from './validator.js'
+import { extract } from '../src/evaluate.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const catalogPath = process.argv[2] || join(here, 'catalog.md')

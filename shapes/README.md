@@ -4,11 +4,6 @@
 
 A single-file (~1,600 LOC), synchronous SHACL validator that achieves **100% parity with [shacl-engine](https://github.com/rdf-ext/shacl-engine)** on the W3C SHACL 1.2 Core test suite, with no external RDF libraries required — and doubles as a **projection engine**: the same shapes that validate also extract (`extract` / `extractGraph`).
 
-```
-validator.js  →  1,450 lines  →  0 dependencies  →  301/301 violations match
-                          →  SHACL shape = schema for extraction, too
-```
-
 ## Why
 
 The MD-LD ecosystem needed a SHACL validator that:
@@ -24,8 +19,7 @@ We tried `shacl-engine` first. It's excellent software — but its reliance on g
 ## Quick Start
 
 ```javascript
-import { validate } from './validator.js'
-import { parse } from 'mdld-parse'
+import { parse, validate } from 'mdld-parse'
 
 const { quads } = parse({ text: mdldString })
 const report = validate({ quads })
@@ -43,7 +37,7 @@ const report = validate({ shapes: shapeQuads,  dataQuads })
 ### Stateful validator (reusable shapes)
 
 ```javascript
-import { Validator } from './validator.js'
+import { Validator } from '../src/evaluate.js'
 
 const v = new Validator(shapeQuads)
 const r1 = v.validate(dataQuads1)
@@ -280,7 +274,7 @@ per call; beyond that, shard by target or wait for the indexed store.
 ## Architecture
 
 ```
-validator.js (~1,600 LOC)
+evaluate.js (~1,600 LOC)
 ├── Namespaces & constants      (~30 LOC)
 ├── Term helpers                (~50 LOC)  termKey, termEquals, isLiteral
 ├── Store                       (~40 LOC)  Minimal RDF/JS DatasetCore
@@ -327,7 +321,7 @@ const validator = new Validator(shapesDataset, { factory })
 const report = await validator.validate({ dataset: dataDataset })
 
 // After (mdld-shapes)
-import { validate } from './validator.js'
+import { validate } from './evaluate.js'
 const report = validate({ shapes: shapesQuads,  dataQuads })
 ```
 
@@ -344,14 +338,14 @@ node selftest.js   # the whole loop, one command — ~0.17s: 33 demos
 ```
 
 The catalog is not documentation *about* SHACL — it is SHACL. Five closed
-loops keep `ontology.md`, `catalog.md`, and `validator.js` synchronized:
+loops keep `ontology.md`, `catalog.md`, and `evaluate.js` synchronized:
 
 1. **Coverage** (ontology → catalog) — every `sh:` property defined in
    `ontology.md` (the W3C vocabulary, ground truth) must be accounted for in
    `catalog.md` as `demo` / `included` / `section` / `notCovered`.
 2. **Sync** (catalog ↔ validator) — every term the catalog presents as
    covered must exist in `SUPPORTED_VOCABULARY` (exported from
-   `validator.js`); implemented-but-marked-`notCovered` terms are reported.
+   `evaluate.js`); implemented-but-marked-`notCovered` terms are reported.
 3. **Demos** (catalog → validator) — every `cat:Demo`'s `cat:demo` source is
    re-parsed and validated; the violation count must equal
    `cat:expectedViolations`, and every `cat:expectedViolationMessage` literal
@@ -438,7 +432,7 @@ Same as `mdld-parse`. See the [mdld-parse repository](https://github.com/mdld-js
 
 **Verified against:** shacl-engine 1.1.3 on the `shacl-demo.md` test suite (301 violations, 0 differences)
 
-**Lines of code:** ~1,450 (validator.js)
+**Lines of code:** ~1,450 (evaluate.js)
 
 **Dependencies:** 0 (excluding mdld-parse)
 

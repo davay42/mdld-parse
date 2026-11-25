@@ -108,7 +108,7 @@
 ## v1.2.0 Self-validating SHACL ecosystem
 
 ### Added
-- **`mdld-parse/shapes` — zero-dependency SHACL Core validator** (`shapes/validator.js`, ~1,100 LOC, sync, no RDF libraries): consumes mdld-parse quads directly via `{ quads }` (auto shape/data classification), `{ shapes, data }`, or a reusable `Validator` class
+- **`mdld-parse/shapes` — zero-dependency SHACL Core validator** (`src/evaluator.js`, ~1,100 LOC, sync, no RDF libraries): consumes mdld-parse quads directly via `{ quads }` (auto shape/data classification), `{ shapes, data }`, or a reusable `Validator` class
   - Full SHACL Core surface: all constraint components, all target types (`targetClass`/`targetNode`/`target`/`targetSubjectsOf`/`targetObjectsOf`), all property path types, logical constraints over RDF lists, qualified counts, closed shapes, `sh:message` templates (`{$value}`/`{$path}`/`{$focusNode}`), `sh:severity`, `sh:deactivated`
   - **IRI path structures** — complex paths (`sh:inversePath`, `sh:alternativePath`, `sh:zeroOrMorePath`, `sh:oneOrMorePath`, `sh:zeroOrOnePath`, sequence lists) resolve on any term type, so MD-LD needs no blank nodes
   - **SHACL-JS** — `sh:js` → `sh:JSConstraint` → `sh:script`, compiled once per constraint with validator helpers in scope; **opt-in via `allowJS: true`**, disabled by default so untrusted shapes cannot execute code

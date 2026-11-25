@@ -4,13 +4,13 @@
  *
  * Three-way synchronization check across the MD-LD SHACL stack:
  *
- *   ontology.md ──► catalog.md ──► validator.js
+ *   ontology.md ──► catalog.md ──► evaluate.js
  *   (ground truth)  (docs + demos)  (implementation)
  *
  * 1. COVERAGE   — every sh: property defined in ontology.md is accounted for
  *                 in catalog.md as demo / included / section / notCovered.
  * 2. SYNC       — every term the catalog presents as covered is actually
- *                 implemented in validator.js (SUPPORTED_VOCABULARY).
+ *                 implemented in evaluate.js (SUPPORTED_VOCABULARY).
  *                 Implemented-but-marked-notCovered terms are reported.
  * 3. DEMOS      — every cat:Demo's cat:demo source is parsed and validated;
  *                 the violation count must equal cat:expectedViolations.
@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parse, DataFactory } from '../src/index.js'
-import { validate, evaluate, isSupportedTerm, extract, extractGraph } from './validator.js'
+import { validate, evaluate, isSupportedTerm, extract, extractGraph } from '../src/evaluate.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const catalogPath = process.argv[2] || join(here, 'catalog.md')
@@ -107,10 +107,10 @@ for (const [iri, status] of termStatus) {
   const name = iri.slice(SH.length)
   const covered = status === 'demo' || status === 'included' || status === 'section'
   if (covered && !isSupportedTerm(name)) {
-    fail(`sync: sh:${name} is ${status} in catalog but not implemented in validator.js`)
+    fail(`sync: sh:${name} is ${status} in catalog but not implemented in evaluate.js`)
   }
   if (status === 'notCovered' && isSupportedTerm(name)) {
-    warn(`sync: sh:${name} is implemented in validator.js but marked cat:notCovered in catalog`)
+    warn(`sync: sh:${name} is implemented in evaluate.js but marked cat:notCovered in catalog`)
   }
 }
 

@@ -5,7 +5,7 @@
  * re-parses it, then runs validate + extract + extractGraph.
  */
 import { DataFactory, generate, parse } from '../src/index.js'
-import { validate, extract, extractGraph } from './validator.js'
+import { validate, extract, extractGraph } from '../src/evaluate.js'
 
 const df = DataFactory
 const nn = v => df.namedNode(v)
@@ -28,12 +28,12 @@ const shapes = [
   q('EmployeeShape', SH + 'closed', lit('true', XSD + 'boolean')),
   // simple properties
   ...[['nameProp', 'name', XSD + 'string', 'name'],
-     ['ageProp', 'age', XSD + 'integer', 'age'],
-     ['emailProp', 'email', XSD + 'string', 'email'],
-     ['salaryProp', 'salary', XSD + 'decimal', 'salary'],
-     ['statusProp', 'status', null, 'status'],
-     ['roleProp', 'role', null, 'role'],
-     ['passwordProp', 'password', XSD + 'string', null],  // deactivated → no key
+  ['ageProp', 'age', XSD + 'integer', 'age'],
+  ['emailProp', 'email', XSD + 'string', 'email'],
+  ['salaryProp', 'salary', XSD + 'decimal', 'salary'],
+  ['statusProp', 'status', null, 'status'],
+  ['roleProp', 'role', null, 'role'],
+  ['passwordProp', 'password', XSD + 'string', null],  // deactivated → no key
   ].flatMap(([n, p, dt, name]) => [
     q(n, RDF + 'type', nn(SH + 'PropertyShape')),
     q('EmployeeShape', SH + 'property', nn(T(n))),
