@@ -29,9 +29,9 @@ const quads = [...shell]
 const statements = [...(parse({ text: doc }).statements || [])]
 const modules = []
 for (const q of shell) {
-  if (q.predicate.value === PROV + 'value' && (q.subject.value.includes('#workbench')||q.subject.value.includes('day-'))) {
+  if (q.predicate.value === PROV + 'value' && (q.subject.value.includes(':step')||q.subject.value.includes('day-'))) {
     const inner = parse({ text: q.object.value })
-    modules.push(q.subject.value.split(',').pop() + '=' + inner.quads.length)
+    modules.push(q.subject.value.split(',').pop().replace(':','.') + '=' + inner.quads.length)
     quads.push(...inner.quads)
     statements.push(...(inner.statements || []))
   }
@@ -115,20 +115,19 @@ const auditSignatures = () => {
   console.log(`audit: ${msgOk} messages + ${stmtOk} statements signed-ok${msgBad.length || stmtBad.length ? ` · BAD: ${[...msgBad, ...stmtBad].join(', ')}` : ''}`)
   return { msgOk, msgBad, stmtOk, stmtBad }
 }
-auditSignatures()
+let audit = auditSignatures()
 
 // verify: for each workbench module, regenerate canonical from its quads,
 // then check its oracle — canonicalHash digest first; canonicalText diff on mismatch.
 const verify = () => {
   for (const q of shell) {
-    if (q.predicate.value !== PROV + 'value' || !(q.subject.value.includes('#workbench')||q.subject.value.includes('day-'))) continue
-    const key = q.subject.value.match(/(part\d)#workbench/)?.[1]
+    if (q.predicate.value !== PROV + 'value' || !(q.subject.value.includes(':step')||q.subject.value.includes('day-'))) continue
+    const key = q.subject.value.match(/step(\d)/)?.[1]
     if (!key) continue
     const canon = generate({ quads: parse({ text: q.object.value }).quads, context: CTX }).text.trim()
     const digest = sha(canon)
-    const oracle = shell.find(x => x.subject.value.includes(key + '#canonical'))
-    const hashQuad = oracle && shell.find(x => x.subject.value === oracle.subject.value && x.predicate.value === LLM + 'canonicalHash')
-    const textQuad = oracle && shell.find(x => x.subject.value === oracle.subject.value && x.predicate.value === PROV + 'value')
+    const hashQuad = shell.find(x => x.subject.value === q.subject.value && x.predicate.value === LLM + 'canonicalHash')
+    const textQuad = shell.find(x => x.subject.value === q.subject.value && x.predicate.value === LLM + 'canonicalText')
     if (hashQuad) {
       const ok = hashQuad.object.value === digest
       console.log(`  ${key}: hash ${ok ? 'MATCH' : 'MISMATCH'} (${hashQuad.object.value} vs ${digest})`)
@@ -241,37 +240,87 @@ if (process.argv[2] === 'log') {
   process.exit(0)
 }
 
+// shared command executor — REPL and HTTP run identical logic
+const execCmd = text => {
+  const cap = fn => { const out = []; const orig = console.log; console.log = (...a) => out.push(a.join(' ')); try { fn() } finally { console.log = orig } return out }
+  if (text === '/quit') return { quit: true, lines: [] }
+  if (text === '/records') return { lines: [JSON.stringify(report().records, null, 2)] }
+  if (text === '/verify') return { lines: ['oracles:', ...cap(verify)] }
+  if (text === '/statements') return { lines: [`elevated statements: ${statements.length}`, ...statements.map(q => `  ${q.subject.value.split(',').pop()} → ${q.predicate.value.split(',').pop().slice(0, 60)} → ${String(q.object.value).slice(0, 60)}`)] }
+  if (text === '/audit') { audit = auditSignatures(); return { lines: cap(() => {}) } }
+  const um = `llm:msg-${String(++turn).padStart(3, '0')}`
+  addMsg(um, 'UserMessage', 'user', text, USER)
+  const am = `llm:msg-${String(++turn).padStart(3, '0')}`
+  const reply = agentReply()
+  addMsg(am, 'AssistantMessage', 'assistant', reply, AGENT)
+  const r = report()
+  return { lines: [`you: ${text}`, `agent: ${reply}`, `  [${quads.length} quads · ${r.violations.length} violations · ${statements.length} elevated]`] }
+}
+
+if (process.argv[2] === 'serve') {
+  const { createServer } = await import('node:http')
+  const esc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const short = v => esc(String(v).split(',').pop())
+  const history = []
+  const page = () => {
+    const r = report()
+    const recRows = Object.entries(r.records).flatMap(([shape, nodes]) =>
+      Object.entries(nodes).map(([id, rec]) => `<tr><td>${esc(shape.split(':').pop())}</td><td>${short(id)}</td><td><code>${esc(JSON.stringify(rec)).slice(0, 300)}</code></td></tr>`))
+    const stmtRows = statements.map(q => `<tr><td>${short(q.subject.value)}</td><td>${esc(q.predicate.value)}</td><td>${esc(String(q.object.value).slice(0, 120))}</td></tr>`)
+    const violRows = r.violations.map(v => `<li>${esc(v.message || JSON.stringify(v).slice(0, 120))}</li>`)
+    return `<!doctype html><meta charset=utf-8><title>llm-chat graph</title>
+<style>body{font:14px/1.5 system-ui;max-width:1000px;margin:2em auto;padding:0 1em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:3px 6px;text-align:left;font-size:12px}code{word-break:break-all}.ok{color:green}.bad{color:red}h2{margin-top:1.5em}</style>
+<h1>llm-chat — live graph</h1>
+<p><b>${quads.length}</b> quads · ${modules.length} modules · <b>${statements.length}</b> elevated ·
+<span class="${r.conforms ? 'ok' : 'bad'}">${r.violations.length} violations · conforms=${r.conforms}</span></p>
+<p class="${audit.msgBad.length + audit.stmtBad.length ? 'bad' : 'ok'}">audit: ${audit.msgOk} messages + ${audit.stmtOk} statements signed-ok${audit.msgBad.length + audit.stmtBad.length ? ' · BAD: ' + esc([...audit.msgBad, ...audit.stmtBad].join(', ')) : ''}</p>
+<h2>Elevated statements (${statements.length})</h2><table><tr><th>subject</th><th>predicate</th><th>object</th></tr>${stmtRows.join('')}</table>
+<h2>Console</h2>
+<form method=post action=/cmd><input name=cmd size=80 autofocus placeholder="message or /records /verify /statements /audit /quit"> <button>send</button></form>
+${history.map(h => `<pre>> ${esc(h.cmd)}\n${h.lines.map(esc).join('\n')}</pre>`).join('')}
+<h2>Violations</h2><ul>${violRows.join('') || '<li class=ok>none</li>'}</ul>
+<h2>Shape records (${Object.keys(r.records).length} shapes)</h2><table><tr><th>shape</th><th>node</th><th>record</th></tr>${recRows.join('')}</table>`
+  }
+  createServer(async (req, res) => {
+    const u = new URL(req.url, 'http://x')
+    if (u.pathname === '/quads.json') {
+      res.setHeader('content-type', 'application/json')
+      return res.end(JSON.stringify({ quads: quads.map(q => ({ s: q.subject.value, p: q.predicate.value, o: String(q.object.value) })), statements: statements.map(q => ({ s: q.subject.value, p: q.predicate.value, o: String(q.object.value) })), records: report().records, audit }, null, 1))
+    }
+    if (u.pathname === '/llm-chat.md') {
+      res.setHeader('content-type', 'text/markdown')
+      return res.end(doc)
+    }
+    if (u.pathname === '/' && req.method === 'GET') {
+      res.setHeader('content-type', 'text/html; charset=utf-8')
+      return res.end(page())
+    }
+    if (u.pathname === '/cmd' && req.method === 'POST') {
+      let body = ''
+      for await (const chunk of req) body += chunk
+      const cmd = new URLSearchParams(body).get('cmd')?.trim() || ''
+      if (cmd && cmd !== '/quit') {
+        const { lines } = execCmd(cmd)
+        history.push({ cmd, lines })
+        if (history.length > 30) history.shift()
+      }
+      res.statusCode = 303; res.setHeader('location', '/'); return res.end()
+    }
+    res.statusCode = 404; res.end('not found')
+  }).listen(Number(process.env.PORT) || 3737, () => console.log(`serving on http://localhost:${process.env.PORT || 3737} — /quads.json · /llm-chat.md`))
+} else {
 const rl = createInterface({ input: process.stdin, output: process.stdout, prompt: '> ' })
 rl.prompt()
 rl.on('line', line => {
   const text = line.trim()
   if (!text) return rl.prompt()
-  if (text === '/quit') return rl.close()
-  if (text === '/records') {
-    const r = report()
-    console.log(JSON.stringify(r.records, null, 2))
-    return rl.prompt()
-  }
-  if (text === '/verify') {
-    console.log('oracles:')
-    verify()
-    return rl.prompt()
-  }
-  if (text === '/statements') {
-    console.log(`elevated statements: ${statements.length}`)
-    for (const q of statements)
-      console.log(`  ${q.subject.value.split(',').pop()} → ${q.predicate.value.split(',').pop().slice(0, 60)} → ${String(q.object.value).slice(0, 60)}`)
-    return rl.prompt()
-  }
-  const um = `llm:msg-${String(++turn).padStart(3, '0')}`
-  addMsg(um, 'UserMessage', 'user', text, USER)
-  const am = `llm:msg-${String(++turn).padStart(3, '0')}`
-  addMsg(am, 'AssistantMessage', 'assistant', agentReply(), AGENT)
-  const r = report()
-  console.log(`  [${quads.length} quads · ${r.violations.length} violations]`)
+  const { quit, lines } = execCmd(text)
+  lines.forEach(l => console.log(l))
+  if (quit) return rl.close()
   rl.prompt()
 })
 rl.on('close', () => {
   // persist the grown conversation as canonical text for Part IV
   console.log(`conversation grew to ${quads.length} quads — /records dumps extraction, edits live in memory only`)
 })
+}

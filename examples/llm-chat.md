@@ -1,6 +1,6 @@
 [llm] <tag:llm.chat.example,2026:>
 
-# LLM Chat — SDKC Walkthrough {=llm:chat .prov:Entity label}
+# LLM Chat — SDKC Walkthrough {=llm:chat .prov:Bundle label}
 
 *An emulated user–agent conversation, grown Shapes-Driven Knowledge Curation style: ontology, then meta-shapes, then data.*
 
@@ -8,23 +8,14 @@ Three strata: the **ontology** defines what exists and how it connects; the **me
 
 This document is itself a `prov:Bundle` of modules — the root graph stays navigable while payloads stay dormant:
 
-[Part I workbench] {+llm:part1#workbench ?prov:hadMember}
-[Part II workbench] {+llm:part2#workbench ?prov:hadMember}
-[Part III workbench] {+llm:part3#workbench ?prov:hadMember}
-[Part IV workbench] {+llm:part4#workbench ?prov:hadMember}
-[Part I oracle] {+llm:part1#canonical ?prov:hadMember}
-[Part II oracle] {+llm:part2#canonical ?prov:hadMember}
-[Part III oracle] {+llm:part3#canonical ?prov:hadMember}
-[Part IV oracle] {+llm:part4#canonical ?prov:hadMember}
+[The Walkthrough] {+llm:walkthrough ?prov:hadMember}
 [Day log 2026-11-24] {+llm:day-2026-11-24 ?prov:hadMember}
 [Day log 2026-11-25] {+llm:day-2026-11-25 ?prov:hadMember}
 [Seed conversation] {+llm:conv-001 ?prov:hadMember}
-[Golden graph workbench] {+llm:part5#workbench ?prov:hadMember}
-[Golden graph oracle] {+llm:part5#canonical ?prov:hadMember}
 
 ## Shell Shapes
 
-Two shapes keep the *shell itself* honest — they run on the 46-quad parse, before any module is unfolded. **ModuleShape** {=llm:ModuleShape .sh:NodeShape label} targets every [Workbench] {+llm:Workbench ?sh:targetClass} and demands its dormant **payload** {+#modP ?sh:property sh:name} — a module without content is an empty promise. [Payload is required — {focusNode}] {=#modP .sh:PropertyShape sh:message}
+Two shapes keep the *shell itself* honest — they run on the 46-quad parse, before any module is unfolded. **StepShape** {=llm:StepShape .sh:NodeShape label} targets every [Step] {+llm:Step ?sh:targetClass} and demands its dormant **payload** {+#modP ?sh:property sh:name} — a module without content is an empty promise. [Payload is required — {focusNode}] {=#modP .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [value] {+prov:value ?sh:path}
 
@@ -38,15 +29,23 @@ Two shapes keep the *shell itself* honest — they run on the 46-quad parse, bef
 ---
 
 
-# Part I — The Ontology
+## The Walkthrough {=llm:walkthrough .prov:Bundle label}
 
-Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded. Equal digest means the graph is untouched.
+The document is a guided path: five **Step**s — self-contained modules of shared understanding — each carrying its draft as `prov:value` and its seal as `llm:canonicalHash` (or `llm:canonicalText` while being worked on). **Step** {=llm:Step .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf}; **canonicalText** {=llm:canonicalText .rdf:Property label} binds a [Step] {+llm:Step ?domain} to its [string] {+xsd:string ?range} canonical form.
 
-## Canonical: Part I — The Ontology {=llm:part1#canonical .llm:CanonicalText label}
-[Part 1 workbench] {+llm:part1#workbench ?prov:wasDerivedFrom}
+[Step 1 — The Ontology] {+llm:step1 ?prov:hadMember}
+[Step 2 — Tools, Agents & Products] {+llm:step2 ?prov:hadMember}
+[Step 3 — The Meta-Shapes] {+llm:step3 ?prov:hadMember}
+[Step 4 — The Conversation Begins] {+llm:step4 ?prov:hadMember}
+[Step 5 — The Golden Graph] {+llm:step5 ?prov:hadMember}
+
+---
+
+## Step 1 — The Ontology {=llm:step1 .llm:Step label}
+
 [sha256:5d652a6223c07555] {llm:canonicalHash}
 
-~~~~~~md {=llm:part1#workbench .llm:Workbench prov:value}
+~~~~~~md {=llm:step1 prov:value}
 [llm] <tag:llm.chat.example,2026:>
 
 # Part I — The Ontology
@@ -58,15 +57,11 @@ A message's speaker is a **Role** {=llm:Role .Class label} — a kind of [Thing]
 
 ---
 
-# Part II — Tools, Agents & Products
+## Step 2 — Tools, Agents & Products {=llm:step2 .llm:Step label}
 
-Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded. Equal digest means the graph is untouched.
-
-## Canonical: Part II — Tools, Agents & Products {=llm:part2#canonical .llm:CanonicalText label}
-[Part 2 workbench] {+llm:part2#workbench ?prov:wasDerivedFrom}
 [sha256:fe174e35c8afef7c] {llm:canonicalHash}
 
-~~~~~~md {=llm:part2#workbench .llm:Workbench prov:value}
+~~~~~~md {=llm:step2 prov:value}
 [llm] <tag:llm.chat.example,2026:>
 
 # Part II — Tools, Agents & Products
@@ -78,15 +73,11 @@ Behind every message stands an **Agent** {=llm:Agent .Class label}, the reasonin
 
 ---
 
-# Part III — The Meta-Shapes
+## Step 3 — The Meta-Shapes {=llm:step3 .llm:Step label}
 
-Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded. Equal digest means the graph is untouched.
-
-## Canonical: Part III — The Meta-Shapes {=llm:part3#canonical .llm:CanonicalText label}
-[Part 3 workbench] {+llm:part3#workbench ?prov:wasDerivedFrom}
 [sha256:dc22af601faa52f9] {llm:canonicalHash}
 
-~~~~~~md {=llm:part3#workbench .llm:Workbench prov:value}
+~~~~~~md {=llm:step3 prov:value}
 [llm] <tag:llm.chat.example,2026:>
 
 # Part III — The Meta-Shapes
@@ -143,15 +134,9 @@ Every [ToolResult] {+llm:ToolResult ?sh:targetClass} has **returned from** {+#tr
 
 ---
 
-# Part IV — The Conversation Begins
+## Step 4 — The Conversation Begins {=llm:step4 .llm:Step label}
 
-Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded. Equal digest means the graph is untouched.
-
-## Canonical: Part IV — The Conversation Begins {=llm:part4#canonical .llm:CanonicalText label}
-[Part 4 workbench] {+llm:part4#workbench ?prov:wasDerivedFrom}
-Verbose oracle — full canonical text for demo; parts 1–3 seal by hash.
-
-~~~~~~md {prov:value}
+~~~~~~md {=llm:step4 llm:canonicalText}
 [llm] <tag:llm.chat.example,2026:>
 
 ## agent-devin {=llm:agent-devin .llm:Agent}
@@ -177,7 +162,7 @@ Verbose oracle — full canonical text for demo; parts 1–3 seal by hash.
 ## Davay {=llm:user-davay .prov:Agent label}
 ~~~~~~
 
-~~~~~~md {=llm:part4#workbench .llm:Workbench prov:value}
+~~~~~~md {=llm:step4 prov:value}
 # Part IV — The Conversation Begins
 
 `conv-001` opens with the smallest meaningful exchange — the user asks how an SDKC loop runs from empty; the assistant answers with the plan. Participants: **Davay** (`prov:Agent`) and **agent-devin** (`llm:Agent`, model `SWE-2`). Membership rides `prov:hadMember` — no custom machinery.
@@ -212,15 +197,11 @@ A member of [LLM Chat Example] {=llm:conv-001 !prov:hadMember}.
 
 ---
 
-# Part V — The Golden Graph
+## Step 5 — The Golden Graph {=llm:step5 .llm:Step label}
 
-Oracle — `sha256:` digest of this part's `generate()` output; workbench — the narrative module, dormant until unfolded.
-
-## Canonical: Part V — The Golden Graph {=llm:part5#canonical .llm:CanonicalText label}
-[Part V workbench] {+llm:part5#workbench ?prov:wasDerivedFrom}
 [sha256:14041ea7b9e8aedc] {llm:canonicalHash}
 
-~~~~~~md {=llm:part5#workbench .llm:Workbench prov:value}
+~~~~~~md {=llm:step5 prov:value}
 [llm] <tag:llm.chat.example,2026:>
 
 # Part V — The Golden Graph
