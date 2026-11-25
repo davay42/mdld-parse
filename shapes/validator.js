@@ -1358,6 +1358,40 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
   return obj
 }
 
+// ── POJO -> HTML ──
+
+const escHTML = s => String(s).replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';')
+
+function recordValueHTML(v) {
+  if (v === null || v === undefined || v === '') return '<i>—</i>'
+  if (typeof v === 'boolean') return v ? 'true' : 'false'
+  if (typeof v === 'number' || typeof v === 'bigint') return String(v)
+  if (v instanceof Date) {
+    if (isNaN(v)) return '<i>invalid date</i>'
+    const iso = v.toISOString()
+    const txt = !(v % 86400000)
+      ? v.toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
+      : v.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    return `<time datetime="${escHTML(iso)}">${escHTML(txt)}</time>`
+  }
+  if (Array.isArray(v)) {
+    return v.length ? `<ul>${v.map(x => `<li>${recordValueHTML(x)}</li>`).join('')}</ul>` : '<i>empty</i>'
+  }
+  if (typeof v === 'object') {
+    const rows = Object.entries(v)
+    return rows.length
+      ? `<table><tbody>${rows.map(([k, x]) => `<tr><th scope="row">${escHTML(k)}</th><td>${recordValueHTML(x)}</td></tr>`).join('')}</tbody></table>`
+      : '<i>empty</i>'
+  }
+  return escHTML(v)
+}
+
+/** Render one evaluate()/extract() POJO record as a semantic HTML table (no CSS). */
+function recordTable(pojo) {
+  const rows = Object.entries(pojo || {})
+  return `<table><tbody>${rows.map(([k, v]) => `<tr><th scope="row">${escHTML(k)}</th><td>${recordValueHTML(v)}</td></tr>`).join('')}</tbody></table>`
+}
+
 // ── Subgraph projection ──
 
 function quadKey(q) {
@@ -1612,5 +1646,5 @@ class Validator {
   }
 }
 
-export { validate, Validator, createShapeDetector, Store, SUPPORTED_VOCABULARY, isSupportedTerm, extractGraph, extract, evaluate }
+export { validate, Validator, createShapeDetector, Store, SUPPORTED_VOCABULARY, isSupportedTerm, extractGraph, extract, evaluate, recordTable }
 export default validate

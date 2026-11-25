@@ -42,7 +42,7 @@ Human text → Graph immediately
 
 ```javascript
 const m = await import('https://mdld.js.org/mdld-parse.js')
-const { parse, evaluate, shortenIRI } = m
+const { parse, evaluate, shortenIRI, recordTable } = m
 const mdld = `[ex] <tag:demo,2026:>
 # Signup sheet {=ex:Sheet .sh:NodeShape label}
 Every [User] {+ex:User ?sh:targetClass} needs **name** {+#nameRule ?sh:property sh:name}, **email** {+#emailRule ?sh:property sh:name} and **age** {+#ageRule ?sh:property sh:name}.
@@ -54,32 +54,31 @@ Every [User] {+ex:User ?sh:targetClass} needs **name** {+#nameRule ?sh:property 
 document.body.innerHTML = `<style>
   #demo{background:#fff;color:#111;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:14px;max-width:960px}
   #demo mdld-editor,#demo quad-graph{display:block;border:1px solid #ddd;border-radius:8px;margin-top:8px}
-  #out{margin-top:8px;white-space:pre-wrap;color:#111}
+  #out{margin-top:8px;color:#111}#out h3{margin:.8em 0 .2em;font-size:1em}#out table{border-collapse:collapse}#out th,#out td{padding:2px 10px 2px 0;text-align:left;vertical-align:top}#out th{font-weight:600;opacity:.75}#out ul{margin:.2em 0;padding-left:1.2em}
 </style><div id="demo">
 <mdld-editor height="42svh"></mdld-editor>
 <quad-graph height="320"></quad-graph>
-<pre id="out"></pre></div>`
+<div id="out"></div></div>`
 const ed = document.querySelector('mdld-editor')
 ed.value = mdld                                  // edit this — graph + records follow live
 const g = document.querySelector('quad-graph'), out = document.getElementById('out')
-const cell = v => typeof v === 'string' ? `"${v}"` : JSON.stringify(v)
+const esc = s => String(s).replace(/[&<>]/g, c => '&#' + c.charCodeAt(0) + ';')
 function update() {
   try {
     const { quads, context } = parse({ text: ed.value })
     g.context = context; g.quads = quads         // graph appears/updates instantly
     const r = evaluate({ quads, context })
-    out.textContent = [
-      ...r.violations.map(v => '✗ ' + (v.message || v.component.value)),
-      ...Object.entries(r.records).flatMap(([shape, nodes]) =>
-        Object.entries(nodes).map(([node, pojo]) =>
-          `${shortenIRI(shape, context)} › ${node}  { ${Object.entries(pojo).map(([k, v]) => `${k}: ${cell(v)}`).join(' · ')} }`))
-    ].join('\n') || 'no records'
+    const bad = r.violations.map(v => `<li>✗ ${esc(v.message || v.component.value)}</li>`).join('')
+    const rec = Object.entries(r.records).flatMap(([shape, nodes]) =>
+      Object.entries(nodes).map(([node, pojo]) =>
+        `<h3>${esc(shortenIRI(shape, context))} › ${esc(node)}</h3>${recordTable(pojo)}`)).join('')
+    out.innerHTML = (bad ? `<ul>${bad}</ul>` : '') + (rec || '<p>no records</p>')
   } catch (e) { out.textContent = 'parse error: ' + e.message }
 }
 let t; ed.addEventListener('input', () => { clearTimeout(t); t = setTimeout(update, 200) })
 update()
 // → ✗ Email is required — tag:demo,2026:Bob
-// → tag:demo,2026:Sheet › tag:demo,2026:Bob  { name: "Bobby" · age: 34 }
+// → tag:demo,2026:Sheet › tag:demo,2026:Bob renders as a semantic recordTable()
 ```
 
 That's the whole engine booting in one paste — parser, SHACL evaluator, syntax-highlighted live editor, and the visual cortex. Type in the editor and watch the graph re-layout while `evaluate()` streams violations and typed records back as compact lines.
@@ -808,12 +807,13 @@ displays it — acquisition is the caller's job.
 A zero-dependency, synchronous **SHACL Core validator** (~1,600 LOC, no RDF libraries) that consumes `mdld-parse` quads directly — and doubles as a **projection engine**: the same shapes that validate also extract.
 
 ```js
-import { evaluate, validate, extract } from 'mdld-parse';
+import { evaluate, validate, extract, recordTable } from 'mdld-parse';
 
 // evaluate() — the core operation: one traversal, both views
 const report = evaluate({ quads, allowJS: true });
 // report.violations — what failed    report.records — what conforms (POJOs)
 // violations and records are mutually exclusive by construction
+// recordTable(pojo) renders one record as a semantic HTML table (no CSS)
 
 // validate() / extract() are thin views over evaluate()
 const v = validate({ quads });                // → { conforms, results }
@@ -838,13 +838,16 @@ const pojos = extract({ quads }, 'tag:ex,PersonShape');
   `extractGraph()`
   returns the quad sub-graph a shape permits — the `rdf-lens` idea with zero
   dependencies
+- **Record tables** — `recordTable(pojo)` renders one `evaluate()`/`extract()`
+  record as a semantic HTML table: escaped text, `<time>` dates, nested
+  POJOs/arrays, no CSS — the human-facing finisher for the fixed POJO surface
 - **Measured** — `evaluate()` sustains ~500K quads/sec end-to-end (violations + records in one pass, tri-indexed + memoized graph cache): 25,000 products / ~125K quads in ~230ms, Apple Silicon
 
 Extraction uses the same shape — `sh:name` keys, datatype casting, conformance
 gating (only validated fields/records are emitted):
 
 ```js
-import { extract, extractGraph } from 'mdld-parse';
+import { extract, extractGraph, recordTable } from 'mdld-parse';
 
 const pojos = extract({ quads }, 'tag:ex,2026:PersonShape');
 // → [{ name: "Alice", age: 30, address: { city: "Paris" }, tags: ["a","b"] }]
@@ -852,6 +855,7 @@ const pojos = extract({ quads }, 'tag:ex,2026:PersonShape');
 
 const sub = extractGraph({ quads }, 'tag:ex,2026:PersonShape');
 // → Quad[] with only shape-permitted predicates, nested entities, list chains
+// recordTable(pojos[0]) → semantic HTML table for reports/quickstarts
 ```
 
 The `shapes/` directory is itself a self-validating ecosystem: `catalog.md`

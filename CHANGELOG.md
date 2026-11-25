@@ -20,6 +20,7 @@
 ## Unreleased — `<quad-graph>` interaction & persistence
 
 ### Added
+- **Evaluation POJO tables** — `recordTable()` renders one `evaluate()`/`extract()` record as a semantic HTML table (no CSS); the quickstart now shows violations + record tables instead of text dumps
 - **Hover neighborhood highlighting** — hovering a node now dims the rest of the graph and highlights its direct connections (edges + neighbor nodes) at ~50% strength, mirroring select at 100%. Neighbor labels appear subject to normal collision rules. Select stays dominant when both apply
 - **Smooth highlight fades** — dimming and highlighting ease in/out over ~200 ms via two frame-loop scalars (`_fade`/`_fdim`) instead of snapping, eliminating flicker when sweeping across clusters. The last highlight set is retained while fading out
 - **`persist` property (opt-in)** — `graph.persist = true` persists layout across reloads via `localStorage`:
