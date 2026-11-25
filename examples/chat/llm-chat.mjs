@@ -7,7 +7,7 @@
 //   node examples/llm-chat.mjs
 //   /quit to exit, /records to dump the latest extraction
 
-import { parse, evaluate, generate } from '../../src/index.js'
+import { parse, evaluate, generate, render } from '../../src/index.js'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync, renameSync } from 'node:fs'
 import { createInterface } from 'node:readline'
@@ -34,7 +34,7 @@ const reload = () => {
   statements = [...(top.statements || [])]
   modules = []
   for (const q of shell) {
-    if (q.predicate.value === LLM + 'payload' && (q.subject.value.includes(':step') || q.subject.value.includes('day-'))) {
+    if (q.predicate.value === LLM + 'payload' && (q.subject.value.includes(':step') || q.subject.value.includes('day-') || q.subject.value.includes(':terms'))) {
       const inner = parse({ text: q.object.value })
       modules.push(q.subject.value.split(',').pop().replace(':', '.') + '=' + inner.quads.length)
       quads.push(...inner.quads)
@@ -53,7 +53,49 @@ const report = () => evaluate({ quads })
 }
 
 
-const agentReply = () => {
+const termSlug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const TERMS_RE = /## Terms[\s\S]*?~~~~~~md \{llm:payload\}\n([\s\S]*?)\n~~~~~~/
+const lookupCached = name => {
+  const key = 'term-' + termSlug(name)
+  const i = doc.indexOf(key)
+  if (i < 0) return null
+  const seg = doc.slice(i, i + 600)
+  return seg.match(/\[([^\]]+)\] \{rdfs:comment\}/)?.[1] || null
+}
+const appendTerm = (name, def, url) => {
+  const key = 'term-' + termSlug(name)
+  if (lookupCached(name)) return // already a term
+  const short = def.length > 300 ? def.slice(0, 297) + '…' : def
+  const block = `## ${name} {=llm:${key} .llm:Term label}\n[${short.replace(/\n/g, ' ')}] {rdfs:comment}${url ? `\n[${url}] {rdfs:seeAlso}` : ''}\n`
+  let text = readFileSync(MD, 'utf8')
+  const dm = text.match(TERMS_RE)
+  if (dm) {
+    const closeIdx = text.indexOf('\n~~~~~~', dm.index + dm[0].indexOf('~~~~~~md'))
+    text = text.slice(0, closeIdx) + '\n' + block + text.slice(closeIdx)
+  } else {
+    text = text.trimEnd() + `\n\n## Terms {=llm:terms .llm:Module label}\n~~~~~~md {llm:payload}\n[llm] <tag:llm.chat.example,2026:>\n[rdfs] <http://www.w3.org/2000/01/rdf-schema#>\n\n## Glossary {=llm:terms .llm:Module label}\n${block}~~~~~~\n`
+  }
+  writeMD(text)
+  doc = readFileSync(MD, 'utf8') // keep cache coherent for appendExchange
+}
+const wikiLookup = async name => {
+  const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(name), { signal: AbortSignal.timeout(5000) })
+  const j = await r.json()
+  return j.extract && j.type !== 'disambiguation' ? { def: j.extract, url: j.content_urls?.desktop?.page } : null
+}
+
+const agentReply = async (userText = '') => {
+  const wm = userText.match(/^(?:what is|who is|define|tell me about)\s+(.+?)\s*\??$/i)
+  if (wm) {
+    const term = wm[1].trim()
+    const cached = lookupCached(term)
+    if (cached) return `${term} — ${cached}`
+    try {
+      const hit = await wikiLookup(term)
+      if (hit) { appendTerm(term, hit.def, hit.url); return `${term} — ${hit.def}` }
+    } catch { }
+    return `I don't know what "${term}" is — no entry found.`
+  }
   const r = report()
   const lines = []
   if (r.violations.length) {
@@ -227,19 +269,26 @@ if (process.argv[2] === 'log') {
 }
 
 // append one user+assistant exchange to today's day module in the FILE —
-// immediate persistence; callers reload() to see the result.
+// append-only text template: existing content is never regenerated, diffs stay additive.
 const USER_IRI = LLM + 'user-davay', AGENT_IRI = LLM + 'agent-devin'
-const appendExchange = (userText, agentText) => {
+const S = v => v.replace('tag:llm.chat.example,2026:', 'llm:')
+const msgBlock = (convIri, day, n, role, content, agent, agentName, last) => {
+  const iri = S(convIri + '-msg-' + String(n).padStart(2, '0'))
+  const label = content.replace(/\n/g, ' ').slice(0, 60)
+  const who = role === 'user' ? ['Davay', USER_IRI, 'role-user', 'UserMessage'] : [agentName, AGENT_IRI, 'role-assistant', 'AssistantMessage']
+  return `## ${label} {=${iri} .llm:${who[3]} label}
+A message on [Day log ${day}] {+llm:day-${day} !prov:hadMember}
+*${new Date().toISOString()}* {prov:generatedAtTime ^^xsd:dateTime}
+[${content.replace(/\n/g, ' ')}] {llm:content}
+[${sha(content + '|' + agent)}] {llm:signature}
+[${who[0]}] {+${S(who[1])} ?prov:wasAttributedTo}
+[llm:${who[2]}] {+llm:${who[2]} ?llm:role}${last ? `
+[${last.label}] {+${S(last.iri)} ?llm:inReplyTo}` : ''}
+`
+}
+const appendExchange = (userText, agentText, agentName = 'Devin') => {
   const day = new Date().toISOString().slice(0, 10)
   const convIri = LLM + 'day-' + day
-  const convQuads = [
-    { subject: nn(convIri), predicate: nn(RDF + 'type'), object: nn(LLM + 'Conversation') },
-    { subject: nn(convIri), predicate: nn(RDFS + 'label'), object: lit('Day log ' + day) },
-    { subject: nn(USER_IRI), predicate: nn(RDF + 'type'), object: nn(PROV + 'Agent') },
-    { subject: nn(USER_IRI), predicate: nn(RDFS + 'label'), object: lit('Davay') },
-    { subject: nn(AGENT_IRI), predicate: nn(RDF + 'type'), object: nn(LLM + 'Agent') },
-    { subject: nn(AGENT_IRI), predicate: nn(RDFS + 'label'), object: lit('Devin') },
-  ]
   const dayRe = new RegExp('## Day ' + day + '[\\s\\S]*?~~~~~~md \\{llm:payload\\}\\n([\\s\\S]*?)\\n~~~~~~')
   const dm = doc.match(dayRe)
   const prior = dm ? parse({ text: dm[1] }).quads : []
@@ -249,38 +298,24 @@ const appendExchange = (userText, agentText) => {
   const followsLabel = prevDay ? 'Day log ' + prevDay : 'Log origin'
   const msgNodes = prior.filter(q => q.subject.value.includes('-msg-') && q.predicate.value === RDF + 'type').map(q => q.subject)
   let n = Math.max(0, ...msgNodes.map(q => +(q.value.match(/-msg-(\d+)$/)?.[1] || 0)))
-  let last = msgNodes.length ? msgNodes[msgNodes.length - 1] : null
-  const mkMsg = (role, content, agent) => {
-    const iri = nn(convIri + '-msg-' + String(++n).padStart(2, '0'))
-    const now = new Date().toISOString()
-    const q = [
-      { subject: iri, predicate: nn(RDF + 'type'), object: nn(LLM + (role === 'user' ? 'UserMessage' : 'AssistantMessage')) },
-      { subject: iri, predicate: nn(RDFS + 'label'), object: lit(content.slice(0, 60)) },
-      { subject: iri, predicate: nn(LLM + 'role'), object: nn(LLM + 'role-' + role) },
-      { subject: iri, predicate: nn(LLM + 'content'), object: lit(content) },
-      { subject: iri, predicate: nn(PROV + 'generatedAtTime'), object: lit(now, XSD + 'dateTime') },
-      { subject: iri, predicate: nn(PROV + 'wasAttributedTo'), object: agent },
-      { subject: iri, predicate: nn(LLM + 'signature'), object: lit(sha(content + '|' + agent.value)) },
-      { subject: nn(convIri), predicate: nn(PROV + 'hadMember'), object: iri },
-    ]
-    if (last) q.push({ subject: iri, predicate: nn(LLM + 'inReplyTo'), object: last })
-    last = iri
-    return q
+  const lastQ = prior.filter(q => q.predicate.value === LLM + 'content').map(q => q.subject.value).filter(v => v.includes('-msg-')).pop()
+  let last = lastQ ? { iri: lastQ, label: (prior.find(q => q.subject.value === lastQ && q.predicate.value === RDFS + 'label')?.object.value || '').slice(0, 60) } : null
+  const blocks = []
+  for (const [role, content, agent] of [['user', userText, USER_IRI], ['assistant', agentText, AGENT_IRI]]) {
+    n++
+    const b = msgBlock(convIri, day, n, role, content, agent, agentName, last)
+    last = { iri: S(convIri + '-msg-' + String(n).padStart(2, '0')), label: content.replace(/\n/g, ' ').slice(0, 60) }
+    blocks.push(b)
   }
-  const turns = [...mkMsg('user', userText, nn(USER_IRI)), ...mkMsg('assistant', agentText, nn(AGENT_IRI))]
-  const merged = [...prior]
-  const seen = new Set(merged.map(q => [q.subject.value, q.predicate.value, q.object.value, q.object.datatype?.value || ''].join('|')))
-  for (const q of [...convQuads, ...turns]) {
-    const k = [q.subject.value, q.predicate.value, q.object.value, q.object.datatype?.value || ''].join('|')
-    if (!seen.has(k)) { seen.add(k); merged.push(q) }
-  }
-  const canon = generate({ quads: merged, context: CTX }).text.trim()
   let text = readFileSync(MD, 'utf8')
   if (dm) {
-    text = text.replace(dayRe, (m, body) => m.replace(body, canon))
+    // insert before this day's closing fence
+    const closeIdx = text.indexOf('\n~~~~~~', dm.index + dm[0].indexOf('~~~~~~md'))
+    text = text.slice(0, closeIdx) + '\n' + blocks.join('\n') + text.slice(closeIdx)
   } else {
     if (!text.includes('# Daily Log')) text = text.trimEnd() + '\n\n---\n\n# Daily Log\n'
-    const block = '## Day ' + day + ' {=llm:day-' + day + ' .llm:Conversation label}\nFollows [' + followsLabel + '] {+' + followsObj + ' ?llm:follows}.\n~~~~~~md {llm:payload}\n' + canon + '\n~~~~~~'
+    const header = `[llm] <tag:llm.chat.example,2026:>\n\n## Day ${day} {=llm:day-${day} .llm:Conversation label}\nFollows [${followsLabel}] {+${followsObj} ?llm:follows}.\n~~~~~~md {llm:payload}\n## Day log ${day} {=llm:day-${day} .llm:Conversation label}\n## Davay {=llm:user-davay .prov:Agent label}\n## Devin {=llm:agent-devin .llm:Agent label}\n`
+    const block = header + blocks.join('\n') + '\n~~~~~~'
     text = text.trimEnd() + '\n\n' + block + '\n'
   }
   writeMD(text)
@@ -288,7 +323,7 @@ const appendExchange = (userText, agentText) => {
 }
 
 // shared command executor — REPL and HTTP run identical logic
-const execCmd = text => {
+const execCmd = async text => {
   const cap = fn => { const out = []; const orig = console.log; console.log = (...a) => out.push(a.join(' ')); try { fn() } finally { console.log = orig } return out }
   if (text === '/quit') return { quit: true, lines: [] }
   if (text === '/records' || text.startsWith('/records ')) {
@@ -302,7 +337,7 @@ const execCmd = text => {
   if (text === '/verify') return { lines: ['oracles:', ...cap(verify)] }
   if (text === '/statements') return { lines: [`elevated statements: ${statements.length}`, ...statements.map(q => `  ${q.subject.value.split(',').pop()} → ${q.predicate.value.split(',').pop().slice(0, 60)} → ${String(q.object.value).slice(0, 60)}`)] }
   if (text === '/audit') { audit = auditSignatures(); return { lines: cap(() => { }) } }
-  const reply = agentReply()
+  const reply = await agentReply(text)
   appendExchange(text, reply)
   reload()
   const r = report()
@@ -352,7 +387,7 @@ if (process.argv[2] === 'serve') {
         <span class="author">${esc(m.author)}</span>
         <span class="time">${esc(m.time)}</span>
       </div>
-      <div class="content">${esc(m.content)}</div>
+      <div class="content">${render(m.content)}</div>
     </div>`
     }).join('')
 
@@ -645,7 +680,7 @@ if (process.argv[2] === 'serve') {
       for await (const chunk of req) body += chunk
       const cmd = new URLSearchParams(body).get('cmd')?.trim() || ''
       if (cmd && cmd !== '/quit') {
-        const out = execCmd(cmd)
+        const out = await execCmd(cmd)
         pending = { cmd, lines: out.lines, cards: out.cards || out.json }
       }
       res.statusCode = 303; res.setHeader('location', '/'); return res.end()
@@ -655,13 +690,13 @@ if (process.argv[2] === 'serve') {
 } else {
   const rl = createInterface({ input: process.stdin, output: process.stdout, prompt: '> ' })
   rl.prompt()
-  rl.on('line', line => {
+  rl.on('line', async line => {
     const text = line.trim()
     if (!text) return rl.prompt()
-    const { quit, lines } = execCmd(text)
+    const { quit, lines } = await execCmd(text)
     lines.forEach(l => console.log(l))
     if (quit) return rl.close()
-    rl.prompt()
+    if (!rl.closed) rl.prompt()
   })
   rl.on('close', () => {
     // exchanges already persisted per-message to the day log

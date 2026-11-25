@@ -12,6 +12,7 @@ This document is itself an `llm:Document` of modules — the root graph stays na
 [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:hasPart}
 [Day log 2026-11-25] {+llm:day-2026-11-25 ?llm:hasPart}
 [Seed conversation] {+llm:conv-001 ?llm:hasPart}
+[Terms glossary] {+llm:terms ?llm:hasPart}
 
 ## Shell Shapes
 
@@ -37,7 +38,7 @@ Every [Conversation] {+llm:Conversation ?sh:targetClass} must **follow** {+#chF 
 
 ## The Walkthrough {=llm:walkthrough .llm:Walkthrough label}
 
-The document is a guided path: five **Step**s — self-contained modules of shared understanding — each carrying its draft as `llm:payload` and its seal as `llm:canonicalHash` (or `llm:canonicalText` while being worked on). **Document** {=llm:Document .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — the root of a knowledge document. **Walkthrough** {=llm:Walkthrough .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — an ordered path through the document's parts. **Module** {=llm:Module .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf} — a self-contained unit with dormant content. **Step** {=llm:Step .Class label} is a kind of [Module] {+llm:Module ?subClassOf}; **Conversation** {=llm:Conversation .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — a container of messages; the daily logs are Conversations. **canonicalText** {=llm:canonicalText .rdf:Property label} binds a [Step] {+llm:Step ?domain} to its [string] {+xsd:string ?range} canonical form. The **hasPart** {=llm:hasPart .rdf:Property label} binds a [Bundle] {+prov:Bundle ?domain} to its member [Entity] {+prov:Entity ?range}; the **payload** {=llm:payload .rdf:Property label} binds a [Module] {+llm:Module ?domain} to its dormant [string] {+xsd:string ?range} content. The **follows** {=llm:follows .rdf:Property label} chains a [Conversation] {+llm:Conversation ?domain} to the [Entity] {+prov:Entity ?range} it succeeds.
+The document is a guided path: five **Step**s — self-contained modules of shared understanding — each carrying its draft as `llm:payload` and its seal as `llm:canonicalHash` (or `llm:canonicalText` while being worked on). **Document** {=llm:Document .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — the root of a knowledge document. **Walkthrough** {=llm:Walkthrough .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — an ordered path through the document's parts. **Module** {=llm:Module .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf} — a self-contained unit with dormant content. **Step** {=llm:Step .Class label} is a kind of [Module] {+llm:Module ?subClassOf}; **Conversation** {=llm:Conversation .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — a container of messages; the daily logs are Conversations. **Term** {=llm:Term .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf} — a looked-up concept with its definition. **canonicalText** {=llm:canonicalText .rdf:Property label} binds a [Step] {+llm:Step ?domain} to its [string] {+xsd:string ?range} canonical form. The **hasPart** {=llm:hasPart .rdf:Property label} binds a [Bundle] {+prov:Bundle ?domain} to its member [Entity] {+prov:Entity ?range}; the **payload** {=llm:payload .rdf:Property label} binds a [Module] {+llm:Module ?domain} to its dormant [string] {+xsd:string ?range} content. The **follows** {=llm:follows .rdf:Property label} chains a [Conversation] {+llm:Conversation ?domain} to the [Entity] {+prov:Entity ?range} it succeeds.
 
 [Step 1 — The Ontology] {+llm:step1 ?llm:hasPart}
 [Step 2 — Tools, Agents & Products] {+llm:step2 ?llm:hasPart}
@@ -352,16 +353,6 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 ## Devin {=llm:agent-devin .llm:Agent label}
 
 ## Day log 2026-11-24 {=llm:day-2026-11-24 .llm:Conversation label}
-[exchange one] {+llm:day-2026-11-24-msg-01 ?prov:hadMember}
-[reply one] {+llm:day-2026-11-24-msg-02 ?prov:hadMember}
-[exchange two] {+llm:day-2026-11-24-msg-03 ?prov:hadMember}
-[reply two] {+llm:day-2026-11-24-msg-04 ?prov:hadMember}
-[From now on, use the verify tool to check the oracles before] {+llm:day-2026-11-24-msg-05 ?prov:hadMember}
-[Understood — I will call the verify tool and report its outp] {+llm:day-2026-11-24-msg-06 ?prov:hadMember}
-[The rewrite is done. Verify the parts now.] {+llm:day-2026-11-24-msg-07 ?prov:hadMember}
-[Running verification.] {+llm:day-2026-11-24-msg-08 ?prov:hadMember}
-[All four oracles MATCH — parts 1–4 verified clean.] {+llm:day-2026-11-24-msg-09 ?prov:hadMember}
-[verify output] {+llm:day-2026-11-24-msg-10 ?prov:hadMember}
 
 ## verify oracles {=llm:day-2026-11-24-call-01 .llm:ToolCall label}
 *2026-11-24T09:55:35.243Z* {prov:endedAtTime ^^xsd:dateTime}
@@ -369,6 +360,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [verify] {+llm:tool-verify ?llm:invoked}
 
 ## exchange one {=llm:day-2026-11-24-msg-01 .llm:UserMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:51:57.873Z* {prov:generatedAtTime ^^xsd:dateTime}
 [exchange one] {llm:content}
 [sha256:04809658b89de1b9] {llm:signature}
@@ -376,6 +368,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## reply one {=llm:day-2026-11-24-msg-02 .llm:AssistantMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:51:57.873Z* {prov:generatedAtTime ^^xsd:dateTime}
 [reply one] {llm:content}
 [sha256:8e8726c99275d0f5] {llm:signature}
@@ -384,6 +377,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## exchange two {=llm:day-2026-11-24-msg-03 .llm:UserMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:51:57.937Z* {prov:generatedAtTime ^^xsd:dateTime}
 [exchange two] {llm:content}
 [sha256:f883e4bf69acf3a6] {llm:signature}
@@ -392,6 +386,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## reply two {=llm:day-2026-11-24-msg-04 .llm:AssistantMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:51:57.937Z* {prov:generatedAtTime ^^xsd:dateTime}
 [reply two] {llm:content}
 [sha256:6e42afb41adfc7c4] {llm:signature}
@@ -400,6 +395,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## From now on, use the verify tool to check the oracles before {=llm:day-2026-11-24-msg-05 .llm:UserMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:55:35.242Z* {prov:generatedAtTime ^^xsd:dateTime}
 [From now on, use the verify tool to check the oracles before reporting.] {llm:content}
 [sha256:22e0c773a3a9682f] {llm:signature}
@@ -408,6 +404,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Understood — I will call the verify tool and report its outp {=llm:day-2026-11-24-msg-06 .llm:AssistantMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Understood — I will call the verify tool and report its output.] {llm:content}
 [sha256:41359a0a6ed1c392] {llm:signature}
@@ -417,6 +414,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## The rewrite is done. Verify the parts now. {=llm:day-2026-11-24-msg-07 .llm:UserMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [The rewrite is done. Verify the parts now.] {llm:content}
 [sha256:318ba43a804f1bc9] {llm:signature}
@@ -425,6 +423,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Running verification. {=llm:day-2026-11-24-msg-08 .llm:AssistantMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Running verification.] {llm:content}
 [sha256:9928af2ebeb789ae] {llm:signature}
@@ -434,6 +433,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## All four oracles MATCH — parts 1–4 verified clean. {=llm:day-2026-11-24-msg-09 .llm:AssistantMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [All four oracles MATCH — parts 1–4 verified clean.] {llm:content}
 [sha256:fc5d7f6a54da5839] {llm:signature}
@@ -442,6 +442,7 @@ Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## verify output {=llm:day-2026-11-24-msg-10 .llm:ToolMessage label}
+A message on [Day log 2026-11-24] {+llm:day-2026-11-24 !prov:hadMember}
 *2026-11-24T09:55:35.243Z* {prov:generatedAtTime ^^xsd:dateTime}
 [part1..4: hash MATCH] {llm:content}
 [sha256:14ea81eeeee0a14b] {llm:signature}
@@ -473,32 +474,9 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 ## Devin {=llm:agent-devin .llm:Agent label}
 
 ## Day log 2026-11-25 {=llm:day-2026-11-25 .llm:Conversation label}
-[Yesterday we built the golden graph — what did today add on] {+llm:day-2026-11-25-msg-01 ?prov:hadMember}
-[Credentialled signatures, an agent service key, chained stat] {+llm:day-2026-11-25-msg-02 ?prov:hadMember}
-[And the parser contract?] {+llm:day-2026-11-25-msg-03 ?prov:hadMember}
-[Statements are now plain .rdf:Statement nodes — the parser e] {+llm:day-2026-11-25-msg-04 ?prov:hadMember}
-[What does the agent's proposal actually say?] {+llm:day-2026-11-25-msg-05 ?prov:hadMember}
-[Only human-held keys may sign rule-force statements; agent s] {+llm:day-2026-11-25-msg-06 ?prov:hadMember}
-[Verify everything still holds.] {+llm:day-2026-11-25-msg-07 ?prov:hadMember}
-[498 quads, 6 elevated statements, 0 violations, all six modu] {+llm:day-2026-11-25-msg-08 ?prov:hadMember}
-[hello persisted?] {+llm:day-2026-11-25-msg-09 ?prov:hadMember}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-10 ?prov:hadMember}
-[persisted via http?] {+llm:day-2026-11-25-msg-11 ?prov:hadMember}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-12 ?prov:hadMember}
-[Stored?] {+llm:day-2026-11-25-msg-13 ?prov:hadMember}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-14 ?prov:hadMember}
-[Stored! From the web browser! Instantly!] {+llm:day-2026-11-25-msg-15 ?prov:hadMember}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-16 ?prov:hadMember}
-[atomic test] {+llm:day-2026-11-25-msg-17 ?prov:hadMember}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-18 ?prov:hadMember}
-[chain test message] {+llm:day-2026-11-25-msg-19 ?prov:hadMember}
-[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-20 ?prov:hadMember}
-[final chain check] {+llm:day-2026-11-25-msg-21 ?prov:hadMember}
-[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-22 ?prov:hadMember}
-[Input from the chat window] {+llm:day-2026-11-25-msg-23 ?prov:hadMember}
-[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-24 ?prov:hadMember}
 
 ## Yesterday we built the golden graph — what did today add on {=llm:day-2026-11-25-msg-01 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Yesterday we built the golden graph — what did today add on top?] {llm:content}
 [sha256:be7247412f905e48] {llm:signature}
@@ -506,6 +484,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Credentialled signatures, an agent service key, chained stat {=llm:day-2026-11-25-msg-02 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Credentialled signatures, an agent service key, chained statements via llm:previous, and shell-level shapes so the dormant document evaluates meaningfully before unfolding.] {llm:content}
 [sha256:93f47d44df6b06bf] {llm:signature}
@@ -514,6 +493,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## And the parser contract? {=llm:day-2026-11-25-msg-03 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
 [And the parser contract?] {llm:content}
 [sha256:4cfae868501087ff] {llm:signature}
@@ -522,6 +502,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Statements are now plain .rdf:Statement nodes — the parser e {=llm:day-2026-11-25-msg-04 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Statements are now plain .rdf:Statement nodes — the parser elevates them into result.statements automatically. Six claims surface: founding, label, ownership, two goals, and the agent's credential-ceiling proposal.] {llm:content}
 [sha256:d46f20aa4cbde743] {llm:signature}
@@ -530,6 +511,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## What does the agent's proposal actually say? {=llm:day-2026-11-25-msg-05 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
 [What does the agent's proposal actually say?] {llm:content}
 [sha256:805a051537b54883] {llm:signature}
@@ -538,6 +520,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Only human-held keys may sign rule-force statements; agent s {=llm:day-2026-11-25-msg-06 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Only human-held keys may sign rule-force statements; agent signatures cap at suggestion until countersigned. The agent used its own limited credential to argue for its own ceiling.] {llm:content}
 [sha256:810c7532fd62fa31] {llm:signature}
@@ -546,6 +529,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## Verify everything still holds. {=llm:day-2026-11-25-msg-07 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Verify everything still holds.] {llm:content}
 [sha256:2035462cc26f3096] {llm:signature}
@@ -554,6 +538,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## 498 quads, 6 elevated statements, 0 violations, all six modu {=llm:day-2026-11-25-msg-08 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T08:19:19.016Z* {prov:generatedAtTime ^^xsd:dateTime}
 [498 quads, 6 elevated statements, 0 violations, all six module oracles match — including the new day module.] {llm:content}
 [sha256:2e626346f54d9757] {llm:signature}
@@ -562,6 +547,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## hello persisted? {=llm:day-2026-11-25-msg-09 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:13:48.681Z* {prov:generatedAtTime ^^xsd:dateTime}
 [hello persisted?] {llm:content}
 [sha256:f4eeea762a6846ab] {llm:signature}
@@ -570,6 +556,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-10 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:13:48.681Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Gate check: clean — 10 shape record(s) conform.] {llm:content}
 [sha256:b7593a1023211ad1] {llm:signature}
@@ -578,6 +565,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## persisted via http? {=llm:day-2026-11-25-msg-11 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:13:58.295Z* {prov:generatedAtTime ^^xsd:dateTime}
 [persisted via http?] {llm:content}
 [sha256:221f963512822807] {llm:signature}
@@ -586,6 +574,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-12 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:13:58.295Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Gate check: clean — 10 shape record(s) conform.] {llm:content}
 [sha256:b7593a1023211ad1] {llm:signature}
@@ -594,6 +583,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## Stored? {=llm:day-2026-11-25-msg-13 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:16:10.821Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Stored?] {llm:content}
 [sha256:a0cbc0263732f3b0] {llm:signature}
@@ -602,6 +592,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-14 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:16:10.821Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Gate check: clean — 10 shape record(s) conform.] {llm:content}
 [sha256:b7593a1023211ad1] {llm:signature}
@@ -610,6 +601,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## Stored! From the web browser! Instantly! {=llm:day-2026-11-25-msg-15 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:16:35.869Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Stored! From the web browser! Instantly!] {llm:content}
 [sha256:c211ff9131dbb72b] {llm:signature}
@@ -618,6 +610,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-16 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:16:35.869Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Gate check: clean — 10 shape record(s) conform.] {llm:content}
 [sha256:b7593a1023211ad1] {llm:signature}
@@ -626,6 +619,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## atomic test {=llm:day-2026-11-25-msg-17 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:21:17.208Z* {prov:generatedAtTime ^^xsd:dateTime}
 [atomic test] {llm:content}
 [sha256:77e5a3e18cf5a2f0] {llm:signature}
@@ -634,6 +628,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-18 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:21:17.208Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Gate check: clean — 10 shape record(s) conform.] {llm:content}
 [sha256:b7593a1023211ad1] {llm:signature}
@@ -642,6 +637,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## chain test message {=llm:day-2026-11-25-msg-19 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:46:55.037Z* {prov:generatedAtTime ^^xsd:dateTime}
 [chain test message] {llm:content}
 [sha256:d18ace867175f42f] {llm:signature}
@@ -650,6 +646,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-20 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:46:55.040Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Gate check: clean — 11 shape record(s) conform.] {llm:content}
 [sha256:ad7c225d9b363913] {llm:signature}
@@ -658,6 +655,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## final chain check {=llm:day-2026-11-25-msg-21 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:47:05.056Z* {prov:generatedAtTime ^^xsd:dateTime}
 [final chain check] {llm:content}
 [sha256:9adf227e3ce29422] {llm:signature}
@@ -666,6 +664,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-22 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T09:47:05.056Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Gate check: clean — 11 shape record(s) conform.] {llm:content}
 [sha256:ad7c225d9b363913] {llm:signature}
@@ -674,6 +673,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
 ## Input from the chat window {=llm:day-2026-11-25-msg-23 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T10:19:44.949Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Input from the chat window] {llm:content}
 [sha256:f2c0edd7888d17ad] {llm:signature}
@@ -682,6 +682,7 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [llm:role-user] {+llm:role-user ?llm:role}
 
 ## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-24 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 *2026-11-25T10:19:44.950Z* {prov:generatedAtTime ^^xsd:dateTime}
 [Gate check: clean — 11 shape record(s) conform.] {llm:content}
 [sha256:ad7c225d9b363913] {llm:signature}
@@ -689,7 +690,208 @@ Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
 [Input from the chat window] {+llm:day-2026-11-25-msg-23 ?llm:inReplyTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
+## I like to **format** my messages {=llm:day-2026-11-25-msg-25 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T10:44:22.966Z* {prov:generatedAtTime ^^xsd:dateTime}
+[I like to **format** my messages] {llm:content}
+[sha256:2dd755fd455c5870] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-24 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-26 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T10:44:22.966Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 11 shape record(s) conform.] {llm:content}
+[sha256:ad7c225d9b363913] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[I like to **format** my messages] {+llm:day-2026-11-25-msg-25 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
 ## Davay {=llm:user-davay .prov:Agent label}
+## append test one {=tag:llm.chat.example,2026:day-2026-11-25-msg-27 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T11:36:52.636Z* {prov:generatedAtTime ^^xsd:dateTime}
+[append test one] {llm:content}
+[sha256:e11cf63d1575211b] {llm:signature}
+[Davay] {+tag:llm.chat.example,2026:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Gate check: clean — 11 shape record(s) conform.] {+tag:llm.chat.example,2026:day-2026-11-25-msg-26 ?llm:inReplyTo}
+
+## Gate check: clean — 11 shape record(s) conform. {=tag:llm.chat.example,2026:day-2026-11-25-msg-28 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T11:36:52.636Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 11 shape record(s) conform.] {llm:content}
+[sha256:ad7c225d9b363913] {llm:signature}
+[Devin] {+tag:llm.chat.example,2026:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[append test one] {+tag:llm.chat.example,2026:day-2026-11-25-msg-27 ?llm:inReplyTo}
+
+## second append test {=llm:day-2026-11-25-msg-29 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T11:37:11.174Z* {prov:generatedAtTime ^^xsd:dateTime}
+[second append test] {llm:content}
+[sha256:84a329ebe85ffc65] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-28 ?llm:inReplyTo}
+
+## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-30 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T11:37:11.174Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 11 shape record(s) conform.] {llm:content}
+[sha256:ad7c225d9b363913] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[second append test] {+llm:day-2026-11-25-msg-29 ?llm:inReplyTo}
+
+## What is RDF? {=llm:day-2026-11-25-msg-31 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T11:59:49.152Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is RDF?] {llm:content}
+[sha256:4be66948a622a4f6] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-30 ?llm:inReplyTo}
+
+## RDF — RDF may refer to: {=llm:day-2026-11-25-msg-32 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T11:59:49.152Z* {prov:generatedAtTime ^^xsd:dateTime}
+[RDF — RDF may refer to:] {llm:content}
+[sha256:984f8e12d4eaff03] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is RDF?] {+llm:day-2026-11-25-msg-31 ?llm:inReplyTo}
+
+## What is blorfnoster? {=llm:day-2026-11-25-msg-33 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T11:59:58.859Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is blorfnoster?] {llm:content}
+[sha256:00a80a7d51f074c7] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[RDF — RDF may refer to:] {+llm:day-2026-11-25-msg-32 ?llm:inReplyTo}
+
+## I don't know what "blorfnoster" is — no entry found. {=llm:day-2026-11-25-msg-34 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T11:59:58.859Z* {prov:generatedAtTime ^^xsd:dateTime}
+[I don't know what "blorfnoster" is — no entry found.] {llm:content}
+[sha256:c96af74c9e3e37e9] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is blorfnoster?] {+llm:day-2026-11-25-msg-33 ?llm:inReplyTo}
+
+## What is Resource Description Framework? {=llm:day-2026-11-25-msg-35 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:00:14.631Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is Resource Description Framework?] {llm:content}
+[sha256:f620dbf0aab76516] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[I don't know what "blorfnoster" is — no entry found.] {+llm:day-2026-11-25-msg-34 ?llm:inReplyTo}
+
+## Resource Description Framework — The Resource Description Fr {=llm:day-2026-11-25-msg-36 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:00:14.631Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Resource Description Framework — The Resource Description Framework (RDF) is a method to describe and exchange graph data. It was originally designed as a data model for metadata by the World Wide Web Consortium (W3C). It provides a variety of syntax notations and formats, of which the most widely used is Turtle.] {llm:content}
+[sha256:78659f3468eb1e70] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is Resource Description Framework?] {+llm:day-2026-11-25-msg-35 ?llm:inReplyTo}
+
+## What is Resource Description Framework? {=llm:day-2026-11-25-msg-37 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:00:14.661Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is Resource Description Framework?] {llm:content}
+[sha256:f620dbf0aab76516] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Resource Description Framework — The Resource Description Fr] {+llm:day-2026-11-25-msg-36 ?llm:inReplyTo}
+
+## Resource Description Framework — The Resource Description Fr {=llm:day-2026-11-25-msg-38 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:00:14.661Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Resource Description Framework — The Resource Description Framework (RDF) is a method to describe and exchange graph data. It was originally designed as a data model for metadata by the World Wide Web Consortium (W3C). It provides a variety of syntax notations and formats, of which the most widely used is Turtle.] {llm:content}
+[sha256:78659f3468eb1e70] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is Resource Description Framework?] {+llm:day-2026-11-25-msg-37 ?llm:inReplyTo}
+
+## What is Resource Description Framework? {=llm:day-2026-11-25-msg-39 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:00:32.636Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is Resource Description Framework?] {llm:content}
+[sha256:f620dbf0aab76516] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Resource Description Framework — The Resource Description Fr] {+llm:day-2026-11-25-msg-38 ?llm:inReplyTo}
+
+## Resource Description Framework — The Resource Description Fr {=llm:day-2026-11-25-msg-40 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:00:32.636Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Resource Description Framework — The Resource Description Framework (RDF) is a method to describe and exchange graph data. It was originally designed as a data model for metadata by the World Wide Web Consortium (W3C). It provides a variety of syntax notations and formats, of which the most widely used is Turtle.] {llm:content}
+[sha256:78659f3468eb1e70] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is Resource Description Framework?] {+llm:day-2026-11-25-msg-39 ?llm:inReplyTo}
+
+## What is RDF? {=llm:day-2026-11-25-msg-41 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:00:32.911Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is RDF?] {llm:content}
+[sha256:4be66948a622a4f6] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Resource Description Framework — The Resource Description Fr] {+llm:day-2026-11-25-msg-40 ?llm:inReplyTo}
+
+## I don't know what "RDF" is — no entry found. {=llm:day-2026-11-25-msg-42 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:00:32.911Z* {prov:generatedAtTime ^^xsd:dateTime}
+[I don't know what "RDF" is — no entry found.] {llm:content}
+[sha256:43263788a294ff1b] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is RDF?] {+llm:day-2026-11-25-msg-41 ?llm:inReplyTo}
+
+## What is Language? {=llm:day-2026-11-25-msg-43 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:01:52.011Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is Language?] {llm:content}
+[sha256:d6b18a97150bf0bb] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[I don't know what "RDF" is — no entry found.] {+llm:day-2026-11-25-msg-42 ?llm:inReplyTo}
+
+## Language — Language is a structured system of communication  {=llm:day-2026-11-25-msg-44 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T12:01:52.011Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Language — Language is a structured system of communication that consists of grammar and vocabulary. It is the primary means by which humans convey meaning, both in spoken and signed forms, and may also be conveyed through writing. Human language is characterized by its cultural and historical diversity, with significant variations observed between cultures and across time. Human languages possess the properties of productivity and displacement, which enable the creation of an infinite number of sentences, and the ability to refer to objects, events, and ideas that are not immediately present in the discourse. The use of human language relies on social convention and is acquired through learning.] {llm:content}
+[sha256:60d623d628fe6ea2] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is Language?] {+llm:day-2026-11-25-msg-43 ?llm:inReplyTo}
+
 ~~~~~~
 
+---
 
+# Terms
+
+A dormant glossary — terms the agent looks up accumulate here as their own graph.
+
+## Terms {=llm:terms .llm:Module label}
+~~~~~~md {llm:payload}
+[llm] <tag:llm.chat.example,2026:>
+[rdfs] <http://www.w3.org/2000/01/rdf-schema#>
+
+## Glossary {=llm:terms .llm:Module label}
+
+
+## Resource Description Framework {=llm:term-resource-description-framework .llm:Term label}
+[The Resource Description Framework (RDF) is a method to describe and exchange graph data. It was originally designed as a data model for metadata by the World Wide Web Consortium (W3C). It provides a variety of syntax notations and formats, of which the most widely used is Turtle.] {rdfs:comment}
+[https://en.wikipedia.org/wiki/Resource_Description_Framework] {rdfs:seeAlso}
+## Language {=llm:term-language .llm:Term label}
+[Language is a structured system of communication that consists of grammar and vocabulary. It is the primary means by which humans convey meaning, both in spoken and signed forms, and may also be conveyed through writing. Human language is characterized by its cultural and historical diversity, wi…] {rdfs:comment}
+[https://en.wikipedia.org/wiki/Language] {rdfs:seeAlso}
+
+~~~~~~
