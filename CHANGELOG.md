@@ -10,11 +10,12 @@
 ### Changed
 - **Validator readability** — `extractConstraints` is now an ordered spec table; count/length/range checks are table-driven; property/node-level component sets are hoisted without changing emission order or public API
 - **Parser/highlight condensation** — removed dead `shared.js` exports, fake regex-match list tokens, repeated tokenizer whitespace/attribute splitting, a duplicate scanner case, and highlight delimiter/marker branches; graph localStorage stores share one factory; URI scheme checks are unified
-- **Canonical round-trip stress coverage** — stochastic test sweeps unicode, markdown markers, tabs/newlines, languages, and datatypes across 1,260 literals with a noise/signal estimate
+- **Regex remnant cleanup** — removed unused CommonMark/carrier regex exports and the tokenizer `TEST` surface; moved test-only regex oracles into `tests/tokenizers.tests.js`; replaced easy scanner regexes with string scans for trailing attrs, fence info strings, URL schemes, fence-close matching, and highlight prefix extraction via `detectPrefix`
+- **Canonical round-trip stress coverage** — stochastic test sweeps unicode, markdown markers, tabs/newlines, languages, and datatypes across 1,260 literals with a noise/signal estimate; canonical generate uses code-unit ordering and is permutation-stable
 
 ### Build
-- **ES2022 library target** — drops private/static-field helpers from `dist/mdld-parse.js`; the single-file export remains the contract (~223.3 kB unminified)
-- **Verification** — 192 parser tests plus shapes/ontology self-tests pass
+- **ES2022 library target** — drops private/static-field helpers; ships unminified by design (~224 kB) so `dist/mdld-parse.js` stays readable like `src/`
+- **Verification** — 193 parser tests plus shapes/ontology self-tests pass
 
 ## Unreleased — `<quad-graph>` interaction & persistence
 
