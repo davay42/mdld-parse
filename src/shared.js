@@ -226,7 +226,7 @@ export function processTokenWithBlockTracking(token, state, processAnnotations, 
 
 // Optimized sorting utilities - inline for better minification
 export function sortQuadsByPredicate(quads) {
-    return quads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
+    return quads.sort((a, b) => (a.predicate.value < b.predicate.value ? -1 : a.predicate.value > b.predicate.value ? 1 : 0));
 }
 
 // Optimized text generation - template literals for smaller bundle

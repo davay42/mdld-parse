@@ -8,6 +8,8 @@ const CONTEXT = {
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     rdfs: 'http://www.w3.org/2000/01/rdf-schema#'
 };
+const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+const RDFS_LABEL = 'http://www.w3.org/2000/01/rdf-schema#label';
 
 function mulberry32(seed) {
     return function () {
@@ -128,6 +130,15 @@ function runBatch(seed, count) {
     };
 }
 
+function shuffled(quads, rng) {
+    const a = quads.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
 export const canonicalRoundtripTests = [
     {
         name: 'stochastic literal carrier round-trip safety',
@@ -151,6 +162,44 @@ export const canonicalRoundtripTests = [
                     `First failure: ${JSON.stringify(first)}`
                 );
             }
+        }
+    },
+    {
+        name: 'canonical generate is permutation-stable',
+        fn: () => {
+            const quads = [];
+            for (let si = 0; si < 6; si++) {
+                const s = namedNode(`http://example.org/s${si}`);
+                quads.push(quad(s, namedNode(RDF_TYPE), namedNode('http://example.org/Type')));
+                for (let pi = 0; pi < 5; pi++) {
+                    if ((si + pi) % 3 === 0) continue;
+                    const p = namedNode(`http://example.org/p${pi}`);
+                    if (pi % 2) {
+                        quads.push(quad(s, p, namedNode(`http://example.org/o${si}_${pi}`)));
+                    } else {
+                        const v = `value ${si}.${pi} ${pi % 4 ? 'ok' : '[x]'}`;
+                        quads.push(quad(s, p, pi % 5 === 0 ? literal(v, 'en') : literal(v)));
+                    }
+                }
+                if (si === 1) {
+                    quads.push(quad(s, namedNode(RDFS_LABEL), literal('Gamma', 'en')));
+                    quads.push(quad(s, namedNode(RDFS_LABEL), literal('Gamma', 'es')));
+                }
+                if (si === 2) {
+                    quads.push(quad(s, namedNode(RDFS_LABEL), literal('Delta')));
+                    quads.push(quad(s, namedNode(RDFS_LABEL), literal('Delta', 'en')));
+                }
+            }
+
+            const base = generate({ quads, context: CONTEXT }).text;
+            for (const seed of [11, 22, 33]) {
+                const text = generate({ quads: shuffled(quads, mulberry32(seed)), context: CONTEXT }).text;
+                if (text !== base) throw new Error('generate output depends on input quad order');
+            }
+
+            const parsed = parse({ text: base, context: CONTEXT });
+            const regen = generate({ quads: parsed.quads, context: CONTEXT }).text;
+            if (regen !== base) throw new Error('parse(generate(quads)) is not canonically stable');
         }
     }
 ];

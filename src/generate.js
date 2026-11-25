@@ -11,6 +11,8 @@ import {
     filterQuadsByType
 } from './shared.js';
 
+const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
 // Simple cache for IRI shortening to avoid repeated processing
 const iriCache = new Map();
 const CACHE_SIZE_LIMIT = 1000;
@@ -148,21 +150,21 @@ function normalizeAndSortQuads(quads) {
         })
         .sort((a, b) => {
             // Deterministic sorting: subject -> predicate -> object
-            const sComp = a.subject.value.localeCompare(b.subject.value);
+            const sComp = cmp(a.subject.value, b.subject.value);
             if (sComp !== 0) return sComp;
-            const pComp = a.predicate.value.localeCompare(b.predicate.value);
+            const pComp = cmp(a.predicate.value, b.predicate.value);
             if (pComp !== 0) return pComp;
-            const oComp = a.object.value.localeCompare(b.object.value);
+            const oComp = cmp(a.object.value, b.object.value);
             if (oComp !== 0) return oComp;
             // Tiebreaks for equal object values: term type, then datatype,
             // then language — keeps output canonical for graph comparison
-            const tComp = String(a.object.termType).localeCompare(String(b.object.termType));
+            const tComp = cmp(String(a.object.termType), String(b.object.termType));
             if (tComp !== 0) return tComp;
             const dtA = a.object.datatype?.value ?? a.object.datatype ?? '';
             const dtB = b.object.datatype?.value ?? b.object.datatype ?? '';
-            const dtComp = String(dtA).localeCompare(String(dtB));
+            const dtComp = cmp(String(dtA), String(dtB));
             if (dtComp !== 0) return dtComp;
-            return String(a.object.language ?? '').localeCompare(String(b.object.language ?? ''));
+            return cmp(String(a.object.language ?? ''), String(b.object.language ?? ''));
         });
 }
 
@@ -246,7 +248,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
     }
 
     // Add prefixes first (deterministic order), but exclude default context prefixes
-    const sortedPrefixes = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
+    const sortedPrefixes = Object.entries(context).sort(([a], [b]) => cmp(a, b));
     for (const [prefix, namespace] of sortedPrefixes) {
         // Skip default context prefixes - they're implicit in MDLD
         if (prefix !== '@vocab' && !prefix.startsWith('@') && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) {
@@ -329,7 +331,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
         if (subjectIRI === primarySubjectIRI && reverseIndex && reverseIndex.has(subjectIRI)) {
             const reverseQuads = reverseIndex.get(subjectIRI);
             // Sort by predicate for deterministic output
-            reverseQuads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
+            reverseQuads.sort((a, b) => cmp(a.predicate.value, b.predicate.value));
 
             for (const quad of reverseQuads) {
                 // Mark this quad as rendered to exclude from normal subject rendering
@@ -426,7 +428,7 @@ function buildLabelLookup(subjectGroups, lang = null) {
         // Sort by: length (ascending), then value (alphabetically)
         candidates.sort((a, b) => {
             const lenDiff = a.object.value.length - b.object.value.length;
-            return lenDiff !== 0 ? lenDiff : a.object.value.localeCompare(b.object.value);
+            return lenDiff !== 0 ? lenDiff : cmp(a.object.value, b.object.value);
         });
         return candidates[0];
     };
