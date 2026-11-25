@@ -87,14 +87,24 @@ const wikiLookup = async name => {
 const agentReply = async (userText = '') => {
   const wm = userText.match(/^(?:what is|who is|define|tell me about)\s+(.+?)\s*\??$/i)
   if (wm) {
-    const term = wm[1].trim()
+    const term = wm[1].trim().replace(/^(?:a|an|the)\s+/i, '')
     const cached = lookupCached(term)
     if (cached) return `${term} — ${cached}`
     try {
       const hit = await wikiLookup(term)
-      if (hit) { appendTerm(term, hit.def, hit.url); return `${term} — ${hit.def}` }
+      if (hit) { appendTerm(term, hit.def, hit.url); return `${term} — ${lookupCached(term) || hit.def}` }
     } catch { }
     return `I don't know what "${term}" is — no entry found.`
+  }
+  // teach: "X is/means/= definition" — the human supplies what the agent lacks
+  const tm = userText.match(/^([A-Za-z][\w\s-]{1,50}?)\s+(?:is|means|equals|=|:)\s+(.{10,})$/)
+  if (tm && !userText.startsWith('/')) {
+    const name = tm[1].trim(), def = tm[2].trim()
+    if (!lookupCached(name)) {
+      appendTerm(name, def + ' (user-supplied)', null)
+      return `Noted — "${name}" added to the glossary on your authority.`
+    }
+    return `"${name}" is already in the glossary.`
   }
   const r = report()
   const lines = []

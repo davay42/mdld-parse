@@ -33,6 +33,12 @@ Every [Conversation] {+llm:Conversation ?sh:targetClass} must **follow** {+#chF 
 [Follows is required — {focusNode}] {=#chF .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [follows] {+llm:follows ?sh:path}
+
+## TermShape {=llm:TermShape .sh:NodeShape label}
+Every [Term] {+llm:Term ?sh:targetClass} must carry its **comment** {+#tmC ?sh:property sh:name} — a lookup without a definition is noise.
+[Comment is required — {focusNode}] {=#tmC .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[comment] {+rdfs:comment ?sh:path}
 ---
 
 
@@ -546,330 +552,131 @@ A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 [Verify everything still holds.] {+llm:day-2026-11-25-msg-07 ?llm:inReplyTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
-## hello persisted? {=llm:day-2026-11-25-msg-09 .llm:UserMessage label}
+## What is JSON-LD? {=llm:day-2026-11-25-msg-09 .llm:UserMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:13:48.681Z* {prov:generatedAtTime ^^xsd:dateTime}
-[hello persisted?] {llm:content}
-[sha256:f4eeea762a6846ab] {llm:signature}
+*2026-11-25T12:05:40.668Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is JSON-LD?] {llm:content}
+[sha256:dfd25616974eb514] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
 [498 quads, 6 elevated statements, 0 violations, all six modu] {+llm:day-2026-11-25-msg-08 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
 
-## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-10 .llm:AssistantMessage label}
+## JSON-LD — JSON-LD is a method of encoding linked data using  {=llm:day-2026-11-25-msg-10 .llm:AssistantMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:13:48.681Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 10 shape record(s) conform.] {llm:content}
-[sha256:b7593a1023211ad1] {llm:signature}
+*2026-11-25T12:05:40.668Z* {prov:generatedAtTime ^^xsd:dateTime}
+[JSON-LD — JSON-LD is a method of encoding linked data using JSON and of serializing data similarly to traditional JSON. It is meant to be simple to create by modifying JSON documents. JSON-LD is a World Wide Web Consortium Recommendation initially developed by the JSON for Linking Data Community Group, transferred to the RDF Working Group for review, improvement and standardization, and now maintained by the JSON-LD Working Group.] {llm:content}
+[sha256:da96e03c793fc95a] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[hello persisted?] {+llm:day-2026-11-25-msg-09 ?llm:inReplyTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is JSON-LD?] {+llm:day-2026-11-25-msg-09 ?llm:inReplyTo}
 
-## persisted via http? {=llm:day-2026-11-25-msg-11 .llm:UserMessage label}
+## What is SHACL? {=llm:day-2026-11-25-msg-11 .llm:UserMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:13:58.295Z* {prov:generatedAtTime ^^xsd:dateTime}
-[persisted via http?] {llm:content}
-[sha256:221f963512822807] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-10 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-
-## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-12 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:13:58.295Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 10 shape record(s) conform.] {llm:content}
-[sha256:b7593a1023211ad1] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[persisted via http?] {+llm:day-2026-11-25-msg-11 ?llm:inReplyTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-
-## Stored? {=llm:day-2026-11-25-msg-13 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:16:10.821Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Stored?] {llm:content}
-[sha256:a0cbc0263732f3b0] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-12 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-
-## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-14 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:16:10.821Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 10 shape record(s) conform.] {llm:content}
-[sha256:b7593a1023211ad1] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[Stored?] {+llm:day-2026-11-25-msg-13 ?llm:inReplyTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-
-## Stored! From the web browser! Instantly! {=llm:day-2026-11-25-msg-15 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:16:35.869Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Stored! From the web browser! Instantly!] {llm:content}
-[sha256:c211ff9131dbb72b] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-14 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-
-## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-16 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:16:35.869Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 10 shape record(s) conform.] {llm:content}
-[sha256:b7593a1023211ad1] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[Stored! From the web browser! Instantly!] {+llm:day-2026-11-25-msg-15 ?llm:inReplyTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-
-## atomic test {=llm:day-2026-11-25-msg-17 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:21:17.208Z* {prov:generatedAtTime ^^xsd:dateTime}
-[atomic test] {llm:content}
-[sha256:77e5a3e18cf5a2f0] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-16 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-
-## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-18 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:21:17.208Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 10 shape record(s) conform.] {llm:content}
-[sha256:b7593a1023211ad1] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[atomic test] {+llm:day-2026-11-25-msg-17 ?llm:inReplyTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-
-## chain test message {=llm:day-2026-11-25-msg-19 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:46:55.037Z* {prov:generatedAtTime ^^xsd:dateTime}
-[chain test message] {llm:content}
-[sha256:d18ace867175f42f] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-18 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-
-## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-20 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:46:55.040Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 11 shape record(s) conform.] {llm:content}
-[sha256:ad7c225d9b363913] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[chain test message] {+llm:day-2026-11-25-msg-19 ?llm:inReplyTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-
-## final chain check {=llm:day-2026-11-25-msg-21 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:47:05.056Z* {prov:generatedAtTime ^^xsd:dateTime}
-[final chain check] {llm:content}
-[sha256:9adf227e3ce29422] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-20 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-
-## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-22 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T09:47:05.056Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 11 shape record(s) conform.] {llm:content}
-[sha256:ad7c225d9b363913] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[final chain check] {+llm:day-2026-11-25-msg-21 ?llm:inReplyTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-
-## Input from the chat window {=llm:day-2026-11-25-msg-23 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T10:19:44.949Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Input from the chat window] {llm:content}
-[sha256:f2c0edd7888d17ad] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-22 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-
-## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-24 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T10:19:44.950Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 11 shape record(s) conform.] {llm:content}
-[sha256:ad7c225d9b363913] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[Input from the chat window] {+llm:day-2026-11-25-msg-23 ?llm:inReplyTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-
-## I like to **format** my messages {=llm:day-2026-11-25-msg-25 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T10:44:22.966Z* {prov:generatedAtTime ^^xsd:dateTime}
-[I like to **format** my messages] {llm:content}
-[sha256:2dd755fd455c5870] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-24 ?llm:inReplyTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-
-## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-26 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T10:44:22.966Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 11 shape record(s) conform.] {llm:content}
-[sha256:ad7c225d9b363913] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[I like to **format** my messages] {+llm:day-2026-11-25-msg-25 ?llm:inReplyTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-
-## Davay {=llm:user-davay .prov:Agent label}
-## append test one {=tag:llm.chat.example,2026:day-2026-11-25-msg-27 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T11:36:52.636Z* {prov:generatedAtTime ^^xsd:dateTime}
-[append test one] {llm:content}
-[sha256:e11cf63d1575211b] {llm:signature}
-[Davay] {+tag:llm.chat.example,2026:user-davay ?prov:wasAttributedTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-[Gate check: clean — 11 shape record(s) conform.] {+tag:llm.chat.example,2026:day-2026-11-25-msg-26 ?llm:inReplyTo}
-
-## Gate check: clean — 11 shape record(s) conform. {=tag:llm.chat.example,2026:day-2026-11-25-msg-28 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T11:36:52.636Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 11 shape record(s) conform.] {llm:content}
-[sha256:ad7c225d9b363913] {llm:signature}
-[Devin] {+tag:llm.chat.example,2026:agent-devin ?prov:wasAttributedTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-[append test one] {+tag:llm.chat.example,2026:day-2026-11-25-msg-27 ?llm:inReplyTo}
-
-## second append test {=llm:day-2026-11-25-msg-29 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T11:37:11.174Z* {prov:generatedAtTime ^^xsd:dateTime}
-[second append test] {llm:content}
-[sha256:84a329ebe85ffc65] {llm:signature}
+*2026-11-25T12:05:40.692Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is SHACL?] {llm:content}
+[sha256:b4b4876a4210758e] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [llm:role-user] {+llm:role-user ?llm:role}
-[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-28 ?llm:inReplyTo}
+[JSON-LD — JSON-LD is a method of encoding linked data using] {+llm:day-2026-11-25-msg-10 ?llm:inReplyTo}
 
-## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-30 .llm:AssistantMessage label}
+## SHACL — Shapes Constraint Language (SHACL) is a World Wide W {=llm:day-2026-11-25-msg-12 .llm:AssistantMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T11:37:11.174Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Gate check: clean — 11 shape record(s) conform.] {llm:content}
-[sha256:ad7c225d9b363913] {llm:signature}
+*2026-11-25T12:05:40.692Z* {prov:generatedAtTime ^^xsd:dateTime}
+[SHACL — Shapes Constraint Language (SHACL) is a World Wide Web Consortium (W3C) standard language for describing Resource Description Framework (RDF) graphs. SHACL has been designed to enhance the semantic and technical interoperability layers of ontologies expressed as RDF graphs.] {llm:content}
+[sha256:fc1ae66e7467907b] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
-[second append test] {+llm:day-2026-11-25-msg-29 ?llm:inReplyTo}
+[What is SHACL?] {+llm:day-2026-11-25-msg-11 ?llm:inReplyTo}
 
-## What is RDF? {=llm:day-2026-11-25-msg-31 .llm:UserMessage label}
+## What is a knowledge graph? {=llm:day-2026-11-25-msg-13 .llm:UserMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T11:59:49.152Z* {prov:generatedAtTime ^^xsd:dateTime}
-[What is RDF?] {llm:content}
-[sha256:4be66948a622a4f6] {llm:signature}
+*2026-11-25T12:05:41.090Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is a knowledge graph?] {llm:content}
+[sha256:5a601ba414107311] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [llm:role-user] {+llm:role-user ?llm:role}
-[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-30 ?llm:inReplyTo}
+[SHACL — Shapes Constraint Language (SHACL) is a World Wide W] {+llm:day-2026-11-25-msg-12 ?llm:inReplyTo}
 
-## RDF — RDF may refer to: {=llm:day-2026-11-25-msg-32 .llm:AssistantMessage label}
+## I don't know what "a knowledge graph" is — no entry found. {=llm:day-2026-11-25-msg-14 .llm:AssistantMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T11:59:49.152Z* {prov:generatedAtTime ^^xsd:dateTime}
-[RDF — RDF may refer to:] {llm:content}
-[sha256:984f8e12d4eaff03] {llm:signature}
+*2026-11-25T12:05:41.090Z* {prov:generatedAtTime ^^xsd:dateTime}
+[I don't know what "a knowledge graph" is — no entry found.] {llm:content}
+[sha256:6f227d0890e90073] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
-[What is RDF?] {+llm:day-2026-11-25-msg-31 ?llm:inReplyTo}
+[What is a knowledge graph?] {+llm:day-2026-11-25-msg-13 ?llm:inReplyTo}
 
-## What is blorfnoster? {=llm:day-2026-11-25-msg-33 .llm:UserMessage label}
+## Knowledge graph is a graph of real-world entities and the re {=llm:day-2026-11-25-msg-15 .llm:UserMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T11:59:58.859Z* {prov:generatedAtTime ^^xsd:dateTime}
-[What is blorfnoster?] {llm:content}
-[sha256:00a80a7d51f074c7] {llm:signature}
+*2026-11-25T12:07:03.873Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Knowledge graph is a graph of real-world entities and the relationships between them.] {llm:content}
+[sha256:44ebe9047d9cc97f] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [llm:role-user] {+llm:role-user ?llm:role}
-[RDF — RDF may refer to:] {+llm:day-2026-11-25-msg-32 ?llm:inReplyTo}
+[I don't know what "a knowledge graph" is — no entry found.] {+llm:day-2026-11-25-msg-14 ?llm:inReplyTo}
 
-## I don't know what "blorfnoster" is — no entry found. {=llm:day-2026-11-25-msg-34 .llm:AssistantMessage label}
+## Noted — "Knowledge graph" added to the glossary on your auth {=llm:day-2026-11-25-msg-16 .llm:AssistantMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T11:59:58.859Z* {prov:generatedAtTime ^^xsd:dateTime}
-[I don't know what "blorfnoster" is — no entry found.] {llm:content}
-[sha256:c96af74c9e3e37e9] {llm:signature}
+*2026-11-25T12:07:03.873Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Noted — "Knowledge graph" added to the glossary on your authority.] {llm:content}
+[sha256:fb77c32de7c6b336] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
-[What is blorfnoster?] {+llm:day-2026-11-25-msg-33 ?llm:inReplyTo}
+[Knowledge graph is a graph of real-world entities and the re] {+llm:day-2026-11-25-msg-15 ?llm:inReplyTo}
 
-## What is Resource Description Framework? {=llm:day-2026-11-25-msg-35 .llm:UserMessage label}
+## What is a knowledge graph? {=llm:day-2026-11-25-msg-17 .llm:UserMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:00:14.631Z* {prov:generatedAtTime ^^xsd:dateTime}
-[What is Resource Description Framework?] {llm:content}
-[sha256:f620dbf0aab76516] {llm:signature}
+*2026-11-25T12:07:03.895Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is a knowledge graph?] {llm:content}
+[sha256:5a601ba414107311] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [llm:role-user] {+llm:role-user ?llm:role}
-[I don't know what "blorfnoster" is — no entry found.] {+llm:day-2026-11-25-msg-34 ?llm:inReplyTo}
+[Noted — "Knowledge graph" added to the glossary on your auth] {+llm:day-2026-11-25-msg-16 ?llm:inReplyTo}
 
-## Resource Description Framework — The Resource Description Fr {=llm:day-2026-11-25-msg-36 .llm:AssistantMessage label}
+## knowledge graph — a graph of real-world entities and the rel {=llm:day-2026-11-25-msg-18 .llm:AssistantMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:00:14.631Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Resource Description Framework — The Resource Description Framework (RDF) is a method to describe and exchange graph data. It was originally designed as a data model for metadata by the World Wide Web Consortium (W3C). It provides a variety of syntax notations and formats, of which the most widely used is Turtle.] {llm:content}
-[sha256:78659f3468eb1e70] {llm:signature}
+*2026-11-25T12:07:03.896Z* {prov:generatedAtTime ^^xsd:dateTime}
+[knowledge graph — a graph of real-world entities and the relationships between them. (user-supplied)] {llm:content}
+[sha256:bb92afd81a9a8a92] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
-[What is Resource Description Framework?] {+llm:day-2026-11-25-msg-35 ?llm:inReplyTo}
+[What is a knowledge graph?] {+llm:day-2026-11-25-msg-17 ?llm:inReplyTo}
 
-## What is Resource Description Framework? {=llm:day-2026-11-25-msg-37 .llm:UserMessage label}
+## What is a knowledge graph? {=llm:day-2026-11-25-msg-19 .llm:UserMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:00:14.661Z* {prov:generatedAtTime ^^xsd:dateTime}
-[What is Resource Description Framework?] {llm:content}
-[sha256:f620dbf0aab76516] {llm:signature}
+*2026-11-25T12:07:06.445Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is a knowledge graph?] {llm:content}
+[sha256:5a601ba414107311] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [llm:role-user] {+llm:role-user ?llm:role}
-[Resource Description Framework — The Resource Description Fr] {+llm:day-2026-11-25-msg-36 ?llm:inReplyTo}
+[knowledge graph — a graph of real-world entities and the rel] {+llm:day-2026-11-25-msg-18 ?llm:inReplyTo}
 
-## Resource Description Framework — The Resource Description Fr {=llm:day-2026-11-25-msg-38 .llm:AssistantMessage label}
+## knowledge graph — In knowledge representation and reasoning, {=llm:day-2026-11-25-msg-20 .llm:AssistantMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:00:14.661Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Resource Description Framework — The Resource Description Framework (RDF) is a method to describe and exchange graph data. It was originally designed as a data model for metadata by the World Wide Web Consortium (W3C). It provides a variety of syntax notations and formats, of which the most widely used is Turtle.] {llm:content}
-[sha256:78659f3468eb1e70] {llm:signature}
+*2026-11-25T12:07:06.445Z* {prov:generatedAtTime ^^xsd:dateTime}
+[knowledge graph — In knowledge representation and reasoning, a knowledge graph is a knowledge base that uses a graph-structured data model or topology to represent and operate on data. Knowledge graphs are often used to store interlinked descriptions of entities – objects, events, situations or abstract concepts – while also encoding the free-form semantics or relationships underlying these entities.] {llm:content}
+[sha256:ab21656cad4f417b] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
-[What is Resource Description Framework?] {+llm:day-2026-11-25-msg-37 ?llm:inReplyTo}
+[What is a knowledge graph?] {+llm:day-2026-11-25-msg-19 ?llm:inReplyTo}
 
-## What is Resource Description Framework? {=llm:day-2026-11-25-msg-39 .llm:UserMessage label}
+## What is knowledge graph? {=llm:day-2026-11-25-msg-21 .llm:UserMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:00:32.636Z* {prov:generatedAtTime ^^xsd:dateTime}
-[What is Resource Description Framework?] {llm:content}
-[sha256:f620dbf0aab76516] {llm:signature}
+*2026-11-25T12:07:28.833Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is knowledge graph?] {llm:content}
+[sha256:3ee36f0759985b1d] {llm:signature}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 [llm:role-user] {+llm:role-user ?llm:role}
-[Resource Description Framework — The Resource Description Fr] {+llm:day-2026-11-25-msg-38 ?llm:inReplyTo}
+[knowledge graph — In knowledge representation and reasoning,] {+llm:day-2026-11-25-msg-20 ?llm:inReplyTo}
 
-## Resource Description Framework — The Resource Description Fr {=llm:day-2026-11-25-msg-40 .llm:AssistantMessage label}
+## knowledge graph — a graph of real-world entities and the rel {=llm:day-2026-11-25-msg-22 .llm:AssistantMessage label}
 A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:00:32.636Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Resource Description Framework — The Resource Description Framework (RDF) is a method to describe and exchange graph data. It was originally designed as a data model for metadata by the World Wide Web Consortium (W3C). It provides a variety of syntax notations and formats, of which the most widely used is Turtle.] {llm:content}
-[sha256:78659f3468eb1e70] {llm:signature}
+*2026-11-25T12:07:28.833Z* {prov:generatedAtTime ^^xsd:dateTime}
+[knowledge graph — a graph of real-world entities and the relationships between them. (user-supplied)] {llm:content}
+[sha256:bb92afd81a9a8a92] {llm:signature}
 [Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
-[What is Resource Description Framework?] {+llm:day-2026-11-25-msg-39 ?llm:inReplyTo}
-
-## What is RDF? {=llm:day-2026-11-25-msg-41 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:00:32.911Z* {prov:generatedAtTime ^^xsd:dateTime}
-[What is RDF?] {llm:content}
-[sha256:4be66948a622a4f6] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-[Resource Description Framework — The Resource Description Fr] {+llm:day-2026-11-25-msg-40 ?llm:inReplyTo}
-
-## I don't know what "RDF" is — no entry found. {=llm:day-2026-11-25-msg-42 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:00:32.911Z* {prov:generatedAtTime ^^xsd:dateTime}
-[I don't know what "RDF" is — no entry found.] {llm:content}
-[sha256:43263788a294ff1b] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-[What is RDF?] {+llm:day-2026-11-25-msg-41 ?llm:inReplyTo}
-
-## What is Language? {=llm:day-2026-11-25-msg-43 .llm:UserMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:01:52.011Z* {prov:generatedAtTime ^^xsd:dateTime}
-[What is Language?] {llm:content}
-[sha256:d6b18a97150bf0bb] {llm:signature}
-[Davay] {+llm:user-davay ?prov:wasAttributedTo}
-[llm:role-user] {+llm:role-user ?llm:role}
-[I don't know what "RDF" is — no entry found.] {+llm:day-2026-11-25-msg-42 ?llm:inReplyTo}
-
-## Language — Language is a structured system of communication  {=llm:day-2026-11-25-msg-44 .llm:AssistantMessage label}
-A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
-*2026-11-25T12:01:52.011Z* {prov:generatedAtTime ^^xsd:dateTime}
-[Language — Language is a structured system of communication that consists of grammar and vocabulary. It is the primary means by which humans convey meaning, both in spoken and signed forms, and may also be conveyed through writing. Human language is characterized by its cultural and historical diversity, with significant variations observed between cultures and across time. Human languages possess the properties of productivity and displacement, which enable the creation of an infinite number of sentences, and the ability to refer to objects, events, and ideas that are not immediately present in the discourse. The use of human language relies on social convention and is acquired through learning.] {llm:content}
-[sha256:60d623d628fe6ea2] {llm:signature}
-[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
-[llm:role-assistant] {+llm:role-assistant ?llm:role}
-[What is Language?] {+llm:day-2026-11-25-msg-43 ?llm:inReplyTo}
+[What is knowledge graph?] {+llm:day-2026-11-25-msg-21 ?llm:inReplyTo}
 
 ~~~~~~
 
@@ -893,5 +700,16 @@ A dormant glossary — terms the agent looks up accumulate here as their own gra
 ## Language {=llm:term-language .llm:Term label}
 [Language is a structured system of communication that consists of grammar and vocabulary. It is the primary means by which humans convey meaning, both in spoken and signed forms, and may also be conveyed through writing. Human language is characterized by its cultural and historical diversity, wi…] {rdfs:comment}
 [https://en.wikipedia.org/wiki/Language] {rdfs:seeAlso}
+
+## JSON-LD {=llm:term-json-ld .llm:Term label}
+[JSON-LD is a method of encoding linked data using JSON and of serializing data similarly to traditional JSON. It is meant to be simple to create by modifying JSON documents. JSON-LD is a World Wide Web Consortium Recommendation initially developed by the JSON for Linking Data Community Group, tra…] {rdfs:comment}
+[https://en.wikipedia.org/wiki/JSON-LD] {rdfs:seeAlso}
+
+## SHACL {=llm:term-shacl .llm:Term label}
+[Shapes Constraint Language (SHACL) is a World Wide Web Consortium (W3C) standard language for describing Resource Description Framework (RDF) graphs. SHACL has been designed to enhance the semantic and technical interoperability layers of ontologies expressed as RDF graphs.] {rdfs:comment}
+[https://en.wikipedia.org/wiki/SHACL] {rdfs:seeAlso}
+
+## Knowledge graph {=llm:term-knowledge-graph .llm:Term label}
+[a graph of real-world entities and the relationships between them. (user-supplied)] {rdfs:comment}
 
 ~~~~~~
