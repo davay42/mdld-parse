@@ -1,7 +1,5 @@
 import { URL_REGEX, DEFAULT_CONTEXT, RDF_LANG_STRING, XSD_STRING, XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE } from './constants.js';
 
-const VALID_URI_SCHEMES = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file):/;
-
 // Base Term class for RDF/JS compatibility
 export class Term {
     constructor(id) {
@@ -133,7 +131,7 @@ export const DataFactory = {
         // Convert non-string values to string for proper serialization
         const stringValue = String(value);
         // Escape quotes in the value for proper serialization
-        const escapedValue = stringValue.replace(/"/g, '\\"');
+        const escapedValue = stringValue.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
         // Create a language-tagged string
         if (typeof languageOrDataType === 'string') {
@@ -190,7 +188,7 @@ export const DataFactory = {
                 return DEFAULTGRAPH;
             case 'Literal':
                 // Escape quotes in value to ensure proper parsing
-                const escapedValue = String(term.value).replace(/"/g, '\\"');
+                const escapedValue = String(term.value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
                 if (term.language) {
                     return new Literal(`"${escapedValue}"@${term.language}`);
                 } else if (term.datatype) {
@@ -296,7 +294,7 @@ export function expandIRI(term, ctx) {
 }
 
 export function shortenIRI(iri, ctx) {
-    if (!iri || !VALID_URI_SCHEMES.test(iri)) return iri;
+    if (!iri || !URL_REGEX.test(iri)) return iri;
     if (ctx['@vocab'] && iri.startsWith(ctx['@vocab'])) return iri.substring(ctx['@vocab'].length);
 
     // Find the best matching prefix - more precise matching

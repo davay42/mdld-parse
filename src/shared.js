@@ -1,14 +1,11 @@
 import { DEFAULT_CONTEXT, RDFS_LABEL, RDF_TYPE, RDF_STATEMENT, RDF_SUBJECT, RDF_PREDICATE, RDF_OBJECT, XSD_STRING, XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE } from './constants.js';
 import { parseSemanticBlock, expandIRI, shortenIRI } from './utils.js';
 
-// Cache for fence regex patterns
-export const FENCE_CLOSE_PATTERNS = new Map();
-
-export function getFenceClosePattern(fenceChar) {
-    if (!FENCE_CLOSE_PATTERNS.has(fenceChar)) {
-        FENCE_CLOSE_PATTERNS.set(fenceChar, new RegExp(`^(${fenceChar}{3,})`));
-    }
-    return FENCE_CLOSE_PATTERNS.get(fenceChar);
+export function matchFenceClose(line, fenceChar) {
+    if (line[0] !== fenceChar) return null;
+    let end = 1;
+    while (line[end] === fenceChar) end++;
+    return end >= 3 ? line.slice(0, end) : null;
 }
 
 // Range calculation utilities - shared between parser and renderer
@@ -38,12 +35,13 @@ export function createToken(type, range, text, attrs = null, attrsRange = null, 
 }
 
 // List token creation - shared logic
-export function createListToken(type, line, lineStart, pos, match) {
-    const attrs = match[4] || null;
-    const prefix = match[1].length + (match[2] ? match[2].length : 0);
-    const rangeInfo = calcRangeInfo(line, attrs, lineStart, prefix, match[3].length);
-    return createToken(type, [lineStart, pos - 1], match[3].trim(), attrs,
-        rangeInfo.attrsRange, rangeInfo.valueRange, { indent: match[1].length });
+export function createListToken(type, line, lineStart, pos, result) {
+    const attrs = result.attrs || null;
+    const content = result.content.trim();
+    const prefix = result.indent + result.marker.length;
+    const rangeInfo = calcRangeInfo(line, attrs, lineStart, prefix, content.length);
+    return createToken(type, [lineStart, pos - 1], content, attrs,
+        rangeInfo.attrsRange, rangeInfo.valueRange, { indent: result.indent });
 }
 
 // Semantic block parsing - shared between parser and renderer
@@ -58,35 +56,6 @@ export function parseSemCached(attrs) {
         semCache[attrs] = sem;
     }
     return sem;
-}
-
-// Indentation utilities - shared for list processing
-export function getIndentLevel(block, sourceText) {
-    if (!block.range || !sourceText) return 0;
-
-    const text = sourceText.substring(block.range.start, block.range.end);
-    const indentMatch = text.match(/^(\s*)/);
-    const indentSpaces = indentMatch ? indentMatch[1].length : 0;
-
-    // CommonMark: 4 spaces or 1 tab = one level
-    // We'll use 2 spaces for better readability (configurable)
-    return Math.floor(indentSpaces / 2);
-}
-
-// Content extraction utilities - shared between parser and renderer
-export function extractContentFromRange(sourceText, range, attrsRange = null) {
-    if (!range || !sourceText) return '';
-
-    let text = sourceText.substring(range[0], range[1]);
-
-    // Remove MD-LD annotations, preserve content
-    if (attrsRange) {
-        const beforeAttrs = text.substring(0, attrsRange[0] - range[0]);
-        const afterAttrs = text.substring(attrsRange[1] - range[0]);
-        text = beforeAttrs + afterAttrs;
-    }
-
-    return text.trim();
 }
 
 // Clean text extraction utilities
@@ -252,20 +221,60 @@ export function processTokenWithBlockTracking(token, state, processAnnotations, 
         state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
 }
 
-// Quad key generation - shared between parser and renderer
-export function quadIndexKey(subject, predicate, object) {
-    const datatype = object.datatype?.value || '';
-    const language = object.language || '';
-    return `${subject.value}|${predicate.value}|${object.value}|${datatype}|${language}`;
-}
-
 // Optimized sorting utilities - inline for better minification
 export function sortQuadsByPredicate(quads) {
-    return quads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
+    return quads.sort((a, b) => (a.predicate.value < b.predicate.value ? -1 : a.predicate.value > b.predicate.value ? 1 : 0));
 }
 
 // Optimized text generation - template literals for smaller bundle
 export const generatePrefixDeclaration = (prefix, namespace) => `[${prefix}] <${namespace}>\n`;
+
+function literalFenceRun(line, char) {
+    const trimmed = line.trim();
+    let n = 0;
+    while (trimmed[n] === char) n++;
+    return n;
+}
+
+function chooseLiteralFence(value) {
+    let best = null;
+    for (const char of ['~', '`']) {
+        let max = 0;
+        for (const line of value.split('\n')) {
+            const run = literalFenceRun(line, char);
+            if (run > max) max = run;
+        }
+        const fence = char.repeat(Math.max(3, max + 1));
+        if (!best || fence.length < best.length) best = fence;
+    }
+    return best;
+}
+
+function fencedLiteralText(value, annotation) {
+    const fence = chooseLiteralFence(value);
+    return `${fence} {${annotation}}\n${value}\n${fence}\n\n`;
+}
+
+function literalBracketsBalanced(value) {
+    let depth = 0;
+    for (const ch of value) {
+        if (ch === '[') depth++;
+        else if (ch === ']' && --depth < 0) return false;
+    }
+    return depth === 0;
+}
+
+function literalCodeSafe(value, ticks) {
+    if (value.includes('`'.repeat(ticks))) return false;
+    return ticks === 1 || (!value.startsWith('`') && !value.endsWith('`'));
+}
+
+function singleLineLiteralCarrier(value, annotation) {
+    if (literalBracketsBalanced(value)) return `[${value}] {${annotation}}\n`;
+    if (literalCodeSafe(value, 1)) return `\`${value}\` {${annotation}}\n`;
+    if (literalCodeSafe(value, 2)) return `\`\`${value}\`\` {${annotation}}\n`;
+    return fencedLiteralText(value, annotation);
+}
 
 export function generateLiteralText(quad, context) {
     const predShort = shortenIRI(quad.predicate.value, context);
@@ -278,43 +287,47 @@ export function generateLiteralText(quad, context) {
     }
 
     // Get clean value (handle both RDF/JS Literal objects and plain strings)
-    const rawValue = quad.object.value || quad.object;
+    const rawValue = quad.object.value ?? quad.object;
     const value = typeof rawValue === 'string' ? rawValue : String(rawValue);
 
     // Get datatype for styling decisions
     const datatype = quad.object.datatype?.value || '';
 
-    // Multiline: fenced block (safe for arbitrary content)
-    if (value.includes('\n')) {
-        return `~~~ {${annotation}}\n${value}\n~~~\n\n`;
-    }
+    if (value === '') return `[] {${annotation}}\n`;
 
-    // Numbers (integer, decimal, double, float): code spans
-    if (datatype.includes('integer') || datatype.includes('decimal') || datatype.includes('double') || datatype.includes('float')) {
-        return `\`${value}\` {${annotation}}\n`;
-    }
+    // Multiline and carrier-hostile values: fenced block with a fence longer than any content run
+    if (value.includes('\n')) return fencedLiteralText(value, annotation);
 
-    if (datatype.includes('date') || datatype.includes('time')) {
-        return `*${value}* {${annotation}}\n`;
-    }
+    const numeric = datatype.includes('integer') || datatype.includes('decimal') || datatype.includes('double') || datatype.includes('float');
+    if (numeric && literalCodeSafe(value, 1)) return `\`${value}\` {${annotation}}\n`;
 
-    // Booleans: bold (stands out visually)
-    if (datatype.includes('boolean')) {
-        return `**${value}** {${annotation}}\n`;
-    }
+    if ((datatype.includes('date') || datatype.includes('time')) && !value.includes('*')) return `*${value}* {${annotation}}\n`;
+    if (datatype.includes('boolean') && !value.includes('*')) return `**${value}** {${annotation}}\n`;
 
-    // Everything else (strings, dates, etc.): square brackets (simple, readable)
-    return `[${value}] {${annotation}}\n`;
+    return singleLineLiteralCarrier(value, annotation);
+}
+
+export function generateLabelAnnotation(labelEntry, context) {
+    const language = labelEntry?.language || labelEntry?.term?.language || '';
+    if (language) return `label @${language}`;
+
+    const datatype = labelEntry?.datatype ||
+        labelEntry?.term?.datatype?.value ||
+        labelEntry?.term?.datatype ||
+        '';
+    if (datatype && datatype !== XSD_STRING) {
+        return `label ^^${shortenIRI(datatype, context)}`;
+    }
+    return 'label';
 }
 
 export const generateObjectText = (quad, context, labelLookup = null, filteredGroups = null, renderedQuads = null, compactInline = true, compactStats = null) => {
     const objShort = shortenIRI(quad.object.value, context);
     const predShort = shortenIRI(quad.predicate.value, context);
+    const labelEntry = labelLookup?.get(quad.object.value) || null;
 
     // Use rdfs:label if available, otherwise use shortened IRI
-    const displayText = labelLookup && labelLookup.has(quad.object.value)
-        ? labelLookup.get(quad.object.value).value
-        : objShort;
+    const displayText = labelEntry ? labelEntry.value : objShort;
 
     // Build inline type/label annotation if available
     // Only render inline types/labels ONCE per subject to ensure quad stability
@@ -323,20 +336,16 @@ export const generateObjectText = (quad, context, labelLookup = null, filteredGr
         const filtered = filteredGroups.get(quad.object.value);
         if (filtered) {
             const { types } = filtered;
-            const hasLabel = labelLookup.has(quad.object.value);
-
-            // Check if any type or label quad for this subject has already been rendered
-            const alreadyRendered = types.some(t => renderedQuads.has(t)) ||
-                (hasLabel && types.some(t =>
-                    t.predicate.value === RDFS_LABEL && renderedQuads.has(t)
-                ));
+            const hasLabel = !!labelEntry;
+            const labelRendered = hasLabel && labelEntry.quad && renderedQuads.has(labelEntry.quad);
+            const alreadyRendered = types.some(t => renderedQuads.has(t)) || labelRendered;
 
             if (!alreadyRendered) {
                 // Build inline types and label
                 const typeAnnotations = types.length > 0
                     ? types.map(t => '.' + shortenIRI(t.object.value, context)).sort().join(' ')
                     : '';
-                const labelAnnotation = hasLabel ? 'label' : '';
+                const labelAnnotation = hasLabel ? generateLabelAnnotation(labelEntry, context) : '';
 
                 if (typeAnnotations || labelAnnotation) {
                     inlineAnnotation = ' ' + [typeAnnotations, labelAnnotation].filter(Boolean).join(' ');
@@ -346,10 +355,7 @@ export const generateObjectText = (quad, context, labelLookup = null, filteredGr
 
                     // Mark only the type and label quads as rendered inline
                     types.forEach(q => renderedQuads.add(q));
-                    if (hasLabel) {
-                        const labelQuad = types.find(q => q.predicate.value === RDFS_LABEL);
-                        if (labelQuad) renderedQuads.add(labelQuad);
-                    }
+                    if (labelEntry?.quad) renderedQuads.add(labelEntry.quad);
                 }
             }
         }
@@ -372,30 +378,6 @@ export function filterQuadsByType(subjectQuads) {
         }
     }
     return { types, literals, objects };
-}
-
-// Predicate processing utilities - common RDFa patterns
-export function processPredicates(predicates, ctx) {
-    const literalProps = [];
-    const objectProps = [];
-    const reverseProps = [];
-
-    predicates.forEach(pred => {
-        const iri = typeof pred === 'string' ? pred : pred.iri;
-        const expanded = expandIRI(iri, ctx);
-        const shortened = shortenIRI(expanded, ctx);
-        const form = typeof pred === 'string' ? '' : (pred.form || '');
-
-        if (form === '!') {
-            reverseProps.push(shortened);
-        } else if (form === '?') {
-            objectProps.push(shortened);
-        } else {
-            literalProps.push(shortened);
-        }
-    });
-
-    return { literalProps, objectProps, reverseProps };
 }
 
 // Retraction text generation - for generate() remove parameter
@@ -425,7 +407,7 @@ export function generateRetractionText(quad, context) {
         }
 
         // Format value
-        const rawValue = quad.object.value || quad.object;
+        const rawValue = quad.object.value ?? quad.object;
         const value = typeof rawValue === 'string' ? rawValue : String(rawValue);
         const datatype = quad.object.datatype?.value || '';
 

@@ -9,6 +9,52 @@
 // BLOCK-LEVEL TOKENIZERS (Line-based)
 // ============================================================================
 
+function skipHorizontalWs(text, pos) {
+    while (pos < text.length && (text[pos] === ' ' || text[pos] === '\t')) pos++;
+    return pos;
+}
+
+const isSpaceChar = ch => ch.trim() === '';
+
+function firstAttrs(text) {
+    let open = text.indexOf('{');
+    while (open !== -1) {
+        const close = text.indexOf('}', open + 1);
+        if (close === -1) return null;
+        if (close > open + 1) return text.slice(open + 1, close);
+        open = text.indexOf('{', open + 1);
+    }
+    return null;
+}
+
+function hasUrlScheme(url) {
+    const colon = url.indexOf(':');
+    if (colon <= 0) return false;
+    const first = url.charCodeAt(0);
+    if (!((first >= 65 && first <= 90) || (first >= 97 && first <= 122))) return false;
+    for (let i = 1; i < colon; i++) {
+        const c = url.charCodeAt(i);
+        if (!((c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 43 || c === 45 || c === 46)) return false;
+    }
+    return true;
+}
+
+function splitTrailingAttrs(text) {
+    let end = text.length;
+    while (end > 0 && isSpaceChar(text[end - 1])) end--;
+    if (end === 0 || text[end - 1] !== '}') return { text, attrs: null };
+
+    const closeIdx = end - 1;
+    const prevClose = text.lastIndexOf('}', closeIdx - 1);
+    let openIdx = -1;
+    for (let i = prevClose + 1; i < closeIdx; i++) {
+        if (text[i] === '{') { openIdx = i; break; }
+    }
+    if (openIdx === -1 || openIdx + 1 === closeIdx) return { text, attrs: null };
+
+    return { text: text.slice(0, openIdx).trim(), attrs: text.slice(openIdx + 1, closeIdx) };
+}
+
 /**
  * Detect code fence: 3+ backticks or tildes at line start
  * EBNF: backticks = "`", "`", "`", { "`" } | tildes = "~", "~", "~", { "~" }
@@ -32,12 +78,10 @@ export function detectFence(line) {
     const infoString = rest;
 
     // Parse info string for language and attributes
-    const langMatch = infoString.match(/^([^\s{]+)/);
-    const lang = langMatch ? langMatch[1] : '';
-
-    // Find attributes in info string
-    const attrsMatch = infoString.match(/\{([^}]+)\}/);
-    const attrs = attrsMatch ? attrsMatch[1] : null;
+    let langEnd = 0;
+    while (langEnd < infoString.length && infoString[langEnd] !== '{' && !isSpaceChar(infoString[langEnd])) langEnd++;
+    const lang = infoString.slice(0, langEnd);
+    const attrs = firstAttrs(infoString);
 
     return {
         fenceChar: char,
@@ -63,10 +107,7 @@ export function detectPrefix(line) {
     if (!prefix) return null;
 
     // Find < after bracket (skip whitespace)
-    let pos = closeBracket + 1;
-    while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
-        pos++;
-    }
+    let pos = skipHorizontalWs(line, closeBracket + 1);
 
     if (pos >= line.length || line[pos] !== '<') return null;
 
@@ -99,22 +140,12 @@ export function detectHeading(line) {
     }
 
     // Extract content (skip # and whitespace)
-    let contentStart = depth;
-    while (contentStart < line.length && (line[contentStart] === ' ' || line[contentStart] === '\t')) {
-        contentStart++;
-    }
+    const contentStart = skipHorizontalWs(line, depth);
 
     // Check for trailing attributes {=...} or {...}
-    const trimmed = line.slice(contentStart);
-    const attrsMatch = trimmed.match(/\s*\{([^}]+)\}\s*$/);
-
-    let content = trimmed;
-    let attrs = null;
-
-    if (attrsMatch) {
-        attrs = attrsMatch[1];
-        content = trimmed.slice(0, -attrsMatch[0].length).trim();
-    }
+    const split = splitTrailingAttrs(line.slice(contentStart));
+    let content = split.text;
+    const attrs = split.attrs;
 
     // CommonMark closing sequence: optional spaces + #+ + optional spaces
     content = content.replace(/[ \t]+#+[ \t]*$/, '');
@@ -129,10 +160,7 @@ export function detectHeading(line) {
  */
 export function detectList(line) {
     // Skip leading whitespace for indentation detection
-    let pos = 0;
-    while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
-        pos++;
-    }
+    const pos = skipHorizontalWs(line, 0);
 
     const indent = pos;
     if (pos >= line.length) return null;
@@ -162,19 +190,12 @@ export function detectList(line) {
     }
 
     // Skip whitespace after marker
-    while (contentStart < line.length && (line[contentStart] === ' ' || line[contentStart] === '\t')) {
-        contentStart++;
-    }
+    contentStart = skipHorizontalWs(line, contentStart);
 
     // Extract content and check for trailing attributes
-    let content = line.slice(contentStart);
-    let attrs = null;
-
-    const attrsMatch = content.match(/\s*\{([^}]+)\}\s*$/);
-    if (attrsMatch) {
-        attrs = attrsMatch[1];
-        content = content.slice(0, -attrsMatch[0].length).trim();
-    }
+    const split = splitTrailingAttrs(line.slice(contentStart));
+    const content = split.text;
+    const attrs = split.attrs;
 
     return { indent, marker, content, attrs };
 }
@@ -192,20 +213,10 @@ export function detectBlockquote(line) {
     }
 
     // Extract content
-    let contentStart = 1;
-    while (contentStart < line.length && (line[contentStart] === ' ' || line[contentStart] === '\t')) {
-        contentStart++;
-    }
-
-    let content = line.slice(contentStart);
-    let attrs = null;
-
-    // Check for trailing attributes
-    const attrsMatch = content.match(/\s*\{([^}]+)\}\s*$/);
-    if (attrsMatch) {
-        attrs = attrsMatch[1];
-        content = content.slice(0, -attrsMatch[0].length).trim();
-    }
+    const contentStart = skipHorizontalWs(line, 1);
+    const split = splitTrailingAttrs(line.slice(contentStart));
+    const content = split.text;
+    const attrs = split.attrs;
 
     return { content, attrs };
 }
@@ -215,12 +226,7 @@ export function detectBlockquote(line) {
  * EBNF: standaloneSubject = whitespace*, "{", "=", ( iriRef | "#", fragment ), "}", whitespace*
  */
 export function detectStandaloneSubject(line) {
-    let pos = 0;
-
-    // Skip leading whitespace
-    while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
-        pos++;
-    }
+    let pos = skipHorizontalWs(line, 0);
 
     if (pos >= line.length || line[pos] !== '{') return null;
     pos++;
@@ -243,10 +249,7 @@ export function detectStandaloneSubject(line) {
     const content = line.slice(contentStart, pos).trim();
 
     // Skip trailing whitespace
-    pos++;
-    while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
-        pos++;
-    }
+    pos = skipHorizontalWs(line, pos + 1);
 
     // Must consume entire line (after optional trailing whitespace)
     if (pos < line.length) return null;
@@ -337,12 +340,7 @@ export function findMatchingBracket(text, startPos, openChar = '[', closeChar = 
  * Extract attributes block after a position: {...}
  */
 export function extractAttributes(text, startPos) {
-    let pos = startPos;
-
-    // Skip whitespace
-    while (pos < text.length && (text[pos] === ' ' || text[pos] === '\t')) {
-        pos++;
-    }
+    const pos = skipHorizontalWs(text, startPos);
 
     if (pos >= text.length || text[pos] !== '{') return null;
 
@@ -369,8 +367,7 @@ export function detectAngleBracketUrl(text, startPos) {
     const url = text.slice(startPos + 1, closeAngle).trim();
 
     // Validate URL scheme (letter followed by letters/digits/+/ - /.)
-    const schemeMatch = url.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/);
-    if (!schemeMatch) return null;
+    if (!hasUrlScheme(url)) return null;
 
     return {
         url,
@@ -605,9 +602,7 @@ export function detectBracketLink(text, startPos) {
         const closeAngle = text.indexOf('>', pos + 1);
         if (closeAngle !== -1) {
             const angleUrl = text.slice(pos + 1, closeAngle).trim();
-            // Validate URL scheme
-            const schemeMatch = angleUrl.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/);
-            if (schemeMatch) {
+            if (hasUrlScheme(angleUrl)) {
                 url = angleUrl;
                 pos = closeAngle + 1;
             }
@@ -696,7 +691,6 @@ export function scanInlineCarriers(text, baseOffset = 0) {
                 break;
 
             case '<':
-            case '<':
                 detected = detectAngleBracketUrl(text, pos);
                 if (detected) {
                     const attrsResult = extractAttributes(text, detected.endPos);
@@ -772,23 +766,3 @@ export function scanInlineCarriers(text, baseOffset = 0) {
 
     return carriers;
 }
-
-// ============================================================================
-// TESTING EXPORTS (for validation)
-// ============================================================================
-
-export const TEST = {
-    detectFence,
-    detectPrefix,
-    detectHeading,
-    detectList,
-    detectBlockquote,
-    detectStandaloneSubject,
-    detectAngleBracketUrl,
-    detectEmphasis,
-    detectCodeSpan,
-    detectBracketLink,
-    extractAttributes,
-    findMatchingBracket,
-    scanInlineCarriers
-};

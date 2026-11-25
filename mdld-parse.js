@@ -11,7 +11,6 @@ var DEFAULT_CONTEXT = {
 	sh: "http://www.w3.org/ns/shacl#",
 	prov: "http://www.w3.org/ns/prov#"
 };
-var RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
 var RDF_TYPE$2 = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 var RDF_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString";
 var XSD_STRING = "http://www.w3.org/2001/XMLSchema#string";
@@ -20,7 +19,6 @@ var XSD_INTEGER = "http://www.w3.org/2001/XMLSchema#integer";
 var XSD_DOUBLE = "http://www.w3.org/2001/XMLSchema#double";
 var URL_REGEX = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file|urn:uuid):/;
 // src/utils.js
-var VALID_URI_SCHEMES = /^(https?|ftp|mailto|tag|nih|urn|uuid|did|web|ipfs|ipns|data|file):/;
 var Term = class {
 	constructor(id) {
 		this.id = id;
@@ -123,7 +121,7 @@ var DataFactory = {
 	namedNode: (iri) => new NamedNode(iri),
 	blankNode: (name) => new BlankNode(name),
 	literal: (value, languageOrDataType) => {
-		const escapedValue = String(value).replace(/"/g, "\\\"");
+		const escapedValue = String(value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 		if (typeof languageOrDataType === "string") return new Literal(`"${escapedValue}"@${languageOrDataType.toLowerCase()}`);
 		if (languageOrDataType !== void 0 && !("termType" in languageOrDataType)) {
 			const direction = languageOrDataType.direction ? `--${languageOrDataType.direction.toLowerCase()}` : "";
@@ -154,7 +152,7 @@ var DataFactory = {
 			case "Variable": return new Variable(term.value);
 			case "DefaultGraph": return DEFAULTGRAPH;
 			case "Literal":
-				const escapedValue = String(term.value).replace(/"/g, "\\\"");
+				const escapedValue = String(term.value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 				if (term.language) return new Literal(`"${escapedValue}"@${term.language}`);
 				else if (term.datatype) return new Literal(`"${escapedValue}"^^${term.datatype.value || term.datatype}`);
 				else return new Literal(`"${escapedValue}"`);
@@ -215,7 +213,7 @@ function expandIRI(term, ctx) {
 	return result;
 }
 function shortenIRI(iri, ctx) {
-	if (!iri || !VALID_URI_SCHEMES.test(iri)) return iri;
+	if (!iri || !URL_REGEX.test(iri)) return iri;
 	if (ctx["@vocab"] && iri.startsWith(ctx["@vocab"])) return iri.substring(ctx["@vocab"].length);
 	for (const [prefix, namespace] of Object.entries(ctx)) if (prefix !== "@vocab" && iri.startsWith(namespace)) {
 		if (Object.entries(ctx).filter(([p, ns]) => p !== "@vocab" && iri.startsWith(ns)).every(([p, ns]) => namespace.length >= ns.length || p === prefix && ns.length === namespace.length)) return prefix + ":" + iri.substring(namespace.length);
@@ -446,6 +444,55 @@ function createLiteral(value, datatype, language, context, dataFactory) {
 * Replaces regex patterns with direct character scanning for better performance.
 * Each tokenizer follows the EBNF grammar exactly.
 */
+function skipHorizontalWs(text, pos) {
+	while (pos < text.length && (text[pos] === " " || text[pos] === "	")) pos++;
+	return pos;
+}
+var isSpaceChar = (ch) => ch.trim() === "";
+function firstAttrs(text) {
+	let open = text.indexOf("{");
+	while (open !== -1) {
+		const close = text.indexOf("}", open + 1);
+		if (close === -1) return null;
+		if (close > open + 1) return text.slice(open + 1, close);
+		open = text.indexOf("{", open + 1);
+	}
+	return null;
+}
+function hasUrlScheme(url) {
+	const colon = url.indexOf(":");
+	if (colon <= 0) return false;
+	const first = url.charCodeAt(0);
+	if (!(first >= 65 && first <= 90 || first >= 97 && first <= 122)) return false;
+	for (let i = 1; i < colon; i++) {
+		const c = url.charCodeAt(i);
+		if (!(c >= 48 && c <= 57 || c >= 65 && c <= 90 || c >= 97 && c <= 122 || c === 43 || c === 45 || c === 46)) return false;
+	}
+	return true;
+}
+function splitTrailingAttrs(text) {
+	let end = text.length;
+	while (end > 0 && isSpaceChar(text[end - 1])) end--;
+	if (end === 0 || text[end - 1] !== "}") return {
+		text,
+		attrs: null
+	};
+	const closeIdx = end - 1;
+	const prevClose = text.lastIndexOf("}", closeIdx - 1);
+	let openIdx = -1;
+	for (let i = prevClose + 1; i < closeIdx; i++) if (text[i] === "{") {
+		openIdx = i;
+		break;
+	}
+	if (openIdx === -1 || openIdx + 1 === closeIdx) return {
+		text,
+		attrs: null
+	};
+	return {
+		text: text.slice(0, openIdx).trim(),
+		attrs: text.slice(openIdx + 1, closeIdx)
+	};
+}
 /**
 * Detect code fence: 3+ backticks or tildes at line start
 * EBNF: backticks = "`", "`", "`", { "`" } | tildes = "~", "~", "~", { "~" }
@@ -458,10 +505,10 @@ function detectFence(line) {
 	while (count < line.length && line[count] === char) count++;
 	if (count < 3) return null;
 	const infoString = line.slice(count).trimStart();
-	const langMatch = infoString.match(/^([^\s{]+)/);
-	const lang = langMatch ? langMatch[1] : "";
-	const attrsMatch = infoString.match(/\{([^}]+)\}/);
-	const attrs = attrsMatch ? attrsMatch[1] : null;
+	let langEnd = 0;
+	while (langEnd < infoString.length && infoString[langEnd] !== "{" && !isSpaceChar(infoString[langEnd])) langEnd++;
+	const lang = infoString.slice(0, langEnd);
+	const attrs = firstAttrs(infoString);
 	return {
 		fenceChar: char,
 		fenceLength: count,
@@ -480,8 +527,7 @@ function detectPrefix(line) {
 	if (closeBracket === -1) return null;
 	const prefix = line.slice(1, closeBracket).trim();
 	if (!prefix) return null;
-	let pos = closeBracket + 1;
-	while (pos < line.length && (line[pos] === " " || line[pos] === "	")) pos++;
+	let pos = skipHorizontalWs(line, closeBracket + 1);
 	if (pos >= line.length || line[pos] !== "<") return null;
 	const closeAngle = line.indexOf(">", pos + 1);
 	if (closeAngle === -1) return null;
@@ -501,16 +547,10 @@ function detectHeading(line) {
 	let depth = 1;
 	while (depth < line.length && depth < 6 && line[depth] === "#") depth++;
 	if (depth >= line.length || line[depth] !== " " && line[depth] !== "	") return null;
-	let contentStart = depth;
-	while (contentStart < line.length && (line[contentStart] === " " || line[contentStart] === "	")) contentStart++;
-	const trimmed = line.slice(contentStart);
-	const attrsMatch = trimmed.match(/\s*\{([^}]+)\}\s*$/);
-	let content = trimmed;
-	let attrs = null;
-	if (attrsMatch) {
-		attrs = attrsMatch[1];
-		content = trimmed.slice(0, -attrsMatch[0].length).trim();
-	}
+	const contentStart = skipHorizontalWs(line, depth);
+	const split = splitTrailingAttrs(line.slice(contentStart));
+	let content = split.text;
+	const attrs = split.attrs;
 	content = content.replace(/[ \t]+#+[ \t]*$/, "");
 	if (/^#+$/.test(content)) content = "";
 	return {
@@ -524,8 +564,7 @@ function detectHeading(line) {
 * EBNF: listMarker = "-" | "*" | "+" | digit, { digit }, "."
 */
 function detectList(line) {
-	let pos = 0;
-	while (pos < line.length && (line[pos] === " " || line[pos] === "	")) pos++;
+	const pos = skipHorizontalWs(line, 0);
 	const indent = pos;
 	if (pos >= line.length) return null;
 	const char = line[pos];
@@ -540,14 +579,10 @@ function detectList(line) {
 		contentStart = numEnd + 1;
 	} else return null;
 	if (contentStart >= line.length || line[contentStart] !== " " && line[contentStart] !== "	") return null;
-	while (contentStart < line.length && (line[contentStart] === " " || line[contentStart] === "	")) contentStart++;
-	let content = line.slice(contentStart);
-	let attrs = null;
-	const attrsMatch = content.match(/\s*\{([^}]+)\}\s*$/);
-	if (attrsMatch) {
-		attrs = attrsMatch[1];
-		content = content.slice(0, -attrsMatch[0].length).trim();
-	}
+	contentStart = skipHorizontalWs(line, contentStart);
+	const split = splitTrailingAttrs(line.slice(contentStart));
+	const content = split.text;
+	const attrs = split.attrs;
 	return {
 		indent,
 		marker,
@@ -562,18 +597,11 @@ function detectList(line) {
 function detectBlockquote(line) {
 	if (line[0] !== ">") return null;
 	if (line.length > 1 && line[1] !== " " && line[1] !== "	") return null;
-	let contentStart = 1;
-	while (contentStart < line.length && (line[contentStart] === " " || line[contentStart] === "	")) contentStart++;
-	let content = line.slice(contentStart);
-	let attrs = null;
-	const attrsMatch = content.match(/\s*\{([^}]+)\}\s*$/);
-	if (attrsMatch) {
-		attrs = attrsMatch[1];
-		content = content.slice(0, -attrsMatch[0].length).trim();
-	}
+	const contentStart = skipHorizontalWs(line, 1);
+	const split = splitTrailingAttrs(line.slice(contentStart));
 	return {
-		content,
-		attrs
+		content: split.text,
+		attrs: split.attrs
 	};
 }
 /**
@@ -581,8 +609,7 @@ function detectBlockquote(line) {
 * EBNF: standaloneSubject = whitespace*, "{", "=", ( iriRef | "#", fragment ), "}", whitespace*
 */
 function detectStandaloneSubject(line) {
-	let pos = 0;
-	while (pos < line.length && (line[pos] === " " || line[pos] === "	")) pos++;
+	let pos = skipHorizontalWs(line, 0);
 	if (pos >= line.length || line[pos] !== "{") return null;
 	pos++;
 	if (pos >= line.length || line[pos] !== "=") return null;
@@ -596,8 +623,7 @@ function detectStandaloneSubject(line) {
 	}
 	if (braceCount > 0) return null;
 	const content = line.slice(contentStart, pos).trim();
-	pos++;
-	while (pos < line.length && (line[pos] === " " || line[pos] === "	")) pos++;
+	pos = skipHorizontalWs(line, pos + 1);
 	if (pos < line.length) return null;
 	return { content };
 }
@@ -725,8 +751,7 @@ function findMatchingBracket(text, startPos, openChar = "[", closeChar = "]") {
 * Extract attributes block after a position: {...}
 */
 function extractAttributes(text, startPos) {
-	let pos = startPos;
-	while (pos < text.length && (text[pos] === " " || text[pos] === "	")) pos++;
+	const pos = skipHorizontalWs(text, startPos);
 	if (pos >= text.length || text[pos] !== "{") return null;
 	const closeBrace = text.indexOf("}", pos + 1);
 	if (closeBrace === -1) return null;
@@ -744,7 +769,7 @@ function detectAngleBracketUrl(text, startPos) {
 	const closeAngle = text.indexOf(">", startPos + 1);
 	if (closeAngle === -1) return null;
 	const url = text.slice(startPos + 1, closeAngle).trim();
-	if (!url.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/)) return null;
+	if (!hasUrlScheme(url)) return null;
 	return {
 		url,
 		endPos: closeAngle + 1,
@@ -921,7 +946,7 @@ function detectBracketLink(text, startPos) {
 		const closeAngle = text.indexOf(">", pos + 1);
 		if (closeAngle !== -1) {
 			const angleUrl = text.slice(pos + 1, closeAngle).trim();
-			if (angleUrl.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/)) {
+			if (hasUrlScheme(angleUrl)) {
 				url = angleUrl;
 				pos = closeAngle + 1;
 			}
@@ -975,7 +1000,6 @@ function scanInlineCarriers(text, baseOffset = 0) {
 				}
 				break;
 			case "<":
-			case "<":
 				detected = detectAngleBracketUrl(text, pos);
 				if (detected) {
 					const attrsResult = extractAttributes(text, detected.endPos);
@@ -1028,10 +1052,11 @@ function scanInlineCarriers(text, baseOffset = 0) {
 	return carriers;
 }
 // src/shared.js
-var FENCE_CLOSE_PATTERNS = /* @__PURE__ */ new Map();
-function getFenceClosePattern(fenceChar) {
-	if (!FENCE_CLOSE_PATTERNS.has(fenceChar)) FENCE_CLOSE_PATTERNS.set(fenceChar, new RegExp(`^(${fenceChar}{3,})`));
-	return FENCE_CLOSE_PATTERNS.get(fenceChar);
+function matchFenceClose(line, fenceChar) {
+	if (line[0] !== fenceChar) return null;
+	let end = 1;
+	while (line[end] === fenceChar) end++;
+	return end >= 3 ? line.slice(0, end) : null;
 }
 function calcRangeInfo(line, attrs, lineStart, prefixLength, valueLength) {
 	const valueStartInLine = prefixLength + (prefixLength < line.length && line[prefixLength] === " " ? 1 : line.slice(prefixLength).match(/^\s+/)?.[0]?.length || 0);
@@ -1062,10 +1087,11 @@ function createToken(type, range, text, attrs = null, attrsRange = null, valueRa
 	});
 	return token;
 }
-function createListToken(type, line, lineStart, pos, match) {
-	const attrs = match[4] || null;
-	const rangeInfo = calcRangeInfo(line, attrs, lineStart, match[1].length + (match[2] ? match[2].length : 0), match[3].length);
-	return createToken(type, [lineStart, pos - 1], match[3].trim(), attrs, rangeInfo.attrsRange, rangeInfo.valueRange, { indent: match[1].length });
+function createListToken(type, line, lineStart, pos, result) {
+	const attrs = result.attrs || null;
+	const content = result.content.trim();
+	const rangeInfo = calcRangeInfo(line, attrs, lineStart, result.indent + result.marker.length, content.length);
+	return createToken(type, [lineStart, pos - 1], content, attrs, rangeInfo.attrsRange, rangeInfo.valueRange, { indent: result.indent });
 }
 var semCache = {};
 var EMPTY_SEM = Object.freeze({
@@ -1176,43 +1202,89 @@ function processTokenWithBlockTracking(token, state, processAnnotations, createB
 	state.currentBlock = state.blockStack.length > 0 ? state.origin.blocks.get(state.blockStack[state.blockStack.length - 1]) : null;
 }
 function sortQuadsByPredicate(quads) {
-	return quads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
+	return quads.sort((a, b) => a.predicate.value < b.predicate.value ? -1 : a.predicate.value > b.predicate.value ? 1 : 0);
 }
 var generatePrefixDeclaration = (prefix, namespace) => `[${prefix}] <${namespace}>\n`;
+function literalFenceRun(line, char) {
+	const trimmed = line.trim();
+	let n = 0;
+	while (trimmed[n] === char) n++;
+	return n;
+}
+function chooseLiteralFence(value) {
+	let best = null;
+	for (const char of ["~", "`"]) {
+		let max = 0;
+		for (const line of value.split("\n")) {
+			const run = literalFenceRun(line, char);
+			if (run > max) max = run;
+		}
+		const fence = char.repeat(Math.max(3, max + 1));
+		if (!best || fence.length < best.length) best = fence;
+	}
+	return best;
+}
+function fencedLiteralText(value, annotation) {
+	const fence = chooseLiteralFence(value);
+	return `${fence} {${annotation}}\n${value}\n${fence}\n\n`;
+}
+function literalBracketsBalanced(value) {
+	let depth = 0;
+	for (const ch of value) if (ch === "[") depth++;
+	else if (ch === "]" && --depth < 0) return false;
+	return depth === 0;
+}
+function literalCodeSafe(value, ticks) {
+	if (value.includes("`".repeat(ticks))) return false;
+	return ticks === 1 || !value.startsWith("`") && !value.endsWith("`");
+}
+function singleLineLiteralCarrier(value, annotation) {
+	if (literalBracketsBalanced(value)) return `[${value}] {${annotation}}\n`;
+	if (literalCodeSafe(value, 1)) return `\`${value}\` {${annotation}}\n`;
+	if (literalCodeSafe(value, 2)) return `\`\`${value}\`\` {${annotation}}\n`;
+	return fencedLiteralText(value, annotation);
+}
 function generateLiteralText(quad, context) {
 	let annotation = shortenIRI(quad.predicate.value, context);
 	if (quad.object.language) annotation += ` @${quad.object.language}`;
 	else if (quad.object.datatype.value !== "http://www.w3.org/2001/XMLSchema#string") annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
-	const rawValue = quad.object.value || quad.object;
+	const rawValue = quad.object.value ?? quad.object;
 	const value = typeof rawValue === "string" ? rawValue : String(rawValue);
 	const datatype = quad.object.datatype?.value || "";
-	if (value.includes("\n")) return `~~~ {${annotation}}\n${value}\n~~~\n\n`;
-	if (datatype.includes("integer") || datatype.includes("decimal") || datatype.includes("double") || datatype.includes("float")) return `\`${value}\` {${annotation}}\n`;
-	if (datatype.includes("date") || datatype.includes("time")) return `*${value}* {${annotation}}\n`;
-	if (datatype.includes("boolean")) return `**${value}** {${annotation}}\n`;
-	return `[${value}] {${annotation}}\n`;
+	if (value === "") return `[] {${annotation}}\n`;
+	if (value.includes("\n")) return fencedLiteralText(value, annotation);
+	if ((datatype.includes("integer") || datatype.includes("decimal") || datatype.includes("double") || datatype.includes("float")) && literalCodeSafe(value, 1)) return `\`${value}\` {${annotation}}\n`;
+	if ((datatype.includes("date") || datatype.includes("time")) && !value.includes("*")) return `*${value}* {${annotation}}\n`;
+	if (datatype.includes("boolean") && !value.includes("*")) return `**${value}** {${annotation}}\n`;
+	return singleLineLiteralCarrier(value, annotation);
+}
+function generateLabelAnnotation(labelEntry, context) {
+	const language = labelEntry?.language || labelEntry?.term?.language || "";
+	if (language) return `label @${language}`;
+	const datatype = labelEntry?.datatype || labelEntry?.term?.datatype?.value || labelEntry?.term?.datatype || "";
+	if (datatype && datatype !== "http://www.w3.org/2001/XMLSchema#string") return `label ^^${shortenIRI(datatype, context)}`;
+	return "label";
 }
 var generateObjectText = (quad, context, labelLookup = null, filteredGroups = null, renderedQuads = null, compactInline = true, compactStats = null) => {
 	const objShort = shortenIRI(quad.object.value, context);
 	const predShort = shortenIRI(quad.predicate.value, context);
-	const displayText = labelLookup && labelLookup.has(quad.object.value) ? labelLookup.get(quad.object.value).value : objShort;
+	const labelEntry = labelLookup?.get(quad.object.value) || null;
+	const displayText = labelEntry ? labelEntry.value : objShort;
 	let inlineAnnotation = "";
 	if (compactInline && filteredGroups && labelLookup && renderedQuads) {
 		const filtered = filteredGroups.get(quad.object.value);
 		if (filtered) {
 			const { types } = filtered;
-			const hasLabel = labelLookup.has(quad.object.value);
-			if (!(types.some((t) => renderedQuads.has(t)) || hasLabel && types.some((t) => t.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && renderedQuads.has(t)))) {
+			const hasLabel = !!labelEntry;
+			const labelRendered = hasLabel && labelEntry.quad && renderedQuads.has(labelEntry.quad);
+			if (!(types.some((t) => renderedQuads.has(t)) || labelRendered)) {
 				const typeAnnotations = types.length > 0 ? types.map((t) => "." + shortenIRI(t.object.value, context)).sort().join(" ") : "";
-				const labelAnnotation = hasLabel ? "label" : "";
+				const labelAnnotation = hasLabel ? generateLabelAnnotation(labelEntry, context) : "";
 				if (typeAnnotations || labelAnnotation) {
 					inlineAnnotation = " " + [typeAnnotations, labelAnnotation].filter(Boolean).join(" ");
 					if (compactStats) compactStats.inlineAnnotations++;
 					types.forEach((q) => renderedQuads.add(q));
-					if (hasLabel) {
-						const labelQuad = types.find((q) => q.predicate.value === RDFS_LABEL);
-						if (labelQuad) renderedQuads.add(labelQuad);
-					}
+					if (labelEntry?.quad) renderedQuads.add(labelEntry.quad);
 				}
 			}
 		}
@@ -1244,7 +1316,7 @@ function generateRetractionText(quad, context) {
 		annotation = `-${predShort}`;
 		if (quad.object.language) annotation += ` @${quad.object.language}`;
 		else if (quad.object.datatype.value !== "http://www.w3.org/2001/XMLSchema#string") annotation += ` ^^${shortenIRI(quad.object.datatype.value, context)}`;
-		const rawValue = quad.object.value || quad.object;
+		const rawValue = quad.object.value ?? quad.object;
 		const value = typeof rawValue === "string" ? rawValue : String(rawValue);
 		const datatype = quad.object.datatype?.value || "";
 		if (value.includes("\n")) return `~~~ {${annotation}}\n${value}\n~~~\n`;
@@ -1467,8 +1539,7 @@ function scanTokens(text) {
 		} else {
 			const fenceChar = codeBlock.fence[0];
 			const expectedFence = fenceChar.repeat(codeBlock.fence.length);
-			const fenceMatch = trimmedLine.match(getFenceClosePattern(fenceChar));
-			if (fenceMatch && fenceMatch[1] === expectedFence) {
+			if (matchFenceClose(trimmedLine, fenceChar) === expectedFence) {
 				const valueStart = codeBlock.valueRangeStart;
 				const valueEnd = Math.max(valueStart, lineStart - 1);
 				tokens.push({
@@ -1510,14 +1581,7 @@ function scanTokens(text) {
 	function handleList(line, lineStart, pos) {
 		const result = detectList(line);
 		const indentStr = " ".repeat(result.indent);
-		const match = [
-			line,
-			indentStr,
-			result.marker,
-			result.content,
-			result.attrs
-		];
-		tokens.push(createListToken("list", line, lineStart, pos, match));
+		tokens.push(createListToken("list", line, lineStart, pos, result));
 		const cleanList = `${indentStr}${result.marker} ${result.content}`;
 		mdLines.push(cleanList);
 		return true;
@@ -2065,8 +2129,19 @@ function merge(docs, options = {}) {
 	};
 }
 // src/generate.js
+var cmp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 var iriCache = /* @__PURE__ */ new Map();
 var CACHE_SIZE_LIMIT = 1e3;
+function literalDatatype(term) {
+	return term?.datatype?.value || term?.datatype || "";
+}
+function literalKey(term) {
+	return JSON.stringify([
+		term?.value ?? "",
+		term?.language || "",
+		literalDatatype(term)
+	]);
+}
 function getCachedShortIRI(iri, context) {
 	const cacheKey = `${iri}|${JSON.stringify(context)}`;
 	if (iriCache.has(cacheKey)) return iriCache.get(cacheKey);
@@ -2144,19 +2219,19 @@ function normalizeAndSortQuads(quads) {
 			object: DataFactory.fromTerm(quad.object)
 		};
 	}).sort((a, b) => {
-		const sComp = a.subject.value.localeCompare(b.subject.value);
+		const sComp = cmp(a.subject.value, b.subject.value);
 		if (sComp !== 0) return sComp;
-		const pComp = a.predicate.value.localeCompare(b.predicate.value);
+		const pComp = cmp(a.predicate.value, b.predicate.value);
 		if (pComp !== 0) return pComp;
-		const oComp = a.object.value.localeCompare(b.object.value);
+		const oComp = cmp(a.object.value, b.object.value);
 		if (oComp !== 0) return oComp;
-		const tComp = String(a.object.termType).localeCompare(String(b.object.termType));
+		const tComp = cmp(String(a.object.termType), String(b.object.termType));
 		if (tComp !== 0) return tComp;
 		const dtA = a.object.datatype?.value ?? a.object.datatype ?? "";
 		const dtB = b.object.datatype?.value ?? b.object.datatype ?? "";
-		const dtComp = String(dtA).localeCompare(String(dtB));
+		const dtComp = cmp(String(dtA), String(dtB));
 		if (dtComp !== 0) return dtComp;
-		return String(a.object.language ?? "").localeCompare(String(b.object.language ?? ""));
+		return cmp(String(a.object.language ?? ""), String(b.object.language ?? ""));
 	});
 }
 function groupQuadsBySubject(quads) {
@@ -2191,7 +2266,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
 	const renderedQuads = /* @__PURE__ */ new Set();
 	const filteredGroups = /* @__PURE__ */ new Map();
 	for (const [subjectIRI, quads] of subjectGroups.entries()) filteredGroups.set(subjectIRI, filterQuadsByType(quads));
-	const sortedPrefixes = Object.entries(context).sort(([a], [b]) => a.localeCompare(b));
+	const sortedPrefixes = Object.entries(context).sort(([a], [b]) => cmp(a, b));
 	for (const [prefix, namespace] of sortedPrefixes) if (prefix !== "@vocab" && !prefix.startsWith("@") && !DEFAULT_CONTEXT[prefix] && usedPrefixes.has(prefix)) textParts.push(generatePrefixDeclaration(prefix, namespace));
 	if (sortedPrefixes.length > 0) textParts.push("\n");
 	const sortedSubjects = Array.from(subjectGroups.keys()).sort();
@@ -2211,18 +2286,15 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
 		const displayName = hasLabel ? labelEntry.value : extractLocalName(subjectIRI, context);
 		const typesNotRendered = types.filter((t) => !renderedQuads.has(t));
 		let annotations = typesNotRendered.length > 0 ? typesNotRendered.map((t) => "." + getCachedShortIRI(t.object.value, context)).sort().join(" ") : "";
-		const labelQuad = subjectQuads.find((q) => q.predicate.value === RDFS_LABEL);
-		if (hasLabel && (!labelQuad || !renderedQuads.has(labelQuad))) {
-			const langTag = labelEntry.language ? " @" + labelEntry.language : "";
-			annotations += (annotations ? " " : "") + "label" + langTag;
-		}
+		const labelQuad = labelEntry?.quad || null;
+		if (hasLabel && (!labelQuad || !renderedQuads.has(labelQuad))) annotations += (annotations ? " " : "") + generateLabelAnnotation(labelEntry, context);
 		const annotationStr = annotations ? " " + annotations : "";
 		textParts.push(`## ${displayName} {=${shortSubject}${annotationStr}}\n`);
 		types.forEach((t) => renderedQuads.add(t));
 		if (labelQuad) renderedQuads.add(labelQuad);
-		const headingLabel = hasLabel ? labelEntry.value : null;
+		const headingLabelKey = labelEntry?.key || null;
 		sortQuadsByPredicate(literals).forEach((quad) => {
-			if (quad.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && quad.object.value === headingLabel) return;
+			if (quad.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && headingLabelKey && literalKey(quad.object) === headingLabelKey) return;
 			textParts.push(generateLiteralText(quad, context));
 		});
 		sortQuadsByPredicate(objects).forEach((quad) => {
@@ -2231,7 +2303,7 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
 		});
 		if (subjectIRI === primarySubjectIRI && reverseIndex && reverseIndex.has(subjectIRI)) {
 			const reverseQuads = reverseIndex.get(subjectIRI);
-			reverseQuads.sort((a, b) => a.predicate.value.localeCompare(b.predicate.value));
+			reverseQuads.sort((a, b) => cmp(a.predicate.value, b.predicate.value));
 			for (const quad of reverseQuads) {
 				renderedQuads.add(quad);
 				const subjectQuads = subjectGroups.get(quad.subject.value);
@@ -2245,15 +2317,13 @@ function buildDeterministicMDLD(subjectGroups, context, primarySubjectIRI = null
 					const reverseSubjectLabelEntry = labelLookup.get(quad.subject.value);
 					const hasLabel = !!reverseSubjectLabelEntry;
 					const typeAnnotations = types.length > 0 ? types.map((t) => "." + getCachedShortIRI(t.object.value, context)).sort().join(" ") : "";
-					const labelAnnotation = hasLabel ? "label" + (reverseSubjectLabelEntry.language ? " @" + reverseSubjectLabelEntry.language : "") : "";
+					const labelAnnotation = hasLabel ? generateLabelAnnotation(reverseSubjectLabelEntry, context) : "";
 					if (typeAnnotations || labelAnnotation) {
 						inlineAnnotation = " " + [typeAnnotations, labelAnnotation].filter(Boolean).join(" ");
 						compactStats.inlineAnnotations++;
 						types.forEach((q) => renderedQuads.add(q));
-						if (hasLabel) {
-							const labelQuad = subjectQuads.find((q) => q.predicate.value === RDFS_LABEL);
-							if (labelQuad) renderedQuads.add(labelQuad);
-						}
+						const labelQuad = reverseSubjectLabelEntry?.quad || null;
+						if (labelQuad) renderedQuads.add(labelQuad);
 					}
 					if (subjectQuads.every((q) => renderedQuads.has(q))) {
 						compactStats.skippedHeadings++;
@@ -2288,26 +2358,33 @@ function buildLabelLookup(subjectGroups, lang = null) {
 	for (const subjectQuads of subjectGroups.values()) for (const quad of subjectQuads) if (quad.predicate.value === "http://www.w3.org/2000/01/rdf-schema#label" && quad.object.termType === "Literal") {
 		const subjectIRI = quad.subject.value;
 		if (!labelsBySubject.has(subjectIRI)) labelsBySubject.set(subjectIRI, []);
-		labelsBySubject.get(subjectIRI).push(quad.object);
+		labelsBySubject.get(subjectIRI).push(quad);
 	}
 	const selectBestLabel = (candidates) => {
 		if (candidates.length === 0) return null;
 		candidates.sort((a, b) => {
-			const lenDiff = a.value.length - b.value.length;
-			return lenDiff !== 0 ? lenDiff : a.value.localeCompare(b.value);
+			const lenDiff = a.object.value.length - b.object.value.length;
+			return lenDiff !== 0 ? lenDiff : cmp(a.object.value, b.object.value);
 		});
 		return candidates[0];
 	};
 	for (const [subjectIRI, labels] of labelsBySubject) {
-		let selectedLabel = null;
-		if (lang) selectedLabel = selectBestLabel(labels.filter((lit) => lit.language === lang));
-		if (!selectedLabel) selectedLabel = selectBestLabel(labels.filter((lit) => !lit.language));
-		if (!selectedLabel) selectedLabel = selectBestLabel(labels.filter((lit) => lit.language === "en"));
-		if (!selectedLabel) selectedLabel = selectBestLabel(labels.filter((lit) => lit.language));
-		if (selectedLabel) labelLookup.set(subjectIRI, {
-			value: selectedLabel.value,
-			language: selectedLabel.language || null
-		});
+		let selectedQuad = null;
+		if (lang) selectedQuad = selectBestLabel(labels.filter((q) => q.object.language === lang));
+		if (!selectedQuad) selectedQuad = selectBestLabel(labels.filter((q) => !q.object.language));
+		if (!selectedQuad) selectedQuad = selectBestLabel(labels.filter((q) => q.object.language === "en"));
+		if (!selectedQuad) selectedQuad = selectBestLabel(labels.filter((q) => q.object.language));
+		if (selectedQuad) {
+			const labelTerm = selectedQuad.object;
+			labelLookup.set(subjectIRI, {
+				value: labelTerm.value,
+				language: labelTerm.language || null,
+				datatype: literalDatatype(labelTerm),
+				term: labelTerm,
+				quad: selectedQuad,
+				key: literalKey(labelTerm)
+			});
+		}
 	}
 	return labelLookup;
 }
@@ -2639,7 +2716,9 @@ function render(src, options = {}) {
 	while (i < lines.length) {
 		let line = lines[i];
 		if (codeBlock) {
-			if (new RegExp(`^${codeBlock.fenceChar}{${codeBlock.fenceLength},}\\s*$`).test(line.trim())) {
+			const trimmedLine = line.trim();
+			const fenceRun = matchFenceClose(trimmedLine, codeBlock.fenceChar);
+			if (fenceRun && fenceRun.length >= codeBlock.fenceLength && fenceRun.length === trimmedLine.length) {
 				const sem = codeBlock.attrs ? parseSemanticBlock(codeBlock.attrs) : null;
 				const carrierText = codeBlock.content.join("\n");
 				const customAttrs = getAttrs(codeBlock.attrs, sem);
@@ -3104,40 +3183,6 @@ function extractAttr(tag, name) {
 function unescapeHtml(s) {
 	return String(s).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
 }
-// \0@oxc-project+runtime@0.156.0/helpers/esm/typeof.js
-function _typeof(o) {
-	"@babel/helpers - typeof";
-	return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o) {
-		return typeof o;
-	} : function(o) {
-		return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
-	}, _typeof(o);
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/toPrimitive.js
-function toPrimitive(t, r) {
-	if ("object" != _typeof(t) || !t) return t;
-	var e = t[Symbol.toPrimitive];
-	if (void 0 !== e) {
-		var i = e.call(t, r || "default");
-		if ("object" != _typeof(i)) return i;
-		throw new TypeError("@@toPrimitive must return a primitive value.");
-	}
-	return ("string" === r ? String : Number)(t);
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/toPropertyKey.js
-function toPropertyKey(t) {
-	var i = toPrimitive(t, "string");
-	return "symbol" == _typeof(i) ? i : i + "";
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/defineProperty.js
-function _defineProperty(e, r, t) {
-	return (r = toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
-		value: t,
-		enumerable: !0,
-		configurable: !0,
-		writable: !0
-	}) : e[r] = t, e;
-}
 // src/highlight.js
 /**
 * MD-LD Syntax Highlighter
@@ -3163,6 +3208,50 @@ var TOKEN_COLORS = {
 	value: "#eab308",
 	annotation: "#4b5563"
 };
+var MARKDOWN_FORMATS = [
+	{
+		delimiter: "**",
+		tag: "strong"
+	},
+	{
+		delimiter: "__",
+		tag: "strong"
+	},
+	{
+		delimiter: "*",
+		tag: "em"
+	},
+	{
+		delimiter: "_",
+		tag: "em"
+	},
+	{
+		delimiter: "`",
+		tag: "code"
+	}
+];
+var ANNOTATION_MARKERS = [
+	{
+		marker: "^^",
+		length: 2
+	},
+	{
+		marker: "?",
+		length: 1
+	},
+	{
+		marker: "!",
+		length: 1
+	},
+	{
+		marker: "@",
+		length: 1
+	},
+	{
+		marker: ".",
+		length: 1
+	}
+];
 function hasFollowingAnnotation(code, endPos) {
 	let i = endPos;
 	while (i < code.length && code[i] !== "\n" && code[i] !== "\r") {
@@ -3171,62 +3260,26 @@ function hasFollowingAnnotation(code, endPos) {
 	}
 	return false;
 }
+function isLineStartOrAfterSpace(code, i) {
+	const prevChar = i > 0 ? code[i - 1] : "\n";
+	return prevChar === "\n" || prevChar === "\r" || prevChar === " " || prevChar === "	";
+}
+function renderMarkerSpan(code, i, char) {
+	if (!isLineStartOrAfterSpace(code, i) || code[i + 1] !== " ") return null;
+	return `<span style="${hasFollowingAnnotation(code, i + 2) ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : ""}">${escapeHtml(char)}</span>`;
+}
 function processMarkdownFormattingAtPosition(code, startPos) {
-	const char = code[startPos];
-	if (char === "*" && startPos + 1 < code.length && code[startPos + 1] === "*") {
-		const endPos = code.indexOf("**", startPos + 2);
-		if (endPos !== -1) {
-			const content = code.slice(startPos + 2, endPos);
-			const color = hasFollowingAnnotation(code, endPos + 2) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
-			return {
-				html: `<span${color}>**</span><strong>${escapeHtml(content)}</strong><span${color}>**</span>`,
-				nextIndex: endPos + 2
-			};
-		}
-	}
-	if (char === "_" && startPos + 1 < code.length && code[startPos + 1] === "_") {
-		const endPos = code.indexOf("__", startPos + 2);
-		if (endPos !== -1) {
-			const content = code.slice(startPos + 2, endPos);
-			const color = hasFollowingAnnotation(code, endPos + 2) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
-			return {
-				html: `<span${color}>__</span><strong>${escapeHtml(content)}</strong><span${color}>__</span>`,
-				nextIndex: endPos + 2
-			};
-		}
-	}
-	if (char === "*") {
-		const endPos = code.indexOf("*", startPos + 1);
-		if (endPos !== -1) {
-			const content = code.slice(startPos + 1, endPos);
-			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
-			return {
-				html: `<span${color}>*</span><em>${escapeHtml(content)}</em><span${color}>*</span>`,
-				nextIndex: endPos + 1
-			};
-		}
-	}
-	if (char === "_") {
-		const endPos = code.indexOf("_", startPos + 1);
-		if (endPos !== -1) {
-			const content = code.slice(startPos + 1, endPos);
-			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
-			return {
-				html: `<span${color}>_</span><em>${escapeHtml(content)}</em><span${color}>_</span>`,
-				nextIndex: endPos + 1
-			};
-		}
-	}
-	if (char === "`") {
-		const endPos = code.indexOf("`", startPos + 1);
-		if (endPos !== -1) {
-			const content = code.slice(startPos + 1, endPos);
-			const color = hasFollowingAnnotation(code, endPos + 1) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
-			return {
-				html: `<span${color}>\`</span><code style="background-color:#7773">${escapeHtml(content)}</code><span${color}>\`</span>`,
-				nextIndex: endPos + 1
-			};
-		}
+	for (const { delimiter, tag } of MARKDOWN_FORMATS) {
+		if (!code.startsWith(delimiter, startPos)) continue;
+		const contentStart = startPos + delimiter.length;
+		const endPos = code.indexOf(delimiter, contentStart);
+		if (endPos === -1) continue;
+		const content = code.slice(contentStart, endPos);
+		const color = hasFollowingAnnotation(code, endPos + delimiter.length) ? ` style="color: ${TOKEN_COLORS.marker}"` : "";
+		return {
+			html: `<span${color}>${delimiter}</span>${tag === "code" ? `<code style="background-color:#7773">${escapeHtml(content)}</code>` : `<${tag}>${escapeHtml(content)}</${tag}>`}<span${color}>${delimiter}</span>`,
+			nextIndex: endPos + delimiter.length
+		};
 	}
 	return null;
 }
@@ -3249,11 +3302,10 @@ function getIRIColor(iri) {
 }
 function extractPrefixes(code) {
 	const prefixes = /* @__PURE__ */ new Map();
-	const prefixRegex = /^\[(\w+)\]\s*<([^>]*)>\s*$/gm;
-	let match;
-	while ((match = prefixRegex.exec(code)) !== null) {
-		const prefixName = match[1];
-		let iri = match[2];
+	for (const line of code.split("\n")) {
+		const decl = detectPrefix(line);
+		if (!decl) continue;
+		let iri = decl.iri;
 		if (iri.includes(":")) {
 			const colonIndex = iri.indexOf(":");
 			if (colonIndex > 0) {
@@ -3262,7 +3314,7 @@ function extractPrefixes(code) {
 				if (prefixes.has(refPrefix)) iri = prefixes.get(refPrefix) + refSuffix;
 			}
 		}
-		prefixes.set(prefixName, iri);
+		prefixes.set(decl.prefix, iri);
 	}
 	for (const [key, iri] of Object.entries(DEFAULT_CONTEXT)) if (key !== "@vocab") prefixes.set(key, iri);
 	return prefixes;
@@ -3308,32 +3360,10 @@ function parseAnnotation(content, prefixes) {
 		}
 		const isRetracted = nextTermIsRetracted;
 		nextTermIsRetracted = false;
-		if (part.startsWith("?") || part.startsWith("!")) {
-			const marker = part[0];
-			const rest = part.slice(1);
+		const markerInfo = ANNOTATION_MARKERS.find((m) => part.startsWith(m.marker));
+		if (markerInfo) {
 			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
-			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
-			continue;
-		}
-		if (part.startsWith("^^")) {
-			const marker = "^^";
-			const rest = part.slice(2);
-			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
-			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
-			continue;
-		}
-		if (part.startsWith("@")) {
-			const marker = "@";
-			const rest = part.slice(1);
-			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
-			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
-			continue;
-		}
-		if (part.startsWith(".")) {
-			const marker = ".";
-			const rest = part.slice(1);
-			const color = isRetracted ? TOKEN_COLORS.retraction : TOKEN_COLORS.marker;
-			result += `<span style="color: ${color}">${escapeHtml(marker)}</span>${renderTerm(rest, isRetracted, prefixes)}`;
+			result += `<span style="color: ${color}">${escapeHtml(markerInfo.marker)}</span>${renderTerm(part.slice(markerInfo.length), isRetracted, prefixes)}`;
 			continue;
 		}
 		result += renderTerm(part, isRetracted, prefixes);
@@ -3430,26 +3460,12 @@ function highlight(code) {
 				continue;
 			}
 		}
-		if (char === "-" || char === "*") {
-			const prevChar = i > 0 ? code[i - 1] : "\n";
-			if (prevChar === "\n" || prevChar === "\r" || prevChar === " " || prevChar === "	") {
-				if (code[i + 1] === " ") {
-					const markerColor = hasFollowingAnnotation(code, i + 2) ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : "";
-					result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
-					i++;
-					continue;
-				}
-			}
-		}
-		if (char === ">") {
-			const prevChar = i > 0 ? code[i - 1] : "\n";
-			if (prevChar === "\n" || prevChar === "\r" || prevChar === " " || prevChar === "	") {
-				if (code[i + 1] === " ") {
-					const markerColor = hasFollowingAnnotation(code, i + 2) ? `color: ${TOKEN_COLORS.marker}; opacity: 0.85` : "";
-					result += `<span style="${markerColor}">${escapeHtml(char)}</span>`;
-					i++;
-					continue;
-				}
+		if (char === "-" || char === "*" || char === ">") {
+			const markerHtml = renderMarkerSpan(code, i, char);
+			if (markerHtml) {
+				result += markerHtml;
+				i++;
+				continue;
 			}
 		}
 		result += escapeHtml(char);
@@ -3466,6 +3482,12 @@ textarea{background:transparent;resize:none;outline:none;color:transparent;caret
 pre h1,pre h2,pre h3,pre h4,pre h5,pre h6{display:inline;font-size:inherit;line-height:inherit;margin:0;padding:0;font-weight:inherit}
 ::placeholder{color:var(--mdld-placeholder,#666)}`;
 var MdldEditorImpl = class extends EditorBase {
+	static observedAttributes = [
+		"value",
+		"placeholder",
+		"readonly",
+		"height"
+	];
 	constructor() {
 		super();
 		const root = this.attachShadow({ mode: "open" });
@@ -3513,12 +3535,6 @@ var MdldEditorImpl = class extends EditorBase {
 		this._pre.scrollLeft = this._ta.scrollLeft;
 	}
 };
-_defineProperty(MdldEditorImpl, "observedAttributes", [
-	"value",
-	"placeholder",
-	"readonly",
-	"height"
-]);
 var IS_EDITOR_BROWSER = typeof customElements !== "undefined" && typeof document !== "undefined";
 if (IS_EDITOR_BROWSER && !customElements.get("mdld-editor")) customElements.define("mdld-editor", MdldEditorImpl);
 var MdldEditor = IS_EDITOR_BROWSER ? MdldEditorImpl : void 0;
@@ -3565,38 +3581,33 @@ var POS_KEY = "qg:positions";
 var POS_MAX = 12e3;
 var VIEW_KEY = "qg:views";
 var VIEW_MAX = 64;
-var posCache;
-var viewCache;
-var posStore = () => {
-	if (posCache === void 0) try {
-		posCache = JSON.parse(localStorage.getItem(POS_KEY)) || {};
-	} catch {
-		posCache = {};
-	}
-	return posCache;
+var makeStore = (key, max) => {
+	let cache;
+	return {
+		load() {
+			if (cache === void 0) try {
+				cache = JSON.parse(localStorage.getItem(key)) || {};
+			} catch {
+				cache = {};
+			}
+			return cache;
+		},
+		flush() {
+			try {
+				if (cache === void 0) return;
+				const ks = Object.keys(cache), n = ks.length - max;
+				for (let i = 0; i < n; i++) delete cache[ks[i]];
+				localStorage.setItem(key, JSON.stringify(cache));
+			} catch {}
+		}
+	};
 };
-var viewStore = () => {
-	if (viewCache === void 0) try {
-		viewCache = JSON.parse(localStorage.getItem(VIEW_KEY)) || {};
-	} catch {
-		viewCache = {};
-	}
-	return viewCache;
-};
-var posFlush = () => {
-	try {
-		const ks = Object.keys(posCache), n = ks.length - POS_MAX;
-		for (let i = 0; i < n; i++) delete posCache[ks[i]];
-		localStorage.setItem(POS_KEY, JSON.stringify(posCache));
-	} catch {}
-};
-var viewFlush = () => {
-	try {
-		const ks = Object.keys(viewCache), n = ks.length - VIEW_MAX;
-		for (let i = 0; i < n; i++) delete viewCache[ks[i]];
-		localStorage.setItem(VIEW_KEY, JSON.stringify(viewCache));
-	} catch {}
-};
+var posStorage = makeStore(POS_KEY, POS_MAX);
+var viewStorage = makeStore(VIEW_KEY, VIEW_MAX);
+var posStore = () => posStorage.load();
+var viewStore = () => viewStorage.load();
+var posFlush = () => posStorage.flush();
+var viewFlush = () => viewStorage.flush();
 var posHash = (s) => {
 	let h1 = 3735928559, h2 = 1103547991;
 	for (let i = 0; i < s.length; i++) {
@@ -3958,6 +3969,12 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:gra
 .graphs-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;flex:1}
 .graphs-hidden{opacity:0.4}`;
 var QuadGraph = class extends Base {
+	static observedAttributes = [
+		"height",
+		"charge",
+		"link-dist",
+		"labels"
+	];
 	constructor() {
 		super();
 		const root = this.attachShadow({ mode: "open" });
@@ -4410,12 +4427,10 @@ var QuadGraph = class extends Base {
 		this._wake();
 	}
 	_label(i) {
-		var _this$_lc;
-		return (_this$_lc = this._lc)[i] ?? (_this$_lc[i] = this._lab.get(this._names[i])?.[0] ?? this._curie(this._names[i]));
+		return this._lc[i] ??= this._lab.get(this._names[i])?.[0] ?? this._curie(this._names[i]);
 	}
 	_plabel(p) {
-		var _this$_plc;
-		return (_this$_plc = this._plc)[p] ?? (_this$_plc[p] = this._lab.get(this._preds[p])?.[0] ?? this._curie(this._preds[p]));
+		return this._plc[p] ??= this._lab.get(this._preds[p])?.[0] ?? this._curie(this._preds[p]);
 	}
 	_theme() {
 		this._tt = performance.now();
@@ -4423,7 +4438,7 @@ var QuadGraph = class extends Base {
 		this._halo = "rgba(0,0,0,.8)";
 	}
 	_viewKey() {
-		return this._vkey ?? (this._vkey = quadsKey(this._quads));
+		return this._vkey ??= quadsKey(this._quads);
 	}
 	_loadLayout() {
 		return this._persist ? posStore() : null;
@@ -5025,42 +5040,10 @@ var QuadGraph = class extends Base {
 		}, { passive: false });
 	}
 };
-_defineProperty(QuadGraph, "observedAttributes", [
-	"height",
-	"charge",
-	"link-dist",
-	"labels"
-]);
 var IS_BROWSER = typeof HTMLElement !== "undefined" && typeof customElements !== "undefined" && typeof document !== "undefined";
 if (IS_BROWSER && !customElements.get("quad-graph")) customElements.define("quad-graph", QuadGraph);
 var graph_default = IS_BROWSER ? QuadGraph : void 0;
-// \0@oxc-project+runtime@0.156.0/helpers/esm/checkPrivateRedeclaration.js
-function _checkPrivateRedeclaration(e, t) {
-	if (t.has(e)) throw new TypeError("Cannot initialize the same private elements twice on an object");
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/classPrivateMethodInitSpec.js
-function _classPrivateMethodInitSpec(e, a) {
-	_checkPrivateRedeclaration(e, a), a.add(e);
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/classPrivateFieldInitSpec.js
-function _classPrivateFieldInitSpec(e, t, a) {
-	_checkPrivateRedeclaration(e, t), t.set(e, a);
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/assertClassBrand.js
-function _assertClassBrand(e, t, n) {
-	if ("function" == typeof e ? e === t : e.has(t)) return arguments.length < 3 ? t : n;
-	throw new TypeError("Private element is not present on this object");
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/classPrivateFieldGet2.js
-function _classPrivateFieldGet2(s, a) {
-	return s.get(_assertClassBrand(s, a));
-}
-// \0@oxc-project+runtime@0.156.0/helpers/esm/classPrivateFieldSet2.js
-function _classPrivateFieldSet2(s, a, r) {
-	return s.set(_assertClassBrand(s, a), r), r;
-}
 // shapes/validator.js
-var _Symbol$iterator;
 /**
 * mdld-shapes.js — Zero-dependency SHACL Core validator for the MD-LD ecosystem.
 *
@@ -5114,39 +5097,32 @@ function isBlankNode(t) {
 function isLiteral(t) {
 	return t?.termType === "Literal";
 }
-var _quads = /* @__PURE__ */ new WeakMap();
-var _bySubject = /* @__PURE__ */ new WeakMap();
-var _byPredicate = /* @__PURE__ */ new WeakMap();
-var _byObject = /* @__PURE__ */ new WeakMap();
-var _Store_brand = /* @__PURE__ */ new WeakSet();
-_Symbol$iterator = Symbol.iterator;
 var Store = class Store {
+	#quads = /* @__PURE__ */ new Set();
+	#bySubject = /* @__PURE__ */ new Map();
+	#byPredicate = /* @__PURE__ */ new Map();
+	#byObject = /* @__PURE__ */ new Map();
 	constructor(quads) {
-		_classPrivateMethodInitSpec(this, _Store_brand);
-		_classPrivateFieldInitSpec(this, _quads, /* @__PURE__ */ new Set());
-		_classPrivateFieldInitSpec(this, _bySubject, /* @__PURE__ */ new Map());
-		_classPrivateFieldInitSpec(this, _byPredicate, /* @__PURE__ */ new Map());
-		_classPrivateFieldInitSpec(this, _byObject, /* @__PURE__ */ new Map());
 		if (quads) for (const q of quads) this.add(q);
 	}
 	get size() {
-		return _classPrivateFieldGet2(_quads, this).size;
+		return this.#quads.size;
 	}
 	add(q) {
-		if (_classPrivateFieldGet2(_quads, this).has(q)) return this;
-		_classPrivateFieldGet2(_quads, this).add(q);
-		_assertClassBrand(_Store_brand, this, _addToIndex).call(this, _classPrivateFieldGet2(_bySubject, this), q.subject, q);
-		_assertClassBrand(_Store_brand, this, _addToIndex).call(this, _classPrivateFieldGet2(_byPredicate, this), q.predicate, q);
-		_assertClassBrand(_Store_brand, this, _addToIndex).call(this, _classPrivateFieldGet2(_byObject, this), q.object, q);
+		if (this.#quads.has(q)) return this;
+		this.#quads.add(q);
+		this.#addToIndex(this.#bySubject, q.subject, q);
+		this.#addToIndex(this.#byPredicate, q.predicate, q);
+		this.#addToIndex(this.#byObject, q.object, q);
 		return this;
 	}
 	delete(q) {
 		for (const x of this.match(q.subject, q.predicate, q.object)) {
 			if (!quadEq(x, q)) continue;
-			_classPrivateFieldGet2(_quads, this).delete(x);
-			_assertClassBrand(_Store_brand, this, _deleteFromIndex).call(this, _classPrivateFieldGet2(_bySubject, this), x.subject, x);
-			_assertClassBrand(_Store_brand, this, _deleteFromIndex).call(this, _classPrivateFieldGet2(_byPredicate, this), x.predicate, x);
-			_assertClassBrand(_Store_brand, this, _deleteFromIndex).call(this, _classPrivateFieldGet2(_byObject, this), x.object, x);
+			this.#quads.delete(x);
+			this.#deleteFromIndex(this.#bySubject, x.subject, x);
+			this.#deleteFromIndex(this.#byPredicate, x.predicate, x);
+			this.#deleteFromIndex(this.#byObject, x.object, x);
 			break;
 		}
 		return this;
@@ -5155,37 +5131,37 @@ var Store = class Store {
 		for (const x of this.match(q.subject, q.predicate, q.object)) if (quadEq(x, q)) return true;
 		return false;
 	}
-	*[_Symbol$iterator]() {
-		yield* _classPrivateFieldGet2(_quads, this);
+	*[Symbol.iterator]() {
+		yield* this.#quads;
 	}
 	match(s, p, o, g) {
-		let candidates = _classPrivateFieldGet2(_quads, this);
-		if (s) candidates = _assertClassBrand(_Store_brand, this, _getSmaller).call(this, candidates, _classPrivateFieldGet2(_bySubject, this), s);
-		if (p) candidates = _assertClassBrand(_Store_brand, this, _getSmaller).call(this, candidates, _classPrivateFieldGet2(_byPredicate, this), p);
-		if (o) candidates = _assertClassBrand(_Store_brand, this, _getSmaller).call(this, candidates, _classPrivateFieldGet2(_byObject, this), o);
+		let candidates = this.#quads;
+		if (s) candidates = this.#getSmaller(candidates, this.#bySubject, s);
+		if (p) candidates = this.#getSmaller(candidates, this.#byPredicate, p);
+		if (o) candidates = this.#getSmaller(candidates, this.#byObject, o);
 		const r = [];
 		for (const q of candidates) if ((!s || termEquals(q.subject, s)) && (!p || termEquals(q.predicate, p)) && (!o || termEquals(q.object, o)) && (!g || termEquals(q.graph, g))) r.push(q);
 		return new Store(r);
 	}
+	#addToIndex(index, term, quad) {
+		const key = termKey(term);
+		let quads = index.get(key);
+		if (!quads) index.set(key, quads = /* @__PURE__ */ new Set());
+		quads.add(quad);
+	}
+	#deleteFromIndex(index, term, quad) {
+		const key = termKey(term);
+		const quads = index.get(key);
+		if (!quads) return;
+		quads.delete(quad);
+		if (quads.size === 0) index.delete(key);
+	}
+	#getSmaller(current, index, term) {
+		const indexed = index.get(termKey(term));
+		if (!indexed) return EMPTY_QUADS;
+		return indexed.size < current.size ? indexed : current;
+	}
 };
-function _addToIndex(index, term, quad) {
-	const key = termKey(term);
-	let quads = index.get(key);
-	if (!quads) index.set(key, quads = /* @__PURE__ */ new Set());
-	quads.add(quad);
-}
-function _deleteFromIndex(index, term, quad) {
-	const key = termKey(term);
-	const quads = index.get(key);
-	if (!quads) return;
-	quads.delete(quad);
-	if (quads.size === 0) index.delete(key);
-}
-function _getSmaller(current, index, term) {
-	const indexed = index.get(termKey(term));
-	if (!indexed) return EMPTY_QUADS;
-	return indexed.size < current.size ? indexed : current;
-}
 var EMPTY_QUADS = /* @__PURE__ */ new Set();
 function quadEq(a, b) {
 	return termEquals(a.subject, b.subject) && termEquals(a.predicate, b.predicate) && termEquals(a.object, b.object) && termEquals(a.graph, b.graph);
@@ -5454,179 +5430,154 @@ function extractConstraints(shapesDS, shapeTerm) {
 	const messages = valuesOf(shapesDS, shapeTerm, sh("message"));
 	const severities = valuesOf(shapesDS, shapeTerm, sh("severity"));
 	const deactivated = valuesOf(shapesDS, shapeTerm, sh("deactivated"));
-	if (params.class) constraints.push({
-		component: "ClassConstraintComponent",
-		params: { class: params.class },
+	const add = (component, params) => constraints.push({
+		component,
+		params,
 		messages,
 		severities
 	});
-	if (params.datatype) constraints.push({
-		component: "DatatypeConstraintComponent",
-		params: { datatype: params.datatype },
-		messages,
-		severities
-	});
-	if (params.nodeKind) constraints.push({
-		component: "NodeKindConstraintComponent",
-		params: { nodeKind: params.nodeKind },
-		messages,
-		severities
-	});
-	if (params.minCount != null) constraints.push({
-		component: "MinCountConstraintComponent",
-		params: { minCount: parseInt(params.minCount.value) },
-		messages,
-		severities
-	});
-	if (params.maxCount != null) constraints.push({
-		component: "MaxCountConstraintComponent",
-		params: { maxCount: parseInt(params.maxCount.value) },
-		messages,
-		severities
-	});
-	if (params.minExclusive) constraints.push({
-		component: "MinExclusiveConstraintComponent",
-		params: { minExclusive: params.minExclusive },
-		messages,
-		severities
-	});
-	if (params.maxExclusive) constraints.push({
-		component: "MaxExclusiveConstraintComponent",
-		params: { maxExclusive: params.maxExclusive },
-		messages,
-		severities
-	});
-	if (params.minInclusive) constraints.push({
-		component: "MinInclusiveConstraintComponent",
-		params: { minInclusive: params.minInclusive },
-		messages,
-		severities
-	});
-	if (params.maxInclusive) constraints.push({
-		component: "MaxInclusiveConstraintComponent",
-		params: { maxInclusive: params.maxInclusive },
-		messages,
-		severities
-	});
-	if (params.minLength != null) constraints.push({
-		component: "MinLengthConstraintComponent",
-		params: { minLength: parseInt(params.minLength.value) },
-		messages,
-		severities
-	});
-	if (params.maxLength != null) constraints.push({
-		component: "MaxLengthConstraintComponent",
-		params: { maxLength: parseInt(params.maxLength.value) },
-		messages,
-		severities
-	});
-	if (params.pattern) constraints.push({
-		component: "PatternConstraintComponent",
-		params: {
-			pattern: params.pattern.value,
-			flags: params.flags?.value || ""
+	const asArray = (v) => Array.isArray(v) ? v : [v];
+	const readListParam = (v) => readList(shapesDS, Array.isArray(v) ? v[0] : v);
+	const intParam = (v) => parseInt(v.value);
+	const boolParam = (v) => v.value === "true";
+	const specs = [
+		{
+			param: "class",
+			component: "ClassConstraintComponent"
 		},
-		messages,
-		severities
-	});
-	if (params.languageIn) constraints.push({
-		component: "LanguageInConstraintComponent",
-		params: { languageIn: Array.isArray(params.languageIn) ? readList(shapesDS, params.languageIn[0]) : readList(shapesDS, params.languageIn) },
-		messages,
-		severities
-	});
-	if (params.uniqueLang) constraints.push({
-		component: "UniqueLangConstraintComponent",
-		params: { uniqueLang: params.uniqueLang.value === "true" },
-		messages,
-		severities
-	});
-	if (params.equals) constraints.push({
-		component: "EqualsConstraintComponent",
-		params: { equals: params.equals },
-		messages,
-		severities
-	});
-	if (params.disjoint) constraints.push({
-		component: "DisjointConstraintComponent",
-		params: { disjoint: params.disjoint },
-		messages,
-		severities
-	});
-	if (params.lessThan) constraints.push({
-		component: "LessThanConstraintComponent",
-		params: { lessThan: params.lessThan },
-		messages,
-		severities
-	});
-	if (params.lessThanOrEquals) constraints.push({
-		component: "LessThanOrEqualsConstraintComponent",
-		params: { lessThanOrEquals: params.lessThanOrEquals },
-		messages,
-		severities
-	});
-	if (params.not) {
-		const notTerms = Array.isArray(params.not) ? params.not : [params.not];
-		for (const notTerm of notTerms) constraints.push({
+		{
+			param: "datatype",
+			component: "DatatypeConstraintComponent"
+		},
+		{
+			param: "nodeKind",
+			component: "NodeKindConstraintComponent"
+		},
+		{
+			param: "minCount",
+			component: "MinCountConstraintComponent",
+			value: intParam
+		},
+		{
+			param: "maxCount",
+			component: "MaxCountConstraintComponent",
+			value: intParam
+		},
+		{
+			param: "minExclusive",
+			component: "MinExclusiveConstraintComponent"
+		},
+		{
+			param: "maxExclusive",
+			component: "MaxExclusiveConstraintComponent"
+		},
+		{
+			param: "minInclusive",
+			component: "MinInclusiveConstraintComponent"
+		},
+		{
+			param: "maxInclusive",
+			component: "MaxInclusiveConstraintComponent"
+		},
+		{
+			param: "minLength",
+			component: "MinLengthConstraintComponent",
+			value: intParam
+		},
+		{
+			param: "maxLength",
+			component: "MaxLengthConstraintComponent",
+			value: intParam
+		},
+		{
+			param: "pattern",
+			component: "PatternConstraintComponent",
+			build: (raw, p) => ({
+				pattern: raw.value,
+				flags: p.flags?.value || ""
+			})
+		},
+		{
+			param: "languageIn",
+			component: "LanguageInConstraintComponent",
+			list: true
+		},
+		{
+			param: "uniqueLang",
+			component: "UniqueLangConstraintComponent",
+			value: boolParam
+		},
+		{
+			param: "equals",
+			component: "EqualsConstraintComponent"
+		},
+		{
+			param: "disjoint",
+			component: "DisjointConstraintComponent"
+		},
+		{
+			param: "lessThan",
+			component: "LessThanConstraintComponent"
+		},
+		{
+			param: "lessThanOrEquals",
+			component: "LessThanOrEqualsConstraintComponent"
+		},
+		{
+			param: "not",
 			component: "NotConstraintComponent",
-			params: { not: notTerm },
-			messages,
-			severities
-		});
-	}
-	if (params.and) constraints.push({
-		component: "AndConstraintComponent",
-		params: { and: Array.isArray(params.and) ? readList(shapesDS, params.and[0]) : readList(shapesDS, params.and) },
-		messages,
-		severities
-	});
-	if (params.or) constraints.push({
-		component: "OrConstraintComponent",
-		params: { or: Array.isArray(params.or) ? readList(shapesDS, params.or[0]) : readList(shapesDS, params.or) },
-		messages,
-		severities
-	});
-	if (params.xone) constraints.push({
-		component: "XoneConstraintComponent",
-		params: { xone: Array.isArray(params.xone) ? readList(shapesDS, params.xone[0]) : readList(shapesDS, params.xone) },
-		messages,
-		severities
-	});
-	if (params.node) constraints.push({
-		component: "NodeConstraintComponent",
-		params: { node: params.node },
-		messages,
-		severities
-	});
-	if (params.hasValue) constraints.push({
-		component: "HasValueConstraintComponent",
-		params: { hasValue: params.hasValue },
-		messages,
-		severities
-	});
-	if (params.in) constraints.push({
-		component: "InConstraintComponent",
-		params: { in: Array.isArray(params.in) ? readList(shapesDS, params.in[0]) : readList(shapesDS, params.in) },
-		messages,
-		severities
-	});
-	if (params.closed != null) constraints.push({
-		component: "ClosedConstraintComponent",
-		params: {
-			closed: params.closed !== false && !(isLiteral(params.closed) && ["false", "0"].includes(params.closed.value.toLowerCase())),
-			ignoredProperties: params.ignoredProperties ? Array.isArray(params.ignoredProperties) ? readList(shapesDS, params.ignoredProperties[0]) : readList(shapesDS, params.ignoredProperties) : []
+			many: true
 		},
-		messages,
-		severities
-	});
-	if (params.js) {
-		const jsTerms = Array.isArray(params.js) ? params.js : [params.js];
-		for (const jsTerm of jsTerms) constraints.push({
+		{
+			param: "and",
+			component: "AndConstraintComponent",
+			list: true
+		},
+		{
+			param: "or",
+			component: "OrConstraintComponent",
+			list: true
+		},
+		{
+			param: "xone",
+			component: "XoneConstraintComponent",
+			list: true
+		},
+		{
+			param: "node",
+			component: "NodeConstraintComponent"
+		},
+		{
+			param: "hasValue",
+			component: "HasValueConstraintComponent"
+		},
+		{
+			param: "in",
+			component: "InConstraintComponent",
+			list: true
+		},
+		{
+			param: "closed",
+			component: "ClosedConstraintComponent",
+			build: (raw, p) => ({
+				closed: raw !== false && !(isLiteral(raw) && ["false", "0"].includes(raw.value.toLowerCase())),
+				ignoredProperties: p.ignoredProperties ? readListParam(p.ignoredProperties) : []
+			})
+		},
+		{
+			param: "js",
 			component: "JSConstraintComponent",
-			params: { js: jsTerm },
-			messages,
-			severities
-		});
+			many: true
+		}
+	];
+	for (const spec of specs) {
+		const raw = params[spec.param];
+		if (raw == null) continue;
+		for (const item of spec.many ? asArray(raw) : [raw]) {
+			const value = spec.list ? readListParam(item) : item;
+			const mapped = spec.value ? spec.value(value) : value;
+			add(spec.component, spec.build ? spec.build(item, params) : { [spec.param]: mapped });
+		}
 	}
 	if (params.qualifiedValueShape) {
 		if (params.qualifiedMinCount != null) constraints.push({
@@ -5780,7 +5731,7 @@ function pathPredicates(shapesDS, pathTerm) {
 }
 function transitive(ds, start, pred, includeStart) {
 	const c = graphCache(ds);
-	c.trans ?? (c.trans = /* @__PURE__ */ new Map());
+	c.trans ??= /* @__PURE__ */ new Map();
 	const ck = termKey(start) + "|" + termKey(pred) + "|" + (includeStart ? 1 : 0);
 	const hit = c.trans.get(ck);
 	if (hit) return hit;
@@ -5880,6 +5831,44 @@ function shortenTerm(term, prefixes) {
 	const i = Math.max(iri.lastIndexOf("/"), iri.lastIndexOf("#"));
 	return i >= 0 ? iri.slice(i + 1) : iri;
 }
+var COUNT_CHECKS = {
+	MinCountConstraintComponent: {
+		param: "minCount",
+		fail: (n, limit) => n < limit
+	},
+	MaxCountConstraintComponent: {
+		param: "maxCount",
+		fail: (n, limit) => n > limit
+	}
+};
+var LENGTH_CHECKS = {
+	MinLengthConstraintComponent: {
+		param: "minLength",
+		fail: (len, limit) => len < limit
+	},
+	MaxLengthConstraintComponent: {
+		param: "maxLength",
+		fail: (len, limit) => len > limit
+	}
+};
+var RANGE_CHECKS = {
+	MinInclusiveConstraintComponent: {
+		param: "minInclusive",
+		fail: (cmp) => cmp < 0
+	},
+	MaxInclusiveConstraintComponent: {
+		param: "maxInclusive",
+		fail: (cmp) => cmp > 0
+	},
+	MinExclusiveConstraintComponent: {
+		param: "minExclusive",
+		fail: (cmp) => cmp <= 0
+	},
+	MaxExclusiveConstraintComponent: {
+		param: "maxExclusive",
+		fail: (cmp) => cmp >= 0
+	}
+};
 /**
 * Evaluate a single constraint against a value.
 * @returns {Array} array of violation objects (empty if passes)
@@ -5905,6 +5894,24 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 			...extra
 		};
 	}
+	const countCheck = COUNT_CHECKS[component];
+	if (countCheck) {
+		if (countCheck.fail(values.length, params[countCheck.param])) violations.push(viol());
+		return violations;
+	}
+	const lengthCheck = LENGTH_CHECKS[component];
+	if (lengthCheck) {
+		if (isLiteral(value) && lengthCheck.fail(value.value.length, params[lengthCheck.param])) violations.push(viol());
+		return violations;
+	}
+	const rangeCheck = RANGE_CHECKS[component];
+	if (rangeCheck) {
+		if (isLiteral(value)) {
+			const cmp = compareValues(value, params[rangeCheck.param]);
+			if (!isNaN(cmp) && rangeCheck.fail(cmp)) violations.push(viol());
+		}
+		return violations;
+	}
 	switch (component) {
 		case "ClassConstraintComponent": {
 			if (!isNamedNode(value) && !isBlankNode(value)) {
@@ -5921,48 +5928,6 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 			break;
 		case "NodeKindConstraintComponent":
 			if (!checkNodeKind(value, params.nodeKind)) violations.push(viol());
-			break;
-		case "MinCountConstraintComponent":
-			if (values.length < params.minCount) violations.push(viol());
-			break;
-		case "MaxCountConstraintComponent":
-			if (values.length > params.maxCount) violations.push(viol());
-			break;
-		case "MinInclusiveConstraintComponent": {
-			if (!isLiteral(value)) break;
-			const cmp = compareValues(value, params.minInclusive);
-			if (isNaN(cmp)) break;
-			if (cmp < 0) violations.push(viol());
-			break;
-		}
-		case "MaxInclusiveConstraintComponent": {
-			if (!isLiteral(value)) break;
-			const cmp = compareValues(value, params.maxInclusive);
-			if (isNaN(cmp)) break;
-			if (cmp > 0) violations.push(viol());
-			break;
-		}
-		case "MinExclusiveConstraintComponent": {
-			if (!isLiteral(value)) break;
-			const cmp = compareValues(value, params.minExclusive);
-			if (isNaN(cmp)) break;
-			if (cmp <= 0) violations.push(viol());
-			break;
-		}
-		case "MaxExclusiveConstraintComponent": {
-			if (!isLiteral(value)) break;
-			const cmp = compareValues(value, params.maxExclusive);
-			if (isNaN(cmp)) break;
-			if (cmp >= 0) violations.push(viol());
-			break;
-		}
-		case "MinLengthConstraintComponent":
-			if (!isLiteral(value)) break;
-			if (value.value.length < params.minLength) violations.push(viol());
-			break;
-		case "MaxLengthConstraintComponent":
-			if (!isLiteral(value)) break;
-			if (value.value.length > params.maxLength) violations.push(viol());
 			break;
 		case "PatternConstraintComponent":
 			if (!isLiteral(value)) {
@@ -6099,7 +6064,7 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 		case "JSConstraintComponent": {
 			if (!ctx.allowJS) break;
 			const src = jsSource(shapesDS, params.js);
-			ctx.jsCache ?? (ctx.jsCache = /* @__PURE__ */ new Map());
+			ctx.jsCache ??= /* @__PURE__ */ new Map();
 			const key = termKey(params.js);
 			let fn = ctx.jsCache.get(key);
 			if (!fn) {
@@ -6131,6 +6096,31 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 	}
 	return violations;
 }
+var PROPERTY_LEVEL_COMPONENTS = /* @__PURE__ */ new Set([
+	"MinCountConstraintComponent",
+	"MaxCountConstraintComponent",
+	"EqualsConstraintComponent",
+	"DisjointConstraintComponent",
+	"LessThanConstraintComponent",
+	"LessThanOrEqualsConstraintComponent",
+	"UniqueLangConstraintComponent",
+	"HasValueConstraintComponent",
+	"QualifiedMinCountConstraintComponent",
+	"QualifiedMaxCountConstraintComponent",
+	"ClosedConstraintComponent"
+]);
+var NODE_LEVEL_SKIPPED_COMPONENTS = /* @__PURE__ */ new Set([
+	"MinCountConstraintComponent",
+	"MaxCountConstraintComponent",
+	"EqualsConstraintComponent",
+	"DisjointConstraintComponent",
+	"LessThanConstraintComponent",
+	"LessThanOrEqualsConstraintComponent",
+	"UniqueLangConstraintComponent",
+	"HasValueConstraintComponent",
+	"QualifiedMinCountConstraintComponent",
+	"QualifiedMaxCountConstraintComponent"
+]);
 function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parentCtx, opts = {}) {
 	const key = `${termKey(shapeTerm)}|${termKey(focusNode)}`;
 	if (parentCtx.visited.has(key)) return [];
@@ -6152,35 +6142,12 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
 			...ctx,
 			path: pathTerm
 		};
-		for (const c of constraints) if ([
-			"MinCountConstraintComponent",
-			"MaxCountConstraintComponent",
-			"EqualsConstraintComponent",
-			"DisjointConstraintComponent",
-			"LessThanConstraintComponent",
-			"LessThanOrEqualsConstraintComponent",
-			"UniqueLangConstraintComponent",
-			"HasValueConstraintComponent",
-			"QualifiedMinCountConstraintComponent",
-			"QualifiedMaxCountConstraintComponent",
-			"ClosedConstraintComponent"
-		].includes(c.component)) violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, values, propCtx));
+		for (const c of constraints) if (PROPERTY_LEVEL_COMPONENTS.has(c.component)) violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, values, propCtx));
 		else for (const v of values) violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, v, values, propCtx));
 	}
 	else {
 		for (const c of constraints) {
-			if ([
-				"MinCountConstraintComponent",
-				"MaxCountConstraintComponent",
-				"EqualsConstraintComponent",
-				"DisjointConstraintComponent",
-				"LessThanConstraintComponent",
-				"LessThanOrEqualsConstraintComponent",
-				"UniqueLangConstraintComponent",
-				"HasValueConstraintComponent",
-				"QualifiedMinCountConstraintComponent",
-				"QualifiedMaxCountConstraintComponent"
-			].includes(c.component)) continue;
+			if (NODE_LEVEL_SKIPPED_COMPONENTS.has(c.component)) continue;
 			violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, [focusNode], ctx));
 		}
 		for (const propShape of opts.nodeLevelOnly ? [] : shapeInfo.propertyShapes) {
@@ -6193,19 +6160,7 @@ function validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, parent
 					shapeTerm: propShape,
 					path: pathTerm
 				};
-				for (const c of propConstraints) if ([
-					"MinCountConstraintComponent",
-					"MaxCountConstraintComponent",
-					"EqualsConstraintComponent",
-					"DisjointConstraintComponent",
-					"LessThanConstraintComponent",
-					"LessThanOrEqualsConstraintComponent",
-					"UniqueLangConstraintComponent",
-					"HasValueConstraintComponent",
-					"QualifiedMinCountConstraintComponent",
-					"QualifiedMaxCountConstraintComponent",
-					"ClosedConstraintComponent"
-				].includes(c.component)) violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, values, propCtx));
+				for (const c of propConstraints) if (PROPERTY_LEVEL_COMPONENTS.has(c.component)) violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, focusNode, values, propCtx));
 				else for (const v of values) violations.push(...evalConstraint(c, dataDS, shapesDS, focusNode, v, values, propCtx));
 			}
 		}
@@ -6674,24 +6629,22 @@ function validate(options) {
 		results: report.violations
 	};
 }
-var _shapeQuads = /* @__PURE__ */ new WeakMap();
-var _options = /* @__PURE__ */ new WeakMap();
 /**
 * Stateful validator for repeated validation against the same shapes.
 */
 var Validator = class {
+	#shapeQuads;
+	#options;
 	constructor(shapeQuads, options = {}) {
-		_classPrivateFieldInitSpec(this, _shapeQuads, void 0);
-		_classPrivateFieldInitSpec(this, _options, void 0);
-		_classPrivateFieldSet2(_shapeQuads, this, shapeQuads);
-		_classPrivateFieldSet2(_options, this, options);
+		this.#shapeQuads = shapeQuads;
+		this.#options = options;
 	}
 	validate(dataQuads) {
 		return validate({
-			shapes: _classPrivateFieldGet2(_shapeQuads, this),
+			shapes: this.#shapeQuads,
 			data: dataQuads,
-			allowJS: _classPrivateFieldGet2(_options, this).allowJS,
-			context: _classPrivateFieldGet2(_options, this).context
+			allowJS: this.#options.allowJS,
+			context: this.#options.context
 		});
 	}
 };

@@ -25,7 +25,7 @@ import {
     scanInlineCarriers
 } from './tokenizers.js';
 import {
-    getFenceClosePattern,
+    matchFenceClose,
     calcRangeInfo,
     calcAttrsRange,
     createToken,
@@ -230,9 +230,9 @@ function scanTokens(text) {
         } else {
             const fenceChar = codeBlock.fence[0];
             const expectedFence = fenceChar.repeat(codeBlock.fence.length);
-            const fenceMatch = trimmedLine.match(getFenceClosePattern(fenceChar));
+            const fenceRun = matchFenceClose(trimmedLine, fenceChar);
 
-            if (fenceMatch && fenceMatch[1] === expectedFence) {
+            if (fenceRun === expectedFence) {
                 const valueStart = codeBlock.valueRangeStart;
                 const valueEnd = Math.max(valueStart, lineStart - 1);
                 tokens.push({
@@ -283,8 +283,7 @@ function scanTokens(text) {
     function handleList(line, lineStart, pos) {
         const result = detectList(line);
         const indentStr = ' '.repeat(result.indent);
-        const match = [line, indentStr, result.marker, result.content, result.attrs];
-        tokens.push(createListToken('list', line, lineStart, pos, match));
+        tokens.push(createListToken('list', line, lineStart, pos, result));
 
         const cleanList = `${indentStr}${result.marker} ${result.content}`;
         mdLines.push(cleanList);

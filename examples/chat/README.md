@@ -2,8 +2,8 @@
 
 A single-file demo of MD-LD as a complete knowledge-work system: one Markdown
 document that is simultaneously prose, a dormant-module database, a signed
-ledger, a SHACL-validated graph, and a tiny web service. `llm-chat.mjs` is its
-agent console.
+ledger, a SHACL-validated graph, a working knowledge tool, and a tiny web
+service. `llm-chat.mjs` is its agent console.
 
 ## The files
 
@@ -16,6 +16,8 @@ agent console.
 **The file is truth; memory is only a cache.** Every command re-parses the
 document fresh, unfolds its dormant modules on purpose, and evaluates the
 result. Writes go through an atomic tmp+rename so a crash cannot tear the file.
+Command results on the web are one-shot overlays — rendered once, never
+persisted.
 
 ## Document anatomy
 
@@ -27,13 +29,31 @@ content stays collapsed inside `llm:payload` literals:
   plus a seal: `llm:canonicalHash` for settled parts, verbose
   `llm:canonicalText` for the small demo part.
 - **Daily Log** — `llm:Conversation` modules, one per day, chained by
-  `llm:follows` back to `llm:log-origin`. Every message carries a
-  `content ‖ author` signature — fool-proofing, not cryptography.
+  `llm:follows` back to `llm:log-origin`. Append-only: each exchange adds a
+  self-contained message block — connection on the record via `!prov:hadMember`
+  backlinks, replies via `llm:inReplyTo`, every message signed
+  `content ‖ author` — fool-proofing, not cryptography.
+- **Terms** — a dormant `llm:Module` glossary. Looked-up and taught terms
+  accumulate as `llm:Term` nodes (`rdfs:comment` + `rdfs:seeAlso`), policed by
+  `TermShape`.
 - **Golden graph** — six `.rdf:Statement` nodes the parser auto-elevates into
   `result.statements`: the founding, the label, ownership, the SDKC thesis, the
   gate rule, and the agent's credential-ceiling proposal. Chained by
   `llm:previous`, signed with embedded demo keys, credentialed
   rule/guideline/suggestion by key custody.
+
+## The agent
+
+The agent is a real (if tiny) knowledge tool:
+
+- `What is X?` / `who is` / `define` / `tell me about` → Wikipedia lookup;
+  disambiguation pages and misses get an honest *"I don't know"*.
+- Resolved terms are cached into the Terms module — later asks answer from the
+  graph, no refetch.
+- `X is/means/= definition` → the human teaches; the agent records a
+  user-supplied term. Human authority outranks fetched content.
+- Anything else → gate-check reply: violations listed, or clean bill with
+  shape-record count.
 
 ## The loop this demonstrates
 
@@ -49,15 +69,22 @@ content stays collapsed inside `llm:payload` literals:
 ```bash
 node llm-chat.mjs            # chat: messages append to today's log, signed
 node llm-chat.mjs log "..."  # scripted exchange into the day module
-node llm-chat.mjs serve      # http://localhost:3737 — dashboard + /cmd + /quads.json
+node llm-chat.mjs serve      # http://localhost:3737 — chat UI + /cmd + /quads.json
 ```
 
-In chat or on the web: `/records` dumps shape extraction, `/statements` shows
-the golden graph, `/verify` checks all seals, `/audit` re-verifies signatures.
+In chat or on the web:
+
+- `/records` lists shapes; `/records <ShapeName>` opens entity cards —
+  key marker + flat key/value table per record, in a one-shot overlay.
+- `/statements` shows the golden graph, `/verify` checks all seals,
+  `/audit` re-verifies signatures.
+- Plain messages go to the agent; `What is…` looks things up;
+  `X is…` teaches it.
 
 ## What it proves
 
-Prose documents can carry verifiable subgraphs. Humans rewrite around semantic
-carriers; agents manipulate quads; hashes prove nothing drifted; signatures
-prove who claimed what; shapes prove the graph still means what it should.
-One file, airgappable, self-checking — usable by a person, an agent, or both.
+Prose documents can carry verifiable subgraphs *and* working tools. Humans
+rewrite around semantic carriers; agents manipulate quads and accumulate
+knowledge; hashes prove nothing drifted; signatures prove who claimed what;
+shapes prove the graph still means what it should. One file, airgappable,
+self-checking — usable by a person, an agent, or both.
