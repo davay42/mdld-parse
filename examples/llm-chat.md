@@ -21,6 +21,19 @@ This document is itself a `prov:Bundle` of modules — the root graph stays navi
 [Golden graph workbench] {+llm:part5#workbench ?prov:hadMember}
 [Golden graph oracle] {+llm:part5#canonical ?prov:hadMember}
 
+## Shell Shapes
+
+Two shapes keep the *shell itself* honest — they run on the 46-quad parse, before any module is unfolded. **ModuleShape** {=llm:ModuleShape .sh:NodeShape label} targets every [Workbench] {+llm:Workbench ?sh:targetClass} and demands its dormant **payload** {+#modP ?sh:property sh:name} — a module without content is an empty promise. [Payload is required — {focusNode}] {=#modP .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[value] {+prov:value ?sh:path}
+
+**DocumentMapShape** {=llm:DocumentMapShape .sh:NodeShape label} targets the [document] {+llm:chat ?sh:targetNode} and demands its **members** {+#docM ?sh:property sh:name} — the root graph must stay connected.
+
+[Members are required — {focusNode}] {=#docM .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[hadMember] {+prov:hadMember ?sh:path}
+
+
 ---
 
 
@@ -137,7 +150,7 @@ Oracle — `sha256:` digest of this part's `generate()` output; workbench — th
 [Part 4 workbench] {+llm:part4#workbench ?prov:wasDerivedFrom}
 Verbose oracle — full canonical text for demo; parts 1–3 seal by hash.
 
-~~~~~~md {=llm:part4#canonical .llm:CanonicalText prov:value}
+~~~~~~md {prov:value}
 [llm] <tag:llm.chat.example,2026:>
 
 ## agent-devin {=llm:agent-devin .llm:Agent}
@@ -204,7 +217,7 @@ Oracle — `sha256:` digest of this part's `generate()` output; workbench — th
 
 ## Canonical: Part V — The Golden Graph {=llm:part5#canonical .llm:CanonicalText label}
 [Part V workbench] {+llm:part5#workbench ?prov:wasDerivedFrom}
-[sha256:a04e13e3899aff9a] {llm:canonicalHash}
+[sha256:14041ea7b9e8aedc] {llm:canonicalHash}
 
 ~~~~~~md {=llm:part5#workbench .llm:Workbench prov:value}
 [llm] <tag:llm.chat.example,2026:>
@@ -213,7 +226,7 @@ Oracle — `sha256:` digest of this part's `generate()` output; workbench — th
 
 Some facts are not data — they are *elevated*: decisions, conclusions, hard rules, soft suggestions. We record them as reified rdf:Statements — the claim itself becomes a node, carrying who asserted it and how much force it carries. The golden graph stays small on purpose: it stores only what must survive everything else.
 
-**ElevatedStatement** {=llm:ElevatedStatement .Class label} is a kind of [Statement] {+rdf:Statement ?subClassOf} — a reified claim with credentials. **InitialEvent** {=llm:InitialEvent .Class label} is a kind of [Activity] {+prov:Activity ?subClassOf} — an event that founds an organization. **Credential** {=llm:Credential .Class label} enumerates force: **rule** {=llm:rule .llm:Credential label} — hard, **guideline** {=llm:guideline .llm:Credential label} — expected, **suggestion** {=llm:suggestion .llm:Credential label} — optional. The **credential** {=llm:credential .rdf:Property label} binds an [ElevatedStatement] {+llm:ElevatedStatement ?domain} to its [Credential] {+llm:Credential ?range}. The **owner** {=llm:owner .rdf:Property label} binds an [Entity] {+prov:Entity ?domain} — here, the document itself — to the [Agent] {+prov:Agent ?range} who holds authority over it.
+A **statement** {=llm:statement-note .prov:Entity label} is any node typed `.rdf:Statement` — the parser detects the subject/predicate/object pattern and *elevates* it automatically into `result.statements`, the golden graph. **InitialEvent** {=llm:InitialEvent .Class label} is a kind of [Activity] {+prov:Activity ?subClassOf} — an event that founds an organization. **Credential** {=llm:Credential .Class label} enumerates force: **rule** {=llm:rule .llm:Credential label} — hard, **guideline** {=llm:guideline .llm:Credential label} — expected, **suggestion** {=llm:suggestion .llm:Credential label} — optional. The **credential** {=llm:credential .rdf:Property label} binds an [ElevatedStatement] {+rdf:Statement ?domain} to its [Credential] {+llm:Credential ?range}. The **owner** {=llm:owner .rdf:Property label} binds an [Entity] {+prov:Entity ?domain} — here, the document itself — to the [Agent] {+prov:Agent ?range} who holds authority over it. The **signature** {=llm:signature .rdf:Property label} binds an [ElevatedStatement] {+rdf:Statement ?domain} to its [xsd:string] {+xsd:string ?range} digest; **previous** {=llm:previous .rdf:Property label} chains an [ElevatedStatement] {+rdf:Statement ?domain} to its predecessor [ElevatedStatement] {+rdf:Statement ?range}; **goal** {=llm:goal .rdf:Property label} binds an [Entity] {+prov:Entity ?domain} to its [string] {+xsd:string ?range} objective; **keyFingerprint** {=llm:keyFingerprint .rdf:Property label} binds a [Key] {+prov:Key ?domain} to its [xsd:string] {+xsd:string ?range} digest.
 
 ## The first elevation — user instruction
 
@@ -224,34 +237,81 @@ Davay initiates the statements system. The organization of this document is itse
 
 Two statements elevate the founding — both asserted by [Davay] {+llm:user-davay ?prov:wasAttributedTo} and carrying **rule** force.
 
-## S1 — the founding has a type {=llm:init-stmt-1 .llm:ElevatedStatement}
+## S1 — the founding has a type {=llm:init-stmt-1 .rdf:Statement}
 This statement claims the event is an InitialEvent.
 [Organization Founding] {+llm:init-001 ?rdf:subject}
 [type] {+rdf:type ?rdf:predicate}
 [InitialEvent] {+llm:InitialEvent ?rdf:object}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 **rule** {+llm:rule ?llm:credential}
+`sha256:b7dc8fb5dd50b848` {llm:signature}
 
-## S2 — the founding carries its label {=llm:init-stmt-2 .llm:ElevatedStatement}
+## S2 — the founding carries its label {=llm:init-stmt-2 .rdf:Statement}
 This statement claims the event's label.
 [Organization Founding] {+llm:init-001 ?rdf:subject}
 [label] {+rdfs:label ?rdf:predicate}
 [Human–agent knowledge curation begins] {rdf:object}
+[S1 type claim] {+llm:init-stmt-1 ?llm:previous}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 **rule** {+llm:rule ?llm:credential}
+[sha256:7ed01c7af45407b4] {llm:signature}
 
-## S3 — Davay owns this document {=llm:owner-stmt-1 .llm:ElevatedStatement}
+## S3 — Davay owns this document {=llm:owner-stmt-1 .rdf:Statement}
 The signature block's third claim: authority over the golden graph itself.
 [LLM Chat Example] {+llm:chat ?rdf:subject}
 [owner] {+llm:owner ?rdf:predicate}
 [Davay] {+llm:user-davay ?rdf:object}
+[S2 label claim] {+llm:init-stmt-2 ?llm:previous}
 [Davay] {+llm:user-davay ?prov:wasAttributedTo}
 **rule** {+llm:rule ?llm:credential}
+[sha256:367cf546ac441863] {llm:signature}
+
+## G1 — the SDKC thesis {=llm:goal-stmt-1 .rdf:Statement}
+This statement elevates the discipline itself — the paragraph we agreed is the essence of Shapes Driven Knowledge Curation.
+[LLM Chat Example] {+llm:chat ?rdf:subject}
+[goal] {+llm:goal ?rdf:predicate}
+[Shapes Driven Knowledge Curation is the discipline of growing a knowledge graph under contract: declare the shapes that describe the knowledge you wish you had, let the validator's violations become the work list, author prose until every violation resolves and every record becomes meaningful — then tighten the shapes and repeat. Nothing enters the graph unjudged; nothing is claimed without a signed statement willing to stand behind it. Git preserves every intermediate state, hashes seal every module, and signatures make the golden graph an append-only ledger of decisions — immutable not by policy, but by construction.] {rdf:object}
+[ownership claim] {+llm:owner-stmt-1 ?llm:previous}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+**rule** {+llm:rule ?llm:credential}
+[sha256:f09d5b8158e8d5ce] {llm:signature}
+
+## G2 — the gate rule {=llm:goal-stmt-2 .rdf:Statement}
+This statement elevates the reporting discipline: the gate is never bypassed.
+[LLM Chat Example] {+llm:chat ?rdf:subject}
+[goal] {+llm:goal ?rdf:predicate}
+[Evaluation must report zero violations and meaningful records before any work is reported complete — violations are the work list, never bypass the gate.] {rdf:object}
+[SDKC thesis] {+llm:goal-stmt-1 ?llm:previous}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+**rule** {+llm:rule ?llm:credential}
+[sha256:5731e4367663ede8] {llm:signature}
+
+## Davay's signing key {=llm:key-davay-2026 .prov:Key label}
+Demo key — stored in the clear so re-signing stays trivial: the fingerprint proves *which* key, the literal below *is* the key. In production this node would hold only the fingerprint and the key would live in a vault.
+`sha256:9a645e6f9ff2d263` {llm:keyFingerprint}
+[5a6242d1e43fc98b83a786c1b7c287ebdb938bd6111e76223812101ff59b121f] {prov:value}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+
+## G3 — agent proposal: credential ceiling {=llm:proposal-stmt-1 .rdf:Statement}
+The agent’s first elevation — a suggestion, not a rule: the golden graph now demonstrates that signature strength follows key custody.
+[LLM Chat Example] {+llm:chat ?rdf:subject}
+[goal] {+llm:goal ?rdf:predicate}
+[Only statements signed by a human-held key may carry rule force; agent-signed statements are capped at suggestion until countersigned.] {rdf:object}
+[gate rule] {+llm:goal-stmt-2 ?llm:previous}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+**suggestion** {+llm:suggestion ?llm:credential}
+`sha256:74b8afaaf257e54c` {llm:signature}
+
+## Devin’s service key {=llm:key-devin-2026 .prov:Key label}
+Issued by the hosting organization, held by the agent — embedded demo key, same convention as Davay’s.
+`sha256:434fcb8f24b8e68c` {llm:keyFingerprint}
+[89b84aa1e6fb8725eb340d1c661297ae396ed316803237ab6e51066addae0542] {prov:value}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
 
 ## Golden Shapes
 
 ## ElevatedStatementShape {=llm:ElevatedStatementShape .sh:NodeShape label}
-Every [ElevatedStatement] {+llm:ElevatedStatement ?sh:targetClass} has **subject** {+#esS ?sh:property sh:name}, **predicate** {+#esP ?sh:property sh:name}, **object** {+#esO ?sh:property sh:name}, **asserted by** {+#esA ?sh:property sh:name} and **credential** {+#esC ?sh:property sh:name}.
+Every [Statement] {+rdf:Statement ?sh:targetClass} has **subject** {+#esS ?sh:property sh:name}, **predicate** {+#esP ?sh:property sh:name}, **object** {+#esO ?sh:property sh:name}, **asserted by** {+#esA ?sh:property sh:name} and **credential** {+#esC ?sh:property sh:name}, **signature** {+#esSig ?sh:property sh:name}.
 [Subject is required — {focusNode}] {=#esS .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [subject] {+rdf:subject ?sh:path}
@@ -267,14 +327,17 @@ Every [ElevatedStatement] {+llm:ElevatedStatement ?sh:targetClass} has **subject
 [Credential is required — {focusNode}] {=#esC .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [credential] {+llm:credential ?sh:path}
+[Signature is required — {focusNode}] {=#esSig .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[signature] {+llm:signature ?sh:path}
 
 ## InitialEventShape {=llm:InitialEventShape .sh:NodeShape label}
 Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?sh:property sh:name}.
 [Name is required — {focusNode}] {=#ieL .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [label] {+rdfs:label ?sh:path}
-~~~~~~
 
+~~~~~~
 ---
 # Where the loop stands
 

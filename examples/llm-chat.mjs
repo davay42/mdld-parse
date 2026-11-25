@@ -26,12 +26,14 @@ const { quads: shell } = parse({ text: doc })
 // unfold: ~~~~md {=…#workbench … prov:value} blocks are dormant modules —
 // parse their literal content intentionally to make them graph.
 const quads = [...shell]
+const statements = [...(parse({ text: doc }).statements || [])]
 const modules = []
 for (const q of shell) {
   if (q.predicate.value === PROV + 'value' && (q.subject.value.includes('#workbench')||q.subject.value.includes('day-'))) {
-    const inner = parse({ text: q.object.value }).quads
-    modules.push(q.subject.value.split(',').pop() + '=' + inner.length)
-    quads.push(...inner)
+    const inner = parse({ text: q.object.value })
+    modules.push(q.subject.value.split(',').pop() + '=' + inner.quads.length)
+    quads.push(...inner.quads)
+    statements.push(...(inner.statements || []))
   }
 }
 
@@ -46,7 +48,7 @@ const report = () => evaluate({ quads })
 // one-line loading log
 {
   const r = report()
-  console.log(`llm-chat — ${quads.length} quads (${modules.length} modules: ${modules.join(' ')}) · ${r.violations.length} violations · conforms=${r.conforms}`)
+  console.log(`llm-chat — ${quads.length} quads (${modules.length} modules: ${modules.join(' ')}) · ${statements.length} elevated · ${r.violations.length} violations · conforms=${r.conforms}`)
 }
 
 const addMsg = (iri, type, role, content, agent) => {
@@ -217,6 +219,12 @@ rl.on('line', line => {
   if (text === '/verify') {
     console.log('oracles:')
     verify()
+    return rl.prompt()
+  }
+  if (text === '/statements') {
+    console.log(`elevated statements: ${statements.length}`)
+    for (const q of statements)
+      console.log(`  ${q.subject.value.split(',').pop()} → ${q.predicate.value.split(',').pop().slice(0, 60)} → ${String(q.object.value).slice(0, 60)}`)
     return rl.prompt()
   }
   const um = `llm:msg-${String(++turn).padStart(3, '0')}`
