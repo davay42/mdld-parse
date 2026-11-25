@@ -1,43 +1,49 @@
 [llm] <tag:llm.chat.example,2026:>
 
-# LLM Chat — SDKC Walkthrough {=llm:chat .prov:Bundle label}
+# LLM Chat — SDKC Walkthrough {=llm:chat .llm:Document label}
 
 *An emulated user–agent conversation, grown Shapes-Driven Knowledge Curation style: ontology, then meta-shapes, then data.*
 
 Three strata: the **ontology** defines what exists and how it connects; the **meta-shapes** keep the vocabulary itself honest; the **conversation** is data awaiting judgment by shapes not yet written.
 
-This document is itself a `prov:Bundle` of modules — the root graph stays navigable while payloads stay dormant:
+This document is itself an `llm:Document` of modules — the root graph stays navigable while payloads stay dormant:
 
-[The Walkthrough] {+llm:walkthrough ?prov:hadMember}
-[Day log 2026-11-24] {+llm:day-2026-11-24 ?prov:hadMember}
-[Day log 2026-11-25] {+llm:day-2026-11-25 ?prov:hadMember}
-[Seed conversation] {+llm:conv-001 ?prov:hadMember}
+[The Walkthrough] {+llm:walkthrough ?llm:hasPart}
+[Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:hasPart}
+[Day log 2026-11-25] {+llm:day-2026-11-25 ?llm:hasPart}
+[Seed conversation] {+llm:conv-001 ?llm:hasPart}
 
 ## Shell Shapes
 
-Two shapes keep the *shell itself* honest — they run on the 46-quad parse, before any module is unfolded. **StepShape** {=llm:StepShape .sh:NodeShape label} targets every [Step] {+llm:Step ?sh:targetClass} and demands its dormant **payload** {+#modP ?sh:property sh:name} — a module without content is an empty promise. [Payload is required — {focusNode}] {=#modP .sh:PropertyShape sh:message}
+Two shapes keep the *shell itself* honest — they run on the 46-quad parse, before any module is unfolded. **Steps** {=llm:StepShape .sh:NodeShape label} are instances of a [Step] {+llm:Step ?sh:targetClass} and it means that each step must have a dormant **payload** {+#modP ?sh:property sh:name} — a module without content is an empty promise. [Payload is required — {focusNode}] {=#modP .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
-[value] {+prov:value ?sh:path}
+[payload] {+llm:payload ?sh:path}
 
 **DocumentMapShape** {=llm:DocumentMapShape .sh:NodeShape label} targets the [document] {+llm:chat ?sh:targetNode} and demands its **members** {+#docM ?sh:property sh:name} — the root graph must stay connected.
 
 [Members are required — {focusNode}] {=#docM .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
-[hadMember] {+prov:hadMember ?sh:path}
+[hadMember] {+llm:hasPart ?sh:path}
 
 
+
+## ChainShape {=llm:ChainShape .sh:NodeShape label}
+Every [Conversation] {+llm:Conversation ?sh:targetClass} must **follow** {+#chF ?sh:property sh:name} something — no orphaned chains.
+[Follows is required — {focusNode}] {=#chF .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[follows] {+llm:follows ?sh:path}
 ---
 
 
-## The Walkthrough {=llm:walkthrough .prov:Bundle label}
+## The Walkthrough {=llm:walkthrough .llm:Walkthrough label}
 
-The document is a guided path: five **Step**s — self-contained modules of shared understanding — each carrying its draft as `prov:value` and its seal as `llm:canonicalHash` (or `llm:canonicalText` while being worked on). **Step** {=llm:Step .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf}; **canonicalText** {=llm:canonicalText .rdf:Property label} binds a [Step] {+llm:Step ?domain} to its [string] {+xsd:string ?range} canonical form.
+The document is a guided path: five **Step**s — self-contained modules of shared understanding — each carrying its draft as `llm:payload` and its seal as `llm:canonicalHash` (or `llm:canonicalText` while being worked on). **Document** {=llm:Document .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — the root of a knowledge document. **Walkthrough** {=llm:Walkthrough .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — an ordered path through the document's parts. **Module** {=llm:Module .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf} — a self-contained unit with dormant content. **Step** {=llm:Step .Class label} is a kind of [Module] {+llm:Module ?subClassOf}; **Conversation** {=llm:Conversation .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — a container of messages; the daily logs are Conversations. **canonicalText** {=llm:canonicalText .rdf:Property label} binds a [Step] {+llm:Step ?domain} to its [string] {+xsd:string ?range} canonical form. The **hasPart** {=llm:hasPart .rdf:Property label} binds a [Bundle] {+prov:Bundle ?domain} to its member [Entity] {+prov:Entity ?range}; the **payload** {=llm:payload .rdf:Property label} binds a [Module] {+llm:Module ?domain} to its dormant [string] {+xsd:string ?range} content. The **follows** {=llm:follows .rdf:Property label} chains a [Conversation] {+llm:Conversation ?domain} to the [Entity] {+prov:Entity ?range} it succeeds.
 
-[Step 1 — The Ontology] {+llm:step1 ?prov:hadMember}
-[Step 2 — Tools, Agents & Products] {+llm:step2 ?prov:hadMember}
-[Step 3 — The Meta-Shapes] {+llm:step3 ?prov:hadMember}
-[Step 4 — The Conversation Begins] {+llm:step4 ?prov:hadMember}
-[Step 5 — The Golden Graph] {+llm:step5 ?prov:hadMember}
+[Step 1 — The Ontology] {+llm:step1 ?llm:hasPart}
+[Step 2 — Tools, Agents & Products] {+llm:step2 ?llm:hasPart}
+[Step 3 — The Meta-Shapes] {+llm:step3 ?llm:hasPart}
+[Step 4 — The Conversation Begins] {+llm:step4 ?llm:hasPart}
+[Step 5 — The Golden Graph] {+llm:step5 ?llm:hasPart}
 
 ---
 
@@ -45,7 +51,7 @@ The document is a guided path: five **Step**s — self-contained modules of shar
 
 [sha256:5d652a6223c07555] {llm:canonicalHash}
 
-~~~~~~md {=llm:step1 prov:value}
+~~~~~~md {=llm:step1 llm:payload}
 [llm] <tag:llm.chat.example,2026:>
 
 # Part I — The Ontology
@@ -61,7 +67,7 @@ A message's speaker is a **Role** {=llm:Role .Class label} — a kind of [Thing]
 
 [sha256:fe174e35c8afef7c] {llm:canonicalHash}
 
-~~~~~~md {=llm:step2 prov:value}
+~~~~~~md {=llm:step2 llm:payload}
 [llm] <tag:llm.chat.example,2026:>
 
 # Part II — Tools, Agents & Products
@@ -77,7 +83,7 @@ Behind every message stands an **Agent** {=llm:Agent .Class label}, the reasonin
 
 [sha256:dc22af601faa52f9] {llm:canonicalHash}
 
-~~~~~~md {=llm:step3 prov:value}
+~~~~~~md {=llm:step3 llm:payload}
 [llm] <tag:llm.chat.example,2026:>
 
 # Part III — The Meta-Shapes
@@ -162,7 +168,7 @@ Every [ToolResult] {+llm:ToolResult ?sh:targetClass} has **returned from** {+#tr
 ## Davay {=llm:user-davay .prov:Agent label}
 ~~~~~~
 
-~~~~~~md {=llm:step4 prov:value}
+~~~~~~md {=llm:step4 llm:payload}
 # Part IV — The Conversation Begins
 
 `conv-001` opens with the smallest meaningful exchange — the user asks how an SDKC loop runs from empty; the assistant answers with the plan. Participants: **Davay** (`prov:Agent`) and **agent-devin** (`llm:Agent`, model `SWE-2`). Membership rides `prov:hadMember` — no custom machinery.
@@ -201,7 +207,7 @@ A member of [LLM Chat Example] {=llm:conv-001 !prov:hadMember}.
 
 [sha256:14041ea7b9e8aedc] {llm:canonicalHash}
 
-~~~~~~md {=llm:step5 prov:value}
+~~~~~~md {=llm:step5 llm:payload}
 [llm] <tag:llm.chat.example,2026:>
 
 # Part V — The Golden Graph
@@ -331,7 +337,16 @@ Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?s
 
 # Daily Log
 
-~~~~~~md {=llm:day-2026-11-24 .llm:Conversation prov:value}
+## Log origin {=llm:log-origin .prov:Entity label}
+The point before the first day — every conversation chain begins here. The seed conversation likewise descends from it:
+[LLM Chat Example] {=llm:conv-001}
+[Log origin] {+llm:log-origin ?llm:follows}
+
+
+
+## Day 2026-11-24 {=llm:day-2026-11-24 .llm:Conversation label}
+Starts from [origin] [Log origin] {+llm:log-origin ?llm:follows}.
+~~~~~~md {llm:payload}
 [llm] <tag:llm.chat.example,2026:>
 
 ## Devin {=llm:agent-devin .llm:Agent label}
@@ -450,7 +465,9 @@ part4: hash MATCH (sha256:9946bcb586873b07)
 ## Davay {=llm:user-davay .prov:Agent label}
 ~~~~~~
 
-~~~~~~md {=llm:day-2026-11-25 .llm:Conversation prov:value}
+## Day 2026-11-25 {=llm:day-2026-11-25 .llm:Conversation label}
+Follows [Day log 2026-11-24] {+llm:day-2026-11-24 ?llm:follows}.
+~~~~~~md {llm:payload}
 [llm] <tag:llm.chat.example,2026:>
 
 ## Devin {=llm:agent-devin .llm:Agent label}
@@ -464,6 +481,22 @@ part4: hash MATCH (sha256:9946bcb586873b07)
 [Only human-held keys may sign rule-force statements; agent s] {+llm:day-2026-11-25-msg-06 ?prov:hadMember}
 [Verify everything still holds.] {+llm:day-2026-11-25-msg-07 ?prov:hadMember}
 [498 quads, 6 elevated statements, 0 violations, all six modu] {+llm:day-2026-11-25-msg-08 ?prov:hadMember}
+[hello persisted?] {+llm:day-2026-11-25-msg-09 ?prov:hadMember}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-10 ?prov:hadMember}
+[persisted via http?] {+llm:day-2026-11-25-msg-11 ?prov:hadMember}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-12 ?prov:hadMember}
+[Stored?] {+llm:day-2026-11-25-msg-13 ?prov:hadMember}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-14 ?prov:hadMember}
+[Stored! From the web browser! Instantly!] {+llm:day-2026-11-25-msg-15 ?prov:hadMember}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-16 ?prov:hadMember}
+[atomic test] {+llm:day-2026-11-25-msg-17 ?prov:hadMember}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-18 ?prov:hadMember}
+[chain test message] {+llm:day-2026-11-25-msg-19 ?prov:hadMember}
+[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-20 ?prov:hadMember}
+[final chain check] {+llm:day-2026-11-25-msg-21 ?prov:hadMember}
+[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-22 ?prov:hadMember}
+[Input from the chat window] {+llm:day-2026-11-25-msg-23 ?prov:hadMember}
+[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-24 ?prov:hadMember}
 
 ## Yesterday we built the golden graph — what did today add on {=llm:day-2026-11-25-msg-01 .llm:UserMessage label}
 *2026-11-25T08:19:19.015Z* {prov:generatedAtTime ^^xsd:dateTime}
@@ -528,5 +561,135 @@ part4: hash MATCH (sha256:9946bcb586873b07)
 [Verify everything still holds.] {+llm:day-2026-11-25-msg-07 ?llm:inReplyTo}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 
+## hello persisted? {=llm:day-2026-11-25-msg-09 .llm:UserMessage label}
+*2026-11-25T09:13:48.681Z* {prov:generatedAtTime ^^xsd:dateTime}
+[hello persisted?] {llm:content}
+[sha256:f4eeea762a6846ab] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[498 quads, 6 elevated statements, 0 violations, all six modu] {+llm:day-2026-11-25-msg-08 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-10 .llm:AssistantMessage label}
+*2026-11-25T09:13:48.681Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 10 shape record(s) conform.] {llm:content}
+[sha256:b7593a1023211ad1] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[hello persisted?] {+llm:day-2026-11-25-msg-09 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## persisted via http? {=llm:day-2026-11-25-msg-11 .llm:UserMessage label}
+*2026-11-25T09:13:58.295Z* {prov:generatedAtTime ^^xsd:dateTime}
+[persisted via http?] {llm:content}
+[sha256:221f963512822807] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-10 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-12 .llm:AssistantMessage label}
+*2026-11-25T09:13:58.295Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 10 shape record(s) conform.] {llm:content}
+[sha256:b7593a1023211ad1] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[persisted via http?] {+llm:day-2026-11-25-msg-11 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## Stored? {=llm:day-2026-11-25-msg-13 .llm:UserMessage label}
+*2026-11-25T09:16:10.821Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Stored?] {llm:content}
+[sha256:a0cbc0263732f3b0] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-12 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-14 .llm:AssistantMessage label}
+*2026-11-25T09:16:10.821Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 10 shape record(s) conform.] {llm:content}
+[sha256:b7593a1023211ad1] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[Stored?] {+llm:day-2026-11-25-msg-13 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## Stored! From the web browser! Instantly! {=llm:day-2026-11-25-msg-15 .llm:UserMessage label}
+*2026-11-25T09:16:35.869Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Stored! From the web browser! Instantly!] {llm:content}
+[sha256:c211ff9131dbb72b] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-14 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-16 .llm:AssistantMessage label}
+*2026-11-25T09:16:35.869Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 10 shape record(s) conform.] {llm:content}
+[sha256:b7593a1023211ad1] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[Stored! From the web browser! Instantly!] {+llm:day-2026-11-25-msg-15 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## atomic test {=llm:day-2026-11-25-msg-17 .llm:UserMessage label}
+*2026-11-25T09:21:17.208Z* {prov:generatedAtTime ^^xsd:dateTime}
+[atomic test] {llm:content}
+[sha256:77e5a3e18cf5a2f0] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-16 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 10 shape record(s) conform. {=llm:day-2026-11-25-msg-18 .llm:AssistantMessage label}
+*2026-11-25T09:21:17.208Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 10 shape record(s) conform.] {llm:content}
+[sha256:b7593a1023211ad1] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[atomic test] {+llm:day-2026-11-25-msg-17 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## chain test message {=llm:day-2026-11-25-msg-19 .llm:UserMessage label}
+*2026-11-25T09:46:55.037Z* {prov:generatedAtTime ^^xsd:dateTime}
+[chain test message] {llm:content}
+[sha256:d18ace867175f42f] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Gate check: clean — 10 shape record(s) conform.] {+llm:day-2026-11-25-msg-18 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-20 .llm:AssistantMessage label}
+*2026-11-25T09:46:55.040Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 11 shape record(s) conform.] {llm:content}
+[sha256:ad7c225d9b363913] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[chain test message] {+llm:day-2026-11-25-msg-19 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## final chain check {=llm:day-2026-11-25-msg-21 .llm:UserMessage label}
+*2026-11-25T09:47:05.056Z* {prov:generatedAtTime ^^xsd:dateTime}
+[final chain check] {llm:content}
+[sha256:9adf227e3ce29422] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-20 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-22 .llm:AssistantMessage label}
+*2026-11-25T09:47:05.056Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 11 shape record(s) conform.] {llm:content}
+[sha256:ad7c225d9b363913] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[final chain check] {+llm:day-2026-11-25-msg-21 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
+## Input from the chat window {=llm:day-2026-11-25-msg-23 .llm:UserMessage label}
+*2026-11-25T10:19:44.949Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Input from the chat window] {llm:content}
+[sha256:f2c0edd7888d17ad] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[Gate check: clean — 11 shape record(s) conform.] {+llm:day-2026-11-25-msg-22 ?llm:inReplyTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Gate check: clean — 11 shape record(s) conform. {=llm:day-2026-11-25-msg-24 .llm:AssistantMessage label}
+*2026-11-25T10:19:44.950Z* {prov:generatedAtTime ^^xsd:dateTime}
+[Gate check: clean — 11 shape record(s) conform.] {llm:content}
+[sha256:ad7c225d9b363913] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[Input from the chat window] {+llm:day-2026-11-25-msg-23 ?llm:inReplyTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+
 ## Davay {=llm:user-davay .prov:Agent label}
 ~~~~~~
+
+
