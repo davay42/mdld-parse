@@ -678,6 +678,42 @@ A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
 [llm:role-assistant] {+llm:role-assistant ?llm:role}
 [What is knowledge graph?] {+llm:day-2026-11-25-msg-21 ?llm:inReplyTo}
 
+## What is knowledge graph? {=llm:day-2026-11-25-msg-23 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T15:24:29.298Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is knowledge graph?] {llm:content}
+[sha256:3ee36f0759985b1d] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[knowledge graph — a graph of real-world entities and the rel] {+llm:day-2026-11-25-msg-22 ?llm:inReplyTo}
+
+## knowledge graph — a graph of real-world entities and the rel {=llm:day-2026-11-25-msg-24 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T15:24:29.298Z* {prov:generatedAtTime ^^xsd:dateTime}
+[knowledge graph — a graph of real-world entities and the relationships between them. (user-supplied)] {llm:content}
+[sha256:bb92afd81a9a8a92] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is knowledge graph?] {+llm:day-2026-11-25-msg-23 ?llm:inReplyTo}
+
+## What is JSON-LD? {=llm:day-2026-11-25-msg-25 .llm:UserMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T15:24:29.322Z* {prov:generatedAtTime ^^xsd:dateTime}
+[What is JSON-LD?] {llm:content}
+[sha256:dfd25616974eb514] {llm:signature}
+[Davay] {+llm:user-davay ?prov:wasAttributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[knowledge graph — a graph of real-world entities and the rel] {+llm:day-2026-11-25-msg-24 ?llm:inReplyTo}
+
+## JSON-LD — JSON-LD is a method of encoding linked data using  {=llm:day-2026-11-25-msg-26 .llm:AssistantMessage label}
+A message on [Day log 2026-11-25] {+llm:day-2026-11-25 !prov:hadMember}
+*2026-11-25T15:24:29.322Z* {prov:generatedAtTime ^^xsd:dateTime}
+[JSON-LD — JSON-LD is a method of encoding linked data using JSON and of serializing data similarly to traditional JSON. It is meant to be simple to create by modifying JSON documents. JSON-LD is a World Wide Web Consortium Recommendation initially developed by the JSON for Linking Data Community Group, tra…] {llm:content}
+[sha256:daf1b27fda54b0e0] {llm:signature}
+[Devin] {+llm:agent-devin ?prov:wasAttributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is JSON-LD?] {+llm:day-2026-11-25-msg-25 ?llm:inReplyTo}
+
 ~~~~~~
 
 ---

@@ -54,23 +54,20 @@ const report = () => evaluate({ quads })
 
 
 const termSlug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-const TERMS_RE = /## Terms[\s\S]*?~~~~~~md \{llm:payload\}\n([\s\S]*?)\n~~~~~~/
-const lookupCached = name => {
-  const key = 'term-' + termSlug(name)
-  const i = doc.indexOf(key)
-  if (i < 0) return null
-  const seg = doc.slice(i, i + 600)
-  return seg.match(/\[([^\]]+)\] \{rdfs:comment\}/)?.[1] || null
-}
+const RDFS_C = 'http://www.w3.org/2000/01/rdf-schema#comment'
+const lookupCached = name => quads.find(q =>
+  q.subject.value === LLM + 'term-' + termSlug(name) && q.predicate.value === RDFS_C
+)?.object.value || null
 const appendTerm = (name, def, url) => {
   const key = 'term-' + termSlug(name)
   if (lookupCached(name)) return // already a term
   const short = def.length > 300 ? def.slice(0, 297) + '…' : def
   const block = `## ${name} {=llm:${key} .llm:Term label}\n[${short.replace(/\n/g, ' ')}] {rdfs:comment}${url ? `\n[${url}] {rdfs:seeAlso}` : ''}\n`
   let text = readFileSync(MD, 'utf8')
-  const dm = text.match(TERMS_RE)
-  if (dm) {
-    const closeIdx = text.indexOf('\n~~~~~~', dm.index + dm[0].indexOf('~~~~~~md'))
+  const termsQ = shell.find(q => q.subject.value === LLM + 'terms' && q.predicate.value === LLM + 'payload')
+  if (termsQ) {
+    const dmPos = text.match(/## Terms[\s\S]*?~~~~~~md \{llm:payload\}/)
+    const closeIdx = text.indexOf('\n~~~~~~', dmPos.index + dmPos[0].length)
     text = text.slice(0, closeIdx) + '\n' + block + text.slice(closeIdx)
   } else {
     text = text.trimEnd() + `\n\n## Terms {=llm:terms .llm:Module label}\n~~~~~~md {llm:payload}\n[llm] <tag:llm.chat.example,2026:>\n[rdfs] <http://www.w3.org/2000/01/rdf-schema#>\n\n## Glossary {=llm:terms .llm:Module label}\n${block}~~~~~~\n`
@@ -299,11 +296,11 @@ A message on [Day log ${day}] {+llm:day-${day} !prov:hadMember}
 const appendExchange = (userText, agentText, agentName = 'Devin') => {
   const day = new Date().toISOString().slice(0, 10)
   const convIri = LLM + 'day-' + day
-  const dayRe = new RegExp('## Day ' + day + '[\\s\\S]*?~~~~~~md \\{llm:payload\\}\\n([\\s\\S]*?)\\n~~~~~~')
-  const dm = doc.match(dayRe)
-  const prior = dm ? parse({ text: dm[1] }).quads : []
+  const payloadQ = shell.find(q => q.subject.value === convIri && q.predicate.value === LLM + 'payload')
+  const prior = payloadQ ? parse({ text: payloadQ.object.value }).quads : []
   // chain: this day follows the most recent earlier day module, else log-origin
-  const prevDay = [...doc.matchAll(/## Day (\d{4}-\d{2}-\d{2})/g)].map(m => m[1]).filter(d => d < day).sort().pop()
+  const prevDay = shell.map(q => q.subject.value.match(/day-(\d{4}-\d{2}-\d{2})$/)?.[1])
+    .filter(d => d && d < day).sort().pop()
   const followsObj = prevDay ? 'llm:day-' + prevDay : 'llm:log-origin'
   const followsLabel = prevDay ? 'Day log ' + prevDay : 'Log origin'
   const msgNodes = prior.filter(q => q.subject.value.includes('-msg-') && q.predicate.value === RDF + 'type').map(q => q.subject)
@@ -318,9 +315,11 @@ const appendExchange = (userText, agentText, agentName = 'Devin') => {
     blocks.push(b)
   }
   let text = readFileSync(MD, 'utf8')
-  if (dm) {
-    // insert before this day's closing fence
-    const closeIdx = text.indexOf('\n~~~~~~', dm.index + dm[0].indexOf('~~~~~~md'))
+  if (payloadQ) {
+    // insert before this day's closing fence (offset lookup only — semantics came from quads)
+    const dayRePos = new RegExp('## Day ' + day + '[\\s\\S]*?~~~~~~md \\{llm:payload\\}')
+    const dmPos = text.match(dayRePos)
+    const closeIdx = text.indexOf('\n~~~~~~', dmPos.index + dmPos[0].length)
     text = text.slice(0, closeIdx) + '\n' + blocks.join('\n') + text.slice(closeIdx)
   } else {
     if (!text.includes('# Daily Log')) text = text.trimEnd() + '\n\n---\n\n# Daily Log\n'
