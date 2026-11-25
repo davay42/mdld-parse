@@ -2,7 +2,7 @@ import {
   detectFence, detectPrefix, detectHeading, detectList,
   detectBlockquote, detectStandaloneSubject, detectHtmlBlock, detectIndentedCode, scanInlineCarriers
 } from './tokenizers.js';
-import { escapeHtml } from './shared.js';
+import { escapeHtml, matchFenceClose } from './shared.js';
 import { expandIRI, parseSemanticBlock } from './utils.js';
 import { DEFAULT_CONTEXT } from './constants.js';
 
@@ -285,8 +285,9 @@ export function render(src, options = {}) {
     let line = lines[i];
 
     if (codeBlock) {
-      const fenceClosePattern = new RegExp(`^${codeBlock.fenceChar}{${codeBlock.fenceLength},}\\s*$`);
-      if (fenceClosePattern.test(line.trim())) {
+      const trimmedLine = line.trim();
+      const fenceRun = matchFenceClose(trimmedLine, codeBlock.fenceChar);
+      if (fenceRun && fenceRun.length >= codeBlock.fenceLength && fenceRun.length === trimmedLine.length) {
         const sem = codeBlock.attrs ? parseSemanticBlock(codeBlock.attrs) : null;
         const carrierText = codeBlock.content.join('\n');
         const customAttrs = getAttrs(codeBlock.attrs, sem);

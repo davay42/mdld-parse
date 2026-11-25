@@ -14,10 +14,45 @@ function skipHorizontalWs(text, pos) {
     return pos;
 }
 
+const isSpaceChar = ch => ch.trim() === '';
+
+function firstAttrs(text) {
+    let open = text.indexOf('{');
+    while (open !== -1) {
+        const close = text.indexOf('}', open + 1);
+        if (close === -1) return null;
+        if (close > open + 1) return text.slice(open + 1, close);
+        open = text.indexOf('{', open + 1);
+    }
+    return null;
+}
+
+function hasUrlScheme(url) {
+    const colon = url.indexOf(':');
+    if (colon <= 0) return false;
+    const first = url.charCodeAt(0);
+    if (!((first >= 65 && first <= 90) || (first >= 97 && first <= 122))) return false;
+    for (let i = 1; i < colon; i++) {
+        const c = url.charCodeAt(i);
+        if (!((c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 43 || c === 45 || c === 46)) return false;
+    }
+    return true;
+}
+
 function splitTrailingAttrs(text) {
-    const attrsMatch = text.match(/\s*\{([^}]+)\}\s*$/);
-    if (!attrsMatch) return { text, attrs: null };
-    return { text: text.slice(0, -attrsMatch[0].length).trim(), attrs: attrsMatch[1] };
+    let end = text.length;
+    while (end > 0 && isSpaceChar(text[end - 1])) end--;
+    if (end === 0 || text[end - 1] !== '}') return { text, attrs: null };
+
+    const closeIdx = end - 1;
+    const prevClose = text.lastIndexOf('}', closeIdx - 1);
+    let openIdx = -1;
+    for (let i = prevClose + 1; i < closeIdx; i++) {
+        if (text[i] === '{') { openIdx = i; break; }
+    }
+    if (openIdx === -1 || openIdx + 1 === closeIdx) return { text, attrs: null };
+
+    return { text: text.slice(0, openIdx).trim(), attrs: text.slice(openIdx + 1, closeIdx) };
 }
 
 /**
@@ -43,12 +78,10 @@ export function detectFence(line) {
     const infoString = rest;
 
     // Parse info string for language and attributes
-    const langMatch = infoString.match(/^([^\s{]+)/);
-    const lang = langMatch ? langMatch[1] : '';
-
-    // Find attributes in info string
-    const attrsMatch = infoString.match(/\{([^}]+)\}/);
-    const attrs = attrsMatch ? attrsMatch[1] : null;
+    let langEnd = 0;
+    while (langEnd < infoString.length && infoString[langEnd] !== '{' && !isSpaceChar(infoString[langEnd])) langEnd++;
+    const lang = infoString.slice(0, langEnd);
+    const attrs = firstAttrs(infoString);
 
     return {
         fenceChar: char,
@@ -334,8 +367,7 @@ export function detectAngleBracketUrl(text, startPos) {
     const url = text.slice(startPos + 1, closeAngle).trim();
 
     // Validate URL scheme (letter followed by letters/digits/+/ - /.)
-    const schemeMatch = url.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/);
-    if (!schemeMatch) return null;
+    if (!hasUrlScheme(url)) return null;
 
     return {
         url,
@@ -570,9 +602,7 @@ export function detectBracketLink(text, startPos) {
         const closeAngle = text.indexOf('>', pos + 1);
         if (closeAngle !== -1) {
             const angleUrl = text.slice(pos + 1, closeAngle).trim();
-            // Validate URL scheme
-            const schemeMatch = angleUrl.match(/^[a-zA-Z][a-zA-Z0-9+\-.]*:/);
-            if (schemeMatch) {
+            if (hasUrlScheme(angleUrl)) {
                 url = angleUrl;
                 pos = closeAngle + 1;
             }
@@ -736,23 +766,3 @@ export function scanInlineCarriers(text, baseOffset = 0) {
 
     return carriers;
 }
-
-// ============================================================================
-// TESTING EXPORTS (for validation)
-// ============================================================================
-
-export const TEST = {
-    detectFence,
-    detectPrefix,
-    detectHeading,
-    detectList,
-    detectBlockquote,
-    detectStandaloneSubject,
-    detectAngleBracketUrl,
-    detectEmphasis,
-    detectCodeSpan,
-    detectBracketLink,
-    extractAttributes,
-    findMatchingBracket,
-    scanInlineCarriers
-};

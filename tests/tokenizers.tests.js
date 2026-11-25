@@ -19,16 +19,15 @@ import {
     scanInlineCarriers
 } from '../src/tokenizers.js';
 
-import {
-    FENCE_REGEX,
-    PREFIX_REGEX,
-    HEADING_REGEX,
-    UNORDERED_LIST_REGEX,
-    BLOCKQUOTE_REGEX,
-    STANDALONE_SUBJECT_REGEX,
-    URL_REGEX,
-    CARRIER_PATTERN_ARRAY
-} from '../src/constants.js';
+import { URL_REGEX } from '../src/constants.js';
+
+// Test-only oracles kept out of the runtime bundle
+const FENCE_REGEX = /^(\`{3,}|~{3,})(.*)/;
+const PREFIX_REGEX = /^\[([^\]]+)\]\s*<([^>]+)>/;
+const HEADING_REGEX = /^(#{1,6})\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
+const UNORDERED_LIST_REGEX = /^(\s*)([-*+]|\d+\.)\s+(.+?)(?:\s*(\{[^}]+\}))?\s*$/;
+const BLOCKQUOTE_REGEX = /^>\s+(.+?)(?:\s*(\{[^}]+\}))?$/;
+const STANDALONE_SUBJECT_REGEX = /^\s*\{=(.*?)\}\s*$/;
 
 // ============================================================================
 // BLOCK-LEVEL TOKENIZER TESTS

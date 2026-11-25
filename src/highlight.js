@@ -14,6 +14,7 @@
  */
 
 import { DEFAULT_CONTEXT } from './constants.js';
+import { detectPrefix } from './tokenizers.js';
 
 // HTML escaping function
 export function escapeHtml(s) {
@@ -132,31 +133,26 @@ export function getIRIColor(iri) {
 // Extract declared prefixes with IRI resolution for CURIE coloring
 function extractPrefixes(code) {
     const prefixes = new Map(); // prefix -> IRI
-    // Match [prefix] <...> declarations
-    const prefixRegex = /^\[(\w+)\]\s*<([^>]*)>\s*$/gm;
-    let match;
-    while ((match = prefixRegex.exec(code)) !== null) {
-        const prefixName = match[1];
-        let iri = match[2];
 
+    for (const line of code.split('\n')) {
+        const decl = detectPrefix(line);
+        if (!decl) continue;
+
+        let iri = decl.iri;
         // Resolve folded prefixes (check if IRI contains CURIE)
         if (iri.includes(':')) {
             const colonIndex = iri.indexOf(':');
             if (colonIndex > 0) {
                 const refPrefix = iri.slice(0, colonIndex);
                 const refSuffix = iri.slice(colonIndex + 1);
-
-                // Check if referenced prefix is already declared
                 if (prefixes.has(refPrefix)) {
-                    const baseIRI = prefixes.get(refPrefix);
-                    iri = baseIRI + refSuffix;
+                    iri = prefixes.get(refPrefix) + refSuffix;
                 }
-                // If not declared, treat as literal string (as per spec)
             }
         }
-
-        prefixes.set(prefixName, iri);
+        prefixes.set(decl.prefix, iri);
     }
+
     // Merge built-in prefixes (skip the special @vocab key)
     for (const [key, iri] of Object.entries(DEFAULT_CONTEXT)) {
         if (key !== '@vocab') prefixes.set(key, iri);

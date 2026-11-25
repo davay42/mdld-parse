@@ -1,14 +1,11 @@
 import { DEFAULT_CONTEXT, RDFS_LABEL, RDF_TYPE, RDF_STATEMENT, RDF_SUBJECT, RDF_PREDICATE, RDF_OBJECT, XSD_STRING, XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE } from './constants.js';
 import { parseSemanticBlock, expandIRI, shortenIRI } from './utils.js';
 
-// Cache for fence regex patterns
-export const FENCE_CLOSE_PATTERNS = new Map();
-
-export function getFenceClosePattern(fenceChar) {
-    if (!FENCE_CLOSE_PATTERNS.has(fenceChar)) {
-        FENCE_CLOSE_PATTERNS.set(fenceChar, new RegExp(`^(${fenceChar}{3,})`));
-    }
-    return FENCE_CLOSE_PATTERNS.get(fenceChar);
+export function matchFenceClose(line, fenceChar) {
+    if (line[0] !== fenceChar) return null;
+    let end = 1;
+    while (line[end] === fenceChar) end++;
+    return end >= 3 ? line.slice(0, end) : null;
 }
 
 // Range calculation utilities - shared between parser and renderer
