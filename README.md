@@ -42,25 +42,47 @@ Human text → Graph immediately
 
 ```javascript
 const m = await import('https://mdld.js.org/mdld-parse.js')
-const { quads } = m.parse({ text: `[ex] <tag:demo,2026:>
+const { parse, evaluate, shortenIRI } = m
+const mdld = `[ex] <tag:demo,2026:>
 # Signup sheet {=ex:Sheet .sh:NodeShape label}
 Every [User] {+ex:User ?sh:targetClass} needs **name** {+#nameRule ?sh:property sh:name}, **email** {+#emailRule ?sh:property sh:name} and **age** {+#ageRule ?sh:property sh:name}.
 [Email is required — {$focusNode}] {=#emailRule .sh:PropertyShape sh:message} expects at least [1] {sh:minCount ^^xsd:integer} [email] {+ex:email ?sh:path}.
 [Name] {=#nameRule .sh:PropertyShape sh:name} reads our [name] {+ex:name ?sh:path}.
 [Age] {=#ageRule .sh:PropertyShape sh:name} reads our [age] {+ex:age ?sh:path}.
 # Bobby {=ex:Bob .ex:User label}
-[Bobby] {ex:name} is [34] {ex:age ^^xsd:integer}` })
-document.body.innerHTML = '<quad-graph></quad-graph><pre id="out"></pre>'
-document.querySelector('quad-graph').quads = quads   // graph appears instantly
-const r = m.evaluate({ quads })
-document.getElementById('out').textContent =
-  'violations:\n' + r.violations.map(v => '  • ' + (v.message || v.component.value)).join('\n') +
-  '\n\nrecords:\n' + JSON.stringify(r.records, null, 2)
-// → violations: • Email is required — tag:demo,2026:Bob
-// → records: { "tag:demo,2026:Sheet": { "tag:demo,2026:Bob": { name: "Bobby", age: 34 } } }
+[Bobby] {ex:name} is [34] {ex:age ^^xsd:integer}`
+document.body.innerHTML = `<style>
+  #demo{background:#fff;color:#111;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:14px;max-width:960px}
+  #demo mdld-editor,#demo quad-graph{display:block;border:1px solid #ddd;border-radius:8px;margin-top:8px}
+  #out{margin-top:8px;white-space:pre-wrap;color:#111}
+</style><div id="demo">
+<mdld-editor height="42svh"></mdld-editor>
+<quad-graph height="320"></quad-graph>
+<pre id="out"></pre></div>`
+const ed = document.querySelector('mdld-editor')
+ed.value = mdld                                  // edit this — graph + records follow live
+const g = document.querySelector('quad-graph'), out = document.getElementById('out')
+const cell = v => typeof v === 'string' ? `"${v}"` : JSON.stringify(v)
+function update() {
+  try {
+    const { quads, context } = parse({ text: ed.value })
+    g.context = context; g.quads = quads         // graph appears/updates instantly
+    const r = evaluate({ quads, context })
+    out.textContent = [
+      ...r.violations.map(v => '✗ ' + (v.message || v.component.value)),
+      ...Object.entries(r.records).flatMap(([shape, nodes]) =>
+        Object.entries(nodes).map(([node, pojo]) =>
+          `${shortenIRI(shape, context)} › ${node}  { ${Object.entries(pojo).map(([k, v]) => `${k}: ${cell(v)}`).join(' · ')} }`))
+    ].join('\n') || 'no records'
+  } catch (e) { out.textContent = 'parse error: ' + e.message }
+}
+let t; ed.addEventListener('input', () => { clearTimeout(t); t = setTimeout(update, 200) })
+update()
+// → ✗ Email is required — tag:demo,2026:Bob
+// → tag:demo,2026:Sheet › tag:demo,2026:Bob  { name: "Bobby" · age: 34 }
 ```
 
-That's the whole engine booting in one paste — parser, SHACL evaluator, and the visual cortex. `QuadGraph` auto-registers; `evaluate()` returns violations and typed records together.
+That's the whole engine booting in one paste — parser, SHACL evaluator, syntax-highlighted live editor, and the visual cortex. Type in the editor and watch the graph re-layout while `evaluate()` streams violations and typed records back as compact lines.
 
 ### Node.js
 

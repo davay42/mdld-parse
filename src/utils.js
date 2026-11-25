@@ -131,7 +131,7 @@ export const DataFactory = {
         // Convert non-string values to string for proper serialization
         const stringValue = String(value);
         // Escape quotes in the value for proper serialization
-        const escapedValue = stringValue.replace(/"/g, '\\"');
+        const escapedValue = stringValue.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
         // Create a language-tagged string
         if (typeof languageOrDataType === 'string') {
@@ -188,7 +188,7 @@ export const DataFactory = {
                 return DEFAULTGRAPH;
             case 'Literal':
                 // Escape quotes in value to ensure proper parsing
-                const escapedValue = String(term.value).replace(/"/g, '\\"');
+                const escapedValue = String(term.value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
                 if (term.language) {
                     return new Literal(`"${escapedValue}"@${term.language}`);
                 } else if (term.datatype) {

@@ -8,6 +8,7 @@ import { runReverseAnnotationTests } from './reverse-annotation.tests.js';
 import { generateRemoveTests } from './generate-remove.tests.js';
 import { generateLangTests } from './generate-lang.tests.js';
 import { generateNodeTests } from './generate-node.tests.js';
+import { canonicalRoundtripTests } from './canonical-roundtrip.tests.js';
 import { renderTests } from './render.tests.js';
 
 const testGroups = [
@@ -20,6 +21,7 @@ const testGroups = [
     { name: 'Generate Remove Tests', tests: generateRemoveTests },
     { name: 'Generate Lang Tests', tests: generateLangTests },
     { name: 'Generate Node Tests', tests: generateNodeTests },
+    { name: 'Canonical Roundtrip Tests', tests: canonicalRoundtripTests },
     { name: 'Render Tests', tests: renderTests },
 ];
 

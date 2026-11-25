@@ -4,14 +4,17 @@
 
 ### Fixed
 - **`generate()` preserves label literals** — `rdfs:label` selection now keeps the exact literal term (value + language + datatype) and emits `label @lang` / `label ^^datatype` in headings, inline object annotations, and reverse annotations; same-value labels with different language/datatype tags no longer collapse on round-trip
+- **Literal carriers are content-aware** — empty literals use `[]`; multiline or carrier-hostile values use fences matched to the longest content run; bracket/code/emphasis styling is only used when the value cannot merge with delimiters
+- **`Literal` serialization escapes backslashes** — values containing `\`/`"` sequences now round-trip through `DataFactory.literal()`/`fromTerm()` instead of collapsing escape pairs
 
 ### Changed
 - **Validator readability** — `extractConstraints` is now an ordered spec table; count/length/range checks are table-driven; property/node-level component sets are hoisted without changing emission order or public API
 - **Parser/highlight condensation** — removed dead `shared.js` exports, fake regex-match list tokens, repeated tokenizer whitespace/attribute splitting, a duplicate scanner case, and highlight delimiter/marker branches; graph localStorage stores share one factory; URI scheme checks are unified
+- **Canonical round-trip stress coverage** — stochastic test sweeps unicode, markdown markers, tabs/newlines, languages, and datatypes across 1,260 literals with a noise/signal estimate
 
 ### Build
-- **ES2022 library target** — drops private/static-field helpers from `dist/mdld-parse.js`; the single-file export remains the contract (~221.8 kB / 6,591 lines unminified)
-- **Verification** — 191 parser tests plus shapes/ontology self-tests pass
+- **ES2022 library target** — drops private/static-field helpers from `dist/mdld-parse.js`; the single-file export remains the contract (~223.3 kB unminified)
+- **Verification** — 192 parser tests plus shapes/ontology self-tests pass
 
 ## Unreleased — `<quad-graph>` interaction & persistence
 

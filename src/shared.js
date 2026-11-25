@@ -232,6 +232,53 @@ export function sortQuadsByPredicate(quads) {
 // Optimized text generation - template literals for smaller bundle
 export const generatePrefixDeclaration = (prefix, namespace) => `[${prefix}] <${namespace}>\n`;
 
+function literalFenceRun(line, char) {
+    const trimmed = line.trim();
+    let n = 0;
+    while (trimmed[n] === char) n++;
+    return n;
+}
+
+function chooseLiteralFence(value) {
+    let best = null;
+    for (const char of ['~', '`']) {
+        let max = 0;
+        for (const line of value.split('\n')) {
+            const run = literalFenceRun(line, char);
+            if (run > max) max = run;
+        }
+        const fence = char.repeat(Math.max(3, max + 1));
+        if (!best || fence.length < best.length) best = fence;
+    }
+    return best;
+}
+
+function fencedLiteralText(value, annotation) {
+    const fence = chooseLiteralFence(value);
+    return `${fence} {${annotation}}\n${value}\n${fence}\n\n`;
+}
+
+function literalBracketsBalanced(value) {
+    let depth = 0;
+    for (const ch of value) {
+        if (ch === '[') depth++;
+        else if (ch === ']' && --depth < 0) return false;
+    }
+    return depth === 0;
+}
+
+function literalCodeSafe(value, ticks) {
+    if (value.includes('`'.repeat(ticks))) return false;
+    return ticks === 1 || (!value.startsWith('`') && !value.endsWith('`'));
+}
+
+function singleLineLiteralCarrier(value, annotation) {
+    if (literalBracketsBalanced(value)) return `[${value}] {${annotation}}\n`;
+    if (literalCodeSafe(value, 1)) return `\`${value}\` {${annotation}}\n`;
+    if (literalCodeSafe(value, 2)) return `\`\`${value}\`\` {${annotation}}\n`;
+    return fencedLiteralText(value, annotation);
+}
+
 export function generateLiteralText(quad, context) {
     const predShort = shortenIRI(quad.predicate.value, context);
     let annotation = predShort;
@@ -243,33 +290,24 @@ export function generateLiteralText(quad, context) {
     }
 
     // Get clean value (handle both RDF/JS Literal objects and plain strings)
-    const rawValue = quad.object.value || quad.object;
+    const rawValue = quad.object.value ?? quad.object;
     const value = typeof rawValue === 'string' ? rawValue : String(rawValue);
 
     // Get datatype for styling decisions
     const datatype = quad.object.datatype?.value || '';
 
-    // Multiline: fenced block (safe for arbitrary content)
-    if (value.includes('\n')) {
-        return `~~~ {${annotation}}\n${value}\n~~~\n\n`;
-    }
+    if (value === '') return `[] {${annotation}}\n`;
 
-    // Numbers (integer, decimal, double, float): code spans
-    if (datatype.includes('integer') || datatype.includes('decimal') || datatype.includes('double') || datatype.includes('float')) {
-        return `\`${value}\` {${annotation}}\n`;
-    }
+    // Multiline and carrier-hostile values: fenced block with a fence longer than any content run
+    if (value.includes('\n')) return fencedLiteralText(value, annotation);
 
-    if (datatype.includes('date') || datatype.includes('time')) {
-        return `*${value}* {${annotation}}\n`;
-    }
+    const numeric = datatype.includes('integer') || datatype.includes('decimal') || datatype.includes('double') || datatype.includes('float');
+    if (numeric && literalCodeSafe(value, 1)) return `\`${value}\` {${annotation}}\n`;
 
-    // Booleans: bold (stands out visually)
-    if (datatype.includes('boolean')) {
-        return `**${value}** {${annotation}}\n`;
-    }
+    if ((datatype.includes('date') || datatype.includes('time')) && !value.includes('*')) return `*${value}* {${annotation}}\n`;
+    if (datatype.includes('boolean') && !value.includes('*')) return `**${value}** {${annotation}}\n`;
 
-    // Everything else (strings, dates, etc.): square brackets (simple, readable)
-    return `[${value}] {${annotation}}\n`;
+    return singleLineLiteralCarrier(value, annotation);
 }
 
 export function generateLabelAnnotation(labelEntry, context) {
@@ -372,7 +410,7 @@ export function generateRetractionText(quad, context) {
         }
 
         // Format value
-        const rawValue = quad.object.value || quad.object;
+        const rawValue = quad.object.value ?? quad.object;
         const value = typeof rawValue === 'string' ? rawValue : String(rawValue);
         const datatype = quad.object.datatype?.value || '';
 
