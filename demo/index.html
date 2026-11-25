@@ -867,7 +867,8 @@
   </main>
   <footer>
     <p>This guide is a self-contained MD-LD document. View page source →
-      <code>&lt;script type="text/plain" id="mdld-source"&gt;</code> to see the knowledge graph that renders it.</p>
+      <code>&lt;script type="text/plain" id="mdld-source"&gt;</code> to see the knowledge graph that renders it.
+    </p>
     <p style="margin-top:0.5rem"><a href="https://mdld.js.org">mdld.js.org</a> · <a
         href="https://www.npmjs.com/package/mdld-parse">npm: mdld-parse</a> · <a
         href="https://github.com/mdld-js">github.com/mdld-js</a></p>
@@ -910,7 +911,7 @@
 
 > Textual continuity — the graph lives inside readable prose, so agents never lose context when switching between "reading" and "querying." State and meaning are co-located. {my:advantage}
 > Deterministic syntax — the same input always produces the same quads. No heuristics, no inference, no guessing. Agents can predict exactly what a document means. {my:advantage}
-> Zero dependencies — the parser is 24KB gzipped, pure ESM, runs in any JS environment. No graph database, no server, no toolchain. {my:advantage}
+> Zero dependencies — the parser is 60KB gzipped, pure ESM, runs in any JS environment. No graph database, no server, no toolchain. {my:advantage}
 > Merge semantics — multiple documents merge cleanly via CRDT-style polarity. Agents can collaborate by appending MD-LD files. {my:advantage}
 > Round-trip safety — parse then generate produces identical quads. Agents can edit, store, and reload without data loss. {my:advantage}
 > Self-sovereign identity — RFC 4151 `tag:` URIs let agents claim namespaces using only an email or domain. No central registry. {my:advantage}
@@ -1077,7 +1078,7 @@
 
 > A Python agent can do: `response = requests.get("https://myshop.com/products.md")`. The agent's LLM natively understands the Markdown/RDF hybrid format and can extract prices, statuses, and descriptions instantly. No SDK required. No API key negotiation. No rate-limit headers to parse. {my:p}
 
-> Third-party integrations become trivial. Any developer — human or agent — can consume your MD-LD endpoints with a single `fetch()` call and a 24KB parser. The contract is self-documenting, backward-compatible, and semantically rich. This is the original promise of the Semantic Web, finally delivered in a format that humans actually want to write. {my:p}
+> Third-party integrations become trivial. Any developer — human or agent — can consume your MD-LD endpoints with a single `fetch()` call and a 60KB parser. The contract is self-documenting, backward-compatible, and semantically rich. This is the original promise of the Semantic Web, finally delivered in a format that humans actually want to write. {my:p}
 
 ===== SYNTAX EXAMPLES =====
 

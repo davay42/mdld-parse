@@ -221,12 +221,12 @@ Discussed [Project Alpha] {alice:discussed}
 - **🔄 Round-trip safety** — Deterministic parse ↔ generate cycles
 - **🌐 HTML Codec** — Lossless `render()` and `deconstruct()` pair for web publishing
 
-**Bundle size:** ~230KB unminified, ~60KB gzipped (~57.5K tokens) — the complete engine in one file
+**Bundle size:** ~222KB unminified, ~60KB gzipped (~55.5K tokens) — the complete engine in one file
 
 ## 📦 Installation
 
 **One file. Zero dependencies. Fully self-contained** — `mdld-parse.js`
-(~230 kB) is the entire engine: parser, canonical generator, SHACL validator
+(~222 kB) is the entire engine: parser, canonical generator, SHACL validator
 (`evaluate`/`validate`/`extract`), graph renderer (`<quad-graph>`, browser-only,
 exported as `undefined` elsewhere), merge, render, and highlight. There are no
 sub-path exports — everything is importable from `'mdld-parse'`, and the file
@@ -918,7 +918,7 @@ are in the repo — this README + the single `.js` file are the operational kern
 ## 🏗️ Architecture
 
 ### Design Principles
-- **Zero dependencies** — Pure JavaScript, ~230KB unminified (~60KB gzipped, ~57.5K tokens), one file
+- **Zero dependencies** — Pure JavaScript, ~222KB unminified (~60KB gzipped, ~55.5K tokens), one file
 - **Streaming-first** — Single-pass parsing, O(n) complexity
 - **Character-based tokenization** — 20-28% faster than regex-based approaches
 - **Standards-compliant** — RDF/JS data model, W3C CURIE 1.0 syntax

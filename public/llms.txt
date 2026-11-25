@@ -18,7 +18,7 @@ text ──parse()──▶ quads ──generate()──▶ canonical text
                   └──render()──▶ HTML ──deconstruct()──▶ text
 ```
 
-Every arrow is lossless. Annotations are `{...}` blocks on normal Markdown; remove them and plain Markdown remains. No database, no API keys, no platform — a 120 kB zero-dependency JavaScript library runs the whole thing in Node and the browser.
+Every arrow is lossless. Annotations are `{...}` blocks on normal Markdown; remove them and plain Markdown remains. No database, no API keys, no platform — a 222 kB zero-dependency JavaScript library runs the whole thing in Node and the browser.
 
 This matters to you specifically: you are stateless between sessions. MD-LD is memory that survives — plain files your user can read, edit, diff, and own. {=mdld:stateless-problem .prov:Entity ?rdfs:comment}
 
@@ -210,7 +210,7 @@ const html = highlight(mdCode)   // syntax-highlighted HTML for display
 generate(g1, opts).text === generate(g2, opts).text   ⟺   g1 ≡ g2
 ```
 
-This is RDF graph comparison without URDNA2015 — free, in 120 kB. Caveats: blank nodes and named graphs are out of scope; options (`context`, `primarySubject`, `compactInline`, `renderReverse`, `lang`, `remove`) are part of the canonical form — always compare with identical options.
+This is RDF graph comparison without URDNA2015 — free, in 222 kB. Caveats: blank nodes and named graphs are out of scope; options (`context`, `primarySubject`, `compactInline`, `renderReverse`, `lang`, `remove`) are part of the canonical form — always compare with identical options.
 
 #### The rewrite-verification loop {=mdld:rewrite-loop .prov:Activity label}
 
