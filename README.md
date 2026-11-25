@@ -54,7 +54,7 @@ Every [User] {+ex:User ?sh:targetClass} needs **name** {+#nameRule ?sh:property 
 document.body.innerHTML = `<style>
   #demo{background:#fff;color:#111;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:14px;max-width:960px}
   #demo mdld-editor,#demo quad-graph{display:block;border:1px solid #ddd;border-radius:8px;margin-top:8px}
-  #out{margin-top:8px;color:#111}#out h3{margin:.8em 0 .2em;font-size:1em}#out table{border-collapse:collapse}#out th,#out td{padding:2px 10px 2px 0;text-align:left;vertical-align:top}#out th{font-weight:600;opacity:.75}#out ul{margin:.2em 0;padding-left:1.2em}
+  #out{margin-top:8px;color:#111}#out h3{margin:.8em 0 .2em;font-size:1em}#out table{border-collapse:collapse}#out th,#out td{padding:2px 10px 2px 0;text-align:left;vertical-align:top}#out th{font-weight:600;opacity:.75}#out ul{margin:.2em 0;padding-left:1.2em}.violation{color:#c00;}
 </style><div id="demo">
 <mdld-editor height="42svh"></mdld-editor>
 <quad-graph height="320"></quad-graph>
@@ -68,7 +68,7 @@ function update() {
     const { quads, context } = parse({ text: ed.value })
     g.context = context; g.quads = quads         // graph appears/updates instantly
     const r = evaluate({ quads, context })
-    const bad = r.violations.map(v => `<li>✗ ${esc(v.message || v.component.value)}</li>`).join('')
+    const bad = r.violations.map(v => `<li class="violation">✗ ${esc(v.message || v.component.value)}</li>`).join('')
     const rec = Object.entries(r.records).flatMap(([shape, nodes]) =>
       Object.entries(nodes).map(([node, pojo]) =>
         `<h3>${esc(shortenIRI(shape, context))} › ${esc(node)}</h3>${recordTable(pojo)}`)).join('')
