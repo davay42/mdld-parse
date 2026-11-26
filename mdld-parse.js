@@ -5785,10 +5785,6 @@ function checkNodeKind(value, nodeKindIRI) {
 		default: return true;
 	}
 }
-/** Lexical form passed to sh:js scripts as `value` (literal lexical / IRI / blank label). */
-function jsValue(t) {
-	return t ? t.value : null;
-}
 /**
 * Compile a sh:script body into a callable function.
 * Same realm, no sandbox: the script runs with validator helpers in scope —
@@ -5796,7 +5792,7 @@ function jsValue(t) {
 */
 function compileJs(src, shapeTerm) {
 	try {
-		return new Function("value", "term", "focusNode", "values", "graph", "termEquals", "valuesOf", src);
+		return new Function("value", "path", "focusNode", src);
 	} catch (e) {
 		throw new Error(`sh:js compile error in shape ${shapeTerm?.value}: ${e.message}`);
 	}
@@ -6063,16 +6059,23 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
 		}
 		case "JSConstraintComponent": {
 			if (!ctx.allowJS) break;
-			const src = jsSource(shapesDS, params.js);
-			ctx.jsCache ??= /* @__PURE__ */ new Map();
-			const key = termKey(params.js);
-			let fn = ctx.jsCache.get(key);
-			if (!fn) {
-				fn = compileJs(src, ctx.shapeTerm);
-				ctx.jsCache.set(key, fn);
+			const fnNames = isLiteral(params.js) ? [] : valuesOf(shapesDS, params.js, sh("jsFunctionName"));
+			let fn;
+			if (fnNames.length > 0) {
+				const name = fnNames[0].value;
+				fn = ctx.jsLibraries?.[name];
+				if (typeof fn !== "function") throw new Error(`sh:jsFunctionName "${name}" not provided in jsLibraries`);
+			} else {
+				const src = jsSource(shapesDS, params.js);
+				ctx.jsCache ??= /* @__PURE__ */ new Map();
+				const key = termKey(params.js);
+				fn = ctx.jsCache.get(key);
+				if (!fn) {
+					fn = compileJs(src, ctx.shapeTerm);
+					ctx.jsCache.set(key, fn);
+				}
 			}
-			const boundValuesOf = (s, p) => valuesOf(dataDS, s, p);
-			if (!fn(jsValue(value), value, focusNode, values, dataDS, termEquals, boundValuesOf)) violations.push(viol());
+			if (!fn(value, ctx.path || null, focusNode)) violations.push(viol());
 			break;
 		}
 		case "QualifiedMinCountConstraintComponent":
@@ -6383,7 +6386,8 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
 				visited: /* @__PURE__ */ new Set(),
 				shapeCache,
 				jsCache: /* @__PURE__ */ new Map(),
-				allowJS: options?.allowJS === true
+				allowJS: options?.allowJS === true,
+				jsLibraries: options?.jsLibraries
 			};
 			if (validateNodeAgainstShape(dataDS, shapesDS, entry.shape, focusNode, gate).length > 0) continue;
 		}
@@ -6579,6 +6583,7 @@ function evaluate(options = {}) {
 	const { shapesDS, dataDS } = resolveDatasets(options);
 	const prefixes = buildPrefixes(options.context);
 	const allowJS = options.allowJS === true;
+	const jsLibraries = options.jsLibraries;
 	const byNode = options.byNode !== false;
 	const maxDepth = options.maxDepth ?? 32;
 	const shapeCache = /* @__PURE__ */ new Map();
@@ -6601,6 +6606,7 @@ function evaluate(options = {}) {
 			shapeCache,
 			jsCache,
 			allowJS,
+			jsLibraries,
 			prefixes
 		};
 		for (const focusNode of targets) allViolations.push(...validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, focusNode, vctx));
@@ -6609,6 +6615,7 @@ function evaluate(options = {}) {
 			shapeCache,
 			jsCache,
 			allowJS,
+			jsLibraries,
 			prefixes
 		}, { nodeLevelOnly: true }).length === 0);
 		const pojoOptions = {

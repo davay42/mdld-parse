@@ -713,7 +713,7 @@ function jsValue(t) {
  */
 function compileJs(src, shapeTerm) {
   try {
-    return new Function('value', 'term', 'focusNode', 'values', 'graph', 'termEquals', 'valuesOf', src)
+    return new Function('value', 'path', 'focusNode', src)
   } catch (e) {
     throw new Error(`sh:js compile error in shape ${shapeTerm?.value}: ${e.message}`)
   }
@@ -983,16 +983,25 @@ function evalConstraint(constraint, dataDS, shapesDS, focusNode, value, values, 
     case 'JSConstraintComponent': {
       // sh:js executes arbitrary code — opt-in only (untrusted shapes must not reach this)
       if (!ctx.allowJS) break
-      const src = jsSource(shapesDS, params.js)
-      ctx.jsCache ??= new Map()
-      const key = termKey(params.js)
-      let fn = ctx.jsCache.get(key)
-      if (!fn) {
-        fn = compileJs(src, ctx.shapeTerm)
-        ctx.jsCache.set(key, fn)
+      const fnNames = isLiteral(params.js) ? [] : valuesOf(shapesDS, params.js, sh('jsFunctionName'))
+      let fn
+      if (fnNames.length > 0) {
+        // sh:jsFunctionName + sh:jsLibrary -> sh:JSLibrary -> sh:jsLibraryURL:
+        // the engine loads the library file once and extracts the named function.
+        const name = fnNames[0].value
+        fn = ctx.jsLibraries?.[name]
+        if (typeof fn !== 'function') throw new Error(`sh:jsFunctionName "${name}" not provided in jsLibraries`)
+      } else {
+        const src = jsSource(shapesDS, params.js)
+        ctx.jsCache ??= new Map()
+        const key = termKey(params.js)
+        fn = ctx.jsCache.get(key)
+        if (!fn) {
+          fn = compileJs(src, ctx.shapeTerm)
+          ctx.jsCache.set(key, fn)
+        }
       }
-      const boundValuesOf = (s, p) => valuesOf(dataDS, s, p)
-      const ok = fn(jsValue(value), value, focusNode, values, dataDS, termEquals, boundValuesOf)
+      const ok = fn(value, ctx.path || null, focusNode)
       if (!ok) violations.push(viol())
       break
     }
@@ -1334,7 +1343,7 @@ function pojoForNode(dataDS, shapesDS, shapeTerm, focusNode, shapeCache, stack, 
     // sh:js runs only when the caller opts in via allowJS — same gate as validate().
     // Constraint-free property shapes skip the gate entirely.
     if (entry.gated) {
-      const gate = { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: options?.allowJS === true }
+      const gate = { visited: new Set(), shapeCache, jsCache: new Map(), allowJS: options?.allowJS === true, jsLibraries: options?.jsLibraries }
       if (validateNodeAgainstShape(dataDS, shapesDS, entry.shape, focusNode, gate).length > 0) continue
     }
     for (const pathTerm of entry.pathTerms) {
@@ -1556,6 +1565,7 @@ function evaluate(options = {}) {
   const { shapesDS, dataDS } = resolveDatasets(options)
   const prefixes = buildPrefixes(options.context)
   const allowJS = options.allowJS === true
+  const jsLibraries = options.jsLibraries
   const byNode = options.byNode !== false
   const maxDepth = options.maxDepth ?? 32
   const shapeCache = new Map()
@@ -1576,7 +1586,7 @@ function evaluate(options = {}) {
 
     const shapeKey = shapeTerm.value
     const targets = resolveTargets(dataDS, shapesDS, shapeTerm)
-    const vctx = { visited: new Set(), shapeTerm, shapeCache, jsCache, allowJS, prefixes }
+    const vctx = { visited: new Set(), shapeTerm, shapeCache, jsCache, allowJS, jsLibraries, prefixes }
 
     // Pass 1 — violations (full constraint evaluation per focus node)
     for (const focusNode of targets) {
@@ -1588,7 +1598,7 @@ function evaluate(options = {}) {
     const hasNodeConstraints = nodeInfo.constraints.some(c => !EVAL_NODE_LEVEL_SKIP.includes(c.component))
     const kept = !hasNodeConstraints ? targets : targets.filter(t =>
       validateNodeAgainstShape(dataDS, shapesDS, shapeTerm, t,
-        { visited: new Set(), shapeCache, jsCache, allowJS, prefixes },
+        { visited: new Set(), shapeCache, jsCache, allowJS, jsLibraries, prefixes },
         { nodeLevelOnly: true }).length === 0)
 
     const pojoOptions = { ...options, prefixes, allowJS }
