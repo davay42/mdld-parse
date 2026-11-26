@@ -286,10 +286,10 @@ const msgBlock = (convIri, day, n, role, content, agent, agentName, last) => {
   const who = role === 'user' ? ['Davay', USER_IRI, 'role-user', 'UserMessage'] : [agentName, AGENT_IRI, 'role-assistant', 'AssistantMessage']
   return `## ${label} {=${iri} .llm:${who[3]} label}
 A message on [Day log ${day}] {+llm:day-${day} ?llm:memberOf}
-*${new Date().toISOString()}* {prov:generatedAtTime ^^xsd:dateTime}
+*${new Date().toISOString()}* {llm:at ^^xsd:dateTime}
 [${content.replace(/\n/g, ' ')}] {llm:content}
 [${sha(content + '|' + agent)}] {llm:signature}
-[${who[0]}] {+${S(who[1])} ?prov:wasAttributedTo}
+[${who[0]}] {+${S(who[1])} ?llm:attributedTo}
 [llm:${who[2]}] {+llm:${who[2]} ?llm:role}${last ? `
 [${last.label}] {+${S(last.iri)} ?llm:inReplyTo}` : ''}
 `
@@ -324,7 +324,7 @@ const appendExchange = (userText, agentText, agentName = 'Devin') => {
     text = text.slice(0, closeIdx) + '\n' + blocks.join('\n') + text.slice(closeIdx)
   } else {
     if (!text.includes('# Daily Log')) text = text.trimEnd() + '\n\n---\n\n# Daily Log\n'
-    const header = `[llm] <tag:llm.chat.example,2026:>\n\n## Day ${day} {=llm:day-${day} .llm:Conversation label}\nFollows [${followsLabel}] {+${followsObj} ?llm:follows}.\n~~~~~~md {llm:payload}\n## Day log ${day} {=llm:day-${day} .llm:Conversation label}\n## Davay {=llm:user-davay .prov:Agent label}\n## Devin {=llm:agent-devin .llm:Agent label}\n`
+    const header = `[llm] <tag:llm.chat.example,2026:>\n\n## Day ${day} {=llm:day-${day} .llm:Conversation label}\nFollows [${followsLabel}] {+${followsObj} ?llm:follows}.\n~~~~~~md {llm:payload}\n[llm] <tag:llm.chat.example,2026:>\n[prov] <http://www.w3.org/ns/prov#>\n[xsd] <http://www.w3.org/2001/XMLSchema#>\n\n## Day log ${day} {=llm:day-${day} .llm:Conversation label}\n## Davay {=llm:user-davay .prov:Agent label}\n## Devin {=llm:agent-devin .llm:Agent label}\n`
     const block = header + blocks.join('\n') + '\n~~~~~~'
     text = text.trimEnd() + '\n\n' + block + '\n'
   }
@@ -424,14 +424,15 @@ if (process.argv[2] === 'serve') {
           role,
           author,
           content: p[LLM + 'content'].value,
-          time: time ? new Date(time).toLocaleTimeString() : '',
+          ts: time || '',
+          time: time ? new Date(time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '',
           iri: sub.split(',').pop()
         })
       }
     }
 
     // Sort by time
-    messages.sort((a, b) => a.time.localeCompare(b.time))
+    messages.sort((a, b) => a.ts.localeCompare(b.ts))
 
     // Render messages
     const msgHtml = messages.map(m => {
@@ -588,6 +589,7 @@ if (process.argv[2] === 'serve') {
     background: #27272a;
     border: 1px solid #3f3f46;
   }
+  .msg .time { opacity: 0.75; }
   .msg .meta {
     font-size: 0.75rem;
     opacity: 0.7;

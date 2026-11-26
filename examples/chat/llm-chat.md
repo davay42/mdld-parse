@@ -20,7 +20,7 @@ Two shapes keep the *shell itself* honest — they run on the 46-quad parse, bef
 [1] {sh:minCount ^^xsd:integer}
 [payload] {+llm:payload ?sh:path}
 
-**DocumentMapShape** {=llm:DocumentMapShape .sh:NodeShape label} targets the [document] {+llm:chat ?sh:targetNode} and demands its **members** {+#docM ?sh:property sh:name} — the root graph must stay connected.
+**Documents** {=llm:DocumentMapShape .sh:NodeShape label} targets the [document] {+llm:chat ?sh:targetNode} and demands its **members** {+#docM ?sh:property sh:name} — the root graph must stay connected.
 
 [Members are required — {focusNode}] {=#docM .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
@@ -28,13 +28,13 @@ Two shapes keep the *shell itself* honest — they run on the 46-quad parse, bef
 
 
 
-## ChainShape {=llm:ChainShape .sh:NodeShape label}
+## Chains {=llm:ChainShape .sh:NodeShape label}
 Every [Conversation] {+llm:Conversation ?sh:targetClass} must **follow** {+#chF ?sh:property sh:name} something — no orphaned chains.
 [Follows is required — {focusNode}] {=#chF .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [follows] {+llm:follows ?sh:path}
 
-## TermShape {=llm:TermShape .sh:NodeShape label}
+## Terms {=llm:TermShape .sh:NodeShape label}
 Every [Term] {+llm:Term ?sh:targetClass} must carry its **comment** {+#tmC ?sh:property sh:name} — a lookup without a definition is noise.
 [Comment is required — {focusNode}] {=#tmC .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
@@ -44,7 +44,15 @@ Every [Term] {+llm:Term ?sh:targetClass} must carry its **comment** {+#tmC ?sh:p
 
 ## The Walkthrough {=llm:walkthrough .llm:Walkthrough label}
 
-The document is a guided path: five **Step**s — self-contained modules of shared understanding — each carrying its draft as `llm:payload` and its seal as `llm:canonicalHash` (or `llm:canonicalText` while being worked on). **Document** {=llm:Document .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — the root of a knowledge document. **Walkthrough** {=llm:Walkthrough .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — an ordered path through the document's parts. **Module** {=llm:Module .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf} — a self-contained unit with dormant content. **Step** {=llm:Step .Class label} is a kind of [Module] {+llm:Module ?subClassOf}; **Conversation** {=llm:Conversation .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — a container of messages; the daily logs are Conversations. **Term** {=llm:Term .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf} — a looked-up concept with its definition. **canonicalText** {=llm:canonicalText .rdf:Property label} binds a [Step] {+llm:Step ?domain} to its [string] {+xsd:string ?range} canonical form. The **hasPart** {=llm:hasPart .rdf:Property label} binds a [Bundle] {+prov:Bundle ?domain} to its member [Entity] {+prov:Entity ?range}; the **payload** {=llm:payload .rdf:Property label} binds a [Module] {+llm:Module ?domain} to its dormant [string] {+xsd:string ?range} content. The **follows** {=llm:follows .rdf:Property label} chains a [Conversation] {+llm:Conversation ?domain} to the [Entity] {+prov:Entity ?range} it succeeds. The **attributedTo** {=llm:attributedTo .rdf:Property label} binds a [Message] {+llm:Message ?domain} to its speaker [Entity] {+prov:Entity ?range}; **at** {=llm:at .rdf:Property label} gives a [Message] {+llm:Message ?domain} its [dateTime] {+xsd:dateTime ?range} timestamp; **memberOf** {=llm:memberOf .rdf:Property label} binds a [Message] {+llm:Message ?domain} to the [Conversation] {+llm:Conversation ?range} holding it; **startedAt**/**endedAt** {=llm:startedAt .rdf:Property label}{=llm:endedAt .rdf:Property label} bound a [ToolCall] {+llm:ToolCall ?domain} to its [dateTime] {+xsd:dateTime ?range} bounds.
+The document is a guided path: five **Step**s — self-contained modules of shared understanding — each carrying its draft as `llm:payload` and its seal as `llm:canonicalHash` (or `llm:canonicalText` while being worked on).
+
+The root vocabulary, blended the same way as Part I — every classification arrives with its expectation:
+
+**Document** {=llm:Document .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — the root of a knowledge document; it exists only to be navigable, so every part must be reachable through **hasPart**. **Walkthrough** {=llm:Walkthrough .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — an ordered path through the document's parts, and order is the point: a walkthrough without sequence is just a list. **Module** {=llm:Module .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf} — a self-contained unit whose content stays dormant until unfolded; dormancy is the contract, not a limitation. **Step** {=llm:Step .Class label} is a kind of [Module] {+llm:Module ?subClassOf} — a module that additionally carries a seal: a step without `canonicalHash` or `canonicalText` is a draft that forgot to be checked. **Conversation** {=llm:Conversation .Class label} is a kind of [Bundle] {+prov:Bundle ?subClassOf} — a container of messages; the daily logs are Conversations, and no conversation floats free — each must **follow** something. **Term** {=llm:Term .Class label} is a kind of [Entity] {+prov:Entity ?subClassOf} — a looked-up concept that earns its place only by carrying a definition.
+
+The predicates keep the same discipline — each names a relationship the data must honor:
+
+**hasPart** {=llm:hasPart .rdf:Property label} binds a [Bundle] {+prov:Bundle ?domain} to its member [Entity] {+prov:Entity ?range} — structure, not provenance; **payload** {=llm:payload .rdf:Property label} binds a [Module] {+llm:Module ?domain} to its dormant [string] {+xsd:string ?range} content — the module's words stay sealed until asked for; **canonicalText** {=llm:canonicalText .rdf:Property label} binds a [Step] {+llm:Step ?domain} to its [string] {+xsd:string ?range} canonical form — verbose while working, hash when sealed; **follows** {=llm:follows .rdf:Property label} chains a [Conversation] {+llm:Conversation ?domain} to the [Entity] {+prov:Entity ?range} it succeeds — no orphaned chains; **attributedTo** {=llm:attributedTo .rdf:Property label} binds a [Message] {+llm:Message ?domain} to its speaker [Entity] {+prov:Entity ?range}; **at** {=llm:at .rdf:Property label} gives a [Message] {+llm:Message ?domain} its [dateTime] {+xsd:dateTime ?range} timestamp; **memberOf** {=llm:memberOf .rdf:Property label} binds a [Message] {+llm:Message ?domain} to the [Conversation] {+llm:Conversation ?range} holding it — membership lives on the member, so appends never rewrite a list; **startedAt**/**endedAt** {=llm:startedAt .rdf:Property label}{=llm:endedAt .rdf:Property label} bound a [ToolCall] {+llm:ToolCall ?domain} to its [dateTime] {+xsd:dateTime ?range} bounds.
 
 [Step 1 — The Ontology] {+llm:step1 ?llm:hasPart}
 [Step 2 — Tools, Agents & Products] {+llm:step2 ?llm:hasPart}
@@ -88,7 +96,7 @@ Behind every message stands an **Agent** {=llm:Agent .Class label}, the reasonin
 
 ## Step 3 — The Meta-Shapes {=llm:step3 .llm:Step label}
 
-[sha256:db05f06d27560706] {llm:canonicalHash}
+[sha256:bf35bd4bbe941206] {llm:canonicalHash}
 
 ~~~~~~md {=llm:step3 llm:payload}
 [llm] <tag:llm.chat.example,2026:>
@@ -97,15 +105,15 @@ Behind every message stands an **Agent** {=llm:Agent .Class label}, the reasonin
 
 The ontology judges itself before it judges anything else: every `rdfs:Class` and `rdf:Property` must carry a `label`, because an unnamed term is a vocabulary bug — it exists but cannot be spoken about. `comment`, `domain`, `range` stay optional; documentation is convention, not contract.
 
-The rule lives in exactly one place: **Label Required** {=llm:#labelRequired .sh:PropertyShape label} demands at least [1] {sh:minCount ^^xsd:integer} [label] {+label ?sh:path} on whatever it is attached to. Two thin node shapes apply it to the two kinds of vocabulary — **Ontology Class Shape** {=llm:OntologyClassShape .sh:NodeShape label} targets every [Class] {+Class ?sh:targetClass} via [Label Required] {+llm:#labelRequired ?sh:property}, and **Ontology Property Shape** {=llm:OntologyPropertyShape .sh:NodeShape label} targets every [Property] {+rdf:Property ?sh:targetClass} identically. Sharing one constraint keeps the constitution DRY: change the rule once, both targets obey.
+The rule lives in exactly one place: **Label Required** {=llm:#labelRequired .sh:PropertyShape label} demands at least [1] {sh:minCount ^^xsd:integer} [label] {+label ?sh:path} on whatever it is attached to. Two thin node shapes apply it to the two kinds of vocabulary — **Classes** {=llm:OntologyClassShape .sh:NodeShape label} targets every [Class] {+Class ?sh:targetClass} via [Label Required] {+llm:#labelRequired ?sh:property}, and **Properties** {=llm:OntologyPropertyShape .sh:NodeShape label} targets every [Property] {+rdf:Property ?sh:targetClass} identically. Sharing one constraint keeps the constitution DRY: change the rule once, both targets obey.
 
 `evaluate()` returns two records and zero violations — every class and every property in the ontology is named. The vocabulary is sound.
 # Data Shapes
 
-The vocabulary is sound; now the conversation is judged. Every message must say who spoke, what was said, when, and on whose authority; every conversation must have members; every tool call must name its tool and its time window; every result must name its call.
+The vocabulary is sound; now the conversation is judged. A shape is a promise the data must keep — Part III makes the promises explicit, and a violation is not a bug in the shape but a debt in the data: a message that cannot say who spoke, what was said, when, and on whose authority is not a message at all; a turn without a conversation is an orphan; a tool call without a window is an unaccountable action; a result without its call is an answer to nothing.
 
-## MessageShape {=llm:MessageShape .sh:NodeShape label}
-Every [Message] {+llm:Message ?sh:targetClass} has **role** {+#mRole ?sh:property sh:name}, **content** {+#mContent ?sh:property sh:name}, **generated at** {+#mTime ?sh:property sh:name} and **attributed to** {+#mAgent ?sh:property sh:name}.
+## Messages {=llm:MessageShape .sh:NodeShape label}
+A [Message] {+llm:Message ?sh:targetClass} earns its place by answering four questions — **who** (role), **what** (content), **when** (at), and **on whose authority** (attributedTo) — and all four answers are required, not optional. It declares **role** {+#mRole ?sh:property sh:name}, **content** {+#mContent ?sh:property sh:name}, **generated at** {+#mTime ?sh:property sh:name} and **attributed to** {+#mAgent ?sh:property sh:name}.
 [Role is required — {focusNode}] {=#mRole .sh:PropertyShape sh:message}
 `1` {sh:minCount ^^xsd:integer}
 [role] {+llm:role ?sh:path}
@@ -114,31 +122,31 @@ Every [Message] {+llm:Message ?sh:targetClass} has **role** {+#mRole ?sh:propert
 [content] {+llm:content ?sh:path}
 [Timestamp is required — {focusNode}] {=#mTime .sh:PropertyShape sh:message}
 `1` {sh:minCount ^^xsd:integer}
-[generatedAtTime] {+llm:at ?sh:path}
+[at] {+llm:at ?sh:path}
 [Attribution is required — {focusNode}] {=#mAgent .sh:PropertyShape sh:message}
 `1` {sh:minCount ^^xsd:integer}
-[wasAttributedTo] {+llm:attributedTo ?sh:path}
+[attributedTo] {+llm:attributedTo ?sh:path}
 
-## ConversationShape {=llm:ConversationShape .sh:NodeShape label}
-Every [Message] {+llm:Message ?sh:targetClass} must belong to a **conversation** {+#cMember ?sh:property sh:name} — no orphaned turns.
+## Conversations {=llm:ConversationShape .sh:NodeShape label}
+No turn floats free: every [Message] {+llm:Message ?sh:targetClass} must name the **conversation** {+#cMember ?sh:property sh:name} — no orphaned turns.
 [Member is required — {focusNode}] {=#cMember .sh:PropertyShape sh:message}
 `1` {sh:minCount ^^xsd:integer}
 [memberOf] {+llm:memberOf ?sh:path}
 
-## ToolCallShape {=llm:ToolCallShape .sh:NodeShape label}
-Every [ToolCall] {+llm:ToolCall ?sh:targetClass} has **invoked** {+#tcInv ?sh:property sh:name}, **started at** {+#tcStart ?sh:property sh:name} and **ended at** {+#tcEnd ?sh:property sh:name}.
+## Tool calls {=llm:ToolCallShape .sh:NodeShape label}
+An action is accountable only inside its window: every [ToolCall] {+llm:ToolCall ?sh:targetClass} must name **what** it invoked and **when** it ran — **invoked** {+#tcInv ?sh:property sh:name}, **started at** {+#tcStart ?sh:property sh:name} and **ended at** {+#tcEnd ?sh:property sh:name}.
 [Tool is required — {focusNode}] {=#tcInv .sh:PropertyShape sh:message}
 `1` {sh:minCount ^^xsd:integer}
 [invoked] {+llm:invoked ?sh:path}
 [Start is required — {focusNode}] {=#tcStart .sh:PropertyShape sh:message}
 `1` {sh:minCount ^^xsd:integer}
-[startedAtTime] {+llm:startedAt ?sh:path}
+[startedAt] {+llm:startedAt ?sh:path}
 [End is required — {focusNode}] {=#tcEnd .sh:PropertyShape sh:message}
 `1` {sh:minCount ^^xsd:integer}
-[endedAtTime] {+llm:endedAt ?sh:path}
+[endedAt] {+llm:endedAt ?sh:path}
 
-## ToolResultShape {=llm:ToolResultShape .sh:NodeShape label}
-Every [ToolResult] {+llm:ToolResult ?sh:targetClass} has **returned from** {+#trRet ?sh:property sh:name}.
+## Tool results {=llm:ToolResultShape .sh:NodeShape label}
+An answer is only as good as its question: every [ToolResult] {+llm:ToolResult ?sh:targetClass} must name the call it **returned from** {+#trRet ?sh:property sh:name}.
 [Call is required — {focusNode}] {=#trRet .sh:PropertyShape sh:message}
 `1` {sh:minCount ^^xsd:integer}
 [returned] {+llm:returned ?sh:path}
@@ -212,7 +220,7 @@ A member of [LLM Chat Example] {=llm:conv-001 ?llm:memberOf}.
 
 ## Step 5 — The Golden Graph {=llm:step5 .llm:Step label}
 
-[sha256:14041ea7b9e8aedc] {llm:canonicalHash}
+[sha256:9769e4c59d6a6d9a] {llm:canonicalHash}
 
 ~~~~~~md {=llm:step5 llm:payload}
 [llm] <tag:llm.chat.example,2026:>
@@ -305,7 +313,7 @@ Issued by the hosting organization, held by the agent — embedded demo key, sam
 
 ## Golden Shapes
 
-## ElevatedStatementShape {=llm:ElevatedStatementShape .sh:NodeShape label}
+## Statements {=llm:ElevatedStatementShape .sh:NodeShape label}
 Every [Statement] {+rdf:Statement ?sh:targetClass} has **subject** {+#esS ?sh:property sh:name}, **predicate** {+#esP ?sh:property sh:name}, **object** {+#esO ?sh:property sh:name}, **asserted by** {+#esA ?sh:property sh:name} and **credential** {+#esC ?sh:property sh:name}, **signature** {+#esSig ?sh:property sh:name}.
 [Subject is required — {focusNode}] {=#esS .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
@@ -326,7 +334,7 @@ Every [Statement] {+rdf:Statement ?sh:targetClass} has **subject** {+#esS ?sh:pr
 [1] {sh:minCount ^^xsd:integer}
 [signature] {+llm:signature ?sh:path}
 
-## InitialEventShape {=llm:InitialEventShape .sh:NodeShape label}
+## Initial events {=llm:InitialEventShape .sh:NodeShape label}
 Every [InitialEvent] {+llm:InitialEvent ?sh:targetClass} has **label** {+#ieL ?sh:property sh:name}.
 [Name is required — {focusNode}] {=#ieL .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
@@ -470,6 +478,13 @@ part4: hash MATCH (sha256:9946bcb586873b07)
 [regenerate canonical text per module and compare oracle digests] {llm:purpose}
 
 ## Davay {=llm:user-davay .prov:Agent label}
+## Ecmascript {=llm:term-ecmascript .llm:Term label}
+[ECMAScript is the standard for the JavaScript language, intended to ensure the interoperability of web pages across different web browsers. It is standardized by Ecma International's TC39 technical committee in the document ECMA-262, with i18n ("Intl") APIs standardized in the document ECMA-402.] {rdfs:comment}
+[https://en.wikipedia.org/wiki/ECMAScript] {rdfs:seeAlso}
+
+## MD-LD {=llm:term-md-ld .llm:Term label}
+[Markdown Linked Data text-based knowledge graph ecosystem (user-supplied)] {rdfs:comment}
+
 ~~~~~~
 
 ## Day 2026-11-25 {=llm:day-2026-11-25 .llm:Conversation label}
@@ -747,5 +762,125 @@ A dormant glossary — terms the agent looks up accumulate here as their own gra
 
 ## Knowledge graph {=llm:term-knowledge-graph .llm:Term label}
 [a graph of real-world entities and the relationships between them. (user-supplied)] {rdfs:comment}
+
+~~~~~~
+[llm] <tag:llm.chat.example,2026:>
+
+## Day 2026-11-26 {=llm:day-2026-11-26 .llm:Conversation label}
+Follows [Day log 2026-11-25] {+llm:day-2026-11-25 ?llm:follows}.
+~~~~~~md {llm:payload}
+[llm] <tag:llm.chat.example,2026:>
+[prov] <http://www.w3.org/ns/prov#>
+[xsd] <http://www.w3.org/2001/XMLSchema#>
+
+## Day log 2026-11-26 {=llm:day-2026-11-26 .llm:Conversation label}
+## Davay {=llm:user-davay .prov:Agent label}
+## Devin {=llm:agent-devin .llm:Agent label}
+## What is Ecmascript? {=llm:day-2026-11-26-msg-01 .llm:UserMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:10:53.047Z* {llm:at ^^xsd:dateTime}
+[What is Ecmascript?] {llm:content}
+[sha256:f29a55070d918a16] {llm:signature}
+[Davay] {+llm:user-davay ?llm:attributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+
+## Ecmascript — ECMAScript is the standard for the JavaScript l {=llm:day-2026-11-26-msg-02 .llm:AssistantMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:10:53.047Z* {llm:at ^^xsd:dateTime}
+[Ecmascript — ECMAScript is the standard for the JavaScript language, intended to ensure the interoperability of web pages across different web browsers. It is standardized by Ecma International's TC39 technical committee in the document ECMA-262, with i18n ("Intl") APIs standardized in the document ECMA-402.] {llm:content}
+[sha256:6d1be1d4f72d302c] {llm:signature}
+[Devin] {+llm:agent-devin ?llm:attributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is Ecmascript?] {+llm:day-2026-11-26-msg-01 ?llm:inReplyTo}
+
+## What is mdld? {=llm:day-2026-11-26-msg-03 .llm:UserMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:12:49.155Z* {llm:at ^^xsd:dateTime}
+[What is mdld?] {llm:content}
+[sha256:c8ae0ececb096678] {llm:signature}
+[Davay] {+llm:user-davay ?llm:attributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Ecmascript — ECMAScript is the standard for the JavaScript l] {+llm:day-2026-11-26-msg-02 ?llm:inReplyTo}
+
+## I don't know what "mdld" is — no entry found. {=llm:day-2026-11-26-msg-04 .llm:AssistantMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:12:49.155Z* {llm:at ^^xsd:dateTime}
+[I don't know what "mdld" is — no entry found.] {llm:content}
+[sha256:7c86e3fefa430f80] {llm:signature}
+[Devin] {+llm:agent-devin ?llm:attributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is mdld?] {+llm:day-2026-11-26-msg-03 ?llm:inReplyTo}
+
+## What is Ecmascript? {=llm:day-2026-11-26-msg-05 .llm:UserMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:15:21.456Z* {llm:at ^^xsd:dateTime}
+[What is Ecmascript?] {llm:content}
+[sha256:f29a55070d918a16] {llm:signature}
+[Davay] {+llm:user-davay ?llm:attributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[I don't know what "mdld" is — no entry found.] {+llm:day-2026-11-26-msg-04 ?llm:inReplyTo}
+
+## Ecmascript — ECMAScript is the standard for the JavaScript l {=llm:day-2026-11-26-msg-06 .llm:AssistantMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:15:21.456Z* {llm:at ^^xsd:dateTime}
+[Ecmascript — ECMAScript is the standard for the JavaScript language, intended to ensure the interoperability of web pages across different web browsers. It is standardized by Ecma International's TC39 technical committee in the document ECMA-262, with i18n ("Intl") APIs standardized in the document ECMA-402.] {llm:content}
+[sha256:6d1be1d4f72d302c] {llm:signature}
+[Devin] {+llm:agent-devin ?llm:attributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[What is Ecmascript?] {+llm:day-2026-11-26-msg-05 ?llm:inReplyTo}
+
+## MD-LD is Markdown Linked Data text-based knowledge graph eco {=llm:day-2026-11-26-msg-07 .llm:UserMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:19:48.307Z* {llm:at ^^xsd:dateTime}
+[MD-LD is Markdown Linked Data text-based knowledge graph ecosystem] {llm:content}
+[sha256:f67e681cb9008932] {llm:signature}
+[Davay] {+llm:user-davay ?llm:attributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Ecmascript — ECMAScript is the standard for the JavaScript l] {+llm:day-2026-11-26-msg-06 ?llm:inReplyTo}
+
+## Noted — "MD-LD" added to the glossary on your authority. {=llm:day-2026-11-26-msg-08 .llm:AssistantMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:19:48.307Z* {llm:at ^^xsd:dateTime}
+[Noted — "MD-LD" added to the glossary on your authority.] {llm:content}
+[sha256:f5d24b2ad1b25bfe] {llm:signature}
+[Devin] {+llm:agent-devin ?llm:attributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[MD-LD is Markdown Linked Data text-based knowledge graph eco] {+llm:day-2026-11-26-msg-07 ?llm:inReplyTo}
+
+## what is md-ld? {=llm:day-2026-11-26-msg-09 .llm:UserMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:19:58.358Z* {llm:at ^^xsd:dateTime}
+[what is md-ld?] {llm:content}
+[sha256:9df2e02915484fe8] {llm:signature}
+[Davay] {+llm:user-davay ?llm:attributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[Noted — "MD-LD" added to the glossary on your authority.] {+llm:day-2026-11-26-msg-08 ?llm:inReplyTo}
+
+## md-ld — Markdown Linked Data text-based knowledge graph ecos {=llm:day-2026-11-26-msg-10 .llm:AssistantMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:19:58.358Z* {llm:at ^^xsd:dateTime}
+[md-ld — Markdown Linked Data text-based knowledge graph ecosystem (user-supplied)] {llm:content}
+[sha256:fcb0fdd968876aa9] {llm:signature}
+[Devin] {+llm:agent-devin ?llm:attributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[what is md-ld?] {+llm:day-2026-11-26-msg-09 ?llm:inReplyTo}
+
+## what is md-ld? {=llm:day-2026-11-26-msg-11 .llm:UserMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:20:14.026Z* {llm:at ^^xsd:dateTime}
+[what is md-ld?] {llm:content}
+[sha256:9df2e02915484fe8] {llm:signature}
+[Davay] {+llm:user-davay ?llm:attributedTo}
+[llm:role-user] {+llm:role-user ?llm:role}
+[md-ld — Markdown Linked Data text-based knowledge graph ecos] {+llm:day-2026-11-26-msg-10 ?llm:inReplyTo}
+
+## md-ld — Markdown Linked Data text-based knowledge graph ecos {=llm:day-2026-11-26-msg-12 .llm:AssistantMessage label}
+A message on [Day log 2026-11-26] {+llm:day-2026-11-26 ?llm:memberOf}
+*2026-11-26T08:20:14.026Z* {llm:at ^^xsd:dateTime}
+[md-ld — Markdown Linked Data text-based knowledge graph ecosystem (user-supplied)] {llm:content}
+[sha256:fcb0fdd968876aa9] {llm:signature}
+[Devin] {+llm:agent-devin ?llm:attributedTo}
+[llm:role-assistant] {+llm:role-assistant ?llm:role}
+[what is md-ld?] {+llm:day-2026-11-26-msg-11 ?llm:inReplyTo}
 
 ~~~~~~
