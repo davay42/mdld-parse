@@ -134,13 +134,14 @@ const auditSignatures = (quiet = false) => {
   }
   let msgOk = 0, msgBad = [], stmtOk = 0, stmtBad = []
   for (const [sub, p] of bySubj) {
-    const author = p[PROV + 'wasAttributedTo']?.value
-    if (p[LLM + 'content'] && author && p[LLM + 'signature']) {
-      if (p[LLM + 'signature'].value === sha(p[LLM + 'content'].value + '|' + author)) msgOk++
+    const msgAuthor = p[LLM + 'attributedTo']?.value
+    const stmtAuthor = p[PROV + 'wasAttributedTo']?.value
+    if (p[LLM + 'content'] && msgAuthor && p[LLM + 'signature']) {
+      if (p[LLM + 'signature'].value === sha(p[LLM + 'content'].value + '|' + msgAuthor)) msgOk++
       else msgBad.push(sub.split(',').pop())
     }
-    if (p[RDF + 'subject'] && p[RDF + 'predicate'] && p[RDF + 'object'] && author && p[LLM + 'signature']) {
-      const key = keyByAuthor.get(author)
+    if (p[RDF + 'subject'] && p[RDF + 'predicate'] && p[RDF + 'object'] && stmtAuthor && p[LLM + 'signature']) {
+      const key = keyByAuthor.get(stmtAuthor)
       const claim = [p[RDF + 'subject'].value, p[RDF + 'predicate'].value, p[RDF + 'object'].value].join('|') + '|' + key
       if (key && p[LLM + 'signature'].value === sha(claim)) stmtOk++
       else stmtBad.push(sub.split(',').pop())
@@ -223,10 +224,10 @@ if (process.argv[2] === 'log') {
       { subject: iri, predicate: nn(RDFS + 'label'), object: lit(content.slice(0, 60)) },
       { subject: iri, predicate: nn(LLM + 'role'), object: nn(LLM + 'role-' + role) },
       { subject: iri, predicate: nn(LLM + 'content'), object: lit(content) },
-      { subject: iri, predicate: nn(PROV + 'generatedAtTime'), object: lit(now, XSD + 'dateTime') },
-      { subject: iri, predicate: nn(PROV + 'wasAttributedTo'), object: agent },
+      { subject: iri, predicate: nn(LLM + 'at'), object: lit(now, XSD + 'dateTime') },
+      { subject: iri, predicate: nn(LLM + 'attributedTo'), object: agent },
       { subject: iri, predicate: nn(LLM + 'signature'), object: lit(sha(content + '|' + agent.value)) },
-      { subject: nn(convIri), predicate: nn(PROV + 'hadMember'), object: iri },
+      { subject: iri, predicate: nn(LLM + 'memberOf'), object: nn(convIri) },
     ]
     if (last) q.push({ subject: iri, predicate: nn(LLM + 'inReplyTo'), object: last })
     last = iri
@@ -284,11 +285,11 @@ const msgBlock = (convIri, day, n, role, content, agent, agentName, last) => {
   const label = content.replace(/\n/g, ' ').slice(0, 60)
   const who = role === 'user' ? ['Davay', USER_IRI, 'role-user', 'UserMessage'] : [agentName, AGENT_IRI, 'role-assistant', 'AssistantMessage']
   return `## ${label} {=${iri} .llm:${who[3]} label}
-A message on [Day log ${day}] {+llm:day-${day} !prov:hadMember}
-*${new Date().toISOString()}* {prov:generatedAtTime ^^xsd:dateTime}
+A message on [Day log ${day}] {+llm:day-${day} ?llm:memberOf}
+*${new Date().toISOString()}* {llm:at ^^xsd:dateTime}
 [${content.replace(/\n/g, ' ')}] {llm:content}
 [${sha(content + '|' + agent)}] {llm:signature}
-[${who[0]}] {+${S(who[1])} ?prov:wasAttributedTo}
+[${who[0]}] {+${S(who[1])} ?llm:attributedTo}
 [llm:${who[2]}] {+llm:${who[2]} ?llm:role}${last ? `
 [${last.label}] {+${S(last.iri)} ?llm:inReplyTo}` : ''}
 `
@@ -323,12 +324,47 @@ const appendExchange = (userText, agentText, agentName = 'Devin') => {
     text = text.slice(0, closeIdx) + '\n' + blocks.join('\n') + text.slice(closeIdx)
   } else {
     if (!text.includes('# Daily Log')) text = text.trimEnd() + '\n\n---\n\n# Daily Log\n'
-    const header = `[llm] <tag:llm.chat.example,2026:>\n\n## Day ${day} {=llm:day-${day} .llm:Conversation label}\nFollows [${followsLabel}] {+${followsObj} ?llm:follows}.\n~~~~~~md {llm:payload}\n## Day log ${day} {=llm:day-${day} .llm:Conversation label}\n## Davay {=llm:user-davay .prov:Agent label}\n## Devin {=llm:agent-devin .llm:Agent label}\n`
+    const header = `[llm] <tag:llm.chat.example,2026:>\n\n## Day ${day} {=llm:day-${day} .llm:Conversation label}\nFollows [${followsLabel}] {+${followsObj} ?llm:follows}.\n~~~~~~md {llm:payload}\n[llm] <tag:llm.chat.example,2026:>\n[prov] <http://www.w3.org/ns/prov#>\n[xsd] <http://www.w3.org/2001/XMLSchema#>\n\n## Day log ${day} {=llm:day-${day} .llm:Conversation label}\n## Davay {=llm:user-davay .prov:Agent label}\n## Devin {=llm:agent-devin .llm:Agent label}\n`
     const block = header + blocks.join('\n') + '\n~~~~~~'
     text = text.trimEnd() + '\n\n' + block + '\n'
   }
   writeMD(text)
   return convIri
+}
+
+// vocabulary audit: W3C terms belong to declarations (classes, properties,
+// shapes); data should speak llm: or undeclared-elsewhere infrastructure.
+const VOCAB = {
+  'http://www.w3.org/ns/prov#': 'prov', 'http://www.w3.org/2000/01/rdf-schema#': 'rdfs',
+  'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf', 'http://www.w3.org/2001/XMLSchema#': 'xsd',
+  'http://www.w3.org/ns/shacl#': 'sh', 'tag:llm.chat.example,2026:': 'llm',
+}
+const vocabAudit = () => {
+  const declTypes = new Set([RDFS + 'Class', RDF + 'Property', 'http://www.w3.org/ns/shacl#NodeShape', 'http://www.w3.org/ns/shacl#PropertyShape'])
+  const declSubj = new Set(quads.filter(q => declTypes.has(q.object.value)).map(q => q.subject.value))
+  const ns = p => VOCAB[Object.keys(VOCAB).find(k => p.startsWith(k))] || 'other'
+  const declPreds = {}, dataPreds = {}
+  for (const q of quads) {
+    const bag = declSubj.has(q.subject.value) ? declPreds : dataPreds
+    const k = ns(q.predicate.value)
+    bag[k] = (bag[k] || 0) + 1
+  }
+  // W3C predicates used on data — candidates needing llm: counterparts
+  const w3cData = {}
+  for (const q of quads) {
+    if (declSubj.has(q.subject.value)) continue
+    const p = q.predicate.value
+    if (!p.startsWith(LLM) && VOCAB[Object.keys(VOCAB).find(k => p.startsWith(k))]) {
+      const k = p.split(/[#/]/).pop()
+      w3cData[k] = (w3cData[k] || 0) + 1
+    }
+  }
+  const llmProps = new Set(quads.filter(q => declSubj.has(q.subject.value) && q.predicate.value === RDF + 'type' && q.object.value === RDF + 'Property').map(q => q.subject.value))
+  const uncovered = Object.keys(w3cData).filter(p => {
+    const full = Object.keys(VOCAB).find(k => p.startsWith(k)) ? null : null
+    return true // list all; coverage judgement is prose-level for now
+  })
+  return { declPreds, dataPreds, w3cData, uncovered }
 }
 
 // shared command executor — REPL and HTTP run identical logic
@@ -346,6 +382,15 @@ const execCmd = async text => {
   if (text === '/verify') return { lines: ['oracles:', ...cap(verify)] }
   if (text === '/statements') return { lines: [`elevated statements: ${statements.length}`, ...statements.map(q => `  ${q.subject.value.split(',').pop()} → ${q.predicate.value.split(',').pop().slice(0, 60)} → ${String(q.object.value).slice(0, 60)}`)] }
   if (text === '/audit') { audit = auditSignatures(); return { lines: cap(() => { }) } }
+  if (text === '/vocab') {
+    const v = vocabAudit()
+    const fmt = o => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, n]) => `  ${k}: ${n}`).join('\n')
+    return { lines: [
+      'declarations (W3C-heavy, expected):', fmt(v.declPreds),
+      'data (should be llm:-heavy):', fmt(v.dataPreds),
+      'W3C predicates on data:', fmt(v.w3cData),
+    ] }
+  }
   const reply = await agentReply(text)
   appendExchange(text, reply)
   reload()
@@ -371,22 +416,23 @@ if (process.argv[2] === 'serve') {
     }
 
     for (const [sub, p] of bySubj) {
-      if (p[LLM + 'content'] && p[PROV + 'wasAttributedTo']) {
+      if (p[LLM + 'content'] && p[LLM + 'attributedTo']) {
         const role = p[LLM + 'role']?.value.split(':').pop() || 'unknown'
-        const author = p[PROV + 'wasAttributedTo'].value.split(':').pop()
-        const time = p[PROV + 'generatedAtTime']?.value
+        const author = p[LLM + 'attributedTo'].value.split(':').pop()
+        const time = p[LLM + 'at']?.value
         messages.push({
           role,
           author,
           content: p[LLM + 'content'].value,
-          time: time ? new Date(time).toLocaleTimeString() : '',
+          ts: time || '',
+          time: time ? new Date(time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '',
           iri: sub.split(',').pop()
         })
       }
     }
 
     // Sort by time
-    messages.sort((a, b) => a.time.localeCompare(b.time))
+    messages.sort((a, b) => a.ts.localeCompare(b.ts))
 
     // Render messages
     const msgHtml = messages.map(m => {
@@ -543,6 +589,7 @@ if (process.argv[2] === 'serve') {
     background: #27272a;
     border: 1px solid #3f3f46;
   }
+  .msg .time { opacity: 0.75; }
   .msg .meta {
     font-size: 0.75rem;
     opacity: 0.7;
