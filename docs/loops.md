@@ -237,6 +237,40 @@ dormant where there's no retina to serve.
 </script>
 ```
 
+## Loop IX — The workbench
+
+`evaluate()` already splits the graph into violations and records;
+`recordTable()` closes the human side of Loop III by rendering each record as
+a semantic HTML table — escaped text, `<time>` dates, nested POJOs and arrays,
+no CSS required.
+
+```
+quads → evaluate() → records → recordTable() → readable tables in place
+                 └→ violations → curation tasks → shapes+js → text vortices → knowledge
+```
+
+The point is not a prettier JSON dump. A folder of `.md`/`.mdld` files plus
+`mdld-parse.js` becomes a workbench: open a document, see admitted facts as
+tables, and read violations as the driving force of a Shapes Driven Knowledge
+Curation cycle. Each violation is a task — focus node, path, value, component,
+message — and shapes + `sh:js` turn those tasks into text vortices that pull
+prose toward meaningful knowledge. Drive violations to zero, then improve the
+shapes themselves — clearer `sh:name` keys, tighter paths, better `sh:message`
+text — so validation keeps authoring the schema instead of merely checking it.
+
+```js
+import { parse, evaluate, recordTable } from 'mdld-parse'
+const { quads, context } = parse({ text })
+for (const [shape, nodes] of Object.entries(evaluate({ quads, context }).records))
+  for (const [node, pojo] of Object.entries(nodes))
+    out += `<h3>${shape} › ${node}</h3>${recordTable(pojo)}`
+```
+
+The whole loop still fits in the single file: parser, canonical generator,
+SHACL evaluator/projection, record renderer, live editor, and graph cortex —
+about 60 kB gzip — enough to carry text → quads → tables → violations → shapes
+→ text vortices → knowledge without leaving the document.
+
 ## The composition
 
 ```
@@ -246,6 +280,7 @@ agent builds quads in JS
   → parse() → generate()  graph preservation       (Loop I)
   → evaluate()            meaning admitted         (Loop III)
   → extract()             only validated facts     (Loop III)
+  → recordTable()         admitted facts readable  (Loop IX)
   → <quad-graph>          topology perceived       (Loop VIII)
   → JS iteration          business logic
 ```
@@ -291,7 +326,7 @@ it — perception is gated by conformance.
 Boundaries are stated rather than discovered — the difference between a
 boundary and a hole.
 
-## Why closure is political
+## Why a closed loop is so important
 
 Assurance is normally purchased — vendor QA, audits, certifications, SLAs.
 Closed loops shipped inside the artifact make assurance **computable instead

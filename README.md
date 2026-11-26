@@ -913,7 +913,7 @@ import {
 } from 'mdld-parse';
 ```
 
-## 🧬 Epistemology — the eight closures
+## 🧬 Epistemology — the nine closures
 
 Every claim in this library is the output of an executed invariant, not a
 promise. If a loop fails, it fails loudly — `npm run test-shapes` is the proof.
@@ -928,11 +928,12 @@ promise. If a loop fails, it fails loudly — `npm run test-shapes` is the proof
 | VI | **Origin** | every quad maps to byte range in source | `locate()`/`updateValue()` |
 | VII | **Merge** | assertion ∩ retraction = ∅, order-independent | `merge()` polarity replay |
 | VIII | **Gestalt** | human sees global topology SHACL can't | `<quad-graph>` (browser-only) |
+| IX | **Workbench** | admitted facts render as tables; violations curate shapes | `evaluate()` + `recordTable()` |
 
 Two rules follow: **conservation** (nothing lost — loops I, II) and **admission**
-(nothing false passes — loops III–V). VI–VIII close the loop to the human:
+(nothing false passes — loops III–V). VI–IX close the loop to the human:
 origin makes violations clickable, merge makes collaboration safe, the graph
-makes topology visible.
+makes topology visible, and `recordTable()` makes admitted facts readable.
 
 **Conventions for agents**: shapes are contracts (`sh:property` + `sh:path` +
 `sh:name`), examples are executable (`cat:Demo`/`pack:Demo` nodes), and
