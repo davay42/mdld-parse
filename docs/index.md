@@ -72,7 +72,7 @@ Link-following as a client concern — BFS bounds, ETag revalidation, soft-fail 
 Measured wall-clock report: parse ~105K q/s, `evaluate()` ~500K q/s end-to-end (violations + records in one pass, tri-indexed + memoized store), 200 ms real-time envelope ≈ 100K quads.
 
 ### [Closure: How Loops Turn Claims Into Facts](./loops.md)
-Every claim in the system is the output of an executed invariant — eight closure loops from canonical fixed-point to the `<quad-graph>` gestalt feedback loop, plus where closure honestly stops.
+Every claim in the system is the output of an executed invariant — nine closure loops from canonical fixed-point through the `<quad-graph>` gestalt feedback loop to the `recordTable()` workbench, plus where closure honestly stops.
 
 ### [Token Efficiency](./Token-Efficiency.md)
 Grounded token consumption comparison between MD-LD, JSON-LD and TTL - two tokenizers, 7 example cases + scaling tests - all discover  higher density of triples per token and per character and demostrate high density of meaning achievable with MD-LD.
