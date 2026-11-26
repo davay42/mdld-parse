@@ -163,6 +163,241 @@ Price: [200.00] {ex:price ^^xsd:decimal}
 }
 ~~~~~~
 
+### JS Lab Demos — strict `(value, path, focusNode)` boundary
+
+Five condensed demos proving what `sh:js` legitimately covers inside the W3C
+calling convention: single-value computation, parser delegation, advisory
+severity, and `focusNode`-conditional rules. Cross-field, uniqueness, and
+referential rules are deliberately out of scope.
+
+#### Date parses as a real date {=cat:demo/js-date .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Event date must be valid` {cat:expectedViolationMessage} violation
+~~~~~~md {cat:demo}
+[ex] <tag:jslab,2026:>
+[sh] <http://www.w3.org/ns/shacl#>
+[xsd] <http://www.w3.org/2001/XMLSchema#>
+
+## Events {=ex:DateShape .sh:NodeShape label}
+Every [Dated] {+ex:Dated ?sh:targetClass} must have **eventDate** {+#d ?sh:property sh:name} and a **validity check** {+#dv ?sh:property sh:name}.
+[Date is required — {focusNode}] {=#d .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[eventDate] {+ex:eventDate ?sh:path}
+[Event date must be valid — {focusNode}] {=#dv .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[eventDate] {+ex:eventDate ?sh:path}
+[date check] {+ex:DateJS ?sh:js}
+
+```js {=ex:DateJS .sh:JSConstraint sh:script}
+const date = new Date(value.value);
+return !isNaN(date.getTime());
+```
+
+### Valid {=ex:ValidDated .ex:Dated label}
+[2024-12-25] {ex:eventDate ^^xsd:date}
+
+### Invalid {=ex:InvalidDated .ex:Dated label}
+[not-a-date] {ex:eventDate}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:DateShape": {
+        "ex:ValidDated": {
+            "eventDate": "2024-12-25T00:00:00.000Z",
+            "validity check": "2024-12-25T00:00:00.000Z"
+        },
+        "ex:InvalidDated": {
+            "eventDate": "not-a-date",
+            "validity check": "not-a-date"
+        }
+    }
+}
+~~~~~~
+
+#### Advisory brevity with severity and message template {=cat:demo/js-advisory .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Keep it under 80 characters` {cat:expectedViolationMessage} violation
+~~~~~~md {cat:demo}
+[ex] <tag:jslab,2026:>
+[sh] <http://www.w3.org/ns/shacl#>
+
+## Listings {=ex:TitleShape .sh:NodeShape label}
+Every [Listing] {+ex:Listing ?sh:targetClass} must have a **title** {+#t ?sh:property sh:name} and a **brevity check** {+#tb ?sh:property sh:name}.
+[Title is required — {focusNode}] {=#t .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[title] {+ex:title ?sh:path}
+[Keep it under 80 characters — {$value} is too long — {focusNode}] {=#tb .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[title] {+ex:title ?sh:path}
+[briefness check] {+ex:TitleBrief ?sh:js}
+[Warning] {+sh:Warning ?sh:severity}
+
+```js {=ex:TitleBrief .sh:JSConstraint sh:script}
+return value.value.length <= 80;
+```
+
+### Short {=ex:ShortTitle .ex:Listing label}
+[Pottery night] {ex:title}
+
+### Long {=ex:LongTitle .ex:Listing label}
+[An absolutely delightful evening of pottery painting, glazing, and firing with the Riverside Community Studio collective — all welcome] {ex:title}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:TitleShape": {
+        "ex:ShortTitle": {
+            "title": "Pottery night",
+            "brevity check": "Pottery night"
+        },
+        "ex:LongTitle": {
+            "title": "An absolutely delightful evening of pottery painting, glazing, and firing with the Riverside Community Studio collective — all welcome",
+            "brevity check": "An absolutely delightful evening of pottery painting, glazing, and firing with the Riverside Community Studio collective — all welcome"
+        }
+    }
+}
+~~~~~~
+
+#### ISBN-10 check digit {=cat:demo/js-isbn .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `ISBN check digit invalid` {cat:expectedViolationMessage} violation
+~~~~~~md {cat:demo}
+[ex] <tag:jslab,2026:>
+[sh] <http://www.w3.org/ns/shacl#>
+
+## Books {=ex:ISBNShape .sh:NodeShape label}
+Every [Book] {+ex:Book ?sh:targetClass} must have an **isbn** {+#i ?sh:property sh:name} and a **checksum check** {+#ic ?sh:property sh:name}.
+[ISBN is required — {focusNode}] {=#i .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[isbn] {+ex:isbn ?sh:path}
+[ISBN check digit invalid — {focusNode}] {=#ic .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[isbn] {+ex:isbn ?sh:path}
+[checksum check] {+ex:ISBNCheck ?sh:js}
+
+```js {=ex:ISBNCheck .sh:JSConstraint sh:script}
+const s = value.value.replace(/-/g, '');
+if (!/^\d{9}[\dX]$/.test(s)) return false;
+let sum = 0;
+for (let i = 0; i < 9; i++) sum += (10 - i) * parseInt(s[i], 10);
+sum += s[9] === 'X' ? 10 : parseInt(s[9], 10);
+return sum % 11 === 0;
+```
+
+### Valid {=ex:ValidBook .ex:Book label}
+[0-306-40615-2] {ex:isbn}
+
+### Invalid {=ex:InvalidBook .ex:Book label}
+[0-306-40615-9] {ex:isbn}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:ISBNShape": {
+        "ex:ValidBook": {
+            "isbn": "0-306-40615-2",
+            "checksum check": "0-306-40615-2"
+        },
+        "ex:InvalidBook": {
+            "isbn": "0-306-40615-9",
+            "checksum check": "0-306-40615-9"
+        }
+    }
+}
+~~~~~~
+
+#### JSON payload validity {=cat:demo/js-json .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `Payload is not valid JSON` {cat:expectedViolationMessage} violation
+~~~~~~md {cat:demo}
+[ex] <tag:jslab,2026:>
+[sh] <http://www.w3.org/ns/shacl#>
+
+## Results {=ex:PayloadShape .sh:NodeShape label}
+Every [ToolResult] {+ex:ToolResult ?sh:targetClass} must have a **payload** {+#p ?sh:property sh:name} and a **JSON check** {+#pj ?sh:property sh:name}.
+[Payload is required — {focusNode}] {=#p .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[payload] {+ex:payload ?sh:path}
+[Payload is not valid JSON — {focusNode}] {=#pj .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[payload] {+ex:payload ?sh:path}
+[json check] {+ex:JsonValid ?sh:js}
+
+```js {=ex:JsonValid .sh:JSConstraint sh:script}
+try { JSON.parse(value.value); return true; } catch { return false; }
+```
+
+### Valid {=ex:ValidResult .ex:ToolResult label}
+[{"temperature": 21.5, "unit": "C"}] {ex:payload}
+
+### Truncated {=ex:TruncatedResult .ex:ToolResult label}
+[{"temperature": 21.5, "unit":] {ex:payload}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:PayloadShape": {
+        "ex:ValidResult": {
+            "payload": "{\"temperature\": 21.5, \"unit\": \"C\"}",
+            "JSON check": "{\"temperature\": 21.5, \"unit\": \"C\"}"
+        },
+        "ex:TruncatedResult": {
+            "payload": "{\"temperature\": 21.5, \"unit\":",
+            "JSON check": "{\"temperature\": 21.5, \"unit\":"
+        }
+    }
+}
+~~~~~~
+
+#### focusNode-conditional URL rule {=cat:demo/js-focusnode .cat:Demo ?cat:hasDemo}
+Expects `1` {cat:expectedViolations ^^xsd:integer} violation(s): `System notices need absolute URLs` {cat:expectedViolationMessage} violation
+~~~~~~md {cat:demo}
+[ex] <tag:jslab,2026:>
+[sh] <http://www.w3.org/ns/shacl#>
+
+## Notices {=ex:LinkShape .sh:NodeShape label}
+Every [Notice] {+ex:Notice ?sh:targetClass} must have a **link** {+#l ?sh:property sh:name} and a **URL check** {+#lu ?sh:property sh:name}.
+[Link is required — {focusNode}] {=#l .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[link] {+ex:link ?sh:path}
+[System notices need absolute URLs — {focusNode}] {=#lu .sh:PropertyShape sh:message}
+`1` {sh:minCount ^^xsd:integer}
+[link] {+ex:link ?sh:path}
+[url check] {+ex:UrlCheck ?sh:js}
+
+```js {=ex:UrlCheck .sh:JSConstraint sh:script}
+if (!focusNode.value.endsWith('SystemNotice')) return true;
+try { const u = new URL(value.value); return u.protocol === 'https:'; } catch { return false; }
+```
+
+### User {=ex:UserNotice .ex:Notice label}
+[see the notes page] {ex:link}
+
+### System {=ex:SystemNotice .ex:Notice label}
+[https://status.example.com/incidents/42] {ex:link}
+
+### Broken {=ex:BrokenSystemNotice .ex:Notice label}
+[status page is down] {ex:link}
+~~~~~~
+
+~~~~~~json {cat:extractedPOJO}
+{
+    "ex:LinkShape": {
+        "ex:UserNotice": {
+            "link": "see the notes page",
+            "URL check": "see the notes page"
+        },
+        "ex:SystemNotice": {
+            "link": "https://status.example.com/incidents/42",
+            "URL check": "https://status.example.com/incidents/42"
+        },
+        "ex:BrokenSystemNotice": {
+            "link": "status page is down",
+            "URL check": "status page is down"
+        }
+    }
+}
+~~~~~~
+
+---
+
 ## 📝 MDLD Syntax Patterns
 
 Target class targets all nodes that are instances of a specific RDF class for shape validation.
@@ -2763,7 +2998,7 @@ We run the events calendar for a community center. Every [event] {+member ?sh:ta
 Our [eventDate] {+ex:eventDate ?sh:path} must parse as a real JS date, checked by [js check] {+ex:DateJSConstraint ?sh:js}.
 
 ```js {=ex:DateJSConstraint .sh:JSConstraint sh:script}
-const date = new Date(value);
+const date = new Date(value.value);
 return !isNaN(date.getTime());
 ```
 

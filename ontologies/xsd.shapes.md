@@ -18,8 +18,8 @@ Every [datatype] {+rdfs:Datatype ?sh:targetClass} has a **label** {+#dtLabel ?sh
 A shared `sh:js` constraint — attach via `?sh:js` on any property shape to enforce lexical validity on top of `sh:datatype`. Covers `integer`, `decimal`, `boolean`, `date`, and `dateTime`; other datatypes pass through.
 
 ```js {=pack:LexicalCheck .sh:JSConstraint sh:script}
-const dt = (term.datatype && term.datatype.value) || ''
-const lex = String(term.value).trim()
+const dt = (value.datatype && value.datatype.value) || ''
+const lex = String(value.value).trim()
 if (dt.endsWith('boolean')) return lex === 'true' || lex === 'false' || lex === '0' || lex === '1'
 if (dt.endsWith('integer')) return /^-?\d+$/.test(lex)
 if (dt.endsWith('decimal') || dt.endsWith('float') || dt.endsWith('double')) return /^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(lex)
