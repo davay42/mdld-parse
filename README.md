@@ -897,6 +897,8 @@ JS/quads ──generate()──▶ canonical MD-LD ──rewrite prose──▶ 
   only conforming fields and records — shareable without the graph;
   `extractGraph` does the same for RDF.
 
+**For agents: never guess the graph syntax.** Hand-writing carriers and iterating on parse errors is roulette — syntax details (curly placement, prefix resolution, carrier boundaries) are easy to get subtly wrong and expensive to debug. Instead, build the part of the graph you need with compact deterministic JS → quads, run it through `evaluate()`/`validate()` directly until the result is correct, then call `generate()` to obtain the canonical MD-LD. Keep that canonical text as your reference: rewrite it into meaningful prose, and after every rewrite verify that `parse(text) → generate(quads)` reproduces it quad-identically. Once satisfied, hash the canonical form and keep the hash as the seal — the seal is what future rewrites are checked against.
+
 Worked example: `examples/demo/education.md`. Full API and conformance
 semantics: `shapes/README.md`.
 
