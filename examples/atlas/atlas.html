@@ -1,4 +1,6 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Atlas — shapes are worldviews</title>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Atlas — shapes are worldviews</title>
+<script type="importmap">{"imports":{"mdld-parse":"https://mdld.js.org/mdld-parse.js"}}</script>
 <style>*{box-sizing:border-box}body{margin:0;background:#0a0e16;color:#d8e1f0;font:13px/1.45 system-ui,sans-serif}
 header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:8px 14px;background:#111826;border-bottom:1px solid #1f2a3d}
 .brand b{font-size:17px;color:#f2b134}.brand span{margin-left:8px;color:#7d8ba3}.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -13,7 +15,7 @@ main{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(340px,1fr);gap:12
 h2{display:inline;margin:0 8px 0 0}h4{margin:12px 0 4px;color:#f2b134}h4 em,.mh em{color:#7d8ba3;font-style:normal;font-weight:400;margin-left:6px}.mh{--c:#fff}
 .ladder{list-style:none;padding:0;display:flex;gap:6px;flex-wrap:wrap}.ladder li{background:#1a2438;border-radius:6px;padding:2px 8px;color:#7d8ba3}.ladder li.done{color:#5fd38d}.ladder li.now{color:#111;background:#f2b134}.ladder i{font-style:normal;margin-right:5px;font-weight:700}
 .tbl{width:100%;border-collapse:collapse}.tbl td,.tbl th{padding:2px 6px;text-align:left;border-bottom:1px solid #1f2a3d}.tasks{list-style:none;padding:0;margin:0}.tasks li{padding:2px 0;border-bottom:1px solid #1a2438}.tasks li.cur{background:#24324b}.tasks li.blk{opacity:.5}.tasks i{font-style:normal;color:#7d8ba3;margin-right:6px}code{color:#9fd0ff}
-details{margin:4px 0}.rec{margin:4px 0 4px 10px}.rec table{font-size:12px}.bar{display:flex;gap:8px;align-items:center;margin-bottom:6px}.sp{flex:1}.hint{color:#7d8ba3}#log .ev{padding:2px 0;border-bottom:1px solid #1a2438}#log i{color:#7d8ba3;font-style:normal;display:inline-block;width:42px}.ev.promote{color:#f2b134}.ev.meet{color:#ffe082}.ev.blocked{color:#ff6b81}.ev.task{color:#9fb0c9}pre{max-height:300px;overflow:auto;background:#0a0e16;padding:8px}.about{line-height:1.6}
+details{margin:4px 0}.rec{margin:4px 0 4px 10px}.rec table{font-size:12px}.bar{display:flex;gap:8px;align-items:center;margin-bottom:6px}.sp{flex:1}.hint{color:#7d8ba3}#log .ev{padding:2px 0;border-bottom:1px solid #1a2438}#log i{color:#7d8ba3;font-style:normal;display:inline-block;width:42px}.ev.promote{color:#f2b134}.ev.meet{color:#ffe082}.ev.blocked{color:#ff6b81}.ev.council{color:#ffe082;font-weight:600}.ev.task{color:#9fb0c9}pre{max-height:300px;overflow:auto;background:#0a0e16;padding:8px}.about{line-height:1.6}
 @media(max-width:900px){main{grid-template-columns:1fr}}</style></head><body>
 <script type="text/markdown" id="workbench-src">
 [w] <tag:atlas.world,2026:>
@@ -36,6 +38,10 @@ This document is the whole design. Four explorers walk a world they cannot see. 
 | 1 — Places | every Feature is located and has richness 1–5; atlas holds ≥ 6 places | *instances*: where things are, how rich | role-specific depth |
 | 2 — Depth | per role: vitality / grade / age, or wider extent (≥ 12 places) | *properties* that only a specialist has a word for | the shared view |
 | 3 — Trails | every Feature knows ≥ 1 trail; atlas holds ≥ 20 places | *relations*: which places connect, revealing places never yet seen | the human's turn |
+
+| Commons | the Charter: each viewpoint's standard for a shared place | *joins* — facts no one explorer can hold at once | a settlement: the world changes, and asks for new words |
+
+**Beside the ladder runs the Commons.** It is a mind of its own, reading the union of everyone's memory through the Charter below. A *Site* is a living place with an ore and a relic nearby; the Charter says what each role needs before it will settle there. A site that lacks a measurement sends a *request* to whoever owns the word for it; a site that fails a standard is *unfit*; a site that satisfies everyone is *viable*, and the explorers gather to found it. A founding is a **shared consequence**: a Settlement appears in the world, so the ontology grows (new words to define) and explorers who share its market exchange memories.
 
 **After stage 3 the shapes are yours.** Write a new shape in any worldview — say, every tile needs an `elevation`, or every Ruin must be near a Spring — and watch the explorer turn toward the work. A shape the world cannot answer shows up as a *blocked* task: the signal to tighten or loosen the shape, never to bypass the gate.
 
@@ -261,6 +267,48 @@ Every [Feature] {+w:Feature ?sh:targetClass} must know at least one **trail** {+
 
 ---
 
+## The Charter {=w:charter .w:Charter label}
+[6] {w:spacing ^^xsd:integer}
+[3] {w:quorum ^^xsd:integer}
+[3] {w:maxSettlements ^^xsd:integer}
+
+~~~~~~md {=w:charter w:payload}
+# The Charter — what four viewpoints need from one place
+
+No explorer can judge a site alone: the water belongs to the Naturalist, the ore to the Prospector, the age of the ruins to the Archivist, the roads to the Cartographer. The Commons joins what each has measured, and the Charter says what each will accept. Raise a number and fewer places qualify; lower it and settlements come sooner.
+
+## Sites {=w:SiteShape .sh:NodeShape label}
+Every [Site] {+w:Site ?sh:targetClass} needs an **ore** {+#siO ?sh:property sh:name} and a **relic** {+#siR ?sh:property sh:name} within reach, and then each viewpoint speaks: **vitality** {+#siV ?sh:property sh:name}, **grade** {+#siG ?sh:property sh:name}, **age** {+#siA ?sh:property sh:name} and **trails** {+#siT ?sh:property sh:name}.
+[No ore within reach — {$focusNode}] {=#siO .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[ore] {+w:ore ?sh:path}
+[No relic within reach — {$focusNode}] {=#siR .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[relic] {+w:relic ?sh:path}
+[Bo will not settle beside poor water — {$focusNode}] {=#siV .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[3] {sh:minInclusive ^^xsd:integer}
+[xsd:integer] {+xsd:integer ?sh:datatype}
+[vitality] {+w:vitality ?sh:path}
+[Cy will not settle without workable ore — {$focusNode}] {=#siG .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[2] {sh:minInclusive ^^xsd:integer}
+[xsd:integer] {+xsd:integer ?sh:datatype}
+[grade] {+w:grade ?sh:path}
+[Di will not settle without old foundations — {$focusNode}] {=#siA .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[1000] {sh:minInclusive ^^xsd:integer}
+[xsd:integer] {+xsd:integer ?sh:datatype}
+[age] {+w:age ?sh:path}
+[Ada wants a crossroads — {$focusNode}] {=#siT .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[3] {sh:minInclusive ^^xsd:integer}
+[xsd:integer] {+xsd:integer ?sh:datatype}
+[trails] {+w:trails ?sh:path}
+~~~~~~
+
+---
+
 ## What the shapes do not yet say
 
 Ideas left dormant on purpose — each would pull the explorers somewhere new. Paste one into any worldview and watch the tasks change:
@@ -269,961 +317,622 @@ Ideas left dormant on purpose — each would pull the explorers somewhere new. P
 - *Every Ruin must `linkedTo` a Spring.* A relation the world mostly does not offer — a good way to see a **blocked** task.
 - *Every `rdf:Property` has a `domain` and a `range`.* Ontology first, one level deeper: the vocabulary must describe its own predicates.
 </script>
-<script type="importmap">
-{"imports":{"mdld-parse":"https://mdld.js.org/mdld-parse.js"}}
-</script>
 <script type="module">
-import * as mdld from 'mdld-parse'
-const { parse, evaluate, generate, DataFactory } = mdld
-const recordTable = mdld.recordTable || ((o) => '<table>' + Object.entries(o).map(([k, v]) => `<tr><th>${String(k)}</th><td>${String(typeof v === 'object' ? JSON.stringify(v) : v)}</td></tr>`).join('') + '</table>')
+import * as MD from 'mdld-parse'
+const { parse, evaluate, generate, DataFactory: DF } = MD
 
-  // engine
-  var NS = "tag:atlas.world,2026:";
-  var RDF2 = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
-  var RDFS2 = "http://www.w3.org/2000/01/rdf-schema#";
-  var XSD2 = "http://www.w3.org/2001/XMLSchema#";
-  var SH2 = "http://www.w3.org/ns/shacl#";
-  var TYPE = RDF2 + "type";
-  var SUB = RDFS2 + "subClassOf";
-  var LABEL = RDFS2 + "label";
-  var COMMENT = RDFS2 + "comment";
-  var CLASS = RDFS2 + "Class";
-  var w = (s) => NS + s;
-  var short = (s) => String(s).startsWith(NS) ? "w:" + s.slice(NS.length) : String(s).replace(RDFS2, "rdfs:").replace(RDF2, "rdf:").replace(XSD2, "xsd:").replace(SH2, "sh:");
-  var SIGHT = 2;
-  var MIN_CHECK = SH2 + "MinCountConstraintComponent";
-  var hash2 = (a, b, c) => {
-    let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2246822519);
-    h = Math.imul(h ^ h >>> 15, 2246822519);
-    h = Math.imul(h ^ h >>> 13, 3266489917);
-    h ^= h >>> 16;
-    return (h >>> 0) / 4294967296;
-  };
-  var vnoise = (x, y, s) => {
-    const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, sm = (t) => t * t * (3 - 2 * t);
-    const a = hash2(xi, yi, s), b = hash2(xi + 1, yi, s), c = hash2(xi, yi + 1, s), d = hash2(xi + 1, yi + 1, s), u = sm(xf), v = sm(yf);
-    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-  };
-  var fbm = (x, y, s) => 0.55 * vnoise(x / 8, y / 8, s) + 0.3 * vnoise(x / 4, y / 4, s + 11) + 0.15 * vnoise(x / 2, y / 2, s + 23);
-  var TERRAINS = [
-    { id: "Sea", cost: Infinity, color: "#1b3a5c", label: "Sea", comment: "Open water. Boats could cross it; walkers cannot." },
-    { id: "Sand", cost: 1, color: "#d9c58a", label: "Sand", comment: "Pale shoreline where the land gives up." },
-    { id: "Plains", cost: 1, color: "#a3c46b", label: "Plains", comment: "Open grassland; the easy road." },
-    { id: "Forest", cost: 2, color: "#3f7d4a", label: "Forest", comment: "Dense trees; slow going, plenty of shade." },
-    { id: "Hills", cost: 2, color: "#9a8a5f", label: "Hills", comment: "Rolling uplands; the view improves." },
-    { id: "Mountain", cost: 3, color: "#8c8f98", label: "Mountain", comment: "Rock and cold; the slowest road." },
-    { id: "Dunes", cost: 2, color: "#e2b567", label: "Dunes", comment: "Dry ridges of drifting sand." }
-  ];
-  var TID = Object.fromEntries(TERRAINS.map((t, i) => [t.id, i]));
-  var GROUPS = {
-    Natural: { label: "Natural", comment: "Living places: water, wood and herds.", prop: "vitality" },
-    Mineral: { label: "Mineral", comment: "Places dug out of the earth.", prop: "grade" },
-    Relic: { label: "Relic", comment: "Traces of people who came before.", prop: "age" }
-  };
-  var KINDS = [
-    { id: "Spring", group: "Natural", on: ["Plains", "Forest", "Hills"], glyph: "\u{1F4A7}", label: "Spring", comment: "Water rising from the ground; every route needs one." },
-    { id: "Grove", group: "Natural", on: ["Forest"], glyph: "\u{1F333}", label: "Grove", comment: "A stand of old trees, rich in fruit and timber." },
-    { id: "Herd", group: "Natural", on: ["Plains"], glyph: "\u{1F98C}", label: "Herd", comment: "Grazing animals that drift slowly across open ground." },
-    { id: "Ore", group: "Mineral", on: ["Hills", "Mountain"], glyph: "\u{1F48E}", label: "Ore", comment: "A seam of metal close to the surface." },
-    { id: "Cave", group: "Mineral", on: ["Mountain", "Hills"], glyph: "\u{1F573}\uFE0F", label: "Cave", comment: "A hollow in the rock; what lies inside is a matter of grade." },
-    { id: "Ruin", group: "Relic", on: ["Plains", "Hills", "Dunes"], glyph: "\u{1F3DB}\uFE0F", label: "Ruin", comment: "Fallen walls of an earlier settlement." },
-    { id: "Shrine", group: "Relic", on: ["Hills", "Mountain", "Dunes"], glyph: "\u26E9\uFE0F", label: "Shrine", comment: "A small stone altar, still tended by someone." },
-    { id: "Wreck", group: "Relic", on: ["Sand"], glyph: "\u2693", label: "Wreck", comment: "Timbers from a ship that never left the shore." }
-  ];
-  var KIND = Object.fromEntries(KINDS.map((k) => [k.id, k]));
-  var ROOTS = {
-    Terrain: { label: "Terrain", comment: "Every tile of the world has one terrain kind." },
-    Feature: { label: "Feature", comment: "A place worth a trip: it can be located, visited and described." }
-  };
-  var nodeO = (v) => ({ n: v });
-  var litO = (v, dt) => ({ l: String(v), dt });
-  var mk = (s, p, o, reach, kinds) => ({ s, p, o, reach, kinds, k: s + "|" + p + "|" + (o.n ?? o.l + "^" + (o.dt || "")) });
-  var ATLAS = w("atlas");
-  var classTermFacts = (id, parent, lex, reach0 = SIGHT, commentReach = 0) => {
-    const c = w(id), K = [CLASS], out = [
-      mk(c, TYPE, nodeO(CLASS), reach0, K),
-      mk(c, LABEL, litO(lex.label), reach0, K),
-      mk(c, COMMENT, litO(lex.comment), commentReach, K),
-      mk(ATLAS, w("defines"), nodeO(c), reach0, [])
-    ];
-    if (parent) out.push(mk(c, SUB, nodeO(w(parent)), reach0, K));
-    return out;
-  };
-  var stubbed = (fs) => fs.map((f) => ({ ...f, stub: true, needs: w("linkedTo") }));
-  var stubClassFacts = (id, parent, lex) => stubbed(classTermFacts(id, parent, lex, 0).filter((f) => f.p !== COMMENT));
-  var tileIri = (x, y) => w(`t-${x}-${y}`);
-  var tileFromIri = (s) => {
-    const m = /t-(\d+)-(\d+)$/.exec(s);
-    return m && String(s).startsWith(NS) ? [+m[1], +m[2]] : null;
-  };
-  function makeWorld(seed = 7, W = 44, H = 30) {
-    const N = W * H, terr = new Int8Array(N), elev = new Uint8Array(N), moist = new Uint8Array(N);
-    const idx = (x, y) => y * W + x;
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const nx = (x / (W - 1) - 0.5) * 2, ny = (y / (H - 1) - 0.5) * 2;
-      const d = Math.min(1, Math.hypot(nx * 0.92, ny)), fall = 1 - Math.pow(d, 1.9);
-      const e = fbm(x, y, seed) * 0.55 + fall * 0.5 + 0.02;
-      const m = fbm(x + 100, y + 57, seed + 7);
-      const i = idx(x, y);
-      elev[i] = Math.max(0, Math.min(9, Math.floor(e * 10)));
-      moist[i] = Math.max(0, Math.min(9, Math.floor(m * 10)));
-      terr[i] = e < 0.36 ? TID.Sea : e < 0.41 ? TID.Sand : e > 0.84 ? TID.Mountain : e > 0.7 ? TID.Hills : m < 0.3 ? TID.Dunes : m > 0.54 ? TID.Forest : TID.Plains;
-    }
-    let camp = -1, best = 1e9;
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (terr[idx(x, y)] === TID.Plains || terr[idx(x, y)] === TID.Forest) {
-      const dd = (x - W / 2) ** 2 + (y - H / 2) ** 2;
-      if (dd < best) {
-        best = dd;
-        camp = idx(x, y);
-      }
-    }
-    const seen = new Uint8Array(N), q = [camp];
-    seen[camp] = 1;
-    for (let h = 0; h < q.length; h++) {
-      const c = q[h], cx = c % W, cy = c / W | 0;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const nx = cx + dx, ny = cy + dy;
-        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-        const j = idx(nx, ny);
-        if (!seen[j] && terr[j] !== TID.Sea) {
-          seen[j] = 1;
-          q.push(j);
-        }
-      }
-    }
-    for (let i = 0; i < N; i++) if (!seen[i]) terr[i] = TID.Sea;
-    const land = q.length;
-    const order = [];
-    for (let i = 0; i < N; i++) if (terr[i] !== TID.Sea) order.push(i);
-    order.sort((a, b) => hash2(a, 3, seed) - hash2(b, 3, seed) || a - b);
-    const feats = [], at = /* @__PURE__ */ new Map();
-    const free = (x, y) => feats.every((f) => Math.max(Math.abs(f.x - x), Math.abs(f.y - y)) >= 3);
-    const place = (kind, i) => {
-      const x = i % W, y = i / W | 0;
-      const g = GROUPS[kind.group];
-      const f = { id: w(`f-${x}-${y}`), kind: kind.id, group: kind.group, x, y, richness: 1 + Math.floor(hash2(x, y, seed + 1) * 5), links: [] };
-      f[g.prop] = g.prop === "age" ? 100 + Math.floor(hash2(x, y, seed + 2) * 89) * 100 : 1 + Math.floor(hash2(x, y, seed + 2) * 5);
-      feats.push(f);
-      at.set(i, f);
-    };
-    const target = Math.min(40, Math.floor(land / 22));
-    for (const kind of KINDS) {
-      const c = order.find((i) => kind.on.includes(TERRAINS[terr[i]].id) && free(i % W, i / W | 0) && Math.hypot(i % W - camp % W, (i / W | 0) - (camp / W | 0)) > 4);
-      if (c !== void 0) place(kind, c);
-    }
-    for (const i of order) {
-      if (feats.length >= target) break;
-      if (at.has(i)) continue;
-      const x = i % W, y = i / W | 0;
-      const cnt = (id) => feats.filter((f) => f.kind === id).length, ok = KINDS.filter((k) => k.on.includes(TERRAINS[terr[i]].id) && cnt(k.id) < 6);
-      if (!ok.length || !free(x, y)) continue;
-      if (Math.hypot(x - camp % W, y - (camp / W | 0)) <= 4) continue;
-      place(ok[Math.floor(hash2(x, y, seed + 4) * ok.length)], i);
-    }
-    const byId = new Map(feats.map((f) => [f.id, f]));
-    for (const f of feats) {
-      const near = feats.filter((g) => g !== f).sort((a, b) => Math.hypot(a.x - f.x, a.y - f.y) - Math.hypot(b.x - f.x, b.y - f.y) || (a.id < b.id ? -1 : 1)).slice(0, 2);
-      for (const g of near) {
-        if (!f.links.includes(g.id)) f.links.push(g.id);
-        if (!g.links.includes(f.id)) g.links.push(f.id);
-      }
-    }
-    for (const f of feats) f.links.sort();
-    const cache = /* @__PURE__ */ new Map();
-    const terrClass = (t) => classTermFacts(TERRAINS[t].id, "Terrain", TERRAINS[t], SIGHT, TERRAINS[t].cost === Infinity ? 1 : 0).concat(classTermFacts("Terrain", null, ROOTS.Terrain));
-    const featClass = (f) => {
-      const k = KIND[f.kind], g = GROUPS[k.group];
-      return classTermFacts(k.id, k.group, k).concat(classTermFacts(k.group, "Feature", g), classTermFacts("Feature", null, ROOTS.Feature));
-    };
-    const featStub = (g) => {
-      const k = KIND[g.kind], gr = GROUPS[k.group], K = [w(k.id), w(k.group), w("Feature")];
-      return [
-        ...stubbed([...K.map((c) => mk(g.id, TYPE, nodeO(c), 0, K)), mk(g.id, w("at"), nodeO(tileIri(g.x, g.y)), 0, K), mk(ATLAS, w("holds"), nodeO(g.id), 0, [])]),
-        ...stubClassFacts(k.id, k.group, k),
-        ...stubClassFacts(k.group, "Feature", gr),
-        ...stubClassFacts("Feature", null, ROOTS.Feature)
-      ];
-    };
-    const factsAt = (i) => {
-      let out = cache.get(i);
-      if (out) return out;
-      const x = i % W, y = i / W | 0, t = terr[i], tid = TERRAINS[t].id, ti = tileIri(x, y), TK = [w(tid), w("Terrain")];
-      out = [
-        ...TK.map((c) => mk(ti, TYPE, nodeO(c), SIGHT, TK)),
-        mk(ti, w("x"), litO(x, XSD2 + "integer"), SIGHT, TK),
-        mk(ti, w("y"), litO(y, XSD2 + "integer"), SIGHT, TK),
-        mk(ti, w("elevation"), litO(elev[i], XSD2 + "integer"), 1, TK),
-        mk(ti, w("moisture"), litO(moist[i], XSD2 + "integer"), 1, TK),
-        ...terrClass(t)
-      ];
-      const f = at.get(i);
-      if (f) {
-        const k = KIND[f.kind], g = GROUPS[k.group], FK = [w(k.id), w(k.group), w("Feature")];
-        out.push(
-          ...FK.map((c) => mk(f.id, TYPE, nodeO(c), SIGHT, FK)),
-          mk(f.id, w("at"), nodeO(ti), SIGHT, FK),
-          mk(ATLAS, w("holds"), nodeO(f.id), SIGHT, []),
-          mk(f.id, w("richness"), litO(f.richness, XSD2 + "integer"), 0, FK),
-          mk(f.id, w(g.prop), litO(f[g.prop], XSD2 + "integer"), 0, FK),
-          ...featClass(f)
-        );
-        for (const gid of f.links) {
-          out.push(mk(f.id, w("linkedTo"), nodeO(gid), 0, FK));
-          out.push(...featStub(byId.get(gid)));
-        }
-      }
-      cache.set(i, out);
-      return out;
-    };
-    return { seed, W, H, N, terr, elev, moist, camp, land, feats, byId, factsAt, idx, featAt: (i) => at.get(i) || null };
-  }
-  function loadWorkbench(text) {
-    const r = parse({ text }), by = /* @__PURE__ */ new Map();
-    for (const q of r.quads) {
-      if (!by.has(q.subject.value)) by.set(q.subject.value, []);
-      by.get(q.subject.value).push(q);
-    }
-    const get = (qs, p) => qs.find((q) => q.predicate.value === w(p))?.object.value;
-    const lab = (qs) => qs.find((q) => q.predicate.value === LABEL)?.object.value;
-    const isA = (qs, c) => qs.some((q) => q.predicate.value === TYPE && q.object.value === w(c));
-    const steps = [], roles = /* @__PURE__ */ new Map(), agents = [];
-    for (const [s, qs] of [...by].sort((a, b) => a[0] < b[0] ? -1 : 1)) {
-      if (isA(qs, "Step")) steps.push({
-        iri: s,
-        label: lab(qs),
-        rank: +get(qs, "rank"),
-        forRole: get(qs, "forRole") || null,
-        gate: get(qs, "gate"),
-        gateRecords: +(get(qs, "gateRecords") || 1),
-        text: (get(qs, "payload") || "").split("\n").filter((l) => !l.startsWith("[w] <")).join("\n").trim()
-      });
-      if (isA(qs, "Role")) roles.set(s, lab(qs));
-      if (isA(qs, "Agent")) agents.push({ iri: s, id: s.slice(NS.length + "agent-".length), name: lab(qs), role: get(qs, "role"), color: get(qs, "color") });
-    }
-    const maxRank = Math.max(-1, ...steps.map((s) => s.rank));
-    const stages = [];
-    for (let k = 0; k <= maxRank; k++) stages.push(steps.filter((s) => s.rank === k));
-    const pathRank = /* @__PURE__ */ new Map();
-    for (const s of steps) {
-      const p = parse({ text: HEADER + "\n\n" + s.text });
-      for (const q of p.quads) if (q.predicate.value === SH2 + "path") pathRank.set(q.object.value, Math.min(pathRank.get(q.object.value) ?? 99, s.rank));
-    }
-    const shell = evaluate({ quads: r.quads });
-    return { text, stages, roles, agents, pathRank, shellViolations: shell.violations, quads: r.quads };
-  }
-  var HEADER = `[w] <${NS}>`;
-  var stageFor = (wb, k, roleIri) => {
-    const mods = (wb.stages[k] || []).filter((m) => !m.forRole || m.forRole === roleIri);
-    const lead = mods.find((m) => m.forRole) || mods[0];
-    return lead ? { text: mods.map((m) => m.text).join("\n\n"), gate: lead.gate, gateRecords: lead.gateRecords, label: (lead.label || "").replace(/^Stage \d+ — /, "") } : null;
-  };
-  function compileWorldview(text) {
-    const r = parse({ text }), targetClasses = /* @__PURE__ */ new Set(), targetNodes = /* @__PURE__ */ new Set(), paths = /* @__PURE__ */ new Set(), shapes = /* @__PURE__ */ new Map();
-    for (const q of r.quads) {
-      const p = q.predicate.value;
-      if (p === SH2 + "targetClass") targetClasses.add(q.object.value);
-      else if (p === SH2 + "targetNode") targetNodes.add(q.object.value);
-      else if (p === SH2 + "path") paths.add(q.object.value);
-      else if (p === TYPE && q.object.value === SH2 + "NodeShape") shapes.set(q.subject.value, true);
-    }
-    const tileTargeted = [w("Terrain"), ...TERRAINS.map((t) => w(t.id))].some((c) => targetClasses.has(c));
-    return { quads: r.quads, targetClasses, targetNodes, paths, shapes: [...shapes.keys()], tileTargeted };
-  }
-  var lit = (f) => f.o.n !== void 0 ? DataFactory.namedNode(f.o.n) : DataFactory.literal(f.o.l, f.o.dt ? DataFactory.namedNode(f.o.dt) : void 0);
-  var quadOf = (f) => f.q || (f.q = DataFactory.quad(DataFactory.namedNode(f.s), DataFactory.namedNode(f.p), lit(f)));
-  function newAgent(sim, def, i) {
-    const wb = sim.wb, st0 = stageFor(wb, 0, def.role);
-    const a = {
-      id: def.id,
-      name: def.name,
-      color: def.color,
-      role: def.role,
-      roleName: wb.roles.get(def.role) || "",
-      order: i,
-      x: 0,
-      y: 0,
-      know: new Int8Array(sim.world.N).fill(-1),
-      seenAt: /* @__PURE__ */ new Map(),
-      mem: [],
-      keys: /* @__PURE__ */ new Set(),
-      types: /* @__PURE__ */ new Map(),
-      instances: /* @__PURE__ */ new Map(),
-      atOf: /* @__PURE__ */ new Map(),
-      stage: 0,
-      stageGate: st0,
-      worldview: HEADER + "\n\n" + (st0?.text || ""),
-      sh: null,
-      shError: null,
-      report: null,
-      dirty: true,
-      blocked: /* @__PURE__ */ new Set(),
-      task: null,
-      path: [],
-      claims: null,
-      lastExchange: /* @__PURE__ */ new Map(),
-      edited: false
-    };
-    setWorldview(sim, a, a.worldview);
-    addFact(a, mk(ATLAS, TYPE, nodeO(w("Atlas")), 0, []), true);
-    return a;
-  }
-  function setWorldview(sim, a, text) {
-    try {
-      const sh2 = compileWorldview(text);
-      a.sh = sh2;
-      a.worldview = text;
-      a.shError = null;
-      a.dirty = true;
-      a.blocked.clear();
-      return true;
-    } catch (e) {
-      a.shError = String(e.message || e);
-      return false;
-    }
-  }
-  var accepts = (a, s, kinds, p) => {
-    const sh2 = a.sh;
-    if (!(sh2.targetNodes.has(s) || kinds.some((k) => sh2.targetClasses.has(k)))) return false;
-    if (p === TYPE || p === SUB) return true;
-    return sh2.paths.has(p);
-  };
-  function addFact(a, f, force) {
-    if (!force && !accepts(a, f.s, f.kinds, f.p)) return false;
-    if (a.keys.has(f.k)) return false;
-    a.keys.add(f.k);
-    a.mem.push(quadOf(f));
-    a.dirty = true;
-    if (f.p === TYPE && f.o.n) {
-      if (!a.types.has(f.s)) a.types.set(f.s, /* @__PURE__ */ new Set());
-      a.types.get(f.s).add(f.o.n);
-      if (!a.instances.has(f.o.n)) a.instances.set(f.o.n, /* @__PURE__ */ new Set());
-      a.instances.get(f.o.n).add(f.s);
-    } else if (f.p === w("at")) {
-      const t = tileFromIri(f.o.n);
-      if (t) a.atOf.set(f.s, t[1] * 1e4 + t[0]);
-    }
-    return true;
-  }
-  function perceive(sim, a) {
-    const { world } = sim, { W, H } = world;
-    for (let dy = -SIGHT; dy <= SIGHT; dy++) for (let dx = -SIGHT; dx <= SIGHT; dx++) {
-      const x = a.x + dx, y = a.y + dy;
-      if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      const i = y * W + x, d = Math.max(Math.abs(dx), Math.abs(dy));
-      if (a.know[i] < 0) a.know[i] = world.terr[i];
-      for (const f of world.factsAt(i)) {
-        if (d > f.reach || f.needs && !a.sh.paths.has(f.needs)) continue;
-        if (!f.stub && f.p === TYPE && f.o.n === CLASS && accepts(a, f.s, f.kinds, f.p)) {
-          const l = a.seenAt.get(f.s) || a.seenAt.set(f.s, []).get(f.s);
-          if (l.length < 4 && !l.includes(i)) l.push(i);
-        }
-        addFact(a, f);
-      }
-    }
-  }
-  function exchange(sim, a, b) {
-    const give = (from, to) => {
-      let n = 0;
-      for (let i = 0; i < from.know.length; i++) if (to.know[i] < 0 && from.know[i] >= 0) to.know[i] = from.know[i];
-      for (const [c, l] of from.seenAt) {
-        const m = to.seenAt.get(c) || to.seenAt.set(c, []).get(c);
-        for (const t of l) if (m.length < 4 && !m.includes(t)) m.push(t);
-      }
-      for (const q of from.mem) {
-        const s = q.subject.value, p = q.predicate.value, kinds = [...from.types.get(s) || []];
-        if (!accepts(to, s, kinds, p)) continue;
-        const k = s + "|" + p + "|" + (q.object.termType === "NamedNode" ? q.object.value : q.object.value + "^" + (q.object.datatype?.value || ""));
-        const o = q.object.termType === "NamedNode" ? nodeO(q.object.value) : litO(q.object.value, q.object.datatype?.value);
-        const f = { s, p, o, reach: 0, kinds, k, q };
-        if (addFact(to, f)) n++;
-      }
-      return n;
-    };
-    const ab = give(a, b), ba = give(b, a);
-    return { toB: ab, toA: ba };
-  }
-  var completeCount = (report, shapeIri) => {
-    const bad = new Set(report.violations.filter((v) => v.shape && v.shape.split("#")[0] === shapeIri).map((v) => v.focusNode));
-    return Object.keys(report.records[shapeIri] || {}).filter((n) => !bad.has(n)).length;
-  };
-  var shapeStats = (a) => (a.sh?.shapes || []).map((s) => ({ iri: s, name: short(s), complete: a.report ? completeCount(a.report, s) : 0, partial: a.report ? Object.keys(a.report.records[s] || {}).length : 0, open: a.report ? a.report.violations.filter((v) => v.shape.split("#")[0] === s).length : 0 }));
-  function dijkstra(world, know, sx, sy) {
-    const { W, H, N } = world, dist = new Float32Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1);
-    const heap = [[0, sy * W + sx]];
-    dist[sy * W + sx] = 0;
-    const push = (e) => {
-      heap.push(e);
-      let i = heap.length - 1;
-      while (i > 0) {
-        const p = i - 1 >> 1;
-        if (heap[p][0] <= heap[i][0]) break;
-        [heap[p], heap[i]] = [heap[i], heap[p]];
-        i = p;
-      }
-    };
-    const pop = () => {
-      const top = heap[0], last = heap.pop();
-      if (heap.length) {
-        heap[0] = last;
-        let i = 0;
-        for (; ; ) {
-          let l = 2 * i + 1, r = l + 1, m = i;
-          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
-          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
-          if (m === i) break;
-          [heap[m], heap[i]] = [heap[i], heap[m]];
-          i = m;
-        }
-      }
-      return top;
-    };
-    while (heap.length) {
-      const [d, c] = pop();
-      if (d > dist[c]) continue;
-      const cx = c % W, cy = c / W | 0;
-      for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) {
-        const nx = cx + dx, ny = cy + dy;
-        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-        const j = ny * W + nx, k = know[j], cost = k < 0 ? 2 : TERRAINS[k].cost;
-        if (cost === Infinity) continue;
-        if (d + cost < dist[j]) {
-          dist[j] = d + cost;
-          prev[j] = c;
-          push([d + cost, j]);
-        }
-      }
-    }
-    return { dist, prev };
-  }
-  var firstStep = (prev, from, to) => {
-    let c = to;
-    for (let g = 0; g < 4e3 && prev[c] !== from && prev[c] >= 0; g++) c = prev[c];
-    return c;
-  };
-  var pathTo = (prev, from, to) => {
-    const p = [];
-    let c = to;
-    for (let g = 0; g < 4e3 && c !== from && c >= 0; g++) {
-      p.push(c);
-      c = prev[c];
-    }
-    return p.reverse();
-  };
-  function anchorsOf(sim, a, focus) {
-    const W = sim.world.W, out = /* @__PURE__ */ new Set(), t = tileFromIri(focus);
-    if (t) out.add(t[1] * W + t[0]);
-    const at = a.atOf.get(focus);
-    if (at !== void 0) out.add(Math.floor(at / 1e4) * W + at % 1e4);
-    if (!out.size) {
-      for (const f of a.instances.get(focus) || []) {
-        const v = a.atOf.get(f);
-        if (v !== void 0) out.add(Math.floor(v / 1e4) * W + v % 1e4);
-      }
-      for (const i of a.seenAt.get(focus) || []) out.add(i);
-    }
-    const res = /* @__PURE__ */ new Set(), H = sim.world.H;
-    for (const i of out) {
-      if (a.know[i] >= 0 && TERRAINS[a.know[i]].cost === Infinity) {
-        const x = i % W, y = i / W | 0;
-        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-          const nx = x + dx, ny = y + dy;
-          if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-          const j = ny * W + nx;
-          if (a.know[j] >= 0 && TERRAINS[a.know[j]].cost !== Infinity) res.add(j);
-        }
-      } else res.add(i);
-    }
-    return [...res].sort((x, y) => x - y);
-  }
-  function evaluateAgent(sim, a) {
-    const raw = evaluate({ quads: [...a.sh.quads, ...a.mem] }), tv = (x) => x && x.value !== void 0 ? x.value : x;
-    a.report = { conforms: raw.conforms, records: raw.records, violations: raw.violations.map((v) => ({ focusNode: tv(v.focusNode), path: tv(v.path), component: tv(v.component), shape: String(tv(v.shape) || ""), message: tv(v.message), value: tv(v.value), severity: tv(v.severity) })) };
-    a.dirty = false;
-    const seen = /* @__PURE__ */ new Set();
-    a.findings = [];
-    for (const v of a.report.violations) if (v.component !== MIN_CHECK) {
-      const k = v.focusNode + "|" + v.path + "|" + v.component;
-      if (!seen.has(k)) {
-        seen.add(k);
-        a.findings.push(v);
-      }
-    }
-  }
-  function promote(sim, a, log2) {
-    for (let guard = 0; guard < 8; guard++) {
-      const g = a.stageGate;
-      if (!g || a.stage + 1 >= sim.wb.stages.length) return;
-      if (completeCount(a.report, g.gate) < g.gateRecords) return;
-      const nx = stageFor(sim.wb, a.stage + 1, a.role);
-      if (!nx) return;
-      a.stage++;
-      a.stageGate = nx;
-      if (!setWorldview(sim, a, a.worldview.trimEnd() + "\n\n" + nx.text + "\n")) return;
-      log2(`${a.name} promoted \u2192 stage ${a.stage}: ${nx.label}`, "promote");
-      perceive(sim, a);
-      evaluateAgent(sim, a);
-    }
-  }
-  function decide(sim, a, log2) {
-    const W = sim.world.W, cur = a.y * W + a.x;
-    const { dist, prev } = dijkstra(sim.world, a.know, a.x, a.y);
-    const tasks = /* @__PURE__ */ new Map(), others = sim.agents.filter((o) => o !== a);
-    for (const v of a.report.violations) {
-      if (v.component !== MIN_CHECK) continue;
-      const key = v.focusNode + "|" + v.path;
-      if (tasks.has(key) || a.blocked.has(key)) continue;
-      tasks.set(key, { key, focus: v.focusNode, path: v.path, message: v.message, shape: v.shape, rank: sim.wb.pathRank.get(v.path) ?? 0.5 });
-    }
-    const claimed = (k) => others.some((o) => o.task && o.task.claim === k);
-    const cands = [];
-    let explore = null;
-    for (const t of tasks.values()) {
-      const anchors = anchorsOf(sim, a, t.focus).filter((i) => dist[i] < Infinity);
-      if (!anchors.length) {
-        explore = Math.min(explore ?? 99, t.rank);
-        t.anchored = false;
-        continue;
-      }
-      anchors.sort((x, y) => dist[x] - dist[y] || x - y);
-      t.anchored = true;
-      t.target = anchors[0];
-      t.cost = dist[t.target];
-      t.claim = t.key;
-      if (!claimed(t.claim)) cands.push(t);
-    }
-    if (explore !== null || !tasks.size) {
-      let best = null;
-      for (let i = 0; i < sim.world.N; i++) {
-        if (a.know[i] < 0 || dist[i] === Infinity) continue;
-        const x = i % W, y = i / W | 0;
-        let unk = false;
-        for (let dy = -1; dy <= 1 && !unk; dy++) for (let dx = -1; dx <= 1; dx++) {
-          const nx = x + dx, ny = y + dy;
-          if (nx >= 0 && ny >= 0 && nx < W && ny < sim.world.H && a.know[ny * W + nx] < 0) {
-            unk = true;
-            break;
-          }
-        }
-        if (!unk) continue;
-        const claim = "x:" + i;
-        if (claimed(claim)) continue;
-        let spread = 8;
-        for (const o of others) spread = Math.min(spread, Math.max(Math.abs(o.x - x), Math.abs(o.y - y)));
-        const score = dist[i] - 0.5 * spread;
-        if (!best || score < best.score || score === best.score && i < best.i) best = { i, score };
-      }
-      if (best) cands.push({ key: "explore", explore: true, rank: explore ?? 99, target: best.i, cost: dist[best.i] + 6, claim: "x:" + best.i, focus: null, path: null, message: "No anchor for this obligation yet \u2014 go and see." });
-    }
-    cands.sort((p, q) => p.rank - q.rank || p.cost - q.cost || (p.key < q.key ? -1 : 1));
-    let pick = cands[0] || null;
-    const keep = a.task && cands.find((c) => c.key === a.task.key && c.rank === pick?.rank);
-    if (keep && pick && keep.cost <= pick.cost + 3) pick = keep;
-    while (pick && !pick.explore && pick.target === cur) {
-      a.blocked.add(pick.key);
-      log2(`${a.name} is blocked: ${short(pick.focus)} has no ${short(pick.path)} to give \u2014 the shape asks for what the world does not offer`, "blocked");
-      cands.splice(cands.indexOf(pick), 1);
-      pick = cands[0] || null;
-    }
-    a.task = pick;
-    a.path = [];
-    if (pick && pick.target !== cur) {
-      a.path = pathTo(prev, cur, pick.target);
-      a.next = firstStep(prev, cur, pick.target);
-    } else a.next = cur;
-    return pick;
-  }
-  function createSim({ workbench, seed = 7, W = 44, H = 30 }) {
-    const wb = loadWorkbench(workbench), world = makeWorld(seed, W, H);
-    const sim = { wb, world, tick: 0, agents: [], events: [], exchanges: [], seedUsed: seed, workbench };
-    const spawn = [];
-    for (let r = 0; r < 6 && spawn.length < wb.agents.length; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-      const x = world.camp % W + dx, y = (world.camp / W | 0) + dy;
-      if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      if (world.terr[y * W + x] !== TID.Sea && spawn.length < wb.agents.length) spawn.push([x, y]);
-    }
-    wb.agents.forEach((d, i) => {
-      const a = newAgent(sim, d, i);
-      [a.x, a.y] = spawn[i] || [world.camp % W, world.camp / W | 0];
-      sim.agents.push(a);
-    });
-    return sim;
-  }
-  var log = (sim) => (text, kind = "info") => {
-    sim.events.push({ tick: sim.tick, text, kind });
-    if (sim.events.length > 400) sim.events.shift();
-  };
-  function step(sim) {
-    sim.tick++;
-    const lg = log(sim);
-    for (const a of sim.agents) {
-      perceive(sim, a);
-      for (const b of sim.agents) {
-        if (b.order <= a.order) continue;
-        const key = a.id + "|" + b.id;
-        if (Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) <= 2 && sim.tick - (sim.lastEx?.[key] ?? -99) >= 10) {
-          (sim.lastEx || (sim.lastEx = {}))[key] = sim.tick;
-          const r = exchange(sim, a, b);
-          if (r.toA + r.toB) {
-            lg(`${a.name} \u21C4 ${b.name} exchanged memories (+${r.toA} / +${r.toB} facts)`, "meet");
-            sim.exchanges.push({ tick: sim.tick, a: a.id, b: b.id });
-          }
-        }
-      }
-      if (a.dirty || !a.report) evaluateAgent(sim, a);
-      promote(sim, a, lg);
-      const before = a.task?.key;
-      const t = decide(sim, a, lg);
-      if (t && t.key !== before && !t.explore) lg(`${a.name} takes up: ${t.message.replace(/ — .*$/, "")} (${short(t.focus)})`, "task");
-      if (a.next !== void 0 && a.next !== a.y * sim.world.W + a.x) {
-        a.x = a.next % sim.world.W;
-        a.y = a.next / sim.world.W | 0;
-      }
-    }
-    return sim;
-  }
-  function stats(sim) {
-    const { world } = sim, known = new Uint8Array(world.N);
-    let open = 0, features = /* @__PURE__ */ new Set(), classes = /* @__PURE__ */ new Set();
-    for (const a of sim.agents) {
-      for (let i = 0; i < world.N; i++) if (a.know[i] >= 0) known[i] = 1;
-      if (a.report) open += a.report.violations.filter((v) => v.component === MIN_CHECK).length;
-      for (const f of a.instances.get(w("Feature")) || []) features.add(f);
-      for (const c of a.instances.get(CLASS) || []) classes.add(c);
-    }
-    let k = 0;
-    for (let i = 0; i < world.N; i++) if (known[i] && world.terr[i] !== TID.Sea) k++;
-    return { tick: sim.tick, mapped: k / world.land, features: features.size, totalFeatures: world.feats.length, classes: classes.size, open };
-  }
-  var unionQuads = (sim) => {
-    const seen = /* @__PURE__ */ new Set(), out = [];
-    for (const a of sim.agents) for (const q of a.mem) {
-      const k = q.subject.value + "|" + q.predicate.value + "|" + q.object.value + "|" + (q.object.datatype?.value || "");
-      if (!seen.has(k)) {
-        seen.add(k);
-        out.push(q);
-      }
-    }
-    return out;
-  };
+// ═════════════════════════ ENGINE: world, minds, commons ═════════════════════════
+// ───────────────────────────── ENGINE ─────────────────────────────
+// Deterministic world + shape-driven explorers. No DOM, no Math.random, no Date.
+// Reality is a pure function of the seed. An explorer is a pure function of
+// (its worldview text, the facts it has perceived). Violations are its tasks.
 
-  // ui
-  if (typeof document !== "undefined") {
-    let aboutHTML = function() {
-      return `<div class="about"><h3>How the world thinks</h3>
-    <ol><li><b>Reality</b> is a seeded, deterministic world nobody can see whole.</li>
-    <li>An explorer's <b>worldview</b> is a set of SHACL shapes (MD-LD text). It is its only sense: a fact enters memory only if a shape <i>targets</i> the subject and <i>names</i> the predicate. No shape about places \u2192 places are scenery.</li>
-    <li>Every tick the shapes are <code>evaluate()</code>d over memory. <b>Records</b> are what it perceives; <b>violations</b> are its tasks: <code>sh:minCount</code> means "go where the answer lives".</li>
-    <li>A value the world <i>contradicts</i> is a <b>finding</b>, not a task. A value the world cannot give is a <b>blocked</b> task \u2014 the shape is wrong.</li>
-    <li><b>Ontology first.</b> Stage 0 asks only for definitions. When an explorer's gate shape has enough <i>complete</i> records, the next stage module is appended to its worldview.</li>
-    <li>Explorers within two tiles <b>exchange</b> memories \u2014 filtered through the receiver's lens.</li></ol>
-    <p>Everything is deterministic: same workbench + same seed \u2192 same history. Try the \u201C+ add a shape\u201D menu in Worldview after the atlas goes quiet.</p></div>`;
-    }, restart = function(wbText, seed) {
-      try {
-        S.sim = createSim({ workbench: wbText, seed });
-        S.seed = seed;
-        S.wbText = wbText;
-        S.sel = 0;
-        S.lastWV = "";
-        S.graphN = -1;
-        S.sim.events.push({ tick: 0, text: `New world (seed ${seed}) \xB7 ${S.sim.agents.length} explorers \xB7 workbench shell ${S.sim.wb.shellViolations.length ? S.sim.wb.shellViolations.length + " violation(s)" : "clean"}`, kind: "info" });
-        $("#wbStatus").innerHTML = S.sim.wb.shellViolations.length ? `<b class="bad">\u2717 ${S.sim.wb.shellViolations.length} shell violation(s)</b>` : `<b class="ok">\u2713 shell clean</b> \xB7 ${S.sim.wb.stages.length} stages \xB7 ${S.sim.wb.agents.length} explorers`;
-        S.panelDirty = true;
-        return true;
-      } catch (e) {
-        $("#wbStatus").innerHTML = `<b class="bad">\u2717 ${esc(e.message)}</b>`;
-        return false;
+const NS = 'tag:atlas.world,2026:'
+const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+const RDFS = 'http://www.w3.org/2000/01/rdf-schema#'
+const XSD = 'http://www.w3.org/2001/XMLSchema#'
+const SH = 'http://www.w3.org/ns/shacl#'
+const TYPE = RDF + 'type', SUB = RDFS + 'subClassOf', LABEL = RDFS + 'label', COMMENT = RDFS + 'comment', CLASS = RDFS + 'Class'
+const w = s => NS + s
+const short = s => String(s).startsWith(NS) ? 'w:' + s.slice(NS.length) : String(s).replace(RDFS, 'rdfs:').replace(RDF, 'rdf:').replace(XSD, 'xsd:').replace(SH, 'sh:')
+const SIGHT = 2                       // Chebyshev radius an explorer can see
+const MIN_CHECK = SH + 'MinCountConstraintComponent'
+
+// ───────── deterministic noise ─────────
+const hash = (a, b, c) => {
+  let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2246822519)
+  h = Math.imul(h ^ (h >>> 15), 2246822519); h = Math.imul(h ^ (h >>> 13), 3266489917); h ^= h >>> 16
+  return (h >>> 0) / 4294967296
+}
+const vnoise = (x, y, s) => {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, sm = t => t * t * (3 - 2 * t)
+  const a = hash(xi, yi, s), b = hash(xi + 1, yi, s), c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s), u = sm(xf), v = sm(yf)
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v
+}
+const fbm = (x, y, s) => 0.55 * vnoise(x / 8, y / 8, s) + 0.3 * vnoise(x / 4, y / 4, s + 11) + 0.15 * vnoise(x / 2, y / 2, s + 23)
+
+// ───────── lexicon: the words the world will teach ─────────
+const TERRAINS = [
+  { id: 'Sea', cost: Infinity, color: '#1b3a5c', label: 'Sea', comment: 'Open water. Boats could cross it; walkers cannot.' },
+  { id: 'Sand', cost: 1, color: '#d9c58a', label: 'Sand', comment: 'Pale shoreline where the land gives up.' },
+  { id: 'Plains', cost: 1, color: '#a3c46b', label: 'Plains', comment: 'Open grassland; the easy road.' },
+  { id: 'Forest', cost: 2, color: '#3f7d4a', label: 'Forest', comment: 'Dense trees; slow going, plenty of shade.' },
+  { id: 'Hills', cost: 2, color: '#9a8a5f', label: 'Hills', comment: 'Rolling uplands; the view improves.' },
+  { id: 'Mountain', cost: 3, color: '#8c8f98', label: 'Mountain', comment: 'Rock and cold; the slowest road.' },
+  { id: 'Dunes', cost: 2, color: '#e2b567', label: 'Dunes', comment: 'Dry ridges of drifting sand.' },
+]
+const TID = Object.fromEntries(TERRAINS.map((t, i) => [t.id, i]))
+const GROUPS = {
+  Natural: { label: 'Natural', comment: 'Living places: water, wood and herds.', prop: 'vitality' },
+  Mineral: { label: 'Mineral', comment: 'Places dug out of the earth.', prop: 'grade' },
+  Relic: { label: 'Relic', comment: 'Traces of people who came before.', prop: 'age' },
+  Civic: { label: 'Civic', comment: 'Places people have built together.', prop: 'population' },
+}
+const KINDS = [
+  { id: 'Spring', group: 'Natural', on: ['Plains', 'Forest', 'Hills'], glyph: '💧', label: 'Spring', comment: 'Water rising from the ground; every route needs one.' },
+  { id: 'Grove', group: 'Natural', on: ['Forest'], glyph: '🌳', label: 'Grove', comment: 'A stand of old trees, rich in fruit and timber.' },
+  { id: 'Herd', group: 'Natural', on: ['Plains'], glyph: '🦌', label: 'Herd', comment: 'Grazing animals that drift slowly across open ground.' },
+  { id: 'Ore', group: 'Mineral', on: ['Hills', 'Mountain'], glyph: '💎', label: 'Ore', comment: 'A seam of metal close to the surface.' },
+  { id: 'Cave', group: 'Mineral', on: ['Mountain', 'Hills'], glyph: '🕳️', label: 'Cave', comment: 'A hollow in the rock; what lies inside is a matter of grade.' },
+  { id: 'Ruin', group: 'Relic', on: ['Plains', 'Hills', 'Dunes'], glyph: '🏛️', label: 'Ruin', comment: 'Fallen walls of an earlier settlement.' },
+  { id: 'Shrine', group: 'Relic', on: ['Hills', 'Mountain', 'Dunes'], glyph: '⛩️', label: 'Shrine', comment: 'A small stone altar, still tended by someone.' },
+  { id: 'Settlement', group: 'Civic', on: [], glyph: '🏘️', label: 'Settlement', comment: 'A place founded by explorers who each needed something different from the same ground.' },
+  { id: 'Wreck', group: 'Relic', on: ['Sand'], glyph: '⚓', label: 'Wreck', comment: 'Timbers from a ship that never left the shore.' },
+]
+const KIND = Object.fromEntries(KINDS.map(k => [k.id, k]))
+const ROOTS = {
+  Terrain: { label: 'Terrain', comment: 'Every tile of the world has one terrain kind.' },
+  Feature: { label: 'Feature', comment: 'A place worth a trip: it can be located, visited and described.' },
+}
+
+// ───────── facts: a reality quad with a reach, tagged with the subject's classes ─────────
+// reach: Chebyshev distance (from the tile that carries the fact) at which it becomes perceivable.
+const nodeO = v => ({ n: v }), litO = (v, dt) => ({ l: String(v), dt })
+const mk = (s, p, o, reach, kinds) => ({ s, p, o, reach, kinds, k: s + '|' + p + '|' + (o.n ?? o.l + '^' + (o.dt || '')) })
+const ATLAS = w('atlas')
+const classTermFacts = (id, parent, lex, reach0 = SIGHT, commentReach = 0) => {
+  const c = w(id), K = [CLASS], out = [
+    mk(c, TYPE, nodeO(CLASS), reach0, K),
+    mk(c, LABEL, litO(lex.label), reach0, K),
+    mk(c, COMMENT, litO(lex.comment), commentReach, K),
+    mk(ATLAS, w('defines'), nodeO(c), reach0, []),
+  ]
+  if (parent) out.push(mk(c, SUB, nodeO(w(parent)), reach0, K))
+  return out
+}
+// a class term seen only through a trail: its word, but not its definition
+const stubbed = fs => fs.map(f => ({ ...f, stub: true, needs: w('linkedTo') }))
+const stubClassFacts = (id, parent, lex) => stubbed(classTermFacts(id, parent, lex, 0).filter(f => f.p !== COMMENT))
+
+const tileIri = (x, y) => w(`t-${x}-${y}`)
+const tileFromIri = s => { const m = /t-(\d+)-(\d+)$/.exec(s); return m && String(s).startsWith(NS) ? [+m[1], +m[2]] : null }
+
+// ───────── world generation ─────────
+function makeWorld(seed = 7, W = 44, H = 30) {
+  const N = W * H, terr = new Int8Array(N), elev = new Uint8Array(N), moist = new Uint8Array(N)
+  const idx = (x, y) => y * W + x
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const nx = (x / (W - 1) - 0.5) * 2, ny = (y / (H - 1) - 0.5) * 2
+    const d = Math.min(1, Math.hypot(nx * 0.92, ny)), fall = 1 - Math.pow(d, 1.9)
+    const e = fbm(x, y, seed) * 0.55 + fall * 0.50 + 0.02
+    const m = fbm(x + 100, y + 57, seed + 7)
+    const i = idx(x, y)
+    elev[i] = Math.max(0, Math.min(9, Math.floor(e * 10))); moist[i] = Math.max(0, Math.min(9, Math.floor(m * 10)))
+    terr[i] = e < 0.36 ? TID.Sea : e < 0.41 ? TID.Sand : e > 0.84 ? TID.Mountain : e > 0.70 ? TID.Hills : m < 0.30 ? TID.Dunes : m > 0.54 ? TID.Forest : TID.Plains
+  }
+  // camp: land tile nearest the centre; everything not connected to it drowns
+  let camp = -1, best = 1e9
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (terr[idx(x, y)] === TID.Plains || terr[idx(x, y)] === TID.Forest) {
+    const dd = (x - W / 2) ** 2 + (y - H / 2) ** 2; if (dd < best) { best = dd; camp = idx(x, y) }
+  }
+  const seen = new Uint8Array(N), q = [camp]; seen[camp] = 1
+  for (let h = 0; h < q.length; h++) {
+    const c = q[h], cx = c % W, cy = (c / W) | 0
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx, ny = cy + dy
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue
+      const j = idx(nx, ny); if (!seen[j] && terr[j] !== TID.Sea) { seen[j] = 1; q.push(j) }
+    }
+  }
+  for (let i = 0; i < N; i++) if (!seen[i]) terr[i] = TID.Sea
+  const land = q.length
+
+  // features: one of each kind first (deterministic order by hash), then fill up
+  const order = []; for (let i = 0; i < N; i++) if (terr[i] !== TID.Sea) order.push(i)
+  order.sort((a, b) => hash(a, 3, seed) - hash(b, 3, seed) || a - b)
+  const feats = [], at = new Map()
+  const free = (x, y) => feats.every(f => Math.max(Math.abs(f.x - x), Math.abs(f.y - y)) >= 3)
+  const place = (kind, i) => {
+    const x = i % W, y = (i / W) | 0
+    const g = GROUPS[kind.group]
+    const f = { id: w(`f-${x}-${y}`), kind: kind.id, group: kind.group, x, y, richness: 1 + Math.floor(hash(x, y, seed + 1) * 5), links: [] }
+    f[g.prop] = g.prop === 'age' ? 100 + Math.floor(hash(x, y, seed + 2) * 89) * 100 : 1 + Math.floor(hash(x, y, seed + 2) * 5)
+    feats.push(f); at.set(i, f)
+  }
+  const target = Math.min(40, Math.floor(land / 22))
+  for (const kind of KINDS) {
+    const c = order.find(i => kind.on.includes(TERRAINS[terr[i]].id) && free(i % W, (i / W) | 0) && Math.hypot(i % W - camp % W, ((i / W) | 0) - ((camp / W) | 0)) > 4)
+    if (c !== undefined) place(kind, c)
+  }
+  for (const i of order) {
+    if (feats.length >= target) break
+    if (at.has(i)) continue
+    const x = i % W, y = (i / W) | 0
+    const cnt = id => feats.filter(f => f.kind === id).length, ok = KINDS.filter(k => k.on.includes(TERRAINS[terr[i]].id) && cnt(k.id) < 6); if (!ok.length || !free(x, y)) continue
+    if (Math.hypot(x - camp % W, y - ((camp / W) | 0)) <= 4) continue
+    place(ok[Math.floor(hash(x, y, seed + 4) * ok.length)], i)
+  }
+  // trails: every feature links to its two nearest neighbours (symmetric)
+  const byId = new Map(feats.map(f => [f.id, f]))
+  for (const f of feats) {
+    const near = feats.filter(g => g !== f).sort((a, b) => Math.hypot(a.x - f.x, a.y - f.y) - Math.hypot(b.x - f.x, b.y - f.y) || (a.id < b.id ? -1 : 1)).slice(0, 2)
+    for (const g of near) { if (!f.links.includes(g.id)) f.links.push(g.id); if (!g.links.includes(f.id)) g.links.push(f.id) }
+  }
+  for (const f of feats) f.links.sort()
+
+  // lazily built fact lists per tile
+  const cache = new Map()
+  const terrClass = t => classTermFacts(TERRAINS[t].id, 'Terrain', TERRAINS[t], SIGHT, TERRAINS[t].cost === Infinity ? 1 : 0).concat(classTermFacts('Terrain', null, ROOTS.Terrain))
+  const featClass = f => { const k = KIND[f.kind], g = GROUPS[k.group]; return classTermFacts(k.id, k.group, k).concat(classTermFacts(k.group, 'Feature', g), classTermFacts('Feature', null, ROOTS.Feature)) }
+  const featStub = g => { const k = KIND[g.kind], gr = GROUPS[k.group], K = [w(k.id), w(k.group), w('Feature')]
+    return [...stubbed([...K.map(c => mk(g.id, TYPE, nodeO(c), 0, K)), mk(g.id, w('at'), nodeO(tileIri(g.x, g.y)), 0, K), mk(ATLAS, w('holds'), nodeO(g.id), 0, [])]),
+      ...stubClassFacts(k.id, k.group, k), ...stubClassFacts(k.group, 'Feature', gr), ...stubClassFacts('Feature', null, ROOTS.Feature)] }
+  const factsAt = i => {
+    let out = cache.get(i); if (out) return out
+    const x = i % W, y = (i / W) | 0, t = terr[i], tid = TERRAINS[t].id, ti = tileIri(x, y), TK = [w(tid), w('Terrain')]
+    out = [...TK.map(c => mk(ti, TYPE, nodeO(c), SIGHT, TK)), mk(ti, w('x'), litO(x, XSD + 'integer'), SIGHT, TK), mk(ti, w('y'), litO(y, XSD + 'integer'), SIGHT, TK),
+      mk(ti, w('elevation'), litO(elev[i], XSD + 'integer'), 1, TK), mk(ti, w('moisture'), litO(moist[i], XSD + 'integer'), 1, TK), ...terrClass(t)]
+    const f = at.get(i)
+    if (f) {
+      const k = KIND[f.kind], g = GROUPS[k.group], FK = [w(k.id), w(k.group), w('Feature')]
+      out.push(...FK.map(c => mk(f.id, TYPE, nodeO(c), SIGHT, FK)), mk(f.id, w('at'), nodeO(ti), SIGHT, FK), mk(ATLAS, w('holds'), nodeO(f.id), SIGHT, []),
+        mk(f.id, w('richness'), litO(f.richness, XSD + 'integer'), 0, FK), mk(f.id, w(g.prop), litO(f[g.prop], XSD + 'integer'), 0, FK), ...featClass(f))
+      for (const gid of f.links) { out.push(mk(f.id, w('linkedTo'), nodeO(gid), 0, FK)); out.push(...featStub(byId.get(gid))) }
+    }
+    cache.set(i, out); return out
+  }
+  // consequences: the world can grow. New features invalidate only the tiles they touch.
+  const addFeature = f => {
+    const i = idx(f.x, f.y); feats.push(f); at.set(i, f); byId.set(f.id, f); cache.delete(i)
+    for (const gid of f.links) { const g = byId.get(gid); if (!g.links.includes(f.id)) { g.links.push(f.id); g.links.sort() } cache.delete(idx(g.x, g.y)) }
+  }
+  return { seed, W, H, N, terr, elev, moist, camp, land, feats, byId, addFeature, factsAt, idx, featAt: i => at.get(i) || null }
+}
+
+// ───────── workbench: the ladder of dormant stage modules ─────────
+function loadWorkbench(text) {
+  const r = parse({ text }), by = new Map()
+  for (const q of r.quads) { if (!by.has(q.subject.value)) by.set(q.subject.value, []); by.get(q.subject.value).push(q) }
+  const get = (qs, p) => qs.find(q => q.predicate.value === w(p))?.object.value
+  const lab = qs => qs.find(q => q.predicate.value === LABEL)?.object.value
+  const isA = (qs, c) => qs.some(q => q.predicate.value === TYPE && q.object.value === w(c))
+  const steps = [], roles = new Map(), agents = []
+  let charter = null
+  for (const [s, qs] of [...by].sort((a, b) => a[0] < b[0] ? -1 : 1)) {
+    if (isA(qs, 'Step')) steps.push({ iri: s, label: lab(qs), rank: +get(qs, 'rank'), forRole: get(qs, 'forRole') || null, gate: get(qs, 'gate'), gateRecords: +(get(qs, 'gateRecords') || 1),
+      text: (get(qs, 'payload') || '').split('\n').filter(l => !l.startsWith('[w] <')).join('\n').trim() })
+    if (isA(qs, 'Charter')) charter = { text: (get(qs, 'payload') || '').split('\n').filter(l => !l.startsWith('[w] <')).join('\n').trim(), spacing: +(get(qs, 'spacing') || 8), quorum: +(get(qs, 'quorum') || 3), max: +(get(qs, 'maxSettlements') || 3) }
+    if (isA(qs, 'Role')) roles.set(s, lab(qs))
+    if (isA(qs, 'Agent')) agents.push({ iri: s, id: s.slice(NS.length + 'agent-'.length), name: lab(qs), role: get(qs, 'role'), color: get(qs, 'color') })
+  }
+  const maxRank = Math.max(-1, ...steps.map(s => s.rank))
+  const stages = []
+  for (let k = 0; k <= maxRank; k++) stages.push(steps.filter(s => s.rank === k))
+  // which stage first mentions each path: stage rank of a violation
+  const pathRank = new Map()
+  for (const s of steps) {
+    const p = parse({ text: HEADER + '\n\n' + s.text })
+    for (const q of p.quads) if (q.predicate.value === SH + 'path') pathRank.set(q.object.value, Math.min(pathRank.get(q.object.value) ?? 99, s.rank))
+  }
+  const shell = evaluate({ quads: r.quads })
+  return { text, stages, roles, agents, charter, pathRank, shellViolations: shell.violations, quads: r.quads }
+}
+const HEADER = `[w] <${NS}>`
+const stageFor = (wb, k, roleIri) => { const mods = (wb.stages[k] || []).filter(m => !m.forRole || m.forRole === roleIri); const lead = mods.find(m => m.forRole) || mods[0]; return lead ? { text: mods.map(m => m.text).join('\n\n'), gate: lead.gate, gateRecords: lead.gateRecords, label: (lead.label || '').replace(/^Stage \d+ — /, '') } : null }
+
+// ───────── a worldview, compiled ─────────
+function compileWorldview(text) {
+  const r = parse({ text }), targetClasses = new Set(), targetNodes = new Set(), paths = new Set(), shapes = new Map()
+  for (const q of r.quads) {
+    const p = q.predicate.value
+    if (p === SH + 'targetClass') targetClasses.add(q.object.value)
+    else if (p === SH + 'targetNode') targetNodes.add(q.object.value)
+    else if (p === SH + 'path') paths.add(q.object.value)
+    else if (p === TYPE && q.object.value === SH + 'NodeShape') shapes.set(q.subject.value, true)
+  }
+  const tileTargeted = [w('Terrain'), ...TERRAINS.map(t => w(t.id))].some(c => targetClasses.has(c))
+  return { quads: r.quads, targetClasses, targetNodes, paths, shapes: [...shapes.keys()], tileTargeted }
+}
+
+// ───────── an explorer ─────────
+const lit = f => f.o.n !== undefined ? DF.namedNode(f.o.n) : DF.literal(f.o.l, f.o.dt ? DF.namedNode(f.o.dt) : undefined)
+const quadOf = f => f.q || (f.q = DF.quad(DF.namedNode(f.s), DF.namedNode(f.p), lit(f)))
+
+function newAgent(sim, def, i) {
+  const wb = sim.wb, st0 = stageFor(wb, 0, def.role)
+  const a = { id: def.id, name: def.name, color: def.color, role: def.role, roleName: wb.roles.get(def.role) || '', order: i,
+    x: 0, y: 0, know: new Int8Array(sim.world.N).fill(-1), seenAt: new Map(),
+    mem: [], keys: new Set(), types: new Map(), instances: new Map(), atOf: new Map(),
+    stage: 0, stageGate: st0, worldview: HEADER + '\n\n' + (st0?.text || ''), sh: null, shError: null,
+    report: null, dirty: true, blocked: new Set(), task: null, path: [], claims: null, lastExchange: new Map(), edited: false, request: null, reqDone: new Set() }
+  setWorldview(sim, a, a.worldview)
+  // the atlas starts as a bare node: a thing that can be asked about
+  addFact(a, mk(ATLAS, TYPE, nodeO(w('Atlas')), 0, []), true)
+  return a
+}
+function setWorldview(sim, a, text) {
+  try { const sh = compileWorldview(text); a.sh = sh; a.worldview = text; a.shError = null; a.dirty = true; a.blocked.clear(); return true }
+  catch (e) { a.shError = String(e.message || e); return false }
+}
+const accepts = (a, s, kinds, p) => {
+  const sh = a.sh
+  if (!(sh.targetNodes.has(s) || kinds.some(k => sh.targetClasses.has(k)))) return false
+  if (p === TYPE || p === SUB) return true
+  return sh.paths.has(p)
+}
+function addFact(a, f, force) {
+  if (!force && !accepts(a, f.s, f.kinds, f.p)) return false
+  if (a.keys.has(f.k)) return false
+  a.keys.add(f.k); a.mem.push(quadOf(f)); a.dirty = true
+  if (f.p === TYPE && f.o.n) {
+    if (!a.types.has(f.s)) a.types.set(f.s, new Set()); a.types.get(f.s).add(f.o.n)
+    if (!a.instances.has(f.o.n)) a.instances.set(f.o.n, new Set()); a.instances.get(f.o.n).add(f.s)
+  } else if (f.p === w('at')) { const t = tileFromIri(f.o.n); if (t) a.atOf.set(f.s, t[1] * 1e4 + t[0]) }
+  return true
+}
+
+function perceive(sim, a) {
+  const { world } = sim, { W, H } = world
+  for (let dy = -SIGHT; dy <= SIGHT; dy++) for (let dx = -SIGHT; dx <= SIGHT; dx++) {
+    const x = a.x + dx, y = a.y + dy; if (x < 0 || y < 0 || x >= W || y >= H) continue
+    const i = y * W + x, d = Math.max(Math.abs(dx), Math.abs(dy))
+    if (a.know[i] < 0) a.know[i] = world.terr[i]
+    for (const f of world.factsAt(i)) {
+      if (d > f.reach || (f.needs && !a.sh.paths.has(f.needs))) continue
+      // remember where an instance of a word was met: that is where its definition lives
+      if (!f.stub && f.p === TYPE && f.o.n === CLASS && accepts(a, f.s, f.kinds, f.p)) { const l = a.seenAt.get(f.s) || a.seenAt.set(f.s, []).get(f.s); if (l.length < 4 && !l.includes(i)) l.push(i) }
+      addFact(a, f)
+    }
+  }
+}
+function exchange(sim, a, b) {
+  // each side learns what the other knows — but only what fits its own lens
+  const give = (from, to) => {
+    let n = 0
+    for (let i = 0; i < from.know.length; i++) if (to.know[i] < 0 && from.know[i] >= 0) to.know[i] = from.know[i]
+    for (const [c, l] of from.seenAt) { const m = to.seenAt.get(c) || to.seenAt.set(c, []).get(c); for (const t of l) if (m.length < 4 && !m.includes(t)) m.push(t) }
+    for (const q of from.mem) {
+      const s = q.subject.value, p = q.predicate.value, kinds = [...(from.types.get(s) || [])]
+      if (!accepts(to, s, kinds, p)) continue
+      const k = s + '|' + p + '|' + (q.object.termType === 'NamedNode' ? q.object.value : q.object.value + '^' + (q.object.datatype?.value || ''))
+      const o = q.object.termType === 'NamedNode' ? nodeO(q.object.value) : litO(q.object.value, q.object.datatype?.value)
+      const f = { s, p, o, reach: 0, kinds, k, q }
+      if (addFact(to, f)) n++
+    }
+    return n
+  }
+  const ab = give(a, b), ba = give(b, a)
+  return { toB: ab, toA: ba }
+}
+
+const completeCount = (report, shapeIri) => {
+  const bad = new Set(report.violations.filter(v => v.shape && v.shape.split('#')[0] === shapeIri).map(v => v.focusNode))
+  return Object.keys(report.records[shapeIri] || {}).filter(n => !bad.has(n)).length
+}
+const shapeStats = (a) => (a.sh?.shapes || []).map(s => ({ iri: s, name: short(s), complete: a.report ? completeCount(a.report, s) : 0, partial: a.report ? Object.keys(a.report.records[s] || {}).length : 0, open: a.report ? a.report.violations.filter(v => v.shape.split('#')[0] === s).length : 0 }))
+
+function dijkstra(world, know, sx, sy) {
+  const { W, H, N } = world, dist = new Float32Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1)
+  const heap = [[0, sy * W + sx]]; dist[sy * W + sx] = 0
+  const push = e => { heap.push(e); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break;[heap[p], heap[i]] = [heap[i], heap[p]]; i = p } }
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (; ;) { let l = 2 * i + 1, r = l + 1, m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break;[heap[m], heap[i]] = [heap[i], heap[m]]; i = m } } return top }
+  while (heap.length) {
+    const [d, c] = pop(); if (d > dist[c]) continue
+    const cx = c % W, cy = (c / W) | 0
+    for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) {
+      const nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue
+      const j = ny * W + nx, k = know[j], cost = k < 0 ? 2 : TERRAINS[k].cost; if (cost === Infinity) continue
+      if (d + cost < dist[j]) { dist[j] = d + cost; prev[j] = c; push([d + cost, j]) }
+    }
+  }
+  return { dist, prev }
+}
+const firstStep = (prev, from, to) => { let c = to; for (let g = 0; g < 4000 && prev[c] !== from && prev[c] >= 0; g++) c = prev[c]; return c }
+const pathTo = (prev, from, to) => { const p = []; let c = to; for (let g = 0; g < 4000 && c !== from && c >= 0; g++) { p.push(c); c = prev[c] } return p.reverse() }
+
+function anchorsOf(sim, a, focus) {
+  const W = sim.world.W, out = new Set(), t = tileFromIri(focus)
+  if (t) out.add(t[1] * W + t[0])
+  const at = a.atOf.get(focus); if (at !== undefined) out.add(Math.floor(at / 1e4) * W + (at % 1e4))
+  if (!out.size) {
+    for (const f of a.instances.get(focus) || []) { const v = a.atOf.get(f); if (v !== undefined) out.add(Math.floor(v / 1e4) * W + (v % 1e4)) }
+    for (const i of a.seenAt.get(focus) || []) out.add(i)
+  }
+  // water can be met from the shore: an impassable anchor is stood on from a passable neighbour
+  const res = new Set(), H = sim.world.H
+  for (const i of out) {
+    if (a.know[i] >= 0 && TERRAINS[a.know[i]].cost === Infinity) {
+      const x = i % W, y = (i / W) | 0
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue; const j = ny * W + nx; if (a.know[j] >= 0 && TERRAINS[a.know[j]].cost !== Infinity) res.add(j) }
+    } else res.add(i)
+  }
+  return [...res].sort((x, y) => x - y)
+}
+
+const tv = x => (x && x.value !== undefined ? x.value : x)
+const normalize = raw => ({ conforms: raw.conforms, records: raw.records, violations: raw.violations.map(v => ({ focusNode: tv(v.focusNode), path: tv(v.path), component: tv(v.component), shape: String(tv(v.shape) || ''), message: tv(v.message), value: tv(v.value), severity: tv(v.severity) })) })
+function evaluateAgent(sim, a) {
+  a.report = normalize(evaluate({ quads: [...a.sh.quads, ...a.mem] }))
+  a.dirty = false
+  const seen = new Set(); a.findings = []
+  for (const v of a.report.violations) if (v.component !== MIN_CHECK) { const k = v.focusNode + '|' + v.path + '|' + v.component; if (!seen.has(k)) { seen.add(k); a.findings.push(v) } }
+}
+
+function promote(sim, a, log) {
+  for (let guard = 0; guard < 8; guard++) {
+    const g = a.stageGate; if (!g || a.stage + 1 >= sim.wb.stages.length) return
+    if (completeCount(a.report, g.gate) < g.gateRecords) return
+    const nx = stageFor(sim.wb, a.stage + 1, a.role); if (!nx) return
+    a.stage++; a.stageGate = nx
+    if (!setWorldview(sim, a, a.worldview.trimEnd() + '\n\n' + nx.text + '\n')) return
+    log(`${a.name} promoted → stage ${a.stage}: ${nx.label}`, 'promote')
+    perceive(sim, a)            // a new lens re-reads the tile you are standing on before anything is judged
+    evaluateAgent(sim, a)
+  }
+}
+
+function decide(sim, a, log) {
+  const W = sim.world.W, cur = a.y * W + a.x
+  const { dist, prev } = dijkstra(sim.world, a.know, a.x, a.y)
+  const tasks = new Map(), others = sim.agents.filter(o => o !== a)
+  for (const v of a.report.violations) {
+    if (v.component !== MIN_CHECK) continue
+    const key = v.focusNode + '|' + v.path; if (tasks.has(key) || a.blocked.has(key)) continue
+    tasks.set(key, { key, focus: v.focusNode, path: v.path, message: v.message, shape: v.shape, rank: sim.wb.pathRank.get(v.path) ?? 0.5 })
+  }
+  const claimed = k => others.some(o => o.task && o.task.claim === k)
+  const cands = []; let explore = null
+  for (const t of tasks.values()) {
+    const anchors = anchorsOf(sim, a, t.focus).filter(i => dist[i] < Infinity)
+    if (!anchors.length) { explore = Math.min(explore ?? 99, t.rank); t.anchored = false; continue }
+    anchors.sort((x, y) => dist[x] - dist[y] || x - y)
+    t.anchored = true; t.target = anchors[0]; t.cost = dist[t.target]; t.claim = t.key
+    if (!claimed(t.claim)) cands.push(t)
+  }
+  // the commons speaks first: a measurement only this lens can make, or a founding everyone is called to
+  if (a.request && !a.reqDone.has(a.request.key) && dist[a.request.target] < Infinity) { const r = a.request; cands.push({ key: r.key, rank: -1, cost: dist[r.target], target: r.target, claim: r.key, focus: r.focus, path: r.path, message: r.message, request: true }) }
+  const pr = sim.commons?.proposal
+  if (pr) { const t = pr.at[1] * W + pr.at[0]; if (dist[t] < Infinity) cands.push({ key: 'found|' + pr.site.id, rank: -0.5, cost: dist[t], target: t, claim: null, focus: pr.site.water.id, path: null, message: 'Gather to found a settlement', found: true }) }
+  // frontier fallback: unanchored obligations (and idleness) mean "go and see"
+  if (explore !== null || !tasks.size) {
+    let best = null
+    for (let i = 0; i < sim.world.N; i++) {
+      if (a.know[i] < 0 || dist[i] === Infinity) continue
+      const x = i % W, y = (i / W) | 0; let unk = false
+      for (let dy = -1; dy <= 1 && !unk; dy++) for (let dx = -1; dx <= 1; dx++) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < W && ny < sim.world.H && a.know[ny * W + nx] < 0) { unk = true; break } }
+      if (!unk) continue
+      const claim = 'x:' + i; if (claimed(claim)) continue
+      let spread = 8; for (const o of others) spread = Math.min(spread, Math.max(Math.abs(o.x - x), Math.abs(o.y - y)))
+      const score = dist[i] - 0.5 * spread
+      if (!best || score < best.score || (score === best.score && i < best.i)) best = { i, score }
+    }
+    if (best) cands.push({ key: 'explore', explore: true, rank: explore ?? 99, target: best.i, cost: dist[best.i] + 6, claim: 'x:' + best.i, focus: null, path: null, message: 'No anchor for this obligation yet — go and see.' })
+  }
+  cands.sort((p, q) => p.rank - q.rank || p.cost - q.cost || (p.key < q.key ? -1 : 1))
+  let pick = cands[0] || null
+  const keep = a.task && cands.find(c => c.key === a.task.key && c.rank === (pick?.rank))
+  if (keep && pick && keep.cost <= pick.cost + 3) pick = keep
+  // arrived, and the world still has no answer: the shape is asking for something it does not offer
+  while (pick && !pick.explore && !pick.found && pick.target === cur) {
+    if (pick.request) { a.reqDone.add(pick.key); a.request = null; log(`${a.name} answered the council's request at ${short(pick.focus)}`, 'task'); cands.splice(cands.indexOf(pick), 1); pick = cands[0] || null; continue }
+    a.blocked.add(pick.key); log(`${a.name} is blocked: ${short(pick.focus)} has no ${short(pick.path)} to give — the shape asks for what the world does not offer`, 'blocked')
+    cands.splice(cands.indexOf(pick), 1); pick = cands[0] || null
+  }
+  a.task = pick; a.path = []
+  if (pick && pick.target !== cur) { a.path = pathTo(prev, cur, pick.target); a.next = firstStep(prev, cur, pick.target) } else a.next = cur
+  return pick
+}
+
+// ───────── the commons: a shared mind that judges what no single explorer can ─────────
+// It reads the union of every memory, joins features into candidate Sites, and evaluates the
+// Charter over them. Its violations become requests; its verdicts become foundings.
+const MEASURES = { vitality: 'water', grade: 'ore', age: 'relic' }     // which part of a Site each word measures
+const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]))
+
+function commonsView(sim) {
+  const feats = new Map(), F = id => feats.get(id) || feats.set(id, { id, types: new Set(), links: new Set(), vals: {} }).get(id)
+  for (const a of sim.agents) for (const q of a.mem) {
+    const s = q.subject.value, p = q.predicate.value, o = q.object.value
+    if (!s.startsWith(NS + 'f-')) continue
+    if (p === TYPE) F(s).types.add(o)
+    else if (p === w('at')) { const t = tileFromIri(o); if (t) F(s).at = t }
+    else if (p === w('linkedTo')) F(s).links.add(o)
+    else if (p.startsWith(NS) && MEASURES[p.slice(NS.length)]) F(s).vals[p.slice(NS.length)] = +o
+  }
+  return [...feats.values()].filter(f => f.at).sort((a, b) => (a.id < b.id ? -1 : 1))
+}
+function buildSites(list) {
+  const near = (c, group) => { let best = null, bd = 99; for (const f of list) { if (!f.types.has(w(group))) continue; const d = cheb(f.at, c.at); if (d <= 8 && d < bd) { bd = d; best = f } } return best }
+  return list.filter(f => f.types.has(w('Natural'))).map(water => ({ id: w('site-' + water.id.slice(NS.length + 2)), water, ore: near(water, 'Mineral'), relic: near(water, 'Relic'), at: water.at }))
+}
+function siteQuads(x) {
+  const f = [mk(x.id, TYPE, nodeO(w('Site')), 0, []), mk(x.id, w('at'), nodeO(tileIri(...x.at)), 0, []), ]
+  if (x.water.links.size) f.push(mk(x.id, w('trails'), litO(x.water.links.size, XSD + 'integer'), 0, []))   // unseen trails are unknown, not zero
+  const num = (p, v) => v !== undefined && f.push(mk(x.id, w(p), litO(v, XSD + 'integer'), 0, []))
+  num('vitality', x.water.vals.vitality)
+  if (x.ore) { f.push(mk(x.id, w('ore'), nodeO(x.ore.id), 0, [])); num('grade', x.ore.vals.grade) }
+  if (x.relic) { f.push(mk(x.id, w('relic'), nodeO(x.relic.id), 0, [])); num('age', x.relic.vals.age) }
+  return f.map(quadOf)
+}
+function setCharter(sim, text) {
+  const cm = sim.commons; if (!cm) return false
+  try { cm.sh = compileWorldview(text); cm.worldview = text; cm.error = null; cm.rejected.clear(); return true } catch (e) { cm.error = String(e.message || e); return false }
+}
+function councilTick(sim, lg) {
+  const cm = sim.commons, sites = buildSites(commonsView(sim))
+  const rep = normalize(evaluate({ quads: [...cm.sh.quads, ...sites.flatMap(siteQuads)] })), by = new Map()
+  for (const v of rep.violations) (by.get(v.focusNode) || by.set(v.focusNode, []).get(v.focusNode)).push(v)
+  const need = []
+  for (const x of sites) {
+    const vs = by.get(x.id) || [], unfit = vs.filter(v => v.component !== MIN_CHECK), gaps = vs.filter(v => v.component === MIN_CHECK)
+    x.status = unfit.length ? 'unfit' : gaps.length ? 'pending' : 'viable'
+    x.reasons = (unfit.length ? unfit : gaps).map(v => v.message.replace(/ — .*$/, '') + (v.component !== MIN_CHECK ? ` (${short(v.path).replace('w:', '')} = ${v.value})` : ''))
+    if (x.status === 'pending') for (const v of gaps) { const part = MEASURES[short(v.path).replace('w:', '')]; if (part && x[part]) need.push({ feat: x[part], path: v.path, site: x }) }
+  }
+  cm.sites = sites
+  // requests: a missing measurement goes to the nearest explorer whose lens owns that word
+  const keyOf = r => 'req|' + r.feat.id + '|' + r.path, want = new Map(need.slice(0, 4).map(r => [keyOf(r), r]))
+  const busy = new Set()
+  for (const a of sim.agents) { if (a.request && want.has(a.request.key) && !a.reqDone.has(a.request.key)) busy.add(a.request.key); else a.request = null }
+  for (const [key, r] of want) {
+    if (busy.has(key)) continue
+    const pick = sim.agents.filter(a => !a.request && !a.reqDone.has(key) && a.sh.paths.has(r.path)).sort((p, q) => cheb([p.x, p.y], r.feat.at) - cheb([q.x, q.y], r.feat.at) || p.order - q.order)[0]
+    if (!pick) continue
+    pick.request = { key, focus: r.feat.id, path: r.path, target: r.feat.at[1] * sim.world.W + r.feat.at[0], message: `Council request: measure ${short(r.path).replace('w:', '')}` }
+    lg(`Council asks ${pick.name} for ${short(r.path).replace('w:', '')} at ${short(r.feat.id)} — ${short(r.site.id).replace('w:site-', 'site ')} cannot be judged without it`, 'council')
+  }
+  // proposals: a viable site, clear of existing settlements, calls everyone to found it
+  const pr = cm.proposal
+  if (pr) {
+    const cur = sites.find(x => x.id === pr.site.id)
+    if (!cur || cur.status !== 'viable') { lg(`Council withdraws the proposal at ${short(pr.site.id)} — it no longer satisfies the Charter`, 'council'); cm.proposal = null }
+    else if (sim.tick - pr.since > 150) { cm.rejected.add(pr.site.id); lg(`Council gives up waiting at ${short(pr.site.id)}`, 'council'); cm.proposal = null }
+    else pr.site = cur
+  }
+  if (!cm.proposal && cm.settlements.length < cm.max) {
+    const camp = [sim.world.camp % sim.world.W, (sim.world.camp / sim.world.W) | 0]
+    const ok = sites.filter(x => x.status === 'viable' && !cm.rejected.has(x.id) && cm.settlements.every(t => cheb(t.at, x.at) >= cm.spacing))
+      .sort((p, q) => cheb(p.at, camp) - cheb(q.at, camp) || (p.id < q.id ? -1 : 1))[0]
+    if (ok) {
+      cm.proposal = { site: ok, at: ok.at, since: sim.tick }
+      lg(`Council: ${short(ok.water.id)} satisfies every viewpoint — vitality ${ok.water.vals.vitality}, grade ${ok.ore.vals.grade}, age ${ok.relic.vals.age}, ${ok.water.links.size} trails. All explorers are called to found a settlement.`, 'council')
+    }
+  }
+}
+function found(sim, here, lg) {
+  const cm = sim.commons, { world } = sim, { W, H } = world, x = cm.proposal.site; let spot = null
+  for (let r = 1; r <= 3 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue
+    const px = x.at[0] + dx, py = x.at[1] + dy; if (px < 0 || py < 0 || px >= W || py >= H) continue
+    const i = py * W + px; if (world.terr[i] !== TID.Sea && !world.featAt(i)) { spot = [px, py]; break }
+  }
+  if (!spot) { cm.rejected.add(x.id); cm.proposal = null; return }
+  const v = x.water.vals.vitality, g = x.ore.vals.grade, t = x.water.links.size
+  const f = { id: w(`f-${spot[0]}-${spot[1]}`), kind: 'Settlement', group: 'Civic', x: spot[0], y: spot[1], richness: Math.min(5, Math.max(1, Math.round((v + g) / 2))), population: 20 * v + 15 * g + 10 * t, links: [x.water.id, x.ore.id, x.relic.id].sort() }
+  world.addFeature(f)
+  cm.settlements.push({ id: f.id, at: spot, tick: sim.tick, founders: here.map(a => a.name), water: x.water.id })
+  cm.proposal = null
+  lg(`${here.map(a => a.name).join(', ')} founded a settlement at ${spot[0]},${spot[1]} beside ${short(x.water.id)} (population ${f.population}). The world has new words to define: Settlement, Civic.`, 'council')
+}
+
+// ───────── the simulation ─────────
+function createSim({ workbench, seed = 7, W = 44, H = 30 }) {
+  const wb = loadWorkbench(workbench), world = makeWorld(seed, W, H)
+  const sim = { wb, world, tick: 0, agents: [], events: [], exchanges: [], seedUsed: seed, workbench, commons: null }
+  if (wb.charter) sim.commons = { sh: compileWorldview(HEADER + '\n\n' + wb.charter.text), worldview: HEADER + '\n\n' + wb.charter.text, error: null, sites: [], proposal: null, settlements: [], rejected: new Set(), spacing: wb.charter.spacing, quorum: wb.charter.quorum, max: wb.charter.max }
+  // start beside camp: first N land tiles by spiral order
+  const spawn = []; for (let r = 0; r < 6 && spawn.length < wb.agents.length; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue
+    const x = world.camp % W + dx, y = ((world.camp / W) | 0) + dy; if (x < 0 || y < 0 || x >= W || y >= H) continue
+    if (world.terr[y * W + x] !== TID.Sea && spawn.length < wb.agents.length) spawn.push([x, y])
+  }
+  wb.agents.forEach((d, i) => { const a = newAgent(sim, d, i); [a.x, a.y] = spawn[i] || [world.camp % W, (world.camp / W) | 0]; sim.agents.push(a) })
+  return sim
+}
+const log = (sim) => (text, kind = 'info') => { sim.events.push({ tick: sim.tick, text, kind }); if (sim.events.length > 400) sim.events.shift() }
+
+function step(sim) {
+  sim.tick++; const lg = log(sim)
+  for (const a of sim.agents) {
+    perceive(sim, a)
+    for (const b of sim.agents) {
+      if (b.order <= a.order) continue
+      const key = a.id + '|' + b.id
+      const hub = sim.world.feats.some(f => f.kind === 'Settlement' && cheb([a.x, a.y], [f.x, f.y]) <= 3 && cheb([b.x, b.y], [f.x, f.y]) <= 3)   // a settlement is a market
+      if ((hub || Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) <= 2) && sim.tick - (sim.lastEx?.[key] ?? -99) >= 10) {
+        (sim.lastEx ||= {})[key] = sim.tick; const r = exchange(sim, a, b)
+        if (r.toA + r.toB) { lg(`${a.name} ⇄ ${b.name} exchanged memories (+${r.toA} / +${r.toB} facts)`, 'meet'); sim.exchanges.push({ tick: sim.tick, a: a.id, b: b.id }) }
       }
-    }, fitCanvas = function() {
-      const { W, H } = S.sim.world, dpr = Math.min(2, window.devicePixelRatio || 1);
-      cv.width = W * TS * dpr;
-      cv.height = H * TS * dpr;
-      cv.style.aspectRatio = `${W} / ${H}`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }, draw = function(now) {
-      const sim = S.sim, { W, H, N, terr } = sim.world, a = selAgent(), agentView = S.view === "mind";
-      if (cv.width !== W * TS * Math.min(2, window.devicePixelRatio || 1)) fitCanvas();
-      ctx.fillStyle = "#070a10";
-      ctx.fillRect(0, 0, W * TS, H * TS);
-      const known = new Uint8Array(N);
-      for (const g of sim.agents) for (let i = 0; i < N; i++) if (g.know[i] >= 0) known[i] = 1;
-      for (let i = 0; i < N; i++) {
-        const x = i % W, y = i / W | 0, mine = a.know[i] >= 0;
-        if (!known[i]) {
-          ctx.fillStyle = "#0b1019";
-          ctx.fillRect(x * TS, y * TS, TS, TS);
-          continue;
-        }
-        ctx.globalAlpha = agentView && !mine ? 0.32 : 1;
-        ctx.fillStyle = TERRAINS[terr[i]].color;
-        ctx.fillRect(x * TS, y * TS, TS, TS);
-        ctx.fillStyle = `rgba(0,0,0,${shade(i)})`;
-        ctx.fillRect(x * TS, y * TS, TS, TS);
-        ctx.globalAlpha = 1;
-      }
-      const open = /* @__PURE__ */ new Map(), seenF = /* @__PURE__ */ new Map();
-      for (const g of sim.agents) {
-        for (const f of g.atOf.keys()) {
-          if (!seenF.has(f)) seenF.set(f, /* @__PURE__ */ new Set());
-          seenF.get(f).add(g.id);
-        }
-        if (g.report) {
-          for (const v of g.report.violations) if (v.component === MIN) open.set(v.focusNode, (open.get(v.focusNode) || 0) + 1);
-        }
-      }
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      const pulse = 0.55 + 0.45 * Math.sin(now / 260);
-      for (const [fid, by] of seenF) {
-        const f = sim.world.byId.get(fid);
-        if (!f) continue;
-        const k = KINDS.find((k2) => k2.id === f.kind), cx = f.x * TS + TS / 2, cy = f.y * TS + TS / 2, mine = by.has(a.id);
-        ctx.globalAlpha = agentView && !mine ? 0.35 : 1;
-        ctx.fillStyle = "rgba(8,12,20,.72)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, TS * 0.46, 0, 7);
-        ctx.fill();
-        const o = open.get(fid);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = o ? `rgba(242,177,52,${0.45 + 0.55 * pulse})` : "#5fd38d";
-        ctx.beginPath();
-        ctx.arc(cx, cy, TS * 0.46, 0, 7);
-        ctx.stroke();
-        ctx.font = `${Math.round(TS * 0.62)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-        ctx.fillStyle = "#fff";
-        ctx.fillText(k.glyph, cx, cy + 1);
-        ctx.globalAlpha = 1;
-      }
-      const cx0 = sim.world.camp % W * TS + TS / 2, cy0 = (sim.world.camp / W | 0) * TS + TS / 2;
-      ctx.strokeStyle = "rgba(255,255,255,.35)";
-      ctx.setLineDash([3, 3]);
-      ctx.strokeRect(cx0 - TS / 2, cy0 - TS / 2, TS, TS);
-      ctx.setLineDash([]);
-      for (const e of sim.exchanges.slice(-12)) {
-        const age = sim.tick - e.tick;
-        if (age > 8) continue;
-        const A = sim.agents.find((g) => g.id === e.a), B = sim.agents.find((g) => g.id === e.b);
-        ctx.strokeStyle = `rgba(255,224,130,${1 - age / 8})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(A.x * TS + TS / 2, A.y * TS + TS / 2);
-        ctx.lineTo(B.x * TS + TS / 2, B.y * TS + TS / 2);
-        ctx.stroke();
-      }
-      for (const g of sim.agents) {
-        const isSel = g === a;
-        if (g.path.length) {
-          ctx.strokeStyle = g.color;
-          ctx.globalAlpha = isSel ? 0.9 : 0.28;
-          ctx.lineWidth = isSel ? 2 : 1;
-          ctx.setLineDash([4, 4]);
-          ctx.beginPath();
-          ctx.moveTo(g.x * TS + TS / 2, g.y * TS + TS / 2);
-          for (const i of g.path) ctx.lineTo(i % W * TS + TS / 2, (i / W | 0) * TS + TS / 2);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.globalAlpha = 1;
-          const t = g.path[g.path.length - 1];
-          ctx.strokeStyle = g.color;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(t % W * TS + TS / 2, (t / W | 0) * TS + TS / 2, TS * 0.32, 0, 7);
-          ctx.stroke();
-        }
-      }
-      ctx.strokeStyle = a.color;
-      ctx.globalAlpha = 0.5;
-      ctx.lineWidth = 1;
-      ctx.strokeRect((a.x - 2) * TS, (a.y - 2) * TS, 5 * TS, 5 * TS);
-      ctx.globalAlpha = 1;
-      for (const g of sim.agents) {
-        const cx = g.x * TS + TS / 2, cy = g.y * TS + TS / 2, isSel = g === a;
-        if (isSel) {
-          ctx.fillStyle = g.color + "44";
-          ctx.beginPath();
-          ctx.arc(cx, cy, TS * 0.95, 0, 7);
-          ctx.fill();
-        }
-        ctx.fillStyle = g.color;
-        ctx.strokeStyle = "#0a0e16";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(cx, cy, TS * 0.36, 0, 7);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#0a0e16";
-        ctx.font = `700 ${Math.round(TS * 0.46)}px system-ui,sans-serif`;
-        ctx.fillText(g.name[0], cx, cy + 1);
-      }
-      if (S.hover) {
-        const [hx, hy] = S.hover;
-        ctx.strokeStyle = "#fff";
-        ctx.globalAlpha = 0.7;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(hx * TS + 0.5, hy * TS + 0.5, TS - 1, TS - 1);
-        ctx.globalAlpha = 1;
-      }
-    }, tileAt = function(ev) {
-      const r = cv.getBoundingClientRect(), { W, H } = S.sim.world, x = Math.floor((ev.clientX - r.left) / r.width * W), y = Math.floor((ev.clientY - r.top) / r.height * H);
-      return x >= 0 && y >= 0 && x < W && y < H ? [x, y] : null;
-    }, tip = function() {
-      const el = $("#tip");
-      if (!S.hover) {
-        el.textContent = "";
-        return;
-      }
-      const [x, y] = S.hover, { W } = S.sim.world, i = y * W + x, who = S.sim.agents.filter((g) => g.know[i] >= 0).map((g) => g.name);
-      if (!who.length) {
-        el.innerHTML = `<b>${x},${y}</b> \xB7 unexplored`;
-        return;
-      }
-      const f = S.sim.world.featAt(i), k = f && KINDS.find((k2) => k2.id === f.kind);
-      el.innerHTML = `<b>${x},${y}</b> \xB7 ${TERRAINS[S.sim.world.terr[i]].label}${f ? ` \xB7 ${k.glyph} ${k.label}` : ""} \xB7 seen by ${who.join(", ")}`;
-    }, renderChips = function() {
-      const s = stats(S.sim), shell = S.sim.wb.shellViolations.length;
-      $("#chips").innerHTML = [
-        ["tick", s.tick],
-        ["mapped", (s.mapped * 100).toFixed(0) + "%"],
-        ["words", s.classes],
-        ["places", `${s.features}/${s.totalFeatures}`],
-        ["open tasks", s.open, s.open ? "amber" : "green"],
-        ["shell", shell ? shell + " \u2717" : "\u2713", shell ? "red" : ""]
-      ].map(([k, v, c]) => `<span class="chip ${c || ""}"><i>${k}</i>${v}</span>`).join("");
-    }, renderAgents = function() {
-      $("#agents").innerHTML = S.sim.agents.map((a, i) => {
-        const gate = a.stageGate, c = gate && a.report ? completeCount(a.report, gate.gate) : 0, open = a.report ? a.report.violations.filter((v) => v.component === MIN).length : 0;
-        return `<button class="ag ${i === S.sel ? "on" : ""}" data-i="${i}" style="--c:${a.color}"><span class="dot"></span><b>${esc(a.name)}</b><em>${esc(a.roleName)}</em>
-        <span class="pips">${[0, 1, 2, 3].map((k) => `<i class="${k <= a.stage ? "f" : ""}"></i>`).join("")}</span>
-        <small>${a.task ? a.task.explore ? "\u{1F9ED} exploring" : "\u2192 " + esc(short(a.task.focus).replace("w:", "")) + " \xB7 " + esc(short(a.task.path).replace(/^(w:|rdfs:)/, "")) : "\xB7 idle"} <u>${open} open</u></small></button>`;
-      }).join("");
-      $$("#agents .ag").forEach((b) => b.onclick = () => {
-        S.sel = +b.dataset.i;
-        S.panelDirty = true;
-        renderAgents();
-      });
-    }, renderLegend = function() {
-      $("#legend").innerHTML = `<span><i class="ring amber"></i> place with an open task</span><span><i class="ring green"></i> place no mind is missing anything about</span><span><i class="dashed"></i> intended route</span><span><i class="gold"></i> memory exchange</span>`;
-    }, mindHTML = function() {
-      const sim = S.sim, a = selAgent(), rep = a.report;
-      if (!rep) return '<p class="hint">\u2026</p>';
-      const gate = a.stageGate, gc = gate ? completeCount(rep, gate.gate) : 0, last = a.stage + 1 >= sim.wb.stages.length;
-      const ladder = sim.wb.stages.map((_, k) => {
-        const st = stageFor(sim.wb, k, a.role);
-        return `<li class="${k < a.stage ? "done" : k === a.stage ? "now" : ""}"><i>${k}</i>${esc(st ? st.label : "")}</li>`;
-      }).join("");
-      const tasks = [], seen = /* @__PURE__ */ new Set();
-      for (const v of rep.violations) {
-        if (v.component !== MIN) continue;
-        const key = v.focusNode + "|" + v.path;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        tasks.push({ v, rank: sim.wb.pathRank.get(v.path) ?? 0.5, blocked: a.blocked.has(key), cur: a.task && a.task.key === key });
-      }
-      tasks.sort((p, q) => p.rank - q.rank || (p.v.focusNode < q.v.focusNode ? -1 : 1));
-      const shapes = shapeStats(a);
-      const recs = shapes.filter((s) => s.partial).map((s) => {
-        const nodes = Object.entries(rep.records[s.iri] || {}).filter(([, p]) => Object.keys(p).length).slice(0, 3);
-        return `<details><summary><b>${esc(s.name.replace("w:", ""))}</b> <em>${s.complete} complete \xB7 ${s.open} open</em></summary>${nodes.map(([n, p]) => `<div class="rec"><code>${esc(short(n))}</code>${recordTable(p)}</div>`).join("") || '<p class="hint">nothing perceived yet</p>'}</details>`;
-      }).join("");
-      return `
-    <div class="mh" style="--c:${a.color}"><span class="dot"></span><h2>${esc(a.name)}</h2><em>${esc(a.roleName)} \xB7 at ${a.x},${a.y}</em></div>
-    <ol class="ladder">${ladder}</ol>
-    <p class="gate">${gate ? `Gate to stage ${a.stage + 1}: <b>${esc(short(gate.gate).replace("w:", ""))}</b> ${gc}/${gate.gateRecords} complete records ${last ? "\xB7 <i>final stage \u2014 the shapes are yours now</i>" : ""}` : ""}</p>
-    <h4>Now</h4><p class="now">${a.task ? a.task.explore ? `\u{1F9ED} <b>exploring</b> \u2014 ${esc(a.task.message)}` : `\u{1F3AF} <b>${esc(a.task.message.replace(/ — .*$/, ""))}</b> <code>${esc(short(a.task.focus))}</code> \u2192 tile ${a.task.target % sim.world.W},${a.task.target / sim.world.W | 0}` : tasks.length ? "waiting\u2026" : "\u2713 no open violations \u2014 the worldview is satisfied"}</p>
-    <h4>Shapes <em>${shapes.length}</em></h4>
-    <table class="tbl"><tr><th>shape</th><th>complete</th><th>partial</th><th>open</th></tr>${shapes.map((s) => `<tr><td>${esc(s.name.replace("w:", ""))}</td><td>${s.complete}</td><td>${s.partial}</td><td class="${s.open ? "amber" : ""}">${s.open}</td></tr>`).join("")}</table>
-    <h4>Tasks <em>${tasks.length} open violations</em></h4>
-    <ul class="tasks">${tasks.slice(0, 24).map((t) => `<li class="${t.cur ? "cur" : ""} ${t.blocked ? "blk" : ""}"><i>s${t.rank === 0.5 ? "\u2605" : t.rank}</i>${esc(t.v.message.replace(/ — .*$/, ""))} <code>${esc(short(t.v.focusNode).replace("w:", ""))}</code>${t.blocked ? " <b>blocked</b>" : ""}</li>`).join("") || '<li class="hint">none</li>'}${tasks.length > 24 ? `<li class="hint">\u2026 ${tasks.length - 24} more</li>` : ""}</ul>
-    ${a.findings?.length ? `<h4>Findings <em>the world disagrees with the shape</em></h4><ul class="tasks">${a.findings.slice(0, 8).map((v) => `<li class="fnd"><i>\u2260</i>${esc(v.message.replace(/ — .*$/, ""))} <code>${esc(short(v.focusNode).replace("w:", ""))}</code> value <b>${esc(v.value)}</b> \xB7 ${esc(v.component.split("#").pop().replace("ConstraintComponent", ""))}</li>`).join("")}${a.findings.length > 8 ? `<li class="hint">\u2026 ${a.findings.length - 8} more</li>` : ""}</ul>` : ""}
-    ${a.blocked.size ? `<h4>Blocked <em>edit the shape, not the explorer</em></h4><p class="hint">${[...a.blocked].slice(0, 6).map((k) => esc(k.split("|").map(short).join(" \xB7 "))).join("<br>")}${a.blocked.size > 6 ? `<br>\u2026 ${a.blocked.size - 6} more` : ""}</p>` : ""}
-    <h4>Perception <em>evaluated records (only what conforms)</em></h4>${recs || '<p class="hint">nothing yet</p>'}`;
-    }, renderLog = function() {
-      $("#log").innerHTML = S.sim.events.slice(-120).reverse().map((e) => `<div class="ev ${e.kind}"><i>${e.tick}</i>${esc(e.text)}</div>`).join("");
-    }, renderWorldview = function(force) {
-      const a = selAgent(), ed = wvEd;
-      if ((force || a.worldview !== S.lastWV) && (force || document.activeElement !== ed)) {
-        ed.value = a.worldview;
-        S.lastWV = a.worldview;
-      }
-      $("#wvStatus").innerHTML = a.shError ? `<b class="bad">\u2717 ${esc(a.shError)}</b>` : `<b class="ok">\u2713 ${a.sh.quads.length} quads</b> \xB7 ${a.sh.shapes.length} shapes \xB7 lens: ${a.sh.paths.size} predicates`;
-    }, renderAtlas = function() {
-      const sim = S.sim, quads = unionQuads(sim), s = stats(sim);
-      $("#atStat").textContent = `${quads.length} quads \xB7 ${s.classes} words \xB7 ${s.features} places`;
-      if (quads.length !== S.graphN && performance.now() - S.graphT > 1200) {
-        const qg = $("#qg"), keep = quads.filter((q) => {
-          const p = q.predicate.value, s2 = q.subject.value;
-          if (s2 === NS + "atlas") return false;
-          if (p === NS + "at") return false;
-          if (p === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") {
-            const o = q.object.value;
-            return o !== NS + "Feature" && !["Natural", "Mineral", "Relic"].some((g) => o === NS + g);
-          }
-          return true;
-        });
-        if (qg) {
-          qg.context = { w: NS, rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#", rdfs: "http://www.w3.org/2000/01/rdf-schema#", xsd: "http://www.w3.org/2001/XMLSchema#" };
-          qg.quads = keep;
-        }
-        S.graphN = quads.length;
-        S.graphT = performance.now();
-      }
-    }, renderPanel = function() {
-      S.panelDirty = false;
-      renderChips();
-      renderAgents();
-      if (S.tab === "mind") $("#t-mind").innerHTML = mindHTML();
-      else if (S.tab === "worldview") renderWorldview(false);
-      else if (S.tab === "atlas") renderAtlas();
-      else if (S.tab === "log") renderLog();
-    }, download = function(name, text) {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
-      a.download = name;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 500);
-    };
-    const TS = 20, MIN = "http://www.w3.org/ns/shacl#MinCountConstraintComponent";
-    const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
-    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-    const BASE_WB = document.getElementById("workbench-src").textContent.replace(/^\n/, "");
-    const S = { sim: null, seed: 7, playing: false, speed: 6, sel: 0, view: "atlas", tab: "mind", hover: null, acc: 0, lastPanel: 0, panelDirty: true, graphN: -1, graphT: 0, wbText: BASE_WB, lastWV: "", lastWBStatus: "" };
-    const SNIPPETS = {
-      survey: { title: "Survey \u2014 every Terrain tile reports its elevation", text: `
+    }
+    if (a.dirty || !a.report) evaluateAgent(sim, a)
+    promote(sim, a, lg)
+    const before = a.task?.key
+    const t = decide(sim, a, lg)
+    if (t && t.key !== before && !t.explore) lg(`${a.name} takes up: ${t.message.replace(/ — .*$/, '')} (${short(t.focus)})`, 'task')
+    if (a.next !== undefined && a.next !== a.y * sim.world.W + a.x) { a.x = a.next % sim.world.W; a.y = (a.next / sim.world.W) | 0 }
+  }
+  const cm = sim.commons
+  if (cm) {
+    if (sim.tick % 5 === 0) councilTick(sim, lg)
+    if (cm.proposal) { const here = sim.agents.filter(a => cheb([a.x, a.y], cm.proposal.at) <= 2); if (here.length >= cm.quorum) found(sim, here, lg) }
+  }
+  return sim
+}
+
+function stats(sim) {
+  const { world } = sim, known = new Uint8Array(world.N); let open = 0, features = new Set(), classes = new Set()
+  for (const a of sim.agents) {
+    for (let i = 0; i < world.N; i++) if (a.know[i] >= 0) known[i] = 1
+    if (a.report) open += a.report.violations.filter(v => v.component === MIN_CHECK).length
+    for (const f of a.instances.get(w('Feature')) || []) features.add(f)
+    for (const c of a.instances.get(CLASS) || []) classes.add(c)
+  }
+  let k = 0; for (let i = 0; i < world.N; i++) if (known[i] && world.terr[i] !== TID.Sea) k++
+  return { settlements: sim.commons?.settlements.length || 0, tick: sim.tick, mapped: k / world.land, features: features.size, totalFeatures: world.feats.length, classes: classes.size, open }
+}
+const unionQuads = sim => { const seen = new Set(), out = []; for (const a of sim.agents) for (const q of a.mem) { const k = q.subject.value + '|' + q.predicate.value + '|' + q.object.value + '|' + (q.object.datatype?.value || ''); if (!seen.has(k)) { seen.add(k); out.push(q) } } return out }
+const fingerprint = sim => sim.agents.map(a => `${a.id}@${a.x},${a.y}#${a.stage}:${a.mem.length}`).join(' ') + ' S' + (sim.commons?.settlements.map(t => t.id.slice(-5)).join(',') || '')
+
+
+// ═════════════════════════ UI: canvas, panels, editors ═════════════════════════
+// ───────────────────────────── UI ─────────────────────────────
+const recordTable = MD.recordTable || (o => '<table>' + Object.entries(o).map(([k, v]) => `<tr><td>${String(k).replace(/</g, '&lt;')}</td><td>${String(typeof v === 'object' ? JSON.stringify(v) : v).replace(/</g, '&lt;')}</td></tr>`).join('') + '</table>')
+
+if (typeof document !== 'undefined') {
+  const TS = 20, MIN = 'http://www.w3.org/ns/shacl#MinCountConstraintComponent'
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)]
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  const BASE_WB = document.getElementById('workbench-src').textContent.replace(/^\n/, '')
+  const S = { sim: null, seed: 3, playing: false, speed: 6, sel: 0, view: 'atlas', tab: 'mind', hover: null, acc: 0, lastPanel: 0, panelDirty: true, graphN: -1, graphT: 0, wbText: BASE_WB, lastWV: '', lastWBStatus: '' }
+
+  const SNIPPETS = {
+    survey: { title: 'Survey — every Terrain tile reports its elevation', text: `
 ## Survey {=w:SurveyShape .sh:NodeShape label}
 Every [Terrain] {+w:Terrain ?sh:targetClass} must report its **elevation** {+#svE ?sh:property sh:name}.
-[Elevation is unknown \u2014 {$focusNode}] {=#svE .sh:PropertyShape sh:message}
+[Elevation is unknown — {$focusNode}] {=#svE .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [elevation] {+w:elevation ?sh:path}
 ` },
-      census: { title: "Census \u2014 every Feature has a population (the world cannot answer)", text: `
+    census: { title: 'Census — every Feature has a population (only settlements can answer)', text: `
 ## Census {=w:CensusShape .sh:NodeShape label}
 Every [Feature] {+w:Feature ?sh:targetClass} must have a **population** {+#cnP ?sh:property sh:name}.
-[Population is unknown \u2014 {$focusNode}] {=#cnP .sh:PropertyShape sh:message}
+[Population is unknown — {$focusNode}] {=#cnP .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [population] {+w:population ?sh:path}
 ` },
-      rich: { title: "Standards \u2014 richness must be at least 4 (the world will disagree)", text: `
+    rich: { title: 'Standards — richness must be at least 4 (the world will disagree)', text: `
 ## Standards {=w:StandardsShape .sh:NodeShape label}
 Every [Feature] {+w:Feature ?sh:targetClass} is only worth keeping if its **richness** {+#stR ?sh:property sh:name} is four or five.
-[Too poor to keep \u2014 {$focusNode}] {=#stR .sh:PropertyShape sh:message}
+[Too poor to keep — {$focusNode}] {=#stR .sh:PropertyShape sh:message}
 [4] {sh:minInclusive ^^xsd:integer}
 [richness] {+w:richness ?sh:path}
 ` },
-      wells: { title: "Wells \u2014 every Ruin must be linked to a Spring", text: `
+    wells: { title: 'Wells — every Ruin must be linked to a Spring', text: `
 ## Wells {=w:WellShape .sh:NodeShape label}
 Every [Ruin] {+w:Ruin ?sh:targetClass} must be reachable from clean water: a **trail** {+#weT ?sh:property sh:name} to a [Spring] {+w:Spring ?sh:class}.
-[A ruin must link to a spring \u2014 {$focusNode}] {=#weT .sh:PropertyShape sh:message}
+[A ruin must link to a spring — {$focusNode}] {=#weT .sh:PropertyShape sh:message}
 [1] {sh:minCount ^^xsd:integer}
 [linkedTo] {+w:linkedTo ?sh:path}
-` }
-    };
-    document.body.innerHTML = `
+` },
+  }
+
+  document.body.innerHTML = `
   <header>
     <div class="brand"><b>Atlas</b><span>shapes are worldviews</span></div>
     <div class="ctl">
-      <button id="play" class="pri">\u25B6 Run</button><button id="step">Step</button>
+      <button id="play" class="pri">▶ Run</button><button id="step">Step</button>
       <label>speed <select id="speed"><option>1</option><option>3</option><option selected>6</option><option>12</option><option>30</option></select></label>
-      <label>seed <input id="seed" type="number" value="7" style="width:62px"></label><button id="newworld">New world</button>
+      <label>seed <input id="seed" type="number" value="3" style="width:62px"></label><button id="newworld">New world</button>
       <label class="seg"><span>view</span><button id="vAtlas" class="on">Atlas</button><button id="vMind">Mind</button></label>
     </div>
     <div class="chips" id="chips"></div>
@@ -1235,20 +944,26 @@ Every [Ruin] {+w:Ruin ?sh:targetClass} must be reachable from clean water: a **t
       <div id="agents" class="agents"></div>
     </section>
     <section class="right">
-      <nav id="tabs"><button data-t="mind" class="on">Mind</button><button data-t="worldview">Worldview</button><button data-t="atlas">Atlas</button><button data-t="workbench">Workbench</button><button data-t="log">Log</button><button data-t="about">About</button></nav>
+      <nav id="tabs"><button data-t="mind" class="on">Mind</button><button data-t="worldview">Worldview</button><button data-t="commons">Commons</button><button data-t="atlas">Atlas</button><button data-t="workbench">Workbench</button><button data-t="log">Log</button><button data-t="about">About</button></nav>
       <div class="tab" id="t-mind"></div>
       <div class="tab" id="t-worldview" hidden>
         <div class="bar"><span id="wvStatus"></span><span class="sp"></span>
-          <select id="snip"><option value="">+ add a shape\u2026</option>${Object.entries(SNIPPETS).map(([k, v]) => `<option value="${k}">${esc(v.title)}</option>`).join("")}</select>
+          <select id="snip"><option value="">+ add a shape…</option>${Object.entries(SNIPPETS).map(([k, v]) => `<option value="${k}">${esc(v.title)}</option>`).join('')}</select>
           <button id="wvDl">Download</button></div>
         <mdld-editor id="wvEd" height="62svh"></mdld-editor>
-        <p class="hint">This text <i>is</i> the explorer's worldview. Edit it \u2014 the next tick uses it. Append-only promotions add stage modules at the bottom; you may delete or rewrite anything.</p>
+        <p class="hint">This text <i>is</i> the explorer's worldview. Edit it — the next tick uses it. Append-only promotions add stage modules at the bottom; you may delete or rewrite anything.</p>
+      </div>
+      <div class="tab" id="t-commons" hidden>
+        <div id="cmInfo"></div>
+        <div class="bar"><span id="cmStatus"></span></div>
+        <mdld-editor id="cmEd" height="30svh"></mdld-editor>
+        <p class="hint">The Charter: what each viewpoint needs before it will settle. Edit a number — raise Bo's vitality to 5, say — and the council re-judges every site on its next beat.</p>
       </div>
       <div class="tab" id="t-atlas" hidden>
         <div class="bar"><span id="atStat"></span><span class="sp"></span><button id="atDl">Download atlas.md</button><button id="atTxt">Show canonical text</button></div>
         <quad-graph id="qg" height="330"></quad-graph>
         <pre id="atPre" hidden></pre>
-        <p class="hint">Union of everything any explorer has admitted. The hub edges (atlas \u2192 defines / holds) and tile addresses are hidden here; the download is the full canonical MD-LD.</p>
+        <p class="hint">Union of everything any explorer has admitted. The hub edges (atlas → defines / holds) and tile addresses are hidden here; the download is the full canonical MD-LD.</p>
       </div>
       <div class="tab" id="t-workbench" hidden>
         <div class="bar"><span id="wbStatus"></span><span class="sp"></span><label class="file">Load .md<input id="wbFile" type="file" accept=".md,.txt" hidden></label><button id="wbReset">Reset</button><button id="wbApply" class="pri">Apply &amp; restart</button></div>
@@ -1258,153 +973,221 @@ Every [Ruin] {+w:Ruin ?sh:targetClass} must be reachable from clean water: a **t
       <div class="tab" id="t-log" hidden><div id="log"></div></div>
       <div class="tab" id="t-about" hidden>${aboutHTML()}</div>
     </section>
-  </main>`;
-    const wbEd = $("#wbEd"), wvEd = $("#wvEd");
-    const selAgent = () => S.sim.agents[S.sel] || S.sim.agents[0];
-    const cv = $("#cv"), ctx = cv.getContext("2d");
-    const shade = (i) => (Math.imul(i, 2654435761) >>> 0) % 100 / 100 * 0.1;
-    cv.addEventListener("mousemove", (e) => {
-      S.hover = tileAt(e);
-      tip();
-    });
-    cv.addEventListener("mouseleave", () => {
-      S.hover = null;
-      tip();
-    });
-    cv.addEventListener("click", (e) => {
-      const t = tileAt(e);
-      if (!t) return;
-      let best = -1, bd = 3;
-      S.sim.agents.forEach((g, i) => {
-        const d = Math.max(Math.abs(g.x - t[0]), Math.abs(g.y - t[1]));
-        if (d < bd) {
-          bd = d;
-          best = i;
-        }
-      });
-      if (best >= 0) {
-        S.sel = best;
-        S.panelDirty = true;
-        renderAgents();
-      }
-    });
-    const setTab = (t) => {
-      S.tab = t;
-      $$("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
-      $$(".tab").forEach((d) => d.hidden = d.id !== "t-" + t);
-      if (t === "worldview") renderWorldview(true);
-      if (t === "atlas") S.graphT = 0;
-      S.panelDirty = true;
-    };
-    $$("#tabs button").forEach((b) => b.onclick = () => setTab(b.dataset.t));
-    const setPlay = (on) => {
-      S.playing = on;
-      $("#play").textContent = on ? "\u23F8 Pause" : "\u25B6 Run";
-    };
-    $("#play").onclick = () => setPlay(!S.playing);
-    $("#step").onclick = () => {
-      setPlay(false);
-      step(S.sim);
-      S.panelDirty = true;
-    };
-    $("#speed").onchange = (e) => S.speed = +e.target.value;
-    $("#newworld").onclick = () => {
-      setPlay(false);
-      restart(S.wbText, +$("#seed").value || 1);
-      setTab(S.tab);
-    };
-    $("#vAtlas").onclick = () => {
-      S.view = "atlas";
-      $("#vAtlas").classList.add("on");
-      $("#vMind").classList.remove("on");
-    };
-    $("#vMind").onclick = () => {
-      S.view = "mind";
-      $("#vMind").classList.add("on");
-      $("#vAtlas").classList.remove("on");
-    };
-    window.addEventListener("keydown", (e) => {
-      if (e.code === "Space" && !/^(INPUT|TEXTAREA|SELECT|MDLD-EDITOR)$/.test(document.activeElement?.tagName || "")) {
-        e.preventDefault();
-        setPlay(!S.playing);
-      }
-    });
-    let wvT;
-    wvEd.addEventListener("input", () => {
-      clearTimeout(wvT);
-      wvT = setTimeout(() => {
-        const a = selAgent();
-        setWorldview(S.sim, a, wvEd.value);
-        S.lastWV = a.worldview !== wvEd.value && a.shError ? S.lastWV : wvEd.value;
-        if (!a.shError) a.edited = true;
-        S.sim.events.push({ tick: S.sim.tick, text: a.shError ? `${a.name}'s worldview did not parse \u2014 keeping the previous shapes` : `${a.name}'s worldview edited (${a.sh.shapes.length} shapes, ${a.sh.paths.size} predicates in lens)`, kind: a.shError ? "blocked" : "edit" });
-        renderWorldview(false);
-        S.panelDirty = true;
-      }, 350);
-    });
-    $("#snip").onchange = (e) => {
-      const sn = SNIPPETS[e.target.value];
-      if (!sn) return;
-      const a = selAgent();
-      const text = a.worldview.trimEnd() + "\n" + sn.text;
-      if (setWorldview(S.sim, a, text)) {
-        S.sim.events.push({ tick: S.sim.tick, text: `${a.name}: added \u201C${sn.title}\u201D`, kind: "edit" });
-        renderWorldview(true);
-      }
-      e.target.value = "";
-      S.panelDirty = true;
-    };
-    $("#wvDl").onclick = () => download(`${selAgent().id}-worldview.md`, selAgent().worldview);
-    $("#atDl").onclick = () => download("atlas.md", generate({ quads: unionQuads(S.sim), context: { w: NS } }).text);
-    $("#atTxt").onclick = () => {
-      const p = $("#atPre");
-      p.hidden = !p.hidden;
-      if (!p.hidden) {
-        const t = generate({ quads: unionQuads(S.sim), context: { w: NS } }).text;
-        p.textContent = t.length > 14e3 ? t.slice(0, 14e3) + "\n\u2026 (" + t.length + " chars \u2014 download for all)" : t;
-      }
-    };
-    $("#wbApply").onclick = () => {
-      setPlay(false);
-      if (restart(wbEd.value, +$("#seed").value || S.seed)) setTab("mind");
-    };
-    $("#wbReset").onclick = () => {
-      wbEd.value = BASE_WB;
-    };
-    $("#wbFile").onchange = async (e) => {
-      const f = e.target.files[0];
-      if (f) wbEd.value = await f.text();
-    };
-    $("#t-workbench label.file").onclick = () => $("#wbFile").click();
-    restart(BASE_WB, 7);
-    wbEd.value = BASE_WB;
-    fitCanvas();
-    renderLegend();
-    renderPanel();
-    let prev = performance.now();
-    const frame = (now) => {
-      const dt = Math.min(0.2, (now - prev) / 1e3);
-      prev = now;
-      if (S.playing) {
-        S.acc += dt * S.speed;
-        let n = 0;
-        while (S.acc >= 1 && n < 6) {
-          step(S.sim);
-          S.acc -= 1;
-          n++;
-          S.panelDirty = true;
-        }
-        if (S.acc > 6) S.acc = 0;
-      }
-      draw(now);
-      if (S.panelDirty && now - S.lastPanel > 220) {
-        S.lastPanel = now;
-        renderPanel();
-      }
-      requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-    window.__atlas = { S, step, restart };
+  </main>`
+
+  function aboutHTML() {
+    return `<div class="about"><h3>How the world thinks</h3>
+    <ol><li><b>Reality</b> is a seeded, deterministic world nobody can see whole.</li>
+    <li>An explorer's <b>worldview</b> is a set of SHACL shapes (MD-LD text). It is its only sense: a fact enters memory only if a shape <i>targets</i> the subject and <i>names</i> the predicate. No shape about places → places are scenery.</li>
+    <li>Every tick the shapes are <code>evaluate()</code>d over memory. <b>Records</b> are what it perceives; <b>violations</b> are its tasks: <code>sh:minCount</code> means "go where the answer lives".</li>
+    <li>A value the world <i>contradicts</i> is a <b>finding</b>, not a task. A value the world cannot give is a <b>blocked</b> task — the shape is wrong.</li>
+    <li><b>Ontology first.</b> Stage 0 asks only for definitions. When an explorer's gate shape has enough <i>complete</i> records, the next stage module is appended to its worldview.</li>
+    <li>Explorers within two tiles <b>exchange</b> memories — filtered through the receiver's lens.</li></ol>
+    <p>Everything is deterministic: same workbench + same seed → same history. Try the “+ add a shape” menu in Worldview after the atlas goes quiet.</p></div>`
   }
-</script>
-</body></html>
+
+  // ───────── lifecycle ─────────
+  const wbEd = $('#wbEd'), wvEd = $('#wvEd'), cmEd = $('#cmEd')
+  function restart(wbText, seed) {
+    try {
+      S.sim = createSim({ workbench: wbText, seed }); S.seed = seed; S.wbText = wbText; S.sel = 0; S.lastWV = ''; S.graphN = -1; if (S.sim.commons) cmEd.value = S.sim.commons.worldview
+      S.sim.events.push({ tick: 0, text: `New world (seed ${seed}) · ${S.sim.agents.length} explorers · workbench shell ${S.sim.wb.shellViolations.length ? S.sim.wb.shellViolations.length + ' violation(s)' : 'clean'}`, kind: 'info' })
+      $('#wbStatus').innerHTML = S.sim.wb.shellViolations.length ? `<b class="bad">✗ ${S.sim.wb.shellViolations.length} shell violation(s)</b>` : `<b class="ok">✓ shell clean</b> · ${S.sim.wb.stages.length} stages · ${S.sim.wb.agents.length} explorers`
+      S.panelDirty = true; return true
+    } catch (e) { $('#wbStatus').innerHTML = `<b class="bad">✗ ${esc(e.message)}</b>`; return false }
+  }
+  const selAgent = () => S.sim.agents[S.sel] || S.sim.agents[0]
+
+  // ───────── canvas ─────────
+  const cv = $('#cv'), ctx = cv.getContext('2d')
+  function fitCanvas() { const { W, H } = S.sim.world, dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = W * TS * dpr; cv.height = H * TS * dpr; cv.style.aspectRatio = `${W} / ${H}`; ctx.setTransform(dpr, 0, 0, dpr, 0, 0) }
+  const shade = i => ((Math.imul(i, 2654435761) >>> 0) % 100) / 100 * 0.10
+  function draw(now) {
+    const sim = S.sim, { W, H, N, terr } = sim.world, a = selAgent(), agentView = S.view === 'mind'
+    if (cv.width !== W * TS * Math.min(2, window.devicePixelRatio || 1)) fitCanvas()
+    ctx.fillStyle = '#070a10'; ctx.fillRect(0, 0, W * TS, H * TS)
+    const known = new Uint8Array(N); for (const g of sim.agents) for (let i = 0; i < N; i++) if (g.know[i] >= 0) known[i] = 1
+    for (let i = 0; i < N; i++) {
+      const x = i % W, y = (i / W) | 0, mine = a.know[i] >= 0
+      if (!known[i]) { ctx.fillStyle = '#0b1019'; ctx.fillRect(x * TS, y * TS, TS, TS); continue }
+      ctx.globalAlpha = agentView && !mine ? 0.32 : 1
+      ctx.fillStyle = TERRAINS[terr[i]].color; ctx.fillRect(x * TS, y * TS, TS, TS)
+      ctx.fillStyle = `rgba(0,0,0,${shade(i)})`; ctx.fillRect(x * TS, y * TS, TS, TS)
+      ctx.globalAlpha = 1
+    }
+    // open obligations per feature, across all minds
+    const open = new Map(), seenF = new Map()
+    for (const g of sim.agents) {
+      for (const f of g.atOf.keys()) { if (!seenF.has(f)) seenF.set(f, new Set()); seenF.get(f).add(g.id) }
+      if (g.report && (!agentView || g === a)) for (const v of g.report.violations) if (v.component === MIN) open.set(v.focusNode, (open.get(v.focusNode) || 0) + 1)
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    const pulse = 0.55 + 0.45 * Math.sin(now / 260)
+    for (const [fid, by] of seenF) {
+      const f = sim.world.byId.get(fid); if (!f) continue
+      const k = KINDS.find(k => k.id === f.kind), cx = f.x * TS + TS / 2, cy = f.y * TS + TS / 2, mine = by.has(a.id)
+      ctx.globalAlpha = agentView && !mine ? 0.35 : 1
+      ctx.fillStyle = 'rgba(8,12,20,.72)'; ctx.beginPath(); ctx.arc(cx, cy, TS * 0.46, 0, 7); ctx.fill()
+      const o = open.get(fid)
+      ctx.lineWidth = 2; ctx.strokeStyle = o ? `rgba(242,177,52,${0.45 + 0.55 * pulse})` : '#5fd38d'; ctx.beginPath(); ctx.arc(cx, cy, TS * 0.46, 0, 7); ctx.stroke()
+      ctx.font = `${Math.round(TS * 0.62)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; ctx.fillStyle = '#fff'; ctx.fillText(k.glyph, cx, cy + 1)
+      ctx.globalAlpha = 1
+    }
+    // settlements are markets (3 tiles); a proposal pulses until the quorum arrives
+    for (const t of sim.commons?.settlements || []) if (seenF.has(t.id)) { ctx.strokeStyle = 'rgba(255,224,130,.35)'; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.arc(t.at[0] * TS + TS / 2, t.at[1] * TS + TS / 2, 3.5 * TS, 0, 7); ctx.stroke(); ctx.setLineDash([]) }
+    const pr = sim.commons?.proposal
+    if (pr) { ctx.strokeStyle = `rgba(255,224,130,${0.4 + 0.6 * pulse})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(pr.at[0] * TS + TS / 2, pr.at[1] * TS + TS / 2, TS * (1.2 + 0.3 * pulse), 0, 7); ctx.stroke(); ctx.fillStyle = '#ffe082'; ctx.font = '600 11px system-ui,sans-serif'; ctx.fillText('founding?', pr.at[0] * TS + TS / 2, pr.at[1] * TS - 6) }
+    // camp
+    const cx0 = (sim.world.camp % W) * TS + TS / 2, cy0 = ((sim.world.camp / W) | 0) * TS + TS / 2
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.setLineDash([3, 3]); ctx.strokeRect(cx0 - TS / 2, cy0 - TS / 2, TS, TS); ctx.setLineDash([])
+    // exchanges
+    for (const e of sim.exchanges.slice(-12)) {
+      const age = sim.tick - e.tick; if (age > 8) continue
+      const A = sim.agents.find(g => g.id === e.a), B = sim.agents.find(g => g.id === e.b)
+      ctx.strokeStyle = `rgba(255,224,130,${1 - age / 8})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(A.x * TS + TS / 2, A.y * TS + TS / 2); ctx.lineTo(B.x * TS + TS / 2, B.y * TS + TS / 2); ctx.stroke()
+    }
+    // paths + sight + agents
+    for (const g of sim.agents) {
+      const isSel = g === a
+      if (g.path.length) {
+        ctx.strokeStyle = g.color; ctx.globalAlpha = isSel ? 0.9 : 0.28; ctx.lineWidth = isSel ? 2 : 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(g.x * TS + TS / 2, g.y * TS + TS / 2)
+        for (const i of g.path) ctx.lineTo((i % W) * TS + TS / 2, ((i / W) | 0) * TS + TS / 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1
+        const t = g.path[g.path.length - 1]; ctx.strokeStyle = g.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc((t % W) * TS + TS / 2, ((t / W) | 0) * TS + TS / 2, TS * 0.32, 0, 7); ctx.stroke()
+      }
+    }
+    ctx.strokeStyle = a.color; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; ctx.strokeRect((a.x - 2) * TS, (a.y - 2) * TS, 5 * TS, 5 * TS); ctx.globalAlpha = 1
+    for (const g of sim.agents) {
+      const cx = g.x * TS + TS / 2, cy = g.y * TS + TS / 2, isSel = g === a
+      if (isSel) { ctx.fillStyle = g.color + '44'; ctx.beginPath(); ctx.arc(cx, cy, TS * 0.95, 0, 7); ctx.fill() }
+      ctx.fillStyle = g.color; ctx.strokeStyle = '#0a0e16'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, TS * 0.36, 0, 7); ctx.fill(); ctx.stroke()
+      ctx.fillStyle = '#0a0e16'; ctx.font = `700 ${Math.round(TS * 0.46)}px system-ui,sans-serif`; ctx.fillText(g.name[0], cx, cy + 1)
+    }
+    if (S.hover) { const [hx, hy] = S.hover; ctx.strokeStyle = '#fff'; ctx.globalAlpha = 0.7; ctx.lineWidth = 1; ctx.strokeRect(hx * TS + .5, hy * TS + .5, TS - 1, TS - 1); ctx.globalAlpha = 1 }
+  }
+  function tileAt(ev) { const r = cv.getBoundingClientRect(), { W, H } = S.sim.world, x = Math.floor((ev.clientX - r.left) / r.width * W), y = Math.floor((ev.clientY - r.top) / r.height * H); return x >= 0 && y >= 0 && x < W && y < H ? [x, y] : null }
+  cv.addEventListener('mousemove', e => { S.hover = tileAt(e); tip() })
+  cv.addEventListener('mouseleave', () => { S.hover = null; tip() })
+  cv.addEventListener('click', e => { const t = tileAt(e); if (!t) return; let best = -1, bd = 3; S.sim.agents.forEach((g, i) => { const d = Math.max(Math.abs(g.x - t[0]), Math.abs(g.y - t[1])); if (d < bd) { bd = d; best = i } }); if (best >= 0) { S.sel = best; S.panelDirty = true; renderAgents() } })
+  function tip() {
+    const el = $('#tip'); if (!S.hover) { el.textContent = ''; return }
+    const [x, y] = S.hover, { W } = S.sim.world, i = y * W + x, who = S.sim.agents.filter(g => g.know[i] >= 0).map(g => g.name)
+    if (!who.length) { el.innerHTML = `<b>${x},${y}</b> · unexplored`; return }
+    const f = S.sim.world.featAt(i), k = f && KINDS.find(k => k.id === f.kind)
+    el.innerHTML = `<b>${x},${y}</b> · ${TERRAINS[S.sim.world.terr[i]].label}${f ? ` · ${k.glyph} ${k.label}` : ''} · seen by ${who.join(', ')}`
+  }
+
+  // ───────── panels ─────────
+  function renderChips() {
+    const s = stats(S.sim), shell = S.sim.wb.shellViolations.length
+    $('#chips').innerHTML = [
+      ['tick', s.tick], ['settlements', s.settlements, s.settlements ? 'green' : ''], ['mapped', (s.mapped * 100).toFixed(0) + '%'], ['words', s.classes], ['places', `${s.features}/${s.totalFeatures}`],
+      ['open tasks', s.open, s.open ? 'amber' : 'green'], ['shell', shell ? shell + ' ✗' : '✓', shell ? 'red' : '']].map(([k, v, c]) => `<span class="chip ${c || ''}"><i>${k}</i>${v}</span>`).join('')
+  }
+  function renderAgents() {
+    $('#agents').innerHTML = S.sim.agents.map((a, i) => {
+      const gate = a.stageGate, c = gate && a.report ? completeCount(a.report, gate.gate) : 0, open = a.report ? a.report.violations.filter(v => v.component === MIN).length : 0
+      return `<button class="ag ${i === S.sel ? 'on' : ''}" data-i="${i}" style="--c:${a.color}"><span class="dot"></span><b>${esc(a.name)}</b><em>${esc(a.roleName)}</em>
+        <span class="pips">${[0, 1, 2, 3].map(k => `<i class="${k <= a.stage ? 'f' : ''}"></i>`).join('')}</span>
+        <small>${a.task ? (a.task.explore ? '🧭 exploring' : a.task.found ? '🏘️ gathering to found' : a.task.request ? '📏 ' + esc(a.task.message.replace('Council request: ', 'council: ')) : '→ ' + esc(short(a.task.focus).replace('w:', '')) + ' · ' + esc(short(a.task.path).replace(/^(w:|rdfs:)/, ''))) : '· idle'} <u>${open} open</u></small></button>`
+    }).join('')
+    $$('#agents .ag').forEach(b => b.onclick = () => { S.sel = +b.dataset.i; S.panelDirty = true; renderAgents() })
+  }
+  function renderLegend() {
+    $('#legend').innerHTML = `<span><i class="ring amber"></i> place with an open task</span><span><i class="ring green"></i> place no mind is missing anything about</span><span><i class="dashed"></i> intended route</span><span><i class="gold"></i> memory exchange</span>`
+  }
+  function mindHTML() {
+    const sim = S.sim, a = selAgent(), rep = a.report; if (!rep) return '<p class="hint">…</p>'
+    const gate = a.stageGate, gc = gate ? completeCount(rep, gate.gate) : 0, last = a.stage + 1 >= sim.wb.stages.length
+    const ladder = sim.wb.stages.map((_, k) => { const st = stageFor(sim.wb, k, a.role); return `<li class="${k < a.stage ? 'done' : k === a.stage ? 'now' : ''}"><i>${k}</i>${esc(st ? st.label : '')}</li>` }).join('')
+    const tasks = [], seen = new Set()
+    for (const v of rep.violations) { if (v.component !== MIN) continue; const key = v.focusNode + '|' + v.path; if (seen.has(key)) continue; seen.add(key); tasks.push({ v, rank: sim.wb.pathRank.get(v.path) ?? 0.5, blocked: a.blocked.has(key), cur: a.task && a.task.key === key }) }
+    tasks.sort((p, q) => p.rank - q.rank || (p.v.focusNode < q.v.focusNode ? -1 : 1))
+    const shapes = shapeStats(a)
+    const recs = shapes.filter(s => s.partial).map(s => { const nodes = Object.entries(rep.records[s.iri] || {}).filter(([, p]) => Object.keys(p).length).slice(0, 3)
+      return `<details><summary><b>${esc(s.name.replace('w:', ''))}</b> <em>${s.complete} complete · ${s.open} open</em></summary>${nodes.map(([n, p]) => `<div class="rec"><code>${esc(short(n))}</code>${recordTable(p)}</div>`).join('') || '<p class="hint">nothing perceived yet</p>'}</details>` }).join('')
+    return `
+    <div class="mh" style="--c:${a.color}"><span class="dot"></span><h2>${esc(a.name)}</h2><em>${esc(a.roleName)} · at ${a.x},${a.y}</em></div>
+    <ol class="ladder">${ladder}</ol>
+    <p class="gate">${gate ? `Gate to stage ${a.stage + 1}: <b>${esc(short(gate.gate).replace('w:', ''))}</b> ${gc}/${gate.gateRecords} complete records ${last ? '· <i>final stage — the shapes are yours now</i>' : ''}` : ''}</p>
+    <h4>Now</h4><p class="now">${a.task ? (a.task.explore ? `🧭 <b>exploring</b> — ${esc(a.task.message)}` : `🎯 <b>${esc(a.task.message.replace(/ — .*$/, ''))}</b> <code>${esc(short(a.task.focus))}</code> → tile ${a.task.target % sim.world.W},${(a.task.target / sim.world.W) | 0}`) : (tasks.length ? 'waiting…' : '✓ no open violations — the worldview is satisfied')}</p>
+    <h4>Shapes <em>${shapes.length}</em></h4>
+    <table class="tbl"><tr><th>shape</th><th>complete</th><th>partial</th><th>open</th></tr>${shapes.map(s => `<tr><td>${esc(s.name.replace('w:', ''))}</td><td>${s.complete}</td><td>${s.partial}</td><td class="${s.open ? 'amber' : ''}">${s.open}</td></tr>`).join('')}</table>
+    <h4>Tasks <em>${tasks.length} open violations</em></h4>
+    <ul class="tasks">${tasks.slice(0, 24).map(t => `<li class="${t.cur ? 'cur' : ''} ${t.blocked ? 'blk' : ''}"><i>s${t.rank === 0.5 ? '★' : t.rank}</i>${esc(t.v.message.replace(/ — .*$/, ''))} <code>${esc(short(t.v.focusNode).replace('w:', ''))}</code>${t.blocked ? ' <b>blocked</b>' : ''}</li>`).join('') || '<li class="hint">none</li>'}${tasks.length > 24 ? `<li class="hint">… ${tasks.length - 24} more</li>` : ''}</ul>
+    ${a.findings?.length ? `<h4>Findings <em>the world disagrees with the shape</em></h4><ul class="tasks">${a.findings.slice(0, 8).map(v => `<li class="fnd"><i>≠</i>${esc(v.message.replace(/ — .*$/, ''))} <code>${esc(short(v.focusNode).replace('w:', ''))}</code> value <b>${esc(v.value)}</b> · ${esc(v.component.split('#').pop().replace('ConstraintComponent', ''))}</li>`).join('')}${a.findings.length > 8 ? `<li class="hint">… ${a.findings.length - 8} more</li>` : ''}</ul>` : ''}
+    ${a.blocked.size ? `<h4>Blocked <em>edit the shape, not the explorer</em></h4><p class="hint">${[...a.blocked].slice(0, 6).map(k => esc(k.split('|').map(short).join(' · '))).join('<br>')}${a.blocked.size > 6 ? `<br>… ${a.blocked.size - 6} more` : ''}</p>` : ''}
+    <h4>Perception <em>evaluated records (only what conforms)</em></h4>${recs || '<p class="hint">nothing yet</p>'}`
+  }
+  function commonsHTML() {
+    const cm = S.sim.commons; if (!cm) return '<p class="hint">This workbench has no Charter.</p>'
+    const pr = cm.proposal, rows = cm.sites.slice().sort((p, q) => ({ viable: 0, pending: 1, unfit: 2 }[p.status] - { viable: 0, pending: 1, unfit: 2 }[q.status]) || (p.id < q.id ? -1 : 1))
+    return `${pr ? `<p class="now">📣 <b>Proposal</b> at <code>${esc(short(pr.site.water.id))}</code> — ${S.sim.agents.filter(a => Math.max(Math.abs(a.x - pr.at[0]), Math.abs(a.y - pr.at[1])) <= 2).length}/${cm.quorum} explorers present</p>` : '<p class="hint">No proposal. The commons waits for a site every viewpoint accepts.</p>'}
+    <h4>Settlements <em>${cm.settlements.length}/${cm.max} · spacing ${cm.spacing}</em></h4>
+    <ul class="tasks">${cm.settlements.map(t => `<li><i>t${t.tick}</i>🏘️ ${t.at.join(',')} beside <code>${esc(short(t.water))}</code> — founded by ${esc(t.founders.join(', '))}</li>`).join('') || '<li class="hint">none yet</li>'}</ul>
+    <h4>Candidate sites <em>${rows.length} joined from everyone's memory</em></h4>
+    <table class="tbl"><tr><th>site</th><th>verdict</th><th>why</th></tr>${rows.slice(0, 18).map(x => `<tr><td><code>${esc(short(x.water.id).replace('w:f-', ''))}</code></td><td class="${x.status === 'viable' ? 'ok' : x.status === 'unfit' ? 'bad' : 'amber'}">${x.status}</td><td>${esc(x.reasons.join('; ') || 'every viewpoint satisfied')}</td></tr>`).join('')}</table>`
+  }
+  function renderLog() {
+    $('#log').innerHTML = S.sim.events.slice(-120).reverse().map(e => `<div class="ev ${e.kind}"><i>${e.tick}</i>${esc(e.text)}</div>`).join('')
+  }
+  function renderWorldview(force) {
+    const a = selAgent(), ed = wvEd
+    if ((force || a.worldview !== S.lastWV) && (force || document.activeElement !== ed)) { ed.value = a.worldview; S.lastWV = a.worldview }
+    $('#wvStatus').innerHTML = a.shError ? `<b class="bad">✗ ${esc(a.shError)}</b>` : `<b class="ok">✓ ${a.sh.quads.length} quads</b> · ${a.sh.shapes.length} shapes · lens: ${a.sh.paths.size} predicates`
+  }
+  function renderAtlas() {
+    const sim = S.sim, quads = unionQuads(sim), s = stats(sim)
+    $('#atStat').textContent = `${quads.length} quads · ${s.classes} words · ${s.features} places`
+    if (quads.length !== S.graphN && performance.now() - S.graphT > 1200) {
+      const qg = $('#qg'), keep = quads.filter(q => { const p = q.predicate.value, s = q.subject.value; if (s === NS + 'atlas') return false; if (p === NS + 'at') return false; if (p === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') { const o = q.object.value; return o !== NS + 'Feature' && !['Natural', 'Mineral', 'Relic', 'Civic'].some(g => o === NS + g) } return true })
+      if (qg) { qg.context = { w: NS, rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', rdfs: 'http://www.w3.org/2000/01/rdf-schema#', xsd: 'http://www.w3.org/2001/XMLSchema#' }; qg.quads = keep }
+      S.graphN = quads.length; S.graphT = performance.now()
+    }
+  }
+  function renderPanel() {
+    S.panelDirty = false; renderChips(); renderAgents()
+    if (S.tab === 'mind') $('#t-mind').innerHTML = mindHTML()
+    else if (S.tab === 'worldview') renderWorldview(false)
+    else if (S.tab === 'commons') { $('#cmInfo').innerHTML = commonsHTML(); const cm = S.sim.commons; if (cm) $('#cmStatus').innerHTML = cm.error ? `<b class="bad">✗ ${esc(cm.error)}</b>` : `<b class="ok">✓ Charter</b> · ${cm.sh.quads.length} quads` }
+    else if (S.tab === 'atlas') renderAtlas()
+    else if (S.tab === 'log') renderLog()
+  }
+
+  // ───────── controls ─────────
+  const setTab = t => { S.tab = t; $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); $$('.tab').forEach(d => d.hidden = d.id !== 't-' + t); if (t === 'worldview') renderWorldview(true); if (t === 'commons' && S.sim.commons && cmEd.value !== S.sim.commons.worldview && document.activeElement !== cmEd) cmEd.value = S.sim.commons.worldview; if (t === 'atlas') S.graphT = 0; S.panelDirty = true }
+  $$('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t))
+  const setPlay = on => { S.playing = on; $('#play').textContent = on ? '⏸ Pause' : '▶ Run' }
+  $('#play').onclick = () => setPlay(!S.playing)
+  $('#step').onclick = () => { setPlay(false); step(S.sim); S.panelDirty = true }
+  $('#speed').onchange = e => S.speed = +e.target.value
+  $('#newworld').onclick = () => { setPlay(false); restart(S.wbText, +$('#seed').value || 1); setTab(S.tab) }
+  $('#vAtlas').onclick = () => { S.view = 'atlas'; $('#vAtlas').classList.add('on'); $('#vMind').classList.remove('on') }
+  $('#vMind').onclick = () => { S.view = 'mind'; $('#vMind').classList.add('on'); $('#vAtlas').classList.remove('on') }
+  window.addEventListener('keydown', e => { if (e.code === 'Space' && !/^(INPUT|TEXTAREA|SELECT|MDLD-EDITOR)$/.test(document.activeElement?.tagName || '')) { e.preventDefault(); setPlay(!S.playing) } })
+  let wvT; wvEd.addEventListener('input', () => { clearTimeout(wvT); wvT = setTimeout(() => { const a = selAgent(); setWorldview(S.sim, a, wvEd.value); S.lastWV = a.worldview !== wvEd.value && a.shError ? S.lastWV : wvEd.value; if (!a.shError) a.edited = true; S.sim.events.push({ tick: S.sim.tick, text: a.shError ? `${a.name}'s worldview did not parse — keeping the previous shapes` : `${a.name}'s worldview edited (${a.sh.shapes.length} shapes, ${a.sh.paths.size} predicates in lens)`, kind: a.shError ? 'blocked' : 'edit' }); renderWorldview(false); S.panelDirty = true }, 350) })
+  let cmT; cmEd.addEventListener('input', () => { clearTimeout(cmT); cmT = setTimeout(() => { const ok = setCharter(S.sim, cmEd.value); S.sim.events.push({ tick: S.sim.tick, text: ok ? 'Charter edited — the council will re-judge every site' : 'Charter did not parse — keeping the previous one', kind: ok ? 'council' : 'blocked' }); S.panelDirty = true }, 350) })
+  $('#snip').onchange = e => { const sn = SNIPPETS[e.target.value]; if (!sn) return; const a = selAgent(); const text = a.worldview.trimEnd() + '\n' + sn.text; if (setWorldview(S.sim, a, text)) { S.sim.events.push({ tick: S.sim.tick, text: `${a.name}: added “${sn.title}”`, kind: 'edit' }); renderWorldview(true) } e.target.value = ''; S.panelDirty = true }
+  $('#wvDl').onclick = () => download(`${selAgent().id}-worldview.md`, selAgent().worldview)
+  $('#atDl').onclick = () => download('atlas.md', generate({ quads: unionQuads(S.sim), context: { w: NS } }).text)
+  $('#atTxt').onclick = () => { const p = $('#atPre'); p.hidden = !p.hidden; if (!p.hidden) { const t = generate({ quads: unionQuads(S.sim), context: { w: NS } }).text; p.textContent = t.length > 14000 ? t.slice(0, 14000) + '\n… (' + t.length + ' chars — download for all)' : t } }
+  $('#wbApply').onclick = () => { setPlay(false); if (restart(wbEd.value, +$('#seed').value || S.seed)) setTab('mind') }
+  $('#wbReset').onclick = () => { wbEd.value = BASE_WB }
+  $('#wbFile').onchange = async e => { const f = e.target.files[0]; if (f) wbEd.value = await f.text() }
+  $('#t-workbench label.file').onclick = () => $('#wbFile').click()
+  function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 500) }
+
+  // ───────── boot ─────────
+  restart(BASE_WB, 3); wbEd.value = BASE_WB; fitCanvas(); renderLegend(); renderPanel()
+  let prev = performance.now()
+  const frame = now => {
+    const dt = Math.min(0.2, (now - prev) / 1000); prev = now
+    if (S.playing) { S.acc += dt * S.speed; let n = 0; while (S.acc >= 1 && n < 6) { step(S.sim); S.acc -= 1; n++; S.panelDirty = true } if (S.acc > 6) S.acc = 0 }
+    draw(now)
+    if (S.panelDirty && now - S.lastPanel > 220) { S.lastPanel = now; renderPanel() }
+    requestAnimationFrame(frame)
+  }
+  requestAnimationFrame(frame)
+  window.__atlas = { S, step, restart }
+}
+
+</script></body></html>
