@@ -1,5 +1,9 @@
 # MD-LD evolution
 
+## v1.2.7 rebase to clean up history from malicious bot identification
+
+- Rebased history to remove commits with malicious bot identification. All content preserved as is, the crystallized ecosystem is ready to be used in real life scenarios.
+
 ## v1.2.6 canonical labels & single-file condensation
 
 ### Fixed
