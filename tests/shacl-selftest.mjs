@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * selftest.js — the ecosystem validates itself.
+ * shacl-selftest.mjs — the ecosystem validates itself.
  *
  * Three-way synchronization check across the MD-LD SHACL stack:
  *
- *   ontology.md ──► catalog.md ──► evaluate.js
+ *   ontologies/shacl.md ──► ontologies/shacl.catalog.md ──► src/evaluate.js
  *   (ground truth)  (docs + demos)  (implementation)
  *
  * 1. COVERAGE   — every sh: property defined in ontology.md is accounted for
@@ -17,7 +17,7 @@
  * 4. SELF       — the catalog's own SHACL shapes (cat:self section) must
  *                 conform against the catalog graph itself.
  *
- * Usage:  node selftest.js [catalog.md] [ontology.md]
+ * Usage:  node tests/shacl-selftest.mjs [catalog.md] [ontology.md]
  * Exit:   0 = all checks pass, 1 = any failure
  */
 import { readFileSync } from 'node:fs'
@@ -27,8 +27,8 @@ import { parse, DataFactory } from '../src/index.js'
 import { validate, evaluate, isSupportedTerm, extract, extractGraph } from '../src/evaluate.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const catalogPath = process.argv[2] || join(here, 'catalog.md')
-const ontologyPath = process.argv[3] || join(here, 'ontology.md')
+const catalogPath = process.argv[2] || join(here, '..', 'ontologies', 'shacl.catalog.md')
+const ontologyPath = process.argv[3] || join(here, '..', 'ontologies', 'shacl.md')
 
 const CAT = 'https://mdld.js.org/shacl/'
 const SH = 'http://www.w3.org/ns/shacl#'

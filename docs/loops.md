@@ -135,7 +135,7 @@ coexist; the loop makes omission visible, which makes honesty the path of
 least resistance.
 
 ```bash
-node shapes/selftest.js   # coverage: every sh: term accounted for or declared-excluded
+node tests/shacl-selftest.mjs   # coverage: every sh: term accounted for or declared-excluded
 ```
 
 ## Loop V — The seeds

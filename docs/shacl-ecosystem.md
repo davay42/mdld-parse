@@ -1,4 +1,4 @@
-# mdld-shapes
+# The Self-Validating SHACL Ecosystem
 
 **Zero-dependency SHACL Core validator for the MD-LD ecosystem.**
 
@@ -37,7 +37,7 @@ const report = validate({ shapes: shapeQuads,  dataQuads })
 ### Stateful validator (reusable shapes)
 
 ```javascript
-import { Validator } from '../src/evaluate.js'
+import { Validator } from 'mdld-parse'
 
 const v = new Validator(shapeQuads)
 const r1 = v.validate(dataQuads1)
@@ -47,8 +47,8 @@ const r2 = v.validate(dataQuads2)
 ### CLI
 
 ```bash
-node selftest.js
-# 30 passed, 0 failed, 1 skipped — 31 demos in .../catalog.md
+node tests/shacl-selftest.mjs
+# 30 passed, 0 failed, 1 skipped — 31 demos in .../ontologies/shacl.catalog.md
 ```
 
 ## Supported Constraints
@@ -274,7 +274,7 @@ per call; beyond that, shard by target or wait for the indexed store.
 ## Architecture
 
 ```
-evaluate.js (~1,600 LOC)
+src/evaluate.js (~1,600 LOC)
 ├── Namespaces & constants      (~30 LOC)
 ├── Term helpers                (~50 LOC)  termKey, termEquals, isLiteral
 ├── Store                       (~40 LOC)  Minimal RDF/JS DatasetCore
@@ -299,7 +299,7 @@ evaluate.js (~1,600 LOC)
 
 ## Comparison with shacl-engine
 
-| Feature | shacl-engine | mdld-shapes |
+| Feature | shacl-engine | mdld-parse |
 |---------|--------------|-------------|
 | Dependencies | 11 npm packages | 0 |
 | Bundle size | ~200 KB + transitive | ~40 KB |
@@ -320,8 +320,8 @@ import Validator from 'shacl-engine/Validator.js'
 const validator = new Validator(shapesDataset, { factory })
 const report = await validator.validate({ dataset: dataDataset })
 
-// After (mdld-shapes)
-import { validate } from './evaluate.js'
+// After (mdld-parse)
+import { validate } from 'mdld-parse'
 const report = validate({ shapes: shapesQuads,  dataQuads })
 ```
 
@@ -333,19 +333,19 @@ const report = validate({ shapes: shapesQuads,  dataQuads })
 ## The Self-Validating Loop
 
 ```bash
-node selftest.js   # the whole loop, one command — ~0.17s: 33 demos
+node tests/shacl-selftest.mjs   # the whole loop, one command — ~0.17s: 33 demos
                    # validated, message-checked, extracted, round-tripped
 ```
 
 The catalog is not documentation *about* SHACL — it is SHACL. Five closed
-loops keep `ontology.md`, `catalog.md`, and `evaluate.js` synchronized:
+loops keep `ontologies/shacl.md`, `ontologies/shacl.catalog.md`, and `src/evaluate.js` synchronized:
 
 1. **Coverage** (ontology → catalog) — every `sh:` property defined in
-   `ontology.md` (the W3C vocabulary, ground truth) must be accounted for in
-   `catalog.md` as `demo` / `included` / `section` / `notCovered`.
+   `ontologies/shacl.md` (the W3C vocabulary, ground truth) must be accounted for in
+   `ontologies/shacl.catalog.md` as `demo` / `included` / `section` / `notCovered`.
 2. **Sync** (catalog ↔ validator) — every term the catalog presents as
    covered must exist in `SUPPORTED_VOCABULARY` (exported from
-   `evaluate.js`); implemented-but-marked-`notCovered` terms are reported.
+   `src/evaluate.js`); implemented-but-marked-`notCovered` terms are reported.
 3. **Demos** (catalog → validator) — every `cat:Demo`'s `cat:demo` source is
    re-parsed and validated; the violation count must equal
    `cat:expectedViolations`, and every `cat:expectedViolationMessage` literal
@@ -354,7 +354,7 @@ loops keep `ontology.md`, `catalog.md`, and `evaluate.js` synchronized:
    extraction as a `~~~~~~json {cat:extractedPOJO}` block
    (`{ shape → focus → pojo }`, IRIs shortened by the demo's `[ex]` prefix),
    verified deep-equal against live `extract` output — regenerate with
-   `node gen-extracted.js`.
+   `node tests/gen-shacl-extracted.mjs`.
 5. **Self** (catalog → catalog) — the catalog's own SHACL shapes (`cat:self`
    section) run against the catalog graph: every demo must carry `cat:demo`
    source and, unless `cat:notCovered`, a `cat:expectedViolations` integer —
@@ -399,7 +399,7 @@ Authoring rules learned the hard way:
 
 `sh:js` executes arbitrary JavaScript — **disabled by default**. Enable only
 for trusted shapes: `validate({ quads, allowJS: true })` or
-`new Validator(shapeQuads, { allowJS: true })`. `selftest.js` opts in
+`new Validator(shapeQuads, { allowJS: true })`. `tests/shacl-selftest.mjs` opts in
 explicitly because the catalog is trusted. Never enable on crawled or
 untrusted documents.
 
@@ -432,7 +432,7 @@ Same as `mdld-parse`. See the [mdld-parse repository](https://github.com/mdld-js
 
 **Verified against:** shacl-engine 1.1.3 on the `shacl-demo.md` test suite (301 violations, 0 differences)
 
-**Lines of code:** ~1,450 (evaluate.js)
+**Lines of code:** ~1,450 (src/evaluate.js)
 
 **Dependencies:** 0 (excluding mdld-parse)
 
@@ -461,7 +461,7 @@ Two principles keep curation honest:
 
 ### Philosophy
 
-mdld-shapes validates RDF data against SHACL shapes on mdld-parse's own principles: zero dependencies, compact (~1,000 LOC), readable in one sitting, deterministic, synchronous. It does one thing — quads in, validation report out — by walking the graph with `match()` calls.
+mdld-parse validates RDF data against SHACL shapes on mdld-parse's own principles: zero dependencies, compact (~1,000 LOC), readable in one sitting, deterministic, synchronous. It does one thing — quads in, validation report out — by walking the graph with `match()` calls.
 
 ### Scope
 
@@ -515,15 +515,15 @@ Malformed RDF lists and missing `sh:script` throw with context. Everything else 
 
 ### Testing strategy
 
-`selftest.js` is the canonical suite — the catalog is its own test suite:
+`tests/shacl-selftest.mjs` is the canonical suite — the catalog is its own test suite:
 
-1. **Coverage** — every `sh:` property in `ontology.md` accounted for in `catalog.md`.
+1. **Coverage** — every `sh:` property in `ontologies/shacl.md` accounted for in `ontologies/shacl.catalog.md`.
 2. **Sync** — covered terms must exist in `SUPPORTED_VOCABULARY`.
 3. **Demos** — every `cat:Demo` re-parsed and validated against `cat:expectedViolations`, and its `cat:extractedPOJO` block verified against `extract`.
 4. **Self** — the catalog's own `cat:self` SHACL shapes must conform.
 
 ```bash
-node selftest.js   # 32/32 demos + extractedPOJO, 0 self-violations, 101/101 terms
+node tests/shacl-selftest.mjs   # 32/32 demos + extractedPOJO, 0 self-violations, 101/101 terms
 ```
 
 ### Compliance

@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * gen-extracted.js — regenerate cat:extractedPOJO blocks in catalog.md.
+ * gen-shacl-extracted.mjs — regenerate cat:extractedPOJO blocks in
+ * ontologies/shacl.catalog.md.
  *
  * For every cat:Demo, computes the canonical extraction of its fenced MD-LD
  * world: { "<shapeShortIRI>": { "<focusShortIRI>": { ...pojo... } } } with IRIs
  * shortened by the demo's own [ex] prefix. The block is written as
  * ~~~~~~json {cat:extractedPOJO} immediately after the ~~~~~~md {cat:demo} fence,
- * and selftest.js verifies it deterministically against extract.
+ * and shacl-selftest.mjs verifies it deterministically against extract.
  *
- * Usage:  node gen-extracted.js [catalog.md]
+ * Usage:  node tests/gen-shacl-extracted.mjs [catalog.md]
  * Exit:   0 = blocks written, 1 = parse/extraction error
  */
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -18,7 +19,7 @@ import { parse } from '../src/index.js'
 import { extract } from '../src/evaluate.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const catalogPath = process.argv[2] || join(here, 'catalog.md')
+const catalogPath = process.argv[2] || join(here, '..', 'ontologies', 'shacl.catalog.md')
 
 const SH = 'http://www.w3.org/ns/shacl#'
 const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'

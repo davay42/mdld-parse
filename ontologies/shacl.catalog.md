@@ -96,9 +96,9 @@ Three declarations pin down the expected outcome:
   (identity — if a shape's message template drifts, the demo fails).
 - `~~~~~~json {cat:extractedPOJO}` — *what survives*: the canonical
   `extract` output for the demo's shapes (projection — regenerate with
-  `node gen-extracted.js`).
+  `node tests/gen-shacl-extracted.mjs`).
 
-`node selftest.js` re-parses each demo's fenced world, runs the real
+`node tests/shacl-selftest.mjs` re-parses each demo's fenced world, runs the real
 validator, and checks all three. The message is the contract; the POJO is
 the proof the remaining data is meaningful.
 

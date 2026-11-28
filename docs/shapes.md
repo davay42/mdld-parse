@@ -55,7 +55,7 @@ new Validator(shapeQuads).validate(dataQuads)   // reusable shape cache
 
 Full SHACL Core surface: all constraint components (value-type, cardinality, range, string, property-pair, logical `not`/`and`/`or`/`xone`, shape-based, `closed`), all target types (`targetClass` with `subClassOf` traversal, `targetNode`, `target`, `targetSubjectsOf`, `targetObjectsOf`), all seven property-path types — expressed as IRIs, so MD-LD needs no blank nodes — qualified counts, `sh:message`/`sh:severity`/`sh:deactivated`. SHACL-JS (`sh:js`) is opt-in via `allowJS: true`, off by default.
 
-Out of scope by design: SHACL-SPARQL, SHACL-AF, external JS libraries. See `shapes/README.md` for the honest-limitations list.
+Out of scope by design: SHACL-SPARQL, SHACL-AF, external JS libraries. See `docs/shacl-ecosystem.md` for the honest-limitations list.
 
 ---
 
@@ -109,7 +109,7 @@ For each targeted node it keeps quads whose predicate is declared by a property 
 
 ## The self-validating catalog
 
-`shapes/` doesn't just ship the validator — it ships its own proof. `catalog.md` holds 32 executable `cat:Demo` worlds, each a small-business story that is simultaneously documentation, test fixture, and expected output:
+The SHACL catalog doesn't just ship the validator — it ships its own proof. `ontologies/shacl.catalog.md` holds 33 executable `cat:Demo` worlds, each a small-business story that is simultaneously documentation, test fixture, and expected output:
 
 ```markdown
 ### Product Demo {=cat:demo/product .cat:Demo ?cat:hasDemo}
@@ -127,7 +127,7 @@ Expects `4` {cat:expectedViolations ^^xsd:integer} violations (...)
 ~~~~~~
 ```
 
-`selftest.js` closes five loops plus two machinery guards in one command:
+`tests/shacl-selftest.mjs` closes five loops plus two machinery guards in one command:
 
 1. **Coverage** — every `sh:` property in `ontology.md` (the W3C vocabulary, ground truth) is accounted for in the catalog
 2. **Sync** — every term the catalog presents as covered exists in `SUPPORTED_VOCABULARY`
@@ -138,11 +138,11 @@ Expects `4` {cat:expectedViolations ^^xsd:integer} violations (...)
 Plus: a procedural **projection** check on hand-built quads, and a **document round-trip** guard (`parse → generate → parse` is quad-identical — the catalog is canonical MD-LD).
 
 ```bash
-node shapes/selftest.js
-# 32/32 demos, 32/32 extractions verified, 0 self-violations, 101/101 terms
+node tests/shacl-selftest.mjs
+# 33/33 demos, extractions verified, 0 self-violations, 101/101 terms
 ```
 
-`gen-extracted.js` regenerates the `cat:extractedPOJO` blocks whenever demos change — the expected JSON is `{ shapeShortIRI → focusShortIRI → pojo }` with IRIs shortened by each demo's own `[ex]` prefix.
+`tests/gen-shacl-extracted.mjs` regenerates the `cat:extractedPOJO` blocks whenever demos change — the expected JSON is `{ shapeShortIRI → focusShortIRI → pojo }` with IRIs shortened by each demo's own `[ex]` prefix.
 
 ---
 

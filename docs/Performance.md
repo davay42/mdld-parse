@@ -10,7 +10,7 @@ Measured on Apple Silicon, Node 24, zero-dependency synchronous JS. All numbers 
 | `examples/demo/research.md` | 323 | 3.52 ms | 1.46 ms |
 | `examples/demo/recipe.md` | 255 | 2.72 ms | 1.08 ms |
 | `ontologies/rdfs.md` | 87 | 1.12 ms | 0.20 ms |
-| `shapes/catalog.md` | 599 | 11.81 ms | 2.61 ms |
+| `ontologies/shacl.catalog.md` | 599 | 11.81 ms | 2.61 ms |
 
 `generate()` (canonical round-trip) runs ~2× faster than parse on every doc.
 
@@ -33,7 +33,7 @@ on a realistic document stays under ~20 ms total.
 | `examples/demo/journal.md` | 363 | 2.65 ms |
 | `examples/demo/research.md` | 323 | 2.29 ms |
 | `examples/demo/recipe.md` | 255 | 1.72 ms |
-| `shapes/catalog.md` | 599 | 1.93 ms |
+| `ontologies/shacl.catalog.md` | 599 | 1.93 ms |
 
 Real knowledge documents evaluate in **single-digit milliseconds** — validation is never the bottleneck at human-authoring scale.
 
