@@ -19,6 +19,10 @@ This document is the whole design. Four explorers walk a world they cannot see. 
 | 2 — Depth | per role: vitality / grade / age, or wider extent (≥ 12 places) | *properties* that only a specialist has a word for | the shared view |
 | 3 — Trails | every Feature knows ≥ 1 trail; atlas holds ≥ 20 places | *relations*: which places connect, revealing places never yet seen | the human's turn |
 
+| Commons | the Charter: each viewpoint's standard for a shared place | *joins* — facts no one explorer can hold at once | a settlement: the world changes, and asks for new words |
+
+**Beside the ladder runs the Commons.** It is a mind of its own, reading the union of everyone's memory through the Charter below. A *Site* is a living place with an ore and a relic nearby; the Charter says what each role needs before it will settle there. A site that lacks a measurement sends a *request* to whoever owns the word for it; a site that fails a standard is *unfit*; a site that satisfies everyone is *viable*, and the explorers gather to found it. A founding is a **shared consequence**: a Settlement appears in the world, so the ontology grows (new words to define) and explorers who share its market exchange memories.
+
 **After stage 3 the shapes are yours.** Write a new shape in any worldview — say, every tile needs an `elevation`, or every Ruin must be near a Spring — and watch the explorer turn toward the work. A shape the world cannot answer shows up as a *blocked* task: the signal to tighten or loosen the shape, never to bypass the gate.
 
 ## Shell Shapes
@@ -239,6 +243,48 @@ Every [Feature] {+w:Feature ?sh:targetClass} must know at least one **trail** {+
 [The atlas must hold at least twenty places — {$focusNode}] {=#reH .sh:PropertyShape sh:message}
 [20] {sh:minCount ^^xsd:integer}
 [holds] {+w:holds ?sh:path}
+~~~~~~
+
+---
+
+## The Charter {=w:charter .w:Charter label}
+[6] {w:spacing ^^xsd:integer}
+[3] {w:quorum ^^xsd:integer}
+[3] {w:maxSettlements ^^xsd:integer}
+
+~~~~~~md {=w:charter w:payload}
+# The Charter — what four viewpoints need from one place
+
+No explorer can judge a site alone: the water belongs to the Naturalist, the ore to the Prospector, the age of the ruins to the Archivist, the roads to the Cartographer. The Commons joins what each has measured, and the Charter says what each will accept. Raise a number and fewer places qualify; lower it and settlements come sooner.
+
+## Sites {=w:SiteShape .sh:NodeShape label}
+Every [Site] {+w:Site ?sh:targetClass} needs an **ore** {+#siO ?sh:property sh:name} and a **relic** {+#siR ?sh:property sh:name} within reach, and then each viewpoint speaks: **vitality** {+#siV ?sh:property sh:name}, **grade** {+#siG ?sh:property sh:name}, **age** {+#siA ?sh:property sh:name} and **trails** {+#siT ?sh:property sh:name}.
+[No ore within reach — {$focusNode}] {=#siO .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[ore] {+w:ore ?sh:path}
+[No relic within reach — {$focusNode}] {=#siR .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[relic] {+w:relic ?sh:path}
+[Bo will not settle beside poor water — {$focusNode}] {=#siV .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[3] {sh:minInclusive ^^xsd:integer}
+[xsd:integer] {+xsd:integer ?sh:datatype}
+[vitality] {+w:vitality ?sh:path}
+[Cy will not settle without workable ore — {$focusNode}] {=#siG .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[2] {sh:minInclusive ^^xsd:integer}
+[xsd:integer] {+xsd:integer ?sh:datatype}
+[grade] {+w:grade ?sh:path}
+[Di will not settle without old foundations — {$focusNode}] {=#siA .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[1000] {sh:minInclusive ^^xsd:integer}
+[xsd:integer] {+xsd:integer ?sh:datatype}
+[age] {+w:age ?sh:path}
+[Ada wants a crossroads — {$focusNode}] {=#siT .sh:PropertyShape sh:message}
+[1] {sh:minCount ^^xsd:integer}
+[3] {sh:minInclusive ^^xsd:integer}
+[xsd:integer] {+xsd:integer ?sh:datatype}
+[trails] {+w:trails ?sh:path}
 ~~~~~~
 
 ---
