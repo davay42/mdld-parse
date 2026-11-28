@@ -32,6 +32,10 @@ The validation framework for RDF graphs. SHACL allows you to define *shapes*—c
 
 **Use case (2026):** Use SHACL in MD-LD to make documentation self-validating. Define a shape for "User" records, enforce that usernames and emails are present, validate email patterns, and automatically extract metadata for API documentation. SHACL turns descriptions into machine-checkable contracts.
 
+### [SHACL Catalog — self-validating guide](./shacl.catalog.md)
+
+The executable companion to the SHACL vocabulary above: 33 `cat:Demo` worlds that are simultaneously documentation, test fixtures, and expected outputs, verified by `tests/shacl-selftest.mjs`. Not an ontology — a catalog of worked examples with machine-checked extraction (`cat:extractedPOJO`) blocks.
+
 ---
 
 ### [PROV-O — W3C Provenance Ontology](./prov-o.md)
