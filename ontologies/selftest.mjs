@@ -50,23 +50,27 @@ for (const file of packs) {
     else fail(`pack violations: ${r.violations.map(v => v.message?.slice(0, 60)).join(' | ')}`)
   } catch (e) { fail(`pack parse/validate error: ${e.message}`) }
 
-  // 2/3/4. pack:Example nodes — source + expectations all in the graph
-  const EX = 'https://mdld.js.org/ns/pack/'
-  const examples = packQuads.filter(q => q.predicate.value.endsWith('type') && q.object.value === EX + 'Demo')
+  // 2/3/4. Demo nodes — source + expectations all in the graph.
+  // Two vocabularies: legacy pack: (ns/pack/) and unified cat: (mdld:shacl/).
+  const EXS = ['https://mdld.js.org/ns/pack/', 'https://mdld.js.org/shacl/']
+  const isType = q => q.predicate.value.endsWith('type')
+  const examples = packQuads.filter(q => isType(q) && EXS.some(ex => q.object.value === ex + 'Demo'))
     .map(q => q.subject.value)
-  const shapeIris = packQuads.filter(q => q.predicate.value.endsWith('type') && q.object.value.endsWith('NodeShape'))
+  const shapeIris = packQuads.filter(q => isType(q) && q.object.value.endsWith('NodeShape'))
     .map(q => q.subject.value)
   for (const exIri of examples) {
     const name = exIri.split('/').pop()
-    const srcQ = packQuads.find(q => q.subject.value === exIri &&
-      q.predicate.value === EX + 'demo')
-    const expVQ = packQuads.find(q => q.subject.value === exIri && q.predicate.value === EX + 'expectedViolations')
-    const expPQ = packQuads.find(q => q.subject.value === exIri && q.predicate.value === EX + 'extractedPOJO')
+    const local = p => EXS.map(ex => ex + p)
+    const srcQ = packQuads.find(q => q.subject.value === exIri && local('demo').includes(q.predicate.value))
+    const expVQ = packQuads.find(q => q.subject.value === exIri && local('expectedViolations').includes(q.predicate.value))
+    const expPQ = packQuads.find(q => q.subject.value === exIri && local('extractedPOJO').includes(q.predicate.value))
     if (!srcQ) { fail(`${name}: no source literal`); continue }
     let quads, context
     try { ({ quads, context } = parse({ text: srcQ.object.value })) }
     catch (e) { fail(`${name} source parse error: ${e.message}`); continue }
-    const report = evaluate({ quads: [...packQuads, ...quads], context, allowJS: true })
+    // Explicit partition: demo sources may themselves be shape documents
+    // (SHACL meta-shapes), so auto-classification would eat them as shapes.
+    const report = evaluate({ shapes: packQuads, data: quads, context, allowJS: true })
     const wantV = expVQ ? parseInt(expVQ.object.value) : null
     if (wantV != null && report.violations.length === wantV) ok(`${name}: ${wantV} violation(s) as declared`)
     else if (wantV != null) fail(`${name}: expected ${wantV} violations, got ${report.violations.length}`)
